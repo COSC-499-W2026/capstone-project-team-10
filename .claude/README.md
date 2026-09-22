@@ -45,9 +45,20 @@ Creates a pull request into `main` for the current branch. Key rules it enforces
   before writing anything, rather than summarising from memory
 - Does not include a test plan section
 - **Adds no AI attribution of any kind**, under the same precedence rule as `/commit`
-- PR body must include a **Summary** section of 2 to 5 bullets and a **Changes** section
-  breaking down each file
-- Uses `gh pr create --base main` and returns the PR URL
+- PR body must include a **Summary** section of 2 to 5 bullets, a **Changes** section breaking
+  down each file, and then **the full contents of
+  [pull_request_template.md](../pull_request_template.md) appended after them**. Passing
+  `--body` or `--body-file` to `gh` bypasses the repo template, which GitHub only pre-fills for
+  the web form or the interactive editor, so the template has to be concatenated in by hand or
+  it silently will not appear
+- Fills the appended checkboxes honestly: ticks only what is true, marks inapplicable items
+  `N/A` with a reason rather than ticking them, never ticks a TDD box on a PR with no code, and
+  leaves the Reviewer block for the reviewer
+- **Targets this repository, never upstream.** This repo is a fork of `brachify/brachify` and
+  `gh pr create` defaults to the parent, so the command passes
+  `--repo COSC-499-W2026/capstone-project-team-10` explicitly and then verifies
+  `isCrossRepository` is `false`
+- Returns the PR URL when done
 
 ---
 
