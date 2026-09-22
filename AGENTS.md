@@ -29,6 +29,9 @@ The documentation set is **every markdown file** in `docs/`, `tests/` and `utils
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
 | [docs/minutes/README.md](docs/minutes/README.md) | meeting minutes | minutes are added, or the format changes |
 | [docs/logs/README.md](docs/logs/README.md) | team and individual logs | logs are added, or the format changes |
+| [docs/workflows/README.md](docs/workflows/README.md) | index of the tool-agnostic workflows | a workflow is added, removed or renamed |
+| [docs/workflows/commit.md](docs/workflows/commit.md) | the canonical commit procedure | the commit convention changes |
+| [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | the canonical pull request procedure | the PR process changes |
 | [tests/README.md](tests/README.md) | TDD policy, the `tests/` scoping rule, what to test first | a test scope folder is added, the runner config changes, or the priority list shifts |
 | [utils/README.md](utils/README.md) | the `utils/` scoping rule and what belongs there | a utility scope folder is added, or the rule for what lives there changes |
 | [README.md](README.md) | repository entry point | the top-level structure changes, or a newcomer would be misled by what it currently says |
@@ -51,8 +54,8 @@ Files **not** in the set, because they are inherited from upstream *brachify* an
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 — and remember the four code sites |
 | changes an export format | §6.4 |
-| finds a new bug or trap | §7 — add it there, don't leave it in a commit message |
-| fixes a listed bug | §7 — mark it fixed, don't silently delete the entry |
+| finds a new bug or trap | §7 Known bugs, traps and dead code — add it there, don't leave it in a commit message |
+| fixes a listed bug | §7 Known bugs, traps and dead code — mark the entry fixed, don't silently delete it |
 | adds tests | §8 |
 
 #### Three rules when you edit anything in the set
@@ -60,6 +63,28 @@ Files **not** in the set, because they are inherited from upstream *brachify* an
 1. **The code is the source of truth, not the docs.** If a document contradicts the code, the document is wrong — fix it. Never edit code to match a stale document.
 2. **Mark your confidence.** `COSC499-TEAM10-PROJECT-DOCS.md` distinguishes *Verified* (observed at runtime, with evidence) from *Reasoned from code* (derived by reading). Do not promote the second to the first because it seems likely. Writing "not verified" is always acceptable; writing a confident wrong claim is not, because the whole team treats that file as ground truth.
 3. **Keep the set consistent with itself.** These files cross-reference each other. If you change a rule in one, find every other file that states or links to it and update those too. A rule that appears in three places and is true in two is worse than one that appears once.
+
+## Workflows
+
+Repeatable procedures live in [docs/workflows/](docs/workflows/) and are **tool-agnostic**. Any
+AI agent, and any person, can follow them by reading the file. Nothing in them depends on a
+particular assistant.
+
+| Workflow | Use it when |
+|---|---|
+| [docs/workflows/commit.md](docs/workflows/commit.md) | grouping changed files into logical commits |
+| [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | opening a pull request into `main` |
+
+**Follow the file, not a remembered version of it.** Both procedures contain rules that are
+easy to get wrong from memory: a PR must target this fork rather than upstream, the PR template
+must be appended to the body by hand, `git commit` commits the whole index rather than only the
+paths you just added, and neither commits nor PR descriptions may carry AI attribution.
+
+Claude Code users get `/commit` and `/make-pr`, which are thin pointers in
+[`.claude/commands/`](.claude/commands/). If your assistant has its own command format, point it
+at the file in `docs/workflows/` rather than copying the content, so there stays one source of
+truth. Adding a workflow is described in
+[docs/workflows/README.md](docs/workflows/README.md).
 
 ## Git history: never add AI attribution
 
