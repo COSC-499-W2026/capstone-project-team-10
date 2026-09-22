@@ -409,7 +409,8 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper
 ├── docs/                      course documentation
-│   └── project/               ← this document
+│   ├── project/               ← this document
+│   └── workflows/             tool-agnostic procedures (commit, make-pr)
 ├── tests/                     empty placeholder
 ├── utils/                     empty placeholder
 ├── notes/                     upstream developer notes
@@ -1008,6 +1009,9 @@ repository root:
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |
 | [docs/minutes/README.md](../minutes/README.md) | meeting minutes |
 | [docs/logs/README.md](../logs/README.md) | team and individual logs |
+| [docs/workflows/README.md](../workflows/README.md) | index of the tool-agnostic workflows |
+| [docs/workflows/commit.md](../workflows/commit.md) | the canonical commit procedure |
+| [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure |
 | [tests/README.md](../../tests/README.md) | TDD policy, `tests/` scoping rule, what to test first |
 | [utils/README.md](../../utils/README.md) | `utils/` scoping rule and what belongs there |
 | [README.md](../../README.md) | repository entry point |

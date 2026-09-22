@@ -25,6 +25,7 @@ claim is marked either *Verified* (observed at runtime) or *Reasoned from code*.
 | [design/](design/) | UI mocks and design artifacts |
 | [minutes/](minutes/) | Minutes from team meetings |
 | [logs/](logs/) | Team and individual logs |
+| [workflows/](workflows/) | **Tool-agnostic procedures** any AI agent or person can follow: how to commit, how to open a PR |
 
 ## Keeping it current
 
