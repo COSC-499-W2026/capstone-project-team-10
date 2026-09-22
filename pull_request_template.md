@@ -17,6 +17,7 @@ I reviewed each of these and updated the ones this PR affects:
 - [ ] [docs/design/README.md](docs/design/README.md)
 - [ ] [docs/minutes/README.md](docs/minutes/README.md)
 - [ ] [docs/logs/README.md](docs/logs/README.md)
+- [ ] [docs/workflows/](docs/workflows/) — `README.md`, `commit.md`, `make-pr.md`
 - [ ] [tests/README.md](tests/README.md) — TDD policy and the `tests/` scoping rule
 - [ ] [utils/README.md](utils/README.md) — the `utils/` scoping rule
 - [ ] [README.md](README.md) — repository entry point
@@ -33,8 +34,11 @@ Quality of the updates:
       — I did not silently promote the second to the first.
 - [ ] Cross-references stayed consistent. If I changed a rule stated in more than one file,
       I updated every copy.
-- [ ] Any new bug or trap I found is recorded in §7, not left in a PR comment.
-- [ ] Any §7 entry I fixed is marked as fixed rather than deleted outright.
+- [ ] Any new bug or trap I found is written into **§7 Known bugs, traps and dead code** of
+      [the source of truth](docs/project/COSC499-TEAM10-PROJECT-DOCS.md#7-known-bugs-traps-and-dead-code),
+      not left in a PR comment where it will be lost.
+- [ ] If I **fixed** a bug already listed in that §7 catalogue, I marked the entry as fixed
+      rather than deleting it, so a future reader can still see the trap once existed.
 - [ ] I did **not** edit upstream's inherited files (`README-BRACHIFY.md`,
       `virtual_environments_instructions.md`, `pull_request_template_brachify.md`, `notes/`).
 
@@ -48,7 +52,7 @@ Quality of the updates:
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 (**and all four code sites**) |
 | changes an export format | §6.4 |
-| finds or fixes a bug | §7 |
+| finds or fixes a bug | §7 Known bugs, traps and dead code |
 | adds tests | §8 |
 
 ## Test-driven development
