@@ -4,6 +4,32 @@ Guidance for AI coding agents working in this repository. This file is the sourc
 
 [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) is the source of truth for *project documentation*. The two do not overlap: this file tells you how to work, that file tells you what the project is.
 
+## Session start
+
+This file is loaded at the start of every session. Claude Code loads it because [CLAUDE.md](CLAUDE.md) imports this file with `@AGENTS.md`. Every other agent loads it because this file is the cross-tool standard. Do not wait to be asked.
+
+Before you write or edit code, the next two sections are already in force for the whole session, in this order:
+
+1. **Anti-slop.** Reject low-evidence, low-signal implementation. The rules are below. They come from the EduAI `anti-slop` plugin and are restated for this Python codebase.
+2. **Test-driven development.** Follow the superpowers `test-driven-development` skill. No production code without a failing test first. The repo-specific rules are in [Testing: write the test first](#testing-write-the-test-first).
+
+Then read the project-doc sections named under [Read this before doing anything else](#read-this-before-doing-anything-else). Session start does not replace that reading.
+
+## Anti-slop
+
+Source: the EduAI repository's `anti-slop` oxlint plugin (`anti-slop/index.ts` and `anti-slop/rules/`). That plugin is TypeScript. This repository is Python and does not run it. Do not add oxlint, a copy of that package, or a JavaScript toolchain. Follow the rules below while you write.
+
+They bind code you write or change. Existing violations are not a drive-by rewrite.
+
+The plugin rejects low-evidence and low-signal patterns: a value whose type was thrown away, structure recovered at runtime, and a test that mocks the code under test.
+
+1. **Decode at the boundary.** DICOM, JSON config, and anything read from disk become a named domain value at the edge. Do not pass a bare `dict`, `Any`, or `object` inward and recover fields later with `type()`, an `isinstance` ladder, `getattr`, or `**` unpacking. This covers `no-unknown-parameters`, `no-unknown-returns`, `no-unknown-type-aliases`, `no-unsafe-dictionary-type`, `no-runtime-typeof`, `no-reflect-get`, and `no-reflect-apply`.
+2. **Name the parameter.** A new function parameter has a specific type the caller owns. No new parameter typed only as `dict`, `object`, or `Any`. This is `no-object-parameters`.
+3. **Do not widen, then assert.** Do not discard a known type and cast it back. No `cast()`, no chained assertions, and no `# type: ignore` unless the same line or the line above says why it is safe. This covers `no-widen-then-assert`, `no-known-value-widening`, `no-chained-type-assertions`, and `require-safety-comment-for-type-assertion`.
+4. **Do not mock modules.** A test replaces a dependency through a real seam. The only mocks allowed are the ones already named in the testing section: the filesystem and `pydicom.dcmread`. Do not `patch` an application module. This is `no-module-mocking`.
+5. **Do not omit fields by spreading an empty dict.** Write the branch. A pattern like `{**({} if flag else fields)}` is forbidden. This is `no-conditional-empty-object-spread`.
+6. **Do not apply EduAI's `no-shape-in-symbol-names` rule here.** That rule bans the substring `shape` because, in EduAI, the word names structure instead of a domain role. In this repository shape is the domain: OpenCASCADE `TopoDS_Shape`, `ShapeModel`, `ShapeTypes`. Do not rename them. Do still refuse an empty name (`data`, `info`, `obj`, `temp`) when a domain name exists.
+
 ## Read this before doing anything else
 
 **Read [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) first.** It is the canonical description of this codebase: setup, architecture, the signal graph, a module-by-module reference, the configuration schema, and a catalogue of known bugs and traps. Read the sections relevant to your task before you touch code. It will save you from re-deriving things that are already written down, and from re-discovering bugs that are already catalogued.
@@ -96,7 +122,11 @@ Do not ask for permission to add it, and do not add it "just this once". The git
 
 ## Testing: write the test first
 
-This project follows test-driven development. Every change starts with a failing test, then the code that makes it pass.
+This project follows the superpowers **test-driven-development** skill. It is mandatory from [session start](#session-start), before any implementation.
+
+**Iron law:** no production code without a failing test first. Wrote the code first? Delete it. Do not keep it as a reference, do not adapt it while writing the test, and do not look at it. Implement again from the test.
+
+The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
 **There is currently no test suite and no working test configuration.** [`.vscode/settings.json`](.vscode/settings.json) enables pytest against a `testing/` directory that does not exist; the real directory is [tests/](tests/). The first change that adds a test must also fix that setting and put `src/` on `sys.path`, either through a root `conftest.py` or `pythonpath = ["src"]` in a `pytest.ini`. Until that exists, adding it is part of your change, not a reason to skip the test.
 

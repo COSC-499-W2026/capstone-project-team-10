@@ -948,9 +948,12 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 8.1 Policy
 
-**This project follows test-driven development.** Every change starts with a failing test,
-then the code that makes it pass. The full rules live in
-[AGENTS.md](../../AGENTS.md#testing-write-the-test-first) and are enforced by the
+**This project follows test-driven development**, including the superpowers iron law: no
+production code without a failing test first. Code written before its test is deleted and
+rewritten from the test. The full rules, including the anti-slop rules every agent applies at
+session start, live in
+[AGENTS.md](../../AGENTS.md#session-start) and
+[AGENTS.md](../../AGENTS.md#testing-write-the-test-first). They are enforced by the
 [pull request template](../../pull_request_template.md): write the test, watch it fail, make
 it pass, then break the code on purpose to confirm the test catches it.
 
