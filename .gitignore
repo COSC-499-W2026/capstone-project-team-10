@@ -178,3 +178,6 @@ src/files/tandem/VMS 60deg FDM_model.STL
 files
 >>>>>>> main
 test.pdf
+
+# Node tooling (anti-slop oxlint plugin, lefthook)
+node_modules/
