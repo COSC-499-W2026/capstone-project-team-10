@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "jsPlugins": [{ "name": "anti-slop", "specifier": "./anti-slop/index.ts" }],
+  "jsPlugins": [{ "name": "anti-slop", "specifier": "./agent-skills/anti-slop/index.ts" }],
   "rules": {
     "anti-slop/no-module-mocking": "error",
     "anti-slop/no-object-parameters": "error",
@@ -37,7 +37,7 @@
   ],
   "ignorePatterns": [
     ".claude/**",
-    "anti-slop/**",
+    "agent-skills/anti-slop/**",
     "**/node_modules/**",
     "**/build/**",
     "**/dist/**",
