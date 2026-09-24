@@ -8,15 +8,15 @@ Guidance for AI coding agents working in this repository. This file is the sourc
 
 This file is loaded at the start of every session. Claude Code loads it because [CLAUDE.md](CLAUDE.md) imports this file with `@AGENTS.md`. Every other agent loads it because this file is the cross-tool standard. Do not wait to be asked.
 
-Before you write or edit code, the [Anti-slop](#anti-slop) section is already in force for the whole session. It rejects low-evidence, low-signal implementation. The rules come from the `anti-slop` plugin installed at [anti-slop/](anti-slop/), and are restated for this Python codebase because the plugin itself only reads JavaScript and TypeScript.
+Before you write or edit code, the [Anti-slop](#anti-slop) section is already in force for the whole session. It rejects low-evidence, low-signal implementation. The rules come from the `anti-slop` plugin installed at [agent-skills/anti-slop/](agent-skills/anti-slop/), and are restated for this Python codebase because the plugin itself only reads JavaScript and TypeScript.
 
 Then read the project-doc sections named under [Read this before doing anything else](#read-this-before-doing-anything-else). Session start does not replace that reading.
 
 ## Anti-slop
 
-Source: the `anti-slop` oxlint plugin, installed in this repository at [anti-slop/](anti-slop/). [anti-slop/index.ts](anti-slop/index.ts) registers the rules and [anti-slop/rules/](anti-slop/rules/) holds one file per rule, which is the exact definition of each rule named below. [.oxlintrc.json](.oxlintrc.json) sets their severities and [lefthook.yml](lefthook.yml) runs them on staged files at commit. The plugin is vendored as-is, so a rule is not rewritten here.
+Source: the `anti-slop` oxlint plugin, installed in this repository at [agent-skills/anti-slop/](agent-skills/anti-slop/). [agent-skills/anti-slop/index.ts](agent-skills/anti-slop/index.ts) registers the rules and [agent-skills/anti-slop/rules/](agent-skills/anti-slop/rules/) holds one file per rule, which is the exact definition of each rule named below. [.oxlintrc.json](.oxlintrc.json) sets their severities and [lefthook.yml](lefthook.yml) runs them on staged files at commit. The plugin is vendored as-is, so a rule is not rewritten here.
 
-**The plugin cannot read Python.** oxlint parses JavaScript and TypeScript only, and this repository has no JavaScript or TypeScript outside `anti-slop/` itself, which is ignored. `npx oxlint` therefore reports `No files found to lint` today. The rules below are how the same rules bind the Python you write, and nothing enforces them automatically. Follow them while you write.
+**The plugin cannot read Python.** oxlint parses JavaScript and TypeScript only, and this repository has no JavaScript or TypeScript outside `agent-skills/anti-slop/` itself, which is ignored. `npx oxlint` therefore reports `No files found to lint` today. The rules below are how the same rules bind the Python you write, and nothing enforces them automatically. Follow them while you write.
 
 They bind code you write or change. Existing violations are not a drive-by rewrite.
 

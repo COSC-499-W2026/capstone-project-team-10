@@ -179,9 +179,9 @@ run the **anti-slop** oxlint plugin and a git pre-commit hook. The app does not 
 | File | Role |
 |---|---|
 | [package.json](../../package.json), [package-lock.json](../../package-lock.json) | private, dev dependencies only: `oxlint`, `@oxlint/plugins`, `oxfmt`, `lefthook`. `"type": "module"` is set because the plugin is ESM, and without it Node prints `MODULE_TYPELESS_PACKAGE_JSON` on every lint run. |
-| [anti-slop/](../../anti-slop/) | the plugin: `index.ts`, 15 rules in `rules/`, helpers in `shared/`. Vendored as-is, so a rule is not rewritten here. |
+| [agent-skills/anti-slop/](../../agent-skills/anti-slop/) | the plugin: `index.ts`, 15 rules in `rules/`, helpers in `shared/`. Vendored as-is, so a rule is not rewritten here. |
 | [.oxlintrc.json](../../.oxlintrc.json) | loads the plugin and sets each rule's severity |
-| [.oxfmtrc.json](../../.oxfmtrc.json) | oxfmt settings, ignoring `anti-slop/` |
+| [.oxfmtrc.json](../../.oxfmtrc.json) | oxfmt settings, ignoring `agent-skills/anti-slop/` |
 | [lefthook.yml](../../lefthook.yml) | the pre-commit hook |
 
 ```bash
@@ -190,7 +190,7 @@ npx lefthook run pre-commit    # run the hook by hand against staged files
 ```
 
 **What it lints.** oxlint parses JavaScript and TypeScript only. This repository has none
-outside `anti-slop/`, which `.oxlintrc.json` ignores, so `npx oxlint` finds nothing to lint.
+outside `agent-skills/anti-slop/`, which `.oxlintrc.json` ignores, so `npx oxlint` finds nothing to lint.
 The anti-slop rules therefore **do not check the Python application**. Agents and reviewers
 apply them by hand, as the Anti-slop section of [AGENTS.md](../../AGENTS.md#anti-slop) says.
 
@@ -206,7 +206,7 @@ are off for test files (`**/tests/**`, `**/__tests__/**`, `*.test.*`, `*.spec.*`
 
 - *Verified:* all 15 rules fire on scratch `.ts` files, and both overrides silence what they
   should. A staged violation blocks the commit (exit 1). Staging only Python, markdown or
-  config skips both jobs (exit 0). Staging only `anti-slop/` passes (exit 0).
+  config skips both jobs (exit 0). Staging only `agent-skills/anti-slop/` passes (exit 0).
 - *Observed, cause not isolated:* the first `npm install`, with no `lefthook.yml` present,
   left a commented placeholder `lefthook.yml` and a stray `prepare-commit-msg` hook behind.
   Most likely that is lefthook's own postinstall, which npm 11.19 warned is not allow-listed
@@ -489,11 +489,12 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── spec-file.txt              pinned conda lockfile — WINDOWS ONLY
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper
-├── anti-slop/                 oxlint plugin, vendored as-is (§1.9)
+├── agent-skills/              agent tooling vendored into the repo
+│   └── anti-slop/             oxlint plugin, vendored as-is (§1.9)
 ├── package.json               Node dev tooling only, no app code (§1.9)
 ├── package-lock.json          lockfile for package.json
 ├── .oxlintrc.json             anti-slop rule severities and ignores
-├── .oxfmtrc.json              oxfmt settings, ignores anti-slop/
+├── .oxfmtrc.json              oxfmt settings, ignores agent-skills/anti-slop/
 ├── lefthook.yml               pre-commit hook: oxfmt and oxlint on staged JS/TS
 ├── docs/                      course documentation
 │   ├── project/               ← this document
@@ -1029,12 +1030,12 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - **Bare `except:` is pervasive.** When debugging, expect failures to be swallowed; add a
   temporary `log.exception()` rather than trusting the absence of an error message.
 - **The anti-slop plugin does not lint the Python app.** oxlint reads only JavaScript and
-  TypeScript, and there is none outside `anti-slop/`. A passing pre-commit hook says nothing
+  TypeScript, and there is none outside `agent-skills/anti-slop/`. A passing pre-commit hook says nothing
   about `src/` (§1.9). Verified 2026-09-23.
 - **`npx oxlint` exits 1 when there is nothing to lint** (`No files found to lint`), and
   `oxfmt --check` exits 2 when every staged file is ignored. Both hook jobs pass
   `--no-error-on-unmatched-pattern` for that reason, so a commit that only touches
-  `anti-slop/` is not blocked. Do not add a bare `npx oxlint` to a script or CI job (§1.9).
+  `agent-skills/anti-slop/` is not blocked. Do not add a bare `npx oxlint` to a script or CI job (§1.9).
   Verified 2026-09-23.
 
 ---
@@ -1175,7 +1176,7 @@ Beyond the set-wide rule above, update **this** document when you:
 |---|---|
 | [AGENTS.md](../../AGENTS.md) | instructions for AI agents; points here for project context |
 | [CLAUDE.md](../../CLAUDE.md) | Claude Code entry point; imports `AGENTS.md` |
-| [anti-slop/](../../anti-slop/) | the oxlint plugin behind the anti-slop rules in `AGENTS.md` (§1.9) |
+| [agent-skills/anti-slop/](../../agent-skills/anti-slop/) | the oxlint plugin behind the anti-slop rules in `AGENTS.md` (§1.9) |
 | [pull_request_template.md](../../pull_request_template.md) | Team 10 PR checklist, includes the update-this-doc gate |
 | [pull_request_template_brachify.md](../../pull_request_template_brachify.md) | upstream's original review process, preserved |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
