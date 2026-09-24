@@ -80,7 +80,7 @@ Do not leave them all blank, and do not tick them all.
 - For an item that does not apply, leave the box unticked and append `— **N/A**, <reason>` on
   the same line.
 - For an item only partly done, leave it unticked and say plainly what was and was not done.
-- **Never tick a test-driven-development box on a PR that contains no code**, and never tick
+- **Never tick a tests box on a PR that contains no code**, and never tick
   "ran the app" if the app was not run.
 - Leave the entire **Reviewer** block unticked. It belongs to the reviewer.
 

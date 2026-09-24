@@ -18,7 +18,7 @@ I reviewed each of these and updated the ones this PR affects:
 - [ ] [docs/minutes/README.md](docs/minutes/README.md)
 - [ ] [docs/logs/README.md](docs/logs/README.md)
 - [ ] [docs/workflows/](docs/workflows/) — `README.md`, `commit.md`, `make-pr.md`
-- [ ] [tests/README.md](tests/README.md) — TDD policy and the `tests/` scoping rule
+- [ ] [tests/README.md](tests/README.md) — the `tests/` scoping rule
 - [ ] [utils/README.md](utils/README.md) — the `utils/` scoping rule
 - [ ] [README.md](README.md) — repository entry point
 - [ ] [AGENTS.md](AGENTS.md) — conventions, commands, architectural facts
@@ -55,14 +55,10 @@ Quality of the updates:
 | finds or fixes a bug | §7 Known bugs, traps and dead code |
 | adds tests | §8 |
 
-## Test-driven development
+## Tests
 
-This project writes the test first. See
-[AGENTS.md](AGENTS.md#testing-write-the-test-first).
+See [AGENTS.md](AGENTS.md#testing).
 
-- [ ] I wrote the test **before** the code.
-- [ ] I **watched it fail**, then made it pass.
-- [ ] I broke the code on purpose and confirmed the test caught it.
 - [ ] The test lives in the correctly scoped subfolder (`tests/mesh/`, `tests/dicom/`, …) and
       not at the root of `tests/`. See [tests/README.md](tests/README.md).
 - [ ] Logic that could not be tested was moved out of the view or model into a pure function
