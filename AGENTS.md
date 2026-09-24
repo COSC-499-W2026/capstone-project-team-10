@@ -8,16 +8,15 @@ Guidance for AI coding agents working in this repository. This file is the sourc
 
 This file is loaded at the start of every session. Claude Code loads it because [CLAUDE.md](CLAUDE.md) imports this file with `@AGENTS.md`. Every other agent loads it because this file is the cross-tool standard. Do not wait to be asked.
 
-Before you write or edit code, the next two sections are already in force for the whole session, in this order:
-
-1. **Anti-slop.** Reject low-evidence, low-signal implementation. The rules are below. They come from the EduAI `anti-slop` plugin and are restated for this Python codebase.
-2. **Test-driven development.** Follow the superpowers `test-driven-development` skill. No production code without a failing test first. The repo-specific rules are in [Testing: write the test first](#testing-write-the-test-first).
+Before you write or edit code, the [Anti-slop](#anti-slop) section is already in force for the whole session. It rejects low-evidence, low-signal implementation. The rules come from the `anti-slop` plugin installed at [anti-slop/](anti-slop/), and are restated for this Python codebase because the plugin itself only reads JavaScript and TypeScript.
 
 Then read the project-doc sections named under [Read this before doing anything else](#read-this-before-doing-anything-else). Session start does not replace that reading.
 
 ## Anti-slop
 
-Source: the EduAI repository's `anti-slop` oxlint plugin (`anti-slop/index.ts` and `anti-slop/rules/`). That plugin is TypeScript. This repository is Python and does not run it. Do not add oxlint, a copy of that package, or a JavaScript toolchain. Follow the rules below while you write.
+Source: the `anti-slop` oxlint plugin, installed in this repository at [anti-slop/](anti-slop/). [anti-slop/index.ts](anti-slop/index.ts) registers the rules and [anti-slop/rules/](anti-slop/rules/) holds one file per rule, which is the exact definition of each rule named below. [.oxlintrc.json](.oxlintrc.json) sets their severities and [lefthook.yml](lefthook.yml) runs them on staged files at commit. The plugin is vendored as-is, so a rule is not rewritten here.
+
+**The plugin cannot read Python.** oxlint parses JavaScript and TypeScript only, and this repository has no JavaScript or TypeScript outside `anti-slop/` itself, which is ignored. `npx oxlint` therefore reports `No files found to lint` today. The rules below are how the same rules bind the Python you write, and nothing enforces them automatically. Follow them while you write.
 
 They bind code you write or change. Existing violations are not a drive-by rewrite.
 
@@ -28,7 +27,7 @@ The plugin rejects low-evidence and low-signal patterns: a value whose type was 
 3. **Do not widen, then assert.** Do not discard a known type and cast it back. No `cast()`, no chained assertions, and no `# type: ignore` unless the same line or the line above says why it is safe. This covers `no-widen-then-assert`, `no-known-value-widening`, `no-chained-type-assertions`, and `require-safety-comment-for-type-assertion`.
 4. **Do not mock modules.** A test replaces a dependency through a real seam. The only mocks allowed are the ones already named in the testing section: the filesystem and `pydicom.dcmread`. Do not `patch` an application module. This is `no-module-mocking`.
 5. **Do not omit fields by spreading an empty dict.** Write the branch. A pattern like `{**({} if flag else fields)}` is forbidden. This is `no-conditional-empty-object-spread`.
-6. **Do not apply EduAI's `no-shape-in-symbol-names` rule here.** That rule bans the substring `shape` because, in EduAI, the word names structure instead of a domain role. In this repository shape is the domain: OpenCASCADE `TopoDS_Shape`, `ShapeModel`, `ShapeTypes`. Do not rename them. Do still refuse an empty name (`data`, `info`, `obj`, `temp`) when a domain name exists.
+6. **Do not apply the plugin's `no-shape-in-symbol-names` rule here.** It is enabled in [.oxlintrc.json](.oxlintrc.json) along with the plugin's other rules, but oxlint never reads Python, so it cannot fire on this codebase. The rule bans the substring `shape` because the word usually names structure instead of a domain role. In this repository shape is the domain: OpenCASCADE `TopoDS_Shape`, `ShapeModel`, `ShapeTypes`. Do not rename them. Do still refuse an empty name (`data`, `info`, `obj`, `temp`) when a domain name exists.
 
 ## Read this before doing anything else
 
@@ -58,7 +57,7 @@ The documentation set is **every markdown file** in `docs/`, `tests/` and `utils
 | [docs/workflows/README.md](docs/workflows/README.md) | index of the tool-agnostic workflows | a workflow is added, removed or renamed |
 | [docs/workflows/commit.md](docs/workflows/commit.md) | the canonical commit procedure | the commit convention changes |
 | [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | the canonical pull request procedure | the PR process changes |
-| [tests/README.md](tests/README.md) | TDD policy, the `tests/` scoping rule, what to test first | a test scope folder is added, the runner config changes, or the priority list shifts |
+| [tests/README.md](tests/README.md) | the `tests/` scoping rule, what to test first | a test scope folder is added, the runner config changes, or the priority list shifts |
 | [utils/README.md](utils/README.md) | the `utils/` scoping rule and what belongs there | a utility scope folder is added, or the rule for what lives there changes |
 | [README.md](README.md) | repository entry point | the top-level structure changes, or a newcomer would be misled by what it currently says |
 | [AGENTS.md](AGENTS.md) | this file: how to work in this repo | a convention, command, rule or architectural fact stated here stops being true |
@@ -120,21 +119,9 @@ truth. Adding a workflow is described in
 
 Do not ask for permission to add it, and do not add it "just this once". The git history belongs to this team, and this is coursework whose authorship is assessed.
 
-## Testing: write the test first
+## Testing
 
-This project follows the superpowers **test-driven-development** skill. It is mandatory from [session start](#session-start), before any implementation.
-
-**Iron law:** no production code without a failing test first. Wrote the code first? Delete it. Do not keep it as a reference, do not adapt it while writing the test, and do not look at it. Implement again from the test.
-
-The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
-
-**There is currently no test suite and no working test configuration.** [`.vscode/settings.json`](.vscode/settings.json) enables pytest against a `testing/` directory that does not exist; the real directory is [tests/](tests/). The first change that adds a test must also fix that setting and put `src/` on `sys.path`, either through a root `conftest.py` or `pythonpath = ["src"]` in a `pytest.ini`. Until that exists, adding it is part of your change, not a reason to skip the test.
-
-### The loop
-
-1. Write the test. Run it. **Watch it fail.** A test you never saw red proves nothing.
-2. Write the smallest code that makes it pass.
-3. Before moving on, break the code on purpose and confirm the test catches it. If it stays green the test is decoration, not coverage.
+**There is currently no test suite and no working test configuration.** [`.vscode/settings.json`](.vscode/settings.json) enables pytest against a `testing/` directory that does not exist; the real directory is [tests/](tests/). The first change that adds a test must also fix that setting and put `src/` on `sys.path`, either through a root `conftest.py` or `pythonpath = ["src"]` in a `pytest.ini`.
 
 ### What must have a test
 
@@ -255,7 +242,17 @@ python build_executable.py
 
 `--exclude-module PyQt5` in that script is load-bearing: PyQt5 and PySide6 clash at runtime.
 
-**Tests**: there are none yet, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+The repository also carries a small Node toolchain, used only to run the anti-slop plugin and the pre-commit hook. It has nothing to do with the conda environment, and the conda-only rule above is about Python packages. [package.json](package.json) is private and lists dev dependencies only (`oxlint`, `@oxlint/plugins`, `oxfmt`, `lefthook`).
+
+```bash
+npm install                    # installs the tooling and the git pre-commit hook
+npx oxlint --quiet             # lint everything; today prints "No files found to lint" and exits 1
+npx lefthook run pre-commit    # run the hook by hand against staged files
+```
+
+The pre-commit hook runs `oxfmt --check` and `oxlint --quiet` on staged `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts` and `.tsx` files and skips both when none are staged, so a commit that stages only Python or markdown is unaffected. A commit that stages a violation is blocked until it is fixed. Verified on 2026-09-23 with Node 26.7.0 and oxlint 1.85.0. oxlint declares Node `^20.19.0 || >=22.12.0`. Whether those versions load the plugin's `.ts` files directly has not been checked. See §1.9 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
+
+**Tests**: there are none yet, see [Testing](#testing) above. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 

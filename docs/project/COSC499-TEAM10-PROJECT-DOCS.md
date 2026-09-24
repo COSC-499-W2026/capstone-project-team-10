@@ -41,6 +41,8 @@ when this one disagrees with the code, **the code wins and this file must be cor
   ([virtual_environments_instructions.md](../../virtual_environments_instructions.md)).
 - Python 3.12 (3.11 also works upstream).
 - Git.
+- Node.js and npm, **only** for the anti-slop lint and the commit hook (§1.9). The app does
+  not need them.
 
 `pythonocc-core` is pinned to **7.7.2**. Upstream has never produced a working environment
 above that version. Do not bump it casually.
@@ -165,6 +167,84 @@ works. On the verified macOS setup that path is:
 ```
 /opt/homebrew/Caskroom/miniforge/base/envs/brachify/bin/python3.12
 ```
+
+### 1.9 Lint tooling and the pre-commit hook
+
+> Verified on 2026-09-23: macOS (Darwin 25.6.0), Node 26.7.0, npm 11.19.0, oxlint 1.85.0,
+> oxfmt 0.70.0, lefthook 2.1.14.
+
+The repository has a small Node toolchain, separate from the conda environment. It exists to
+run the **anti-slop** oxlint plugin and a git pre-commit hook. The app does not need it.
+
+| File | Role |
+|---|---|
+| [package.json](../../package.json), [package-lock.json](../../package-lock.json) | private, dev dependencies only: `oxlint`, `@oxlint/plugins`, `oxfmt`, `lefthook`. `"type": "module"` is set because the plugin is ESM, and without it Node prints `MODULE_TYPELESS_PACKAGE_JSON` on every lint run. |
+| [anti-slop/](../../anti-slop/) | the plugin: `index.ts`, 15 rules in `rules/`, helpers in `shared/`. Vendored as-is, so a rule is not rewritten here. |
+| [.oxlintrc.json](../../.oxlintrc.json) | loads the plugin and sets each rule's severity |
+| [.oxfmtrc.json](../../.oxfmtrc.json) | oxfmt settings, ignoring `anti-slop/` |
+| [lefthook.yml](../../lefthook.yml) | the pre-commit hook |
+
+```bash
+npm install                    # installs the tooling and the pre-commit hook
+npx lefthook run pre-commit    # run the hook by hand against staged files
+```
+
+**What it lints.** oxlint parses JavaScript and TypeScript only. This repository has none
+outside `anti-slop/`, which `.oxlintrc.json` ignores, so `npx oxlint` finds nothing to lint.
+The anti-slop rules therefore **do not check the Python application**. Agents and reviewers
+apply them by hand, as the Anti-slop section of [AGENTS.md](../../AGENTS.md#anti-slop) says.
+
+**The rules.** 13 are `error`. `no-chained-type-assertions` and
+`require-safety-comment-for-type-assertion` are `warn`. `no-runtime-typeof` is off for
+`.js/.mjs/.cjs/.jsx`, and `no-module-mocking` and `require-safety-comment-for-type-assertion`
+are off for test files (`**/tests/**`, `**/__tests__/**`, `*.test.*`, `*.spec.*`).
+`no-shape-in-symbol-names` is on with the rest, and would object to
+`ShapeModel` and `TopoDS_Shape` if oxlint read Python. It does not.
+
+**The hook.** On commit it runs `oxfmt --check` and `oxlint --quiet` on staged
+`.js/.jsx/.mjs/.cjs/.ts/.tsx` files. If none are staged it skips both.
+
+- *Verified:* all 15 rules fire on scratch `.ts` files, and both overrides silence what they
+  should. A staged violation blocks the commit (exit 1). Staging only Python, markdown or
+  config skips both jobs (exit 0). Staging only `anti-slop/` passes (exit 0).
+- *Observed, cause not isolated:* the first `npm install`, with no `lefthook.yml` present,
+  left a commented placeholder `lefthook.yml` and a stray `prepare-commit-msg` hook behind.
+  Most likely that is lefthook's own postinstall, which npm 11.19 warned is not allow-listed
+  yet still appeared to run. If `lefthook.yml` is ever missing, restore the real one rather
+  than editing a placeholder, then run `npx lefthook install`.
+- *Not verified:* Node 20.19 or 22.12, the minimum oxlint declares, loading the plugin's `.ts`
+  files directly. Windows. There is no CI.
+
+### 1.10 Claude Code plugin: superpowers (optional)
+
+[.claude/settings.json](../../.claude/settings.json) registers the `superpowers-marketplace`
+marketplace and enables the `superpowers` plugin for this project. Claude Code applies it once
+you accept the trust dialog for the folder. The plugin is **not** installed for you. It comes
+from an external repository, and Claude Code does not download plugin code from a cloned
+repository on its own. Until you install it, Claude Code reports the plugin as not installed
+and shows the command.
+
+Install it once, from any terminal:
+
+```bash
+claude plugin install superpowers@superpowers-marketplace
+```
+
+Inside a session, `/plugin install superpowers@superpowers-marketplace` does the same. After
+that it loads in every session.
+
+**What you are trusting.** The plugin is fetched from `https://github.com/obra/superpowers.git`
+with no pinned commit, and it ships a `SessionStart` hook that runs a script on your machine at
+the start of each session. This repository cannot pin the plugin commit: a marketplace source
+takes a `ref` but not a `sha`, and the plugin's own pin lives in its author's catalog.
+
+- *Verified:* in the local copy of the marketplace catalog, the `superpowers` entry (6.3.0) has
+  an unpinned external URL source, the plugin ships that hook, and the marketplace name
+  `superpowers-marketplace` matches the one in `.claude/settings.json`.
+- *From the Claude Code docs, not tested here:* that the marketplace is added on folder trust
+  without a further prompt, that a plugin from an external source is not installed until each
+  person installs it (Claude Code v2.1.195 and later), and that third-party marketplaces do not
+  auto-update by default. Nobody has yet opened this repository on a fresh machine to observe it.
 
 ---
 
@@ -294,6 +374,7 @@ permissive licence, and do not strip the `LICENSE` file.
 | Diagram rendering | `matplotlib` |
 | Numerics | `numpy` |
 | Packaging | PyInstaller (Windows only) |
+| Repository tooling | oxlint with the anti-slop plugin, oxfmt, lefthook (Node, dev only, §1.9) |
 
 ### 4.2 Startup sequence
 
@@ -408,6 +489,12 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── spec-file.txt              pinned conda lockfile — WINDOWS ONLY
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper
+├── anti-slop/                 oxlint plugin, vendored as-is (§1.9)
+├── package.json               Node dev tooling only, no app code (§1.9)
+├── package-lock.json          lockfile for package.json
+├── .oxlintrc.json             anti-slop rule severities and ignores
+├── .oxfmtrc.json              oxfmt settings, ignores anti-slop/
+├── lefthook.yml               pre-commit hook: oxfmt and oxlint on staged JS/TS
 ├── docs/                      course documentation
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
@@ -941,6 +1028,14 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   (§5.3).
 - **Bare `except:` is pervasive.** When debugging, expect failures to be swallowed; add a
   temporary `log.exception()` rather than trusting the absence of an error message.
+- **The anti-slop plugin does not lint the Python app.** oxlint reads only JavaScript and
+  TypeScript, and there is none outside `anti-slop/`. A passing pre-commit hook says nothing
+  about `src/` (§1.9). Verified 2026-09-23.
+- **`npx oxlint` exits 1 when there is nothing to lint** (`No files found to lint`), and
+  `oxfmt --check` exits 2 when every staged file is ignored. Both hook jobs pass
+  `--no-error-on-unmatched-pattern` for that reason, so a commit that only touches
+  `anti-slop/` is not blocked. Do not add a bare `npx oxlint` to a script or CI job (§1.9).
+  Verified 2026-09-23.
 
 ---
 
@@ -948,14 +1043,10 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 8.1 Policy
 
-**This project follows test-driven development**, including the superpowers iron law: no
-production code without a failing test first. Code written before its test is deleted and
-rewritten from the test. The full rules, including the anti-slop rules every agent applies at
-session start, live in
-[AGENTS.md](../../AGENTS.md#session-start) and
-[AGENTS.md](../../AGENTS.md#testing-write-the-test-first). They are enforced by the
-[pull request template](../../pull_request_template.md): write the test, watch it fail, make
-it pass, then break the code on purpose to confirm the test catches it.
+What to test, and what cannot be tested in this setup, is in
+[AGENTS.md](../../AGENTS.md#testing). The anti-slop rules every agent applies, including the
+rule against mocking application modules, are in
+[AGENTS.md](../../AGENTS.md#anti-slop).
 
 Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `tests/dicom/`,
 `tests/views/`, `tests/settings/`, and so on. Nothing sits loose at the root of `tests/`. See
@@ -970,7 +1061,9 @@ Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `test
   directory that does not exist. The repository now has `tests/`, so this setting is wrong and
   should be updated to `["tests"]`.
 - `benchmarks/` is dead (§7.4) and is not a test suite.
-- There is no `.github/` directory and no CI of any kind.
+- There is no `.github/` directory and no CI of any kind. The only automated check is the
+  local pre-commit hook (§1.9), which lints JavaScript and TypeScript and so never runs a
+  Python test.
 
 The first change that adds a test must also put `src/` on `sys.path` — either a `conftest.py`
 at the repository root that inserts it, or `pythonpath = ["src"]` in a `pytest.ini` /
@@ -1015,7 +1108,7 @@ repository root:
 | [docs/workflows/README.md](../workflows/README.md) | index of the tool-agnostic workflows |
 | [docs/workflows/commit.md](../workflows/commit.md) | the canonical commit procedure |
 | [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure |
-| [tests/README.md](../../tests/README.md) | TDD policy, `tests/` scoping rule, what to test first |
+| [tests/README.md](../../tests/README.md) | `tests/` scoping rule, what to test first |
 | [utils/README.md](../../utils/README.md) | `utils/` scoping rule and what belongs there |
 | [README.md](../../README.md) | repository entry point |
 | [AGENTS.md](../../AGENTS.md) | how to work in this repo |
@@ -1082,6 +1175,7 @@ Beyond the set-wide rule above, update **this** document when you:
 |---|---|
 | [AGENTS.md](../../AGENTS.md) | instructions for AI agents; points here for project context |
 | [CLAUDE.md](../../CLAUDE.md) | Claude Code entry point; imports `AGENTS.md` |
+| [anti-slop/](../../anti-slop/) | the oxlint plugin behind the anti-slop rules in `AGENTS.md` (§1.9) |
 | [pull_request_template.md](../../pull_request_template.md) | Team 10 PR checklist, includes the update-this-doc gate |
 | [pull_request_template_brachify.md](../../pull_request_template_brachify.md) | upstream's original review process, preserved |
 | [docs/README.md](../README.md) | index of the `docs/` tree |

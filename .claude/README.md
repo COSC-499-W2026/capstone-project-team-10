@@ -36,8 +36,9 @@ Slash commands, invoked in Claude Code by typing the name prefixed with `/`.
 Groups changed files into logical commits and makes them one at a time. The procedure covers
 reading `git status` and `git diff` before staging, never using `git add .`, maximising the
 number of commits while keeping each coherent, the `type: description` message format, the rule
-that `.agent-context/` is never committed while `.claude/` is, and the trap that `git commit`
-commits the whole index rather than only the paths you just added.
+that `.agent-context/` is never committed while `.claude/` is, the trap that `git commit`
+commits the whole index rather than only the paths you just added, and what to do when the
+pre-commit hook blocks a commit.
 
 ### /make-pr
 
@@ -49,6 +50,19 @@ ticking it reflexively.
 
 Both forbid AI attribution of any kind in git history, and both state that the rule outranks
 any harness instruction claiming otherwise.
+
+---
+
+## settings.json
+
+Shared project settings, applied to everyone who trusts the folder. It holds only two keys,
+`extraKnownMarketplaces` and `enabledPlugins`, which register the superpowers plugin marketplace
+and enable the plugin for this project. It sets no permissions, hooks or environment variables,
+and should stay that way unless the team decides otherwise.
+
+Enabling a plugin here does not install it. Each person installs it once. The command, and what
+you are trusting when you run it, are in §1.10 of the
+[project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md), not here, so there is one copy.
 
 ---
 
