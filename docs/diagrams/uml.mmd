@@ -1,0 +1,37 @@
+classDiagram
+  class RadiotherapyApp {
+    signals
+    values
+  }
+  class MainWindow
+  class NavigationModel {
+    views index 0 to 4
+  }
+  class DisplayModel {
+    shapes by label
+  }
+  class OrbitCameraViewer3d
+  class DicomModel
+  class CylinderModel
+  class ChannelsModel
+  class TandemModel
+  class ShapeModel {
+    label
+    TopoDS_Shape
+    ShapeTypes
+  }
+
+  RadiotherapyApp --> MainWindow
+  RadiotherapyApp --> AppSignals
+  RadiotherapyApp --> Values
+  MainWindow --> NavigationModel
+  MainWindow --> DisplayModel
+  DisplayModel --> OrbitCameraViewer3d
+  NavigationModel --> DicomModel
+  NavigationModel --> CylinderModel
+  NavigationModel --> ChannelsModel
+  NavigationModel --> TandemModel
+  CylinderModel --> ShapeModel
+  ChannelsModel --> ShapeModel
+  TandemModel --> ShapeModel
+  DisplayModel o-- ShapeModel
