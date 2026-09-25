@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "anti-slop-py"
+version = "0.1.0"
+description = "Opinionated Python linter that rejects low-evidence, low-signal patterns."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+# Zero runtime dependencies: a vendored copy runs as `python -m anti_slop`
+# without installing anything.
+dependencies = []
+
+[project.scripts]
+anti-slop = "anti_slop.__main__:cli"
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "ty==0.0.74"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/anti_slop"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+addopts = "-q"
+
+[tool.ty.environment]
+python-version = "3.12"
+root = ["./src", "./tests"]
+
+# anti-slop lints itself (dogfooding).
+[tool.anti-slop]
+include = ["src", "tests"]
+exclude = [".venv/**", "**/__pycache__/**"]
+
+[tool.anti-slop.rules]
+# Off for this repository only: an AST analyzer's domain objects ARE ast nodes,
+# so isinstance over node classes here branches on the domain value itself --
+# exactly what the rule's recipe prescribes. Consumers get "error" by default.
+no-adhoc-isinstance = "off"
+no-any-parameters = "error"
+no-any-returns = "error"
+no-any-type-aliases = "error"
+no-chained-casts = "error"
+no-conditional-empty-dict-spread = "error"
+no-dynamic-dispatch = "error"
+no-known-value-widening = "error"
+no-module-mocking = "error"
+no-object-parameters = "error"
+no-shape-in-symbol-names = "error"
+no-string-attribute-access = "error"
+no-unsafe-dict-values = "error"
+no-widen-then-cast = "error"
+require-safety-comment = "error"
