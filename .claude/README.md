@@ -1,5 +1,11 @@
 # Claude Code configuration
 
+> **This file is part of the documentation set**, the markdown files the team owns, and so are
+> the markdown files in `commands/` and `skills/`. The whole set is reviewed on every pull
+> request and updated in the same PR when affected. Update this file whenever a command, skill
+> pointer, hook or setting is added, removed or changed. See §9.0 of
+> [the source of truth](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
+
 Claude Code configuration for the COSC 499 Team 10 repository.
 
 This directory **is** checked in. It is project configuration, and a change to it belongs in
@@ -11,7 +17,8 @@ The repository's workflows are **tool-agnostic** and live in
 [docs/workflows/](../docs/workflows/). Any AI agent, and any person, can follow them directly.
 
 The files in `commands/` are thin pointers that give Claude Code users a slash command for each
-one. They contain no rules of their own.
+one, and `skills/` does the same for the skills vendored in [agent-skills/](../agent-skills/).
+They contain no rules of their own.
 
 **Never copy a procedure's text into this directory.** A rule that exists in two files will be
 true in one of them and wrong in the other. If you change a workflow, change it in
@@ -35,10 +42,7 @@ Slash commands, invoked in Claude Code by typing the name prefixed with `/`.
 
 Groups changed files into logical commits and makes them one at a time. The procedure covers
 reading `git status` and `git diff` before staging, never using `git add .`, maximising the
-number of commits while keeping each coherent, the `type: description` message format, the rule
-that `.agent-context/` is never committed while `.claude/` is, the trap that `git commit`
-commits the whole index rather than only the paths you just added, and what to do when the
-pre-commit hook blocks a commit.
+number of commits while keeping each coherent and the `type: description` message format,
 
 ### /make-pr
 
@@ -53,12 +57,50 @@ any harness instruction claiming otherwise.
 
 ---
 
+## skills/
+
+Project skills, listed in Claude Code's skill list and invocable by name. Each is a pointer to a
+skill vendored in [agent-skills/](../agent-skills/), which is where the procedure lives.
+
+| Skill | File | Points at |
+|---|---|---|
+| `install-anti-slop-py` | `skills/install-anti-slop-py/SKILL.md` | [agent-skills/anti-slop-py/skills/install-anti-slop-py/SKILL.md](../agent-skills/anti-slop-py/skills/install-anti-slop-py/SKILL.md) |
+
+A pointer repeats the skill's `name` and `description` frontmatter, because Claude Code reads
+those from this directory to decide when the skill applies. Keep them identical to the vendored
+file. `install-anti-slop-py` has deliberately not been run in this repository. See Session
+start in [AGENTS.md](../AGENTS.md#session-start).
+
+---
+
+## hooks/
+
+| Hook | File | Runs |
+|---|---|---|
+| `SessionStart` | `hooks/session-start.sh` | on startup, resume, `/clear` and compaction |
+
+`session-start.sh` prints the steps of Session start in [AGENTS.md](../AGENTS.md#session-start),
+and Claude Code adds that output to the session's context before the first reply. It tells the
+session to invoke the superpowers `test-driven-development` skill, and lists every `SKILL.md`
+under `agent-skills/` by reading each one's frontmatter, so a skill added there needs no change
+here. It flags a skill with no row in `agent-skills/README.md` as `UNDOCUMENTED`, and a row
+whose `SKILL.md` is gone as `STALE ROW`, and it reminds the session to keep the documentation
+set in step with the code. It prompts only. A hook cannot invoke a skill itself. The rules it prompts for live in
+`AGENTS.md`. Change them there, and change this script only if the steps themselves change.
+
+It is POSIX `sh`, run as `sh "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"`. Verified
+on macOS on 2026-09-25 by running the script directly. Not verified on Windows, where Claude
+Code needs Git Bash to run it.
+
+---
+
 ## settings.json
 
-Shared project settings, applied to everyone who trusts the folder. It holds only two keys,
-`extraKnownMarketplaces` and `enabledPlugins`, which register the superpowers plugin marketplace
-and enable the plugin for this project. It sets no permissions, hooks or environment variables,
-and should stay that way unless the team decides otherwise.
+Shared project settings, applied to everyone who trusts the folder. It holds three keys.
+`extraKnownMarketplaces` and `enabledPlugins` register the superpowers plugin marketplace and
+enable the plugin for this project. `hooks` registers the `SessionStart` hook above. It sets no
+permissions or environment variables, and should stay that way unless the team decides
+otherwise.
 
 Enabling a plugin here does not install it. Each person installs it once. The command, and what
 you are trusting when you run it, are in §1.10 of the
@@ -70,6 +112,13 @@ you are trusting when you run it, are in §1.10 of the
 
 Write the procedure in [docs/workflows/](../docs/workflows/) first, then add a one-line pointer
 here. The steps are in [docs/workflows/README.md](../docs/workflows/README.md).
+
+## Adding a skill
+
+Vendor the skill as a folder under [agent-skills/](../agent-skills/) with its `SKILL.md`. The
+session-start hook finds it on the next session with no change here. To also put it in Claude
+Code's skill list, add a pointer under `skills/` with the same frontmatter, and a row to the
+table above.
 
 ## Related
 
