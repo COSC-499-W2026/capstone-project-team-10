@@ -1,13 +1,25 @@
 {
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true
+  },
   "extraKnownMarketplaces": {
     "superpowers-marketplace": {
       "source": {
-        "source": "github",
-        "repo": "obra/superpowers-marketplace"
+        "repo": "obra/superpowers-marketplace",
+        "source": "github"
       }
     }
   },
-  "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh\"",
+            "type": "command"
+          }
+        ]
+      }
+    ]
   }
 }
