@@ -8,26 +8,43 @@ Guidance for AI coding agents working in this repository. This file is the sourc
 
 This file is loaded at the start of every session. Claude Code loads it because [CLAUDE.md](CLAUDE.md) imports this file with `@AGENTS.md`. Every other agent loads it because this file is the cross-tool standard. Do not wait to be asked.
 
-Before you write or edit code, the [Anti-slop](#anti-slop) section is already in force for the whole session. It rejects low-evidence, low-signal implementation. The rules come from the `anti-slop` plugin installed at [agent-skills/anti-slop/](agent-skills/anti-slop/), and are restated for this Python codebase because the plugin itself only reads JavaScript and TypeScript.
+These steps bind **every agent**, whatever tool runs it: Claude Code, Codex, Cursor, Gemini, or anything else that reads this file. The skills they load are there so that what you write is shaped by them from the first reply, not consulted after the fact. Before your first reply of the session, and before you write or edit anything, do these in order:
+
+1. **Load test-driven development.** Load the superpowers `test-driven-development` skill and follow it for the whole session. No production code without a failing test first. In Claude Code with the superpowers plugin installed, invoke it with the Skill tool (installing the plugin is §1.10 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md)). Every other agent reads the vendored copy, [agent-skills/superpowers-tdd/SKILL.md](agent-skills/superpowers-tdd/SKILL.md), in full, and [writing-good-tests.md](agent-skills/superpowers-tdd/writing-good-tests.md) beside it before writing a test. The repo-specific rules are in [Testing: write the test first](#testing-write-the-test-first), and where they are stricter than the skill, they win.
+2. **Load the repository skills.** Every skill vendored in [agent-skills/](agent-skills/) is a folder holding a `SKILL.md`. Search the folder for every `SKILL.md`, however deep, and read each one in full, so you know what it does. Do not rely on a list of names written anywhere, this one included: the folder is the list. Then read [agent-skills/README.md](agent-skills/README.md). Its table says how each skill is used in this repository, and a note there binds you. For example, `install-anti-slop-py` is known to every agent but **deliberately not run**. Follow a skill's procedure when its description matches the task in front of you and the table does not say otherwise. Do not run a procedure just because it is listed.
+
+   Compare what you found with the table, both ways. A `SKILL.md` with **no row** is undocumented: someone added the skill without recording how it is used here. Do not follow its procedure. Tell the user, ask how this repository should use it, and add the row as [Adding a skill](agent-skills/README.md#adding-a-skill) describes, in the current change. A row whose `SKILL.md` **no longer exists** is stale: tell the user and remove it as [Updating or removing a skill](agent-skills/README.md#updating-or-removing-a-skill) describes. In Claude Code the session-start hook flags both, marked `UNDOCUMENTED` and `STALE ROW`, and `sh .claude/hooks/session-start.sh` runs the same check by hand in any shell.
+3. **Apply [Anti-slop](#anti-slop).** It is in force for the whole session and rejects low-evidence, low-signal implementation.
+4. **Keep the documentation set in step with the code as you work.** The code is the source of truth. Whatever your change makes stale in the [documentation set](#you-must-update-the-documentation-set) is updated in the same pull request, and before any pull request you check every file in the set against the branch diff. Never edit an [inherited upstream file](#what-is-ours-and-what-is-inherited).
 
 Then read the project-doc sections named under [Read this before doing anything else](#read-this-before-doing-anything-else). Session start does not replace that reading.
 
+In Claude Code, all four steps are prompted automatically. [.claude/settings.json](.claude/settings.json) registers a `SessionStart` hook, [.claude/hooks/session-start.sh](.claude/hooks/session-start.sh), which lists every `SKILL.md` under `agent-skills/` and tells the session to do the steps above. It fires on startup, resume, `/clear` and compaction. The hook only prompts. It cannot invoke a skill itself, so the steps still bind you if the hook did not run. [.claude/skills/install-anti-slop-py/](.claude/skills/install-anti-slop-py/SKILL.md) is a pointer that also puts the vendored skill in Claude Code's skill list.
+
+**Adding a skill.** Follow [Adding a skill](agent-skills/README.md#adding-a-skill) in `agent-skills/README.md`. Session start needs no change: step 2 and the Claude Code hook both find a new skill by searching the folder. What does need changing, in the same PR, is the table in `agent-skills/README.md`, which is in the [documentation set](#you-must-update-the-documentation-set). If the new skill must be loaded by every session regardless of the task, the way test-driven development is, it also needs its own step here and a box in the **Agent skills** section of the [pull request template](pull_request_template.md).
+
 ## Anti-slop
 
-Source: the `anti-slop` oxlint plugin, installed in this repository at [agent-skills/anti-slop/](agent-skills/anti-slop/). [agent-skills/anti-slop/index.ts](agent-skills/anti-slop/index.ts) registers the rules and [agent-skills/anti-slop/rules/](agent-skills/anti-slop/rules/) holds one file per rule, which is the exact definition of each rule named below. [.oxlintrc.json](.oxlintrc.json) sets their severities and [lefthook.yml](lefthook.yml) runs them on staged files at commit. The plugin is vendored as-is, so a rule is not rewritten here.
+Source: the `anti-slop-py` linter, vendored in this repository at [agent-skills/anti-slop-py/](agent-skills/anti-slop-py/). It is a Python port of the `anti-slop` oxlint plugin, with the same rules under Python names. [agent-skills/anti-slop-py/src/anti_slop/rules/](agent-skills/anti-slop-py/src/anti_slop/rules/) holds one file per rule, which is the exact definition of each rule named below, and `--explain <rule>` prints a rule's full rationale. The linter is vendored as-is from [TinyFrontier/anti-slop-py](https://github.com/TinyFrontier/anti-slop-py) at commit `86ea16d`, so a rule is not rewritten here.
 
-**The plugin cannot read Python.** oxlint parses JavaScript and TypeScript only, and this repository has no JavaScript or TypeScript outside `agent-skills/anti-slop/` itself, which is ignored. `npx oxlint` therefore reports `No files found to lint` today. The rules below are how the same rules bind the Python you write, and nothing enforces them automatically. Follow them while you write.
+**What checks it.** Run it on your change after you edit Python and before you say the work is done:
+
+```bash
+PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main
+```
+
+`review` reports findings on the lines your change touched and nothing else, so the violations already in `src/` stay silent. Nothing runs it for you: there is no commit hook and no CI. You run it, and the [pull request template](pull_request_template.md) asks whether you did. It uses the linter's built-in `agent` preset, because there is no `[tool.anti-slop]` configuration: the install skill has deliberately not been run (see [agent-skills/README.md](agent-skills/README.md)), so there is no `tools/anti_slop/` copy either. Under that preset the escape-hatch rules are errors and fail the run with exit 1. The five policy rules only warn: `no-adhoc-isinstance`, `no-module-mocking`, `no-object-parameters`, `no-shape-in-symbol-names`, `no-string-attribute-access`. A warning is still a rule you follow, except the one rule 6 below sets aside. The linter needs Python 3.12 or newer, which the conda environment provides.
 
 They bind code you write or change. Existing violations are not a drive-by rewrite.
 
-The plugin rejects low-evidence and low-signal patterns: a value whose type was thrown away, structure recovered at runtime, and a test that mocks the code under test.
+The linter rejects low-evidence and low-signal patterns: a value whose type was thrown away, structure recovered at runtime, and a test that mocks the code under test.
 
-1. **Decode at the boundary.** DICOM, JSON config, and anything read from disk become a named domain value at the edge. Do not pass a bare `dict`, `Any`, or `object` inward and recover fields later with `type()`, an `isinstance` ladder, `getattr`, or `**` unpacking. This covers `no-unknown-parameters`, `no-unknown-returns`, `no-unknown-type-aliases`, `no-unsafe-dictionary-type`, `no-runtime-typeof`, `no-reflect-get`, and `no-reflect-apply`.
+1. **Decode at the boundary.** DICOM, JSON config, and anything read from disk become a named domain value at the edge. Do not pass a bare `dict`, `Any`, or `object` inward and recover fields later with `type()`, an `isinstance` ladder, `getattr`, or `**` unpacking. This covers `no-any-parameters`, `no-any-returns`, `no-any-type-aliases`, `no-unsafe-dict-values`, `no-adhoc-isinstance`, `no-string-attribute-access`, and `no-dynamic-dispatch`.
 2. **Name the parameter.** A new function parameter has a specific type the caller owns. No new parameter typed only as `dict`, `object`, or `Any`. This is `no-object-parameters`.
-3. **Do not widen, then assert.** Do not discard a known type and cast it back. No `cast()`, no chained assertions, and no `# type: ignore` unless the same line or the line above says why it is safe. This covers `no-widen-then-assert`, `no-known-value-widening`, `no-chained-type-assertions`, and `require-safety-comment-for-type-assertion`.
+3. **Do not widen, then assert.** Do not discard a known type and cast it back. No `cast()`, no chained casts, and no `# type: ignore` unless a `# SAFETY:` comment on the same line or the line above states the invariant that makes it safe. A `# type: ignore` must also name its error code. This covers `no-widen-then-cast`, `no-known-value-widening`, `no-chained-casts`, and `require-safety-comment`.
 4. **Do not mock modules.** A test replaces a dependency through a real seam. The only mocks allowed are the ones already named in the testing section: the filesystem and `pydicom.dcmread`. Do not `patch` an application module. This is `no-module-mocking`.
-5. **Do not omit fields by spreading an empty dict.** Write the branch. A pattern like `{**({} if flag else fields)}` is forbidden. This is `no-conditional-empty-object-spread`.
-6. **Do not apply the plugin's `no-shape-in-symbol-names` rule here.** It is enabled in [.oxlintrc.json](.oxlintrc.json) along with the plugin's other rules, but oxlint never reads Python, so it cannot fire on this codebase. The rule bans the substring `shape` because the word usually names structure instead of a domain role. In this repository shape is the domain: OpenCASCADE `TopoDS_Shape`, `ShapeModel`, `ShapeTypes`. Do not rename them. Do still refuse an empty name (`data`, `info`, `obj`, `temp`) when a domain name exists.
+5. **Do not omit fields by spreading an empty dict.** Write the branch. A pattern like `{**({} if flag else fields)}` is forbidden. This is `no-conditional-empty-dict-spread`.
+6. **Do not apply `no-shape-in-symbol-names` here.** The rule bans the substring `shape` because the word usually names structure instead of a domain role. In this repository shape is the domain: OpenCASCADE `TopoDS_Shape`, `ShapeModel`, `ShapeTypes`. Do not rename them. The linter reads Python, so it will warn on them. It is a policy rule, so the warning does not block, and you ignore it. Do not add a suppression comment for it either. The install skill would switch it off with `terms = []`, but that configuration does not exist yet. Do still refuse an empty name (`data`, `info`, `obj`, `temp`) when a domain name exists.
 
 ## Read this before doing anything else
 
@@ -43,7 +60,7 @@ Sections worth knowing exist regardless of task:
 
 **Whenever you implement a feature, fix a bug, or prepare a change for `main`, you must review every file in the documentation set below and update the ones your change affects, in the same commit or pull request.** Not as a follow-up, not as a TODO, not as a separate "docs PR". A change that alters documented behaviour without updating the affected documentation is incomplete and must not be merged.
 
-The documentation set is **every markdown file** in `docs/`, `tests/` and `utils/`, plus three files at the repository root:
+The documentation set is **every markdown file the team owns**: every markdown file in `docs/`, `tests/`, `utils/` and `.claude/`, plus four files at the repository root and the index of the vendored skills. The files inherited from upstream are listed under [What is ours and what is inherited](#what-is-ours-and-what-is-inherited), and are never part of it.
 
 | File | Covers | Update it when |
 |---|---|---|
@@ -57,17 +74,31 @@ The documentation set is **every markdown file** in `docs/`, `tests/` and `utils
 | [docs/workflows/README.md](docs/workflows/README.md) | index of the tool-agnostic workflows | a workflow is added, removed or renamed |
 | [docs/workflows/commit.md](docs/workflows/commit.md) | the canonical commit procedure | the commit convention changes |
 | [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | the canonical pull request procedure | the PR process changes |
-| [tests/README.md](tests/README.md) | the `tests/` scoping rule, what to test first | a test scope folder is added, the runner config changes, or the priority list shifts |
+| [tests/README.md](tests/README.md) | TDD policy, the `tests/` scoping rule, what to test first | a test scope folder is added, the runner config changes, or the priority list shifts |
 | [utils/README.md](utils/README.md) | the `utils/` scoping rule and what belongs there | a utility scope folder is added, or the rule for what lives there changes |
 | [README.md](README.md) | repository entry point | the top-level structure changes, or a newcomer would be misled by what it currently says |
 | [AGENTS.md](AGENTS.md) | this file: how to work in this repo | a convention, command, rule or architectural fact stated here stops being true |
 | [CLAUDE.md](CLAUDE.md) | Claude Code entry point, imports `AGENTS.md` | the agent-guidance entry point changes. It is a pointer, so it rarely changes, but check it |
+| [agent-skills/README.md](agent-skills/README.md) | the skills every agent loads at session start: source, version, licence, how each is used here | a skill is added, removed, updated to a new upstream version, or used differently. The session-start hook flags a skill with no row |
+| [pull_request_template.md](pull_request_template.md) | Team 10's PR checklist, which enforces this set | the team's process changes, or a file is added to or removed from this set |
+| [.claude/README.md](.claude/README.md) | Claude Code configuration: commands, skills, the session-start hook, `settings.json` | a command, skill pointer, hook or setting is added, removed or changed |
+| [.claude/commands/](.claude/commands/) `commit.md`, `make-pr.md` | thin pointers to `docs/workflows/` | a workflow is added, removed or renamed |
+| [.claude/skills/](.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` | a pointed-to skill is renamed, moved or removed. Keep the frontmatter identical to the vendored file |
 
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking is not.** If nothing in the set needed changing, say so explicitly in the pull request description.
 
-Files **not** in the set, because they are inherited from upstream *brachify* and must not be edited casually: [README-BRACHIFY.md](README-BRACHIFY.md), [virtual_environments_instructions.md](virtual_environments_instructions.md), [pull_request_template_brachify.md](pull_request_template_brachify.md), and everything in [notes/](notes/). If one of these has become wrong, record the correction in `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` rather than rewriting upstream's file.
+#### What is ours and what is inherited
 
-[pull_request_template.md](pull_request_template.md) is not in the set either. It is the mechanism that enforces the set, and it changes when the team's process changes.
+This repository is a fork of [brachify/brachify](https://github.com/brachify/brachify). Every path falls into one of four groups. The upstream groups were checked on 2026-09-25 against `upstream/main` at `f89cafe`: every file listed as inherited was byte-for-byte identical to upstream.
+
+| Group | Paths | Rule |
+|---|---|---|
+| **Ours, documentation** | the documentation set above | reviewed on every PR and updated in the same PR as the change |
+| **Inherited from upstream brachify** | [README-BRACHIFY.md](README-BRACHIFY.md) (upstream's `README.md`, renamed), [pull_request_template_brachify.md](pull_request_template_brachify.md) (upstream's `pull_request_template.md`, renamed), [virtual_environments_instructions.md](virtual_environments_instructions.md), [notes/](notes/) including its markdown in `notes/code_notes/`, [user_guide/](user_guide/), [3D Models and Templates/](3D%20Models%20and%20Templates/), [Images/](Images/), [LICENSE](LICENSE), [requirements.txt](requirements.txt), `SI_C_D30 Brachify_Ex1/`, `SI_C_D30 Brachify_Ex2/` | **never edited.** If one has become wrong, record the correction in `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` instead. The sample DICOM folders are de-identified clinical data |
+| **Vendored from third parties** | every file inside a skill's folder in [agent-skills/](agent-skills/). Only `agent-skills/README.md` is ours | **never edited.** Replaced wholesale from upstream, as `agent-skills/README.md` describes |
+| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated with `conda list --explicit > spec-file.txt` after a dependency change, `environment.yml` changes when a dependency is added, and `.vscode/settings.json` is fixed by the first change that adds a test (see [Testing](#testing-write-the-test-first)) |
+
+Everything else, including `src/`, `resources/`, `build_executable.py`, `benchmarks/` and `.gitignore`, is code the team changes normally, with the documentation set kept in step.
 
 #### Section map for the source of truth
 
@@ -82,6 +113,7 @@ Files **not** in the set, because they are inherited from upstream *brachify* an
 | finds a new bug or trap | §7 Known bugs, traps and dead code — add it there, don't leave it in a commit message |
 | fixes a listed bug | §7 Known bugs, traps and dead code — mark the entry fixed, don't silently delete it |
 | adds tests | §8 |
+| adds, removes, or updates a skill in `agent-skills/` | the table in [agent-skills/README.md](agent-skills/README.md). §1.10 only if how skills are loaded changes |
 
 #### Three rules when you edit anything in the set
 
@@ -119,9 +151,21 @@ truth. Adding a workflow is described in
 
 Do not ask for permission to add it, and do not add it "just this once". The git history belongs to this team, and this is coursework whose authorship is assessed.
 
-## Testing
+## Testing: write the test first
 
-**There is currently no test suite and no working test configuration.** [`.vscode/settings.json`](.vscode/settings.json) enables pytest against a `testing/` directory that does not exist; the real directory is [tests/](tests/). The first change that adds a test must also fix that setting and put `src/` on `sys.path`, either through a root `conftest.py` or `pythonpath = ["src"]` in a `pytest.ini`.
+This project follows the superpowers **test-driven-development** skill. It is mandatory from [session start](#session-start), before any implementation.
+
+**Iron law:** no production code without a failing test first. Wrote the code first? Delete it. Do not keep it as a reference, do not adapt it while writing the test, and do not look at it. Implement again from the test.
+
+The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
+
+**There is currently no test suite and no working test configuration.** [`.vscode/settings.json`](.vscode/settings.json) enables pytest against a `testing/` directory that does not exist; the real directory is [tests/](tests/). The first change that adds a test must also fix that setting and put `src/` on `sys.path`, either through a root `conftest.py` or `pythonpath = ["src"]` in a `pytest.ini`. Until that exists, adding it is part of your change, not a reason to skip the test.
+
+### The loop
+
+1. Write the test. Run it. **Watch it fail.** A test you never saw red proves nothing.
+2. Write the smallest code that makes it pass.
+3. Before moving on, break the code on purpose and confirm the test catches it. If it stays green the test is decoration, not coverage.
 
 ### What must have a test
 
@@ -242,17 +286,13 @@ python build_executable.py
 
 `--exclude-module PyQt5` in that script is load-bearing: PyQt5 and PySide6 clash at runtime.
 
-The repository also carries a small Node toolchain, used only to run the anti-slop plugin and the pre-commit hook. It has nothing to do with the conda environment, and the conda-only rule above is about Python packages. [package.json](package.json) is private and lists dev dependencies only (`oxlint`, `@oxlint/plugins`, `oxfmt`, `lefthook`).
+Lint your change with the vendored anti-slop-py linter before you open a pull request. It needs Python 3.12 or newer, which the conda environment provides, and nothing is installed for it. See [Anti-slop](#anti-slop) and §1.9 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
 ```bash
-npm install                    # installs the tooling and the git pre-commit hook
-npx oxlint --quiet             # lint everything; today prints "No files found to lint" and exits 1
-npx lefthook run pre-commit    # run the hook by hand against staged files
+PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main
 ```
 
-The pre-commit hook runs `oxfmt --check` and `oxlint --quiet` on staged `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts` and `.tsx` files and skips both when none are staged, so a commit that stages only Python or markdown is unaffected. A commit that stages a violation is blocked until it is fixed. Verified on 2026-09-23 with Node 26.7.0 and oxlint 1.85.0. oxlint declares Node `^20.19.0 || >=22.12.0`. Whether those versions load the plugin's `.ts` files directly has not been checked. See §1.9 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
-
-**Tests**: there are none yet, see [Testing](#testing) above. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: there are none yet, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
