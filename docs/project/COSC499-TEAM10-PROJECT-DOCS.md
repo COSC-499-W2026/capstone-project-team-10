@@ -1024,6 +1024,7 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | `add_notch(z_offset=...)` | the parameter is computed and passed but the translation is commented out, so the notch is always at `z=0` even with a collar |
 | `generate_cylinder_points` / `get_surface_intersection` / `get_interstitial_length` in `mesh/channel.py` | duplicated (worse) copies of the `template_reference.py` versions; unused |
 | `.vs/brachify/v17/.wsuo`, `src/windows - Shortcut.lnk` | Windows-only artifacts committed by accident |
+| `.gitignore`, lines 177 and 179 | leftover merge-conflict markers, `=======` and `>>>>>>> main`, around a `files` entry. Git reads each marker as an ignore pattern. Inherited from upstream, whose `.gitignore` carries the same lines (*Verified* 2026-09-25 against `upstream/main` at `f89cafe`). Harmless today, since no file is named after a marker, but delete both lines when someone next edits `.gitignore` |
 
 ### 7.5 LOW — cross-platform rough edges
 
