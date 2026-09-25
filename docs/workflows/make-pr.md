@@ -20,6 +20,14 @@ exactly.
 - Run `git diff main...HEAD` to read the full diff and truly understand what was implemented.
   Do not summarize from memory.
 
+## Update the architecture diagrams first
+
+Before `gh pr create`, read the diff from `main`. If it changes signals, values, the view order, a model, `ShapeModel`, the display path, or what Import reads or Export writes, redraw the three pictures on this branch and commit that edit. The pictures are the SVG files in [docs/diagrams/](../diagrams/), shown from [docs/architecture.md](../architecture.md). The `.mmd` file next to each SVG is the same diagram. Then open the pull request.
+
+If none of those changed, leave the diagrams alone. On the documentation gate, leave the architecture box unticked and append `— **N/A**, diagrams unchanged because <reason>`.
+
+Nothing generates the diagrams. You redraw them. A pull request that changes those areas and leaves the three diagrams stale does not follow this workflow.
+
 ## Target this repository, never upstream
 
 This repo is a fork of `brachify/brachify`, and `gh pr create` **defaults to the parent

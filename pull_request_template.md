@@ -12,6 +12,7 @@ I reviewed each of these and updated the ones this PR affects:
 
 - [ ] [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) — the source of truth (see section map below)
 - [ ] [docs/README.md](docs/README.md) — index of the docs tree
+- [ ] [docs/architecture.md](docs/architecture.md) — UML, DFD level 0, and DFD level 1 match this PR. If signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output changed, all three were redrawn before this PR was opened.
 - [ ] [docs/contract/README.md](docs/contract/README.md)
 - [ ] [docs/proposal/README.md](docs/proposal/README.md)
 - [ ] [docs/design/README.md](docs/design/README.md)
@@ -48,7 +49,7 @@ Quality of the updates:
 |---|---|
 | changes dependencies, the environment, or how to run the app | §1 Setup |
 | adds, removes, or renames a module or file | §4.7 map **and** §5 module reference |
-| changes signals, models, or the display pipeline | §4.4, §4.5 |
+| changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the three diagrams in `docs/architecture.md`, and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 (**and all four code sites**) |
 | changes an export format | §6.4 |

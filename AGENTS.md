@@ -8,6 +8,8 @@ Guidance for AI coding agents working in this repository. This file is the sourc
 
 **Read [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) first.** It is the canonical description of this codebase: setup, architecture, the signal graph, a module-by-module reference, the configuration schema, and a catalogue of known bugs and traps. Read the sections relevant to your task before you touch code. It will save you from re-deriving things that are already written down, and from re-discovering bugs that are already catalogued.
 
+For the picture, read [docs/architecture.md](docs/architecture.md) before the long reference. It holds the UML, the level-0 data-flow diagram, and the level-1 data-flow diagram. When you change the code those diagrams show, redraw them in that file before you open a pull request. The step is in [docs/workflows/make-pr.md](docs/workflows/make-pr.md).
+
 Sections worth knowing exist regardless of task:
 
 - **§7 Known bugs, traps, and dead code** — read before debugging anything. Several plausible-looking code paths are already known to be dead or broken, and several safe-looking edits are known to break things (cached shapes, index-ordered views, `@display_action`).
@@ -24,6 +26,7 @@ The documentation set is **every markdown file** in `docs/`, `tests/` and `utils
 |---|---|---|
 | [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) | **the source of truth**: setup, architecture, module reference, config schema, known bugs | almost any code change. See the section map below |
 | [docs/README.md](docs/README.md) | index of the `docs/` tree | a folder or document is added, removed or repurposed |
+| [docs/architecture.md](docs/architecture.md) | the UML, DFD level 0, DFD level 1, and the missing course plan | signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output changes. Redraw all three diagrams in that same change, before the pull request |
 | [docs/contract/README.md](docs/contract/README.md) | team contract | the contract changes or moves |
 | [docs/proposal/README.md](docs/proposal/README.md) | project proposal | scope, goals or deliverables change |
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
@@ -50,7 +53,7 @@ Files **not** in the set, because they are inherited from upstream *brachify* an
 |---|---|
 | touches dependencies, the environment, or how to run the app | §1 Setup |
 | adds, removes, or renames a module or file | §4.7 directory map **and** §5 module reference |
-| changes signals, model wiring, or the display pipeline | §4.4, §4.5 |
+| changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the three diagrams in [docs/architecture.md](docs/architecture.md), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 — and remember the four code sites |
 | changes an export format | §6.4 |
