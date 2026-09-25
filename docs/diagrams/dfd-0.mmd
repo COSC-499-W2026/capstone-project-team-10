@@ -1,0 +1,10 @@
+flowchart LR
+  tps["Treatment planning system"]
+  physicist["Medical physicist"]
+  printer["Printer or CAD"]
+  brachify(("0 brachify"))
+
+  tps -->|"RTPLAN and RTSTRUCT"| brachify
+  physicist -->|"diameter, length, channels, tandem"| brachify
+  brachify -->|"STL or STEP"| printer
+  brachify -->|"PDF sheet and JSON config"| physicist

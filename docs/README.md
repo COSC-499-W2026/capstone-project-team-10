@@ -20,6 +20,7 @@ claim is marked either *Verified* (observed at runtime) or *Reasoned from code*.
 | Folder | Contents |
 |---|---|
 | [project/](project/) | **Project documentation — the source of truth.** Setup, architecture, module reference, config schema, known bugs. |
+| [architecture.md](architecture.md) | UML, DFD level 0, DFD level 1, what Team 10 has added, and which course plan is still missing. |
 | [contract/](contract/) | Team contract |
 | [proposal/](proposal/) | Project proposal |
 | [design/](design/) | UI mocks and design artifacts |

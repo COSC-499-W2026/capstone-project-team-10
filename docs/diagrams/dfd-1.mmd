@@ -1,0 +1,26 @@
+flowchart TB
+  tps["Treatment planning system"]
+  physicist["Medical physicist"]
+  printer["Printer or CAD"]
+
+  p1(("1 Import"))
+  p2(("2 Cylinder"))
+  p3(("3 Channels"))
+  p4(("4 Tandem"))
+  p5(("5 Export"))
+  d1[("Plan and settings")]
+  d2[("Shapes")]
+
+  tps -->|"DICOM folder"| p1
+  p1 -->|"needles and Central Axis"| d1
+  physicist -->|"size and collar"| p2
+  d1 --> p2
+  p2 -->|"cylinder solid"| d2
+  physicist -->|"bore, dead space"| p3
+  d1 --> p3
+  p3 -->|"needle solids"| d2
+  physicist -->|"curve or STEP"| p4
+  p4 -->|"tandem solid"| d2
+  d2 --> p5
+  p5 -->|"boolean cut"| printer
+  p5 -->|"PDF and JSON"| physicist

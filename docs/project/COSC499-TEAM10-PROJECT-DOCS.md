@@ -1004,6 +1004,7 @@ repository root:
 |---|---|
 | `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` | this file, the source of truth |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
+| [docs/architecture.md](../architecture.md) | UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. Redraw the three diagrams in the same change when signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output changes. The pull-request step is in [docs/workflows/make-pr.md](../workflows/make-pr.md). |
 | [docs/contract/README.md](../contract/README.md) | team contract |
 | [docs/proposal/README.md](../proposal/README.md) | project proposal |
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |

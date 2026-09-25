@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture diagrams</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #1b1b1b;
+      --panel: #242424;
+      --line: #3a3a3a;
+      --text: #f2f2f2;
+      --muted: #b5b5b5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.4 ui-sans-serif, system-ui, sans-serif;
+    }
+    header, section { padding: 16px 20px 0; }
+    h1 { font-size: 22px; font-weight: 650; margin: 0 0 8px; }
+    p { margin: 0 0 16px; color: var(--muted); max-width: 62rem; }
+    h2 { font-size: 16px; font-weight: 650; margin: 0; }
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 8px 0;
+    }
+    button {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font: inherit;
+    }
+    button:focus-visible { outline: 2px solid #f2f2f2; outline-offset: 2px; }
+    .readout { color: var(--muted); min-width: 4.5rem; }
+    .stage {
+      height: 70vh;
+      min-height: 320px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #111;
+      cursor: grab;
+      touch-action: none;
+    }
+    .stage:active { cursor: grabbing; }
+    .sheet {
+      transform-origin: 0 0;
+      width: max-content;
+    }
+    .sheet img {
+      display: block;
+      max-width: none;
+      background: #1b1b1b;
+    }
+    section { margin-bottom: 28px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Architecture diagrams</h1>
+    <p>Scroll to zoom. Drag to move. Each picture has its own size, so a crowded diagram can be opened up without shrinking the others.</p>
+  </header>
+
+  <section>
+    <h2>UML</h2>
+    <div class="bar">
+      <button type="button" data-act="out">Zoom out</button>
+      <button type="button" data-act="in">Zoom in</button>
+      <button type="button" data-act="reset">Reset</button>
+      <span class="readout">100%</span>
+    </div>
+    <div class="stage" tabindex="0" aria-label="UML diagram. Scroll to zoom, drag to move.">
+      <div class="sheet"><img src="uml.svg" width="932" height="852" alt="UML of RadiotherapyApp, the models, and ShapeModel"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>DFD level 0</h2>
+    <div class="bar">
+      <button type="button" data-act="out">Zoom out</button>
+      <button type="button" data-act="in">Zoom in</button>
+      <button type="button" data-act="reset">Reset</button>
+      <span class="readout">100%</span>
+    </div>
+    <div class="stage" tabindex="0" aria-label="Data flow diagram level 0. Scroll to zoom, drag to move.">
+      <div class="sheet"><img src="dfd-0.svg" width="1002" height="199" alt="DFD level 0, brachify as one process"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>DFD level 1</h2>
+    <div class="bar">
+      <button type="button" data-act="out">Zoom out</button>
+      <button type="button" data-act="in">Zoom in</button>
+      <button type="button" data-act="reset">Reset</button>
+      <span class="readout">100%</span>
+    </div>
+    <div class="stage" tabindex="0" aria-label="Data flow diagram level 1. Scroll to zoom, drag to move.">
+      <div class="sheet"><img src="dfd-1.svg" width="816" height="1092" alt="DFD level 1, the five tabs"></div>
+    </div>
+  </section>
+
+  <script>
+    const minScale = 0.25;
+    const maxScale = 8;
+
+    document.querySelectorAll("section").forEach((section) => {
+      const stage = section.querySelector(".stage");
+      const sheet = section.querySelector(".sheet");
+      const image = section.querySelector("img");
+      const readout = section.querySelector(".readout");
+      let scale = 1;
+      let x = 16;
+      let y = 16;
+      let drag = null;
+
+      function paint() {
+        sheet.style.transform = "translate(" + x + "px, " + y + "px) scale(" + scale + ")";
+        readout.textContent = Math.round(scale * 100) + "%";
+      }
+
+      function fit() {
+        const width = Number(image.getAttribute("width")) || image.naturalWidth;
+        const height = Number(image.getAttribute("height")) || image.naturalHeight;
+        if (!width || !height) return;
+        image.style.width = width + "px";
+        image.style.height = height + "px";
+        const pad = 24;
+        const next = Math.min(
+          maxScale,
+          Math.max(minScale, Math.min(
+            (stage.clientWidth - pad * 2) / width,
+            (stage.clientHeight - pad * 2) / height
+          ))
+        );
+        scale = next;
+        x = (stage.clientWidth - width * scale) / 2;
+        y = (stage.clientHeight - height * scale) / 2;
+        paint();
+      }
+
+      function zoomBy(factor, originX, originY) {
+        const next = Math.min(maxScale, Math.max(minScale, scale * factor));
+        const applied = next / scale;
+        x = originX - (originX - x) * applied;
+        y = originY - (originY - y) * applied;
+        scale = next;
+        paint();
+      }
+
+      section.querySelector('[data-act="in"]').addEventListener("click", () => {
+        zoomBy(1.25, stage.clientWidth / 2, stage.clientHeight / 2);
+      });
+      section.querySelector('[data-act="out"]').addEventListener("click", () => {
+        zoomBy(0.8, stage.clientWidth / 2, stage.clientHeight / 2);
+      });
+      section.querySelector('[data-act="reset"]').addEventListener("click", fit);
+      image.addEventListener("load", fit);
+      if (image.complete) fit();
+
+      stage.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        const rect = stage.getBoundingClientRect();
+        const factor = event.deltaY < 0 ? 1.12 : 0.89;
+        zoomBy(factor, event.clientX - rect.left, event.clientY - rect.top);
+      }, { passive: false });
+
+      stage.addEventListener("pointerdown", (event) => {
+        stage.setPointerCapture(event.pointerId);
+        drag = { px: event.clientX, py: event.clientY, x: x, y: y };
+      });
+      stage.addEventListener("pointermove", (event) => {
+        if (!drag) return;
+        x = drag.x + (event.clientX - drag.px);
+        y = drag.y + (event.clientY - drag.py);
+        paint();
+      });
+      stage.addEventListener("pointerup", () => { drag = null; });
+      stage.addEventListener("pointercancel", () => { drag = null; });
+
+    });
+  </script>
+</body>
+</html>
