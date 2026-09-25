@@ -41,8 +41,6 @@ when this one disagrees with the code, **the code wins and this file must be cor
   ([virtual_environments_instructions.md](../../virtual_environments_instructions.md)).
 - Python 3.12 (3.11 also works upstream).
 - Git.
-- Node.js and npm, **only** for the anti-slop lint and the commit hook (§1.9). The app does
-  not need them.
 
 `pythonocc-core` is pinned to **7.7.2**. Upstream has never produced a working environment
 above that version. Do not bump it casually.
@@ -168,57 +166,78 @@ works. On the verified macOS setup that path is:
 /opt/homebrew/Caskroom/miniforge/base/envs/brachify/bin/python3.12
 ```
 
-### 1.9 Lint tooling and the pre-commit hook
+### 1.9 Lint tooling
 
-> Verified on 2026-09-23: macOS (Darwin 25.6.0), Node 26.7.0, npm 11.19.0, oxlint 1.85.0,
-> oxfmt 0.70.0, lefthook 2.1.14.
+> Verified on 2026-09-25: macOS (Darwin 25.6.0), Python 3.14.0 (system) and 3.12 (Homebrew).
+> Not verified on Windows.
 
-The repository has a small Node toolchain, separate from the conda environment. It exists to
-run the **anti-slop** oxlint plugin and a git pre-commit hook. The app does not need it.
-
-| File | Role |
-|---|---|
-| [package.json](../../package.json), [package-lock.json](../../package-lock.json) | private, dev dependencies only: `oxlint`, `@oxlint/plugins`, `oxfmt`, `lefthook`. `"type": "module"` is set because the plugin is ESM, and without it Node prints `MODULE_TYPELESS_PACKAGE_JSON` on every lint run. |
-| [agent-skills/anti-slop/](../../agent-skills/anti-slop/) | the plugin: `index.ts`, 15 rules in `rules/`, helpers in `shared/`. Vendored as-is, so a rule is not rewritten here. |
-| [.oxlintrc.json](../../.oxlintrc.json) | loads the plugin and sets each rule's severity |
-| [.oxfmtrc.json](../../.oxfmtrc.json) | oxfmt settings, ignoring `agent-skills/anti-slop/` |
-| [lefthook.yml](../../lefthook.yml) | the pre-commit hook |
+The anti-slop rules in [AGENTS.md](../../AGENTS.md#anti-slop) are checked by
+**anti-slop-py**, a zero-dependency Python linter vendored at
+[agent-skills/anti-slop-py/](../../agent-skills/anti-slop-py/) from
+[TinyFrontier/anti-slop-py](https://github.com/TinyFrontier/anti-slop-py) at commit `86ea16d`.
+`src/anti_slop/` is the package, `src/anti_slop/rules/` holds one file per rule, and
+`skills/install-anti-slop-py/` is its install skill (§1.10). It is a port of the `anti-slop`
+oxlint plugin, which this repository carried until 2026-09-25 with a Node toolchain (oxlint,
+oxfmt, and a lefthook pre-commit hook). All of that was removed, because oxlint cannot read
+Python. The app does not need any of this.
 
 ```bash
-npm install                    # installs the tooling and the pre-commit hook
-npx lefthook run pre-commit    # run the hook by hand against staged files
+PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main   # lint a branch
+PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop --explain no-any-parameters
 ```
 
-**What it lints.** oxlint parses JavaScript and TypeScript only. This repository has none
-outside `agent-skills/anti-slop/`, which `.oxlintrc.json` ignores, so `npx oxlint` finds nothing to lint.
-The anti-slop rules therefore **do not check the Python application**. Agents and reviewers
-apply them by hand, as the Anti-slop section of [AGENTS.md](../../AGENTS.md#anti-slop) says.
+**Nothing runs it automatically.** There is no commit hook and no CI. Agents run it because
+[AGENTS.md](../../AGENTS.md#anti-slop) tells them to, the
+[make-pr workflow](../workflows/make-pr.md) runs it before a PR is opened, and the
+[pull request template](../../pull_request_template.md) asks whether it was run.
 
-**The rules.** 13 are `error`. `no-chained-type-assertions` and
-`require-safety-comment-for-type-assertion` are `warn`. `no-runtime-typeof` is off for
-`.js/.mjs/.cjs/.jsx`, and `no-module-mocking` and `require-safety-comment-for-type-assertion`
-are off for test files (`**/tests/**`, `**/__tests__/**`, `*.test.*`, `*.spec.*`).
-`no-shape-in-symbol-names` is on with the rest, and would object to
-`ShapeModel` and `TopoDS_Shape` if oxlint read Python. It does not.
+**Not installed, on purpose.** The linter's install skill would copy it to `tools/anti_slop/`
+and add a `[tool.anti-slop]` table to a `pyproject.toml`. That has not been done. The
+repository has no `pyproject.toml`, so every run uses the linter's built-in defaults, and
+running it means putting `agent-skills/anti-slop-py/src` on `PYTHONPATH`. It needs Python 3.12
+or newer. The conda environment's pinned Python is 3.12.2.
 
-**The hook.** On commit it runs `oxfmt --check` and `oxlint --quiet` on staged
-`.js/.jsx/.mjs/.cjs/.ts/.tsx` files. If none are staged it skips both.
+**What it checks.** `review --base <ref>` reports findings only on lines changed since the
+merge base with `<ref>`, including uncommitted and untracked files. The violations already in
+`src/` stay silent until someone edits those lines. `review` judges with the linter's `agent`
+preset: the ten escape-hatch rules are errors (exit 1), and the five policy rules
+(`no-adhoc-isinstance`, `no-module-mocking`, `no-object-parameters`,
+`no-shape-in-symbol-names`, `no-string-attribute-access`) are warnings that do not fail the
+run. `no-shape-in-symbol-names` therefore warns on `ShapeModel` and `TopoDS_Shape` without
+failing. AGENTS.md says to ignore that warning. A full run with no `review`
+(`python -m anti_slop src/`) puts every rule at `error` and reports everything in the tree.
 
-- *Verified:* all 15 rules fire on scratch `.ts` files, and both overrides silence what they
-  should. A staged violation blocks the commit (exit 1). Staging only Python, markdown or
-  config skips both jobs (exit 0). Staging only `agent-skills/anti-slop/` passes (exit 0).
-- *Observed, cause not isolated:* the first `npm install`, with no `lefthook.yml` present,
-  left a commented placeholder `lefthook.yml` and a stray `prepare-commit-msg` hook behind.
-  Most likely that is lefthook's own postinstall, which npm 11.19 warned is not allow-listed
-  yet still appeared to run. If `lefthook.yml` is ever missing, restore the real one rather
-  than editing a placeholder, then run `npx lefthook install`.
-- *Not verified:* Node 20.19 or 22.12, the minimum oxlint declares, loading the plugin's `.ts`
-  files directly. Windows. There is no CI.
+- *Verified:* on 2026-09-25, `review --base HEAD` on a probe file with an `Any` parameter and
+  an uncommented `cast` exits 1 with both findings, and a `Shape…` class name in the same file
+  is reported as a warning. `review` on an untouched `src/launch.py` reports nothing, exit 0.
+- *Not verified:* Windows.
 
-### 1.10 Claude Code plugin: superpowers (optional)
+### 1.10 Agent skills, the session-start hook, and the superpowers plugin
 
-[.claude/settings.json](../../.claude/settings.json) registers the `superpowers-marketplace`
-marketplace and enables the `superpowers` plugin for this project. Claude Code applies it once
+Section "Session start" of [AGENTS.md](../../AGENTS.md#session-start) requires every agent,
+in any tool, to load the superpowers `test-driven-development` skill and read every skill in
+[agent-skills/](../../agent-skills/) before its first reply. What each skill is, and where it
+came from, and how each is used here, is in [agent-skills/README.md](../../agent-skills/README.md).
+This section deliberately does not list them, so it does not go stale when one is added. The
+folder is the list: agents find skills by searching it for `SKILL.md`, and so does the hook
+below. Adding a skill is described in that README and needs no change to this section.
+
+**The session-start hook.** In Claude Code, [.claude/settings.json](../../.claude/settings.json)
+registers a `SessionStart` hook, [.claude/hooks/session-start.sh](../../.claude/hooks/session-start.sh).
+It prints those steps and a list of every `SKILL.md` under `agent-skills/`, found by searching,
+and Claude Code adds the output to the session's context on startup, resume, `/clear` and
+compaction. It only prompts. It cannot invoke a skill. Other tools have no equivalent hook
+here and rely on reading `AGENTS.md`.
+
+- *Verified:* on 2026-09-25 on macOS, the script prints both skills with their frontmatter
+  descriptions, from the repository root and from another directory with
+  `CLAUDE_PROJECT_DIR` set. Exit 0.
+- *Not verified:* that Claude Code fires it in a fresh session (it needs a new session after
+  the settings change), and Windows, where Claude Code runs hooks through Git Bash.
+
+**The superpowers plugin.** The same file registers the `superpowers-marketplace`
+marketplace and enables the `superpowers` plugin for this project. A Claude Code user needs it
+installed for step 1 of Session start. Without it, the session falls back to the vendored copy. Claude Code applies it once
 you accept the trust dialog for the folder. The plugin is **not** installed for you. It comes
 from an external repository, and Claude Code does not download plugin code from a cloned
 repository on its own. Until you install it, Claude Code reports the plugin as not installed
@@ -374,7 +393,7 @@ permissive licence, and do not strip the `LICENSE` file.
 | Diagram rendering | `matplotlib` |
 | Numerics | `numpy` |
 | Packaging | PyInstaller (Windows only) |
-| Repository tooling | oxlint with the anti-slop plugin, oxfmt, lefthook (Node, dev only, §1.9) |
+| Repository tooling | anti-slop-py (Python, vendored, run by hand, §1.9) |
 
 ### 4.2 Startup sequence
 
@@ -489,13 +508,10 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── spec-file.txt              pinned conda lockfile — WINDOWS ONLY
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper
-├── agent-skills/              agent tooling vendored into the repo
-│   └── anti-slop/             oxlint plugin, vendored as-is (§1.9)
-├── package.json               Node dev tooling only, no app code (§1.9)
-├── package-lock.json          lockfile for package.json
-├── .oxlintrc.json             anti-slop rule severities and ignores
-├── .oxfmtrc.json              oxfmt settings, ignores agent-skills/anti-slop/
-├── lefthook.yml               pre-commit hook: oxfmt and oxlint on staged JS/TS
+├── agent-skills/              skills every agent reads at session start (§1.10)
+│   ├── README.md              the skill list: upstream, version, licence, how used
+│   └── <skill>/               one folder per skill, vendored as-is
+├── .claude/                   Claude Code config: commands, skills, SessionStart hook
 ├── docs/                      course documentation
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
@@ -1029,14 +1045,13 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   (§5.3).
 - **Bare `except:` is pervasive.** When debugging, expect failures to be swallowed; add a
   temporary `log.exception()` rather than trusting the absence of an error message.
-- **The anti-slop plugin does not lint the Python app.** oxlint reads only JavaScript and
-  TypeScript, and there is none outside `agent-skills/anti-slop/`. A passing pre-commit hook says nothing
-  about `src/` (§1.9). Verified 2026-09-23.
-- **`npx oxlint` exits 1 when there is nothing to lint** (`No files found to lint`), and
-  `oxfmt --check` exits 2 when every staged file is ignored. Both hook jobs pass
-  `--no-error-on-unmatched-pattern` for that reason, so a commit that only touches
-  `agent-skills/anti-slop/` is not blocked. Do not add a bare `npx oxlint` to a script or CI job (§1.9).
-  Verified 2026-09-23.
+- **Fixed 2026-09-25: the anti-slop plugin did not lint the Python app.** It was an oxlint
+  plugin, and oxlint reads only JavaScript and TypeScript, so a passing hook said nothing
+  about `src/`. The related trap, that `npx oxlint` exits 1 with nothing to lint, went with
+  it. The plugin was replaced by anti-slop-py, which reads Python (§1.9).
+- **A clean `anti_slop review` covers only the lines you changed.** It hides every existing
+  finding in untouched lines, and it lets the five policy rules through as warnings. It is
+  not a statement that `src/` is clean (§1.9). Verified 2026-09-25.
 
 ---
 
@@ -1044,10 +1059,14 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 8.1 Policy
 
-What to test, and what cannot be tested in this setup, is in
-[AGENTS.md](../../AGENTS.md#testing). The anti-slop rules every agent applies, including the
-rule against mocking application modules, are in
-[AGENTS.md](../../AGENTS.md#anti-slop).
+**This project follows test-driven development**, including the superpowers iron law: no
+production code without a failing test first. Code written before its test is deleted and
+rewritten from the test. Every agent loads the superpowers `test-driven-development` skill at
+session start (§1.10). The full rules, including the anti-slop rules, live in
+[AGENTS.md](../../AGENTS.md#session-start) and
+[AGENTS.md](../../AGENTS.md#testing-write-the-test-first). They are enforced by the
+[pull request template](../../pull_request_template.md): write the test, watch it fail, make
+it pass, then break the code on purpose to confirm the test catches it.
 
 Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `tests/dicom/`,
 `tests/views/`, `tests/settings/`, and so on. Nothing sits loose at the root of `tests/`. See
@@ -1062,9 +1081,9 @@ Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `test
   directory that does not exist. The repository now has `tests/`, so this setting is wrong and
   should be updated to `["tests"]`.
 - `benchmarks/` is dead (§7.4) and is not a test suite.
-- There is no `.github/` directory and no CI of any kind. The only automated check is the
-  local pre-commit hook (§1.9), which lints JavaScript and TypeScript and so never runs a
-  Python test.
+- There is no `.github/` directory, no CI of any kind, and no git hook. The anti-slop
+  linter is run by hand (§1.9) and never runs a test. `agent-skills/anti-slop-py/.github/` is upstream's CI, vendored with the linter, and
+  GitHub does not run it from there.
 
 The first change that adds a test must also put `src/` on `sys.path` — either a `conftest.py`
 at the repository root that inserts it, or `pythonpath = ["src"]` in a `pytest.ini` /
@@ -1094,8 +1113,9 @@ and can be tested without launching the app:
 **The whole documentation set is updated in the same pull request as the change it describes.**
 It is never a follow-up task and never a separate "docs PR".
 
-The set is **every markdown file** in `docs/`, `tests/` and `utils/`, plus three files at the
-repository root:
+The set is **every markdown file the team owns**: every markdown file in `docs/`, `tests/`,
+`utils/` and `.claude/`, plus four files at the repository root and the index of the vendored
+skills. Files inherited from upstream are never part of it (see below).
 
 | File | Covers |
 |---|---|
@@ -1109,21 +1129,40 @@ repository root:
 | [docs/workflows/README.md](../workflows/README.md) | index of the tool-agnostic workflows |
 | [docs/workflows/commit.md](../workflows/commit.md) | the canonical commit procedure |
 | [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure |
-| [tests/README.md](../../tests/README.md) | `tests/` scoping rule, what to test first |
+| [tests/README.md](../../tests/README.md) | TDD policy, `tests/` scoping rule, what to test first |
 | [utils/README.md](../../utils/README.md) | `utils/` scoping rule and what belongs there |
 | [README.md](../../README.md) | repository entry point |
 | [AGENTS.md](../../AGENTS.md) | how to work in this repo |
 | [CLAUDE.md](../../CLAUDE.md) | agent entry point, imports `AGENTS.md` |
+| [agent-skills/README.md](../../agent-skills/README.md) | the skills every agent loads at session start |
+| [pull_request_template.md](../../pull_request_template.md) | Team 10's PR checklist, which enforces this set |
+| [.claude/README.md](../../.claude/README.md) | Claude Code configuration: commands, skills, session-start hook |
+| [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md` | pointers to `docs/workflows/` |
+| [.claude/skills/](../../.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` |
 
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking
 is not.** If nothing in the set needed changing, say so explicitly in the pull request.
 
-Not in the set, because they are inherited from upstream *brachify* and must not be edited
-casually: [README-BRACHIFY.md](../../README-BRACHIFY.md),
-[virtual_environments_instructions.md](../../virtual_environments_instructions.md),
-[pull_request_template_brachify.md](../../pull_request_template_brachify.md), and everything in
-[notes/](../../notes/). If one of those has become wrong, record the correction here instead of
-rewriting upstream's file.
+**What is ours and what is inherited.** This repository is a fork of
+[brachify/brachify](https://github.com/brachify/brachify). The full classification, with the
+rule for each group, is in [AGENTS.md](../../AGENTS.md#what-is-ours-and-what-is-inherited). In
+short:
+
+- **Inherited from upstream brachify, never edited:** `README-BRACHIFY.md` (upstream's
+  `README.md`, renamed), `pull_request_template_brachify.md` (upstream's
+  `pull_request_template.md`, renamed), `virtual_environments_instructions.md`, `notes/`
+  (including its markdown in `notes/code_notes/`), `user_guide/`, `3D Models and Templates/`,
+  `Images/`, `LICENSE`, `requirements.txt`, and the two `SI_C_D30 Brachify_Ex*/` sample
+  folders. If one of them has become wrong, record the correction here instead of rewriting
+  upstream's file.
+- **Vendored from third parties, never edited:** every file inside a skill's folder in
+  `agent-skills/`. Only `agent-skills/README.md` is ours.
+- **Inherited, changed only by their procedure:** `spec-file.txt` and `environment.yml` (a
+  dependency change, §1), and `.vscode/settings.json` (fixed by the first change that adds a
+  test, §8.2).
+
+*Verified* on 2026-09-25: every file listed as inherited was byte-for-byte identical to
+`upstream/main` at `f89cafe`, and the two renamed files are identical to upstream's originals.
 
 The set cross-references itself. **If you change a rule stated in more than one file, update
 every copy.** A rule that appears in three places and is true in two is worse than one that
@@ -1157,6 +1196,7 @@ Beyond the set-wide rule above, update **this** document when you:
 | new/changed export format | §6.4 |
 | bug found or fixed | §7 |
 | test added | §8 |
+| skill added, removed, or updated in `agent-skills/` | the table in `agent-skills/README.md`; §1.10 only if how skills load changes |
 
 ### 9.3 Rules for edits
 
@@ -1176,7 +1216,7 @@ Beyond the set-wide rule above, update **this** document when you:
 |---|---|
 | [AGENTS.md](../../AGENTS.md) | instructions for AI agents; points here for project context |
 | [CLAUDE.md](../../CLAUDE.md) | Claude Code entry point; imports `AGENTS.md` |
-| [agent-skills/anti-slop/](../../agent-skills/anti-slop/) | the oxlint plugin behind the anti-slop rules in `AGENTS.md` (§1.9) |
+| [agent-skills/](../../agent-skills/) | skills every agent reads at session start, including the anti-slop-py linter behind the anti-slop rules in `AGENTS.md` (§1.9, §1.10) |
 | [pull_request_template.md](../../pull_request_template.md) | Team 10 PR checklist, includes the update-this-doc gate |
 | [pull_request_template_brachify.md](../../pull_request_template_brachify.md) | upstream's original review process, preserved |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
