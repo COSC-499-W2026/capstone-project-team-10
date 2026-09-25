@@ -72,14 +72,6 @@ Run `git diff --cached --name-only` immediately before each commit and confirm i
 what you intend. If a commit comes out wrong and nothing has been pushed, `git reset --mixed`
 back to the base and redo the sequence.
 
-## The pre-commit hook
-
-A lefthook pre-commit hook runs `oxfmt --check` and `oxlint --quiet` on staged JavaScript and
-TypeScript files. It skips both when none are staged, so a commit of Python, markdown or
-config files is not affected. If it blocks a commit, nothing was committed. Fix what it
-reports, stage the fix by name, and commit again. See §1.9 of
-[the source of truth](../project/COSC499-TEAM10-PROJECT-DOCS.md).
-
 ## Finishing
 
 After all commits, run `git log --oneline -10` and show the user the final commit list.
