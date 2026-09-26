@@ -31,10 +31,20 @@ application. The application is *brachify*; see
 
 ### Keeping documentation current
 
-**Every markdown file in [docs/](docs/), [tests/](tests/) and [utils/](utils/), plus this
-README, [AGENTS.md](AGENTS.md) and [CLAUDE.md](CLAUDE.md), forms the documentation set. The
-whole set is reviewed on every pull request and every implementation, and whatever the change
-affects is updated in that same PR** — never as a follow-up, never as a separate docs PR.
+**Every markdown file the team owns forms the documentation set: every markdown file in
+[docs/](docs/), [tests/](tests/), [utils/](utils/) and [.claude/](.claude/), plus this README,
+[AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md),
+[pull_request_template.md](pull_request_template.md) and
+[agent-skills/README.md](agent-skills/README.md). The whole set is reviewed on every pull
+request and every implementation, and whatever the change affects is updated in that same PR**
+— never as a follow-up, never as a separate docs PR. The code is the source of truth: where a
+document disagrees with it, the document is wrong.
+
+Files inherited from upstream *brachify* are **never** edited: `README-BRACHIFY.md`,
+`pull_request_template_brachify.md`, `virtual_environments_instructions.md`, `notes/`,
+`user_guide/`, `3D Models and Templates/`, `Images/`, `LICENSE`, `requirements.txt` and the
+sample DICOM folders. The full classification is in
+[AGENTS.md](AGENTS.md#what-is-ours-and-what-is-inherited).
 
 Reviewing a file and concluding it needs no change is fine. Not looking is not. If nothing in
 the set needed changing, the PR description must say so.

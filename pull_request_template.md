@@ -5,8 +5,10 @@ _Enter PR description here... what is it supposed to do?_
 ## Documentation gate
 
 **The documentation set is updated in the same PR as the change it describes, never
-afterwards.** The set is every markdown file in `docs/`, `tests/` and `utils/`, plus the three
-root-level files. Reviewing one and concluding it needs no change is fine. Not looking is not.
+afterwards.** The set is every markdown file the team owns, listed in §9.0 of
+[the source of truth](docs/project/COSC499-TEAM10-PROJECT-DOCS.md). The code is the source of
+truth: where a document disagrees with it, the document is wrong. Reviewing a file and
+concluding it needs no change is fine. Not looking is not.
 
 I reviewed each of these and updated the ones this PR affects:
 
@@ -23,9 +25,13 @@ I reviewed each of these and updated the ones this PR affects:
 - [ ] [README.md](README.md) — repository entry point
 - [ ] [AGENTS.md](AGENTS.md) — conventions, commands, architectural facts
 - [ ] [CLAUDE.md](CLAUDE.md) — agent entry point
+- [ ] [agent-skills/README.md](agent-skills/README.md) — the skill list. `sh .claude/hooks/session-start.sh`
+      exits 0 and prints no `UNDOCUMENTED` or `STALE ROW` line
+- [ ] [pull_request_template.md](pull_request_template.md) — this checklist
+- [ ] [.claude/](.claude/) — `README.md`, `commands/*.md`, `skills/*/SKILL.md`
 
 **If nothing in the set needed changing, say so explicitly here:**
-_e.g. "Reviewed all 12; none affected, this PR only touches internal geometry helpers."_
+_e.g. "Reviewed every file in the set; none affected, this PR only touches internal geometry helpers."_
 
 Quality of the updates:
 
@@ -39,8 +45,12 @@ Quality of the updates:
       not left in a PR comment where it will be lost.
 - [ ] If I **fixed** a bug already listed in that §7 catalogue, I marked the entry as fixed
       rather than deleting it, so a future reader can still see the trap once existed.
-- [ ] I did **not** edit upstream's inherited files (`README-BRACHIFY.md`,
-      `virtual_environments_instructions.md`, `pull_request_template_brachify.md`, `notes/`).
+- [ ] I did **not** edit any file inherited from upstream brachify (`README-BRACHIFY.md`,
+      `pull_request_template_brachify.md`, `virtual_environments_instructions.md`, `notes/`,
+      `user_guide/`, `3D Models and Templates/`, `Images/`, `LICENSE`, `requirements.txt`, the
+      sample DICOM folders), or any vendored file inside a skill's folder in `agent-skills/`.
+      `spec-file.txt` and `environment.yml` changed only if a dependency did. See
+      [AGENTS.md](AGENTS.md#what-is-ours-and-what-is-inherited).
 
 **Which section of the source of truth applies:**
 
@@ -54,6 +64,23 @@ Quality of the updates:
 | changes an export format | §6.4 |
 | finds or fixes a bug | §7 Known bugs, traps and dead code |
 | adds tests | §8 |
+| adds, removes, or updates a skill in `agent-skills/` | the table in [agent-skills/README.md](agent-skills/README.md); §1.10 only if how skills load changes |
+
+## Agent skills
+
+Every AI agent that worked on this PR, in any tool, loads the skills in
+[agent-skills/](agent-skills/) at the start of each session and applies them while it works.
+See [AGENTS.md](AGENTS.md#session-start) and [agent-skills/README.md](agent-skills/README.md).
+If no AI agent touched this PR, mark each item N/A.
+
+- [ ] Every agent session loaded the superpowers `test-driven-development` skill before writing
+      code. In Claude Code that is the plugin's copy, which the session-start hook prompts for.
+      With any other agent, it read [agent-skills/superpowers-tdd/SKILL.md](agent-skills/superpowers-tdd/SKILL.md).
+- [ ] Every agent session read each `SKILL.md` in `agent-skills/` and followed the ones that
+      applied to the task. With an agent other than Claude Code, I confirmed it read `AGENTS.md`.
+- [ ] If Python changed, `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils`
+      reports no blocking finding, and none was silenced with a suppression or a cast. See
+      [AGENTS.md](AGENTS.md#anti-slop).
 
 ## Test-driven development
 

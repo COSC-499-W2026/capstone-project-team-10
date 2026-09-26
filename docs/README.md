@@ -29,11 +29,11 @@ claim is marked either *Verified* (observed at runtime) or *Reasoned from code*.
 
 ## Keeping it current
 
-**Every markdown file in `docs/`, `tests/` and `utils/`, plus the root-level
-[README.md](../README.md), [AGENTS.md](../AGENTS.md) and [CLAUDE.md](../CLAUDE.md), forms the
-documentation set. The whole set is reviewed on every pull request and every implementation,
-and whatever the change affects is updated in that same PR** — never as a follow-up, never as a
-separate docs PR.
+**Every markdown file the team owns forms the documentation set**, listed in §9.0 of
+[the source of truth](project/COSC499-TEAM10-PROJECT-DOCS.md). **The whole set is reviewed on
+every pull request and every implementation, and whatever the change affects is updated in
+that same PR** — never as a follow-up, never as a separate docs PR. Files inherited from
+upstream *brachify* are never edited; §9.0 lists those too.
 
 Reviewing a file and concluding it needs no change is fine. Not looking is not. If nothing in
 the set needed changing, the PR description must say so.

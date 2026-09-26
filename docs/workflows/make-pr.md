@@ -19,6 +19,32 @@ exactly.
 - Run `git log main..HEAD --oneline` to see all commits on this branch.
 - Run `git diff main...HEAD` to read the full diff and truly understand what was implemented.
   Do not summarize from memory.
+- If the branch changes Python, run
+  `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils` and fix
+  every blocking finding before opening the PR. Nothing else runs this check. Do not silence a
+  finding with a suppression comment or a `cast`.
+
+## Bring the documentation set up to date
+
+Do this before opening the PR, not after. The code is the source of truth, so a document that
+disagrees with the branch is wrong and gets fixed here.
+
+1. Take the file list from §9.0 of
+   [the source of truth](../project/COSC499-TEAM10-PROJECT-DOCS.md), and open every file in
+   it. Check each one against `git diff main...HEAD`. Use the section map in §9.2 to find the
+   parts of the source of truth the change touches.
+2. Update every file the branch made stale, and commit the updates on this branch, following
+   [commit.md](commit.md). The PR carries the code and its documentation together.
+3. Run `sh .claude/hooks/session-start.sh` from the repository root. It must exit 0 and print
+   no `UNDOCUMENTED` or `STALE ROW` line. A non-zero exit means it could not find the
+   repository, and its output proves nothing. If it flags a skill, fix `agent-skills/README.md`
+   as the script says.
+4. Confirm the branch edits no inherited upstream file:
+   `git diff --name-only main...HEAD` must list nothing from the inherited groups in
+   [AGENTS.md](../../AGENTS.md#what-is-ours-and-what-is-inherited). If one is listed, revert it
+   and record the correction in the source of truth instead.
+5. Note which files you updated and which you reviewed and left alone. The documentation gate
+   in the PR body asks for exactly that.
 
 ## Target this repository, never upstream
 
@@ -82,6 +108,8 @@ Do not leave them all blank, and do not tick them all.
 - For an item only partly done, leave it unticked and say plainly what was and was not done.
 - **Never tick a test-driven-development box on a PR that contains no code**, and never tick
   "ran the app" if the app was not run.
+- Tick an **Agent skills** box only for what you can confirm about every agent session on the
+  branch. If no AI agent touched it, mark each item N/A.
 - Leave the entire **Reviewer** block unticked. It belongs to the reviewer.
 
 A checklist that is ticked reflexively is worth less than no checklist, because it tells the

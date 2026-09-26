@@ -1,15 +1,17 @@
 # Tests
 
-> **This file is part of the documentation set.** Every markdown file in `docs/`, `tests/` and
-> `utils/`, plus the root-level `README.md`, `AGENTS.md` and `CLAUDE.md`, is reviewed on every
-> pull request and updated in the same PR when affected. Update this file whenever a test scope
+> **This file is part of the documentation set**, the markdown files the team owns.
+> The whole set is reviewed on every pull request and updated in the same PR when affected. Update this file whenever a test scope
 > folder is added, the runner configuration changes, or the priority list below shifts. See
 > §9.0 of [the source of truth](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
-This project follows **test-driven development**. Every change starts with a failing test,
-then the code that makes it pass. See
+This project follows **test-driven development**, including the superpowers iron law: no
+production code without a failing test first. Code written before its test is deleted and
+rewritten from the test. Every session loads the superpowers `test-driven-development` skill
+at start. See [Session start](../AGENTS.md#session-start) and
 [Testing: write the test first](../AGENTS.md#testing-write-the-test-first) in
-[AGENTS.md](../AGENTS.md) for the full rules.
+[AGENTS.md](../AGENTS.md) for the full rules: what to test, what cannot be tested here, and
+[Anti-slop](../AGENTS.md#anti-slop), including the rule against mocking application modules.
 
 ## Layout rule, for humans and AI agents alike
 
