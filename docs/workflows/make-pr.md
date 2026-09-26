@@ -20,7 +20,7 @@ exactly.
 - Run `git diff main...HEAD` to read the full diff and truly understand what was implemented.
   Do not summarize from memory.
 - If the branch changes Python, run
-  `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main` and fix
+  `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils` and fix
   every blocking finding before opening the PR. Nothing else runs this check. Do not silence a
   finding with a suppression comment or a `cast`.
 
@@ -35,8 +35,10 @@ disagrees with the branch is wrong and gets fixed here.
    parts of the source of truth the change touches.
 2. Update every file the branch made stale, and commit the updates on this branch, following
    [commit.md](commit.md). The PR carries the code and its documentation together.
-3. Run `sh .claude/hooks/session-start.sh` and confirm it prints no `UNDOCUMENTED` or
-   `STALE ROW` line. If it does, fix `agent-skills/README.md` as that script says.
+3. Run `sh .claude/hooks/session-start.sh` from the repository root. It must exit 0 and print
+   no `UNDOCUMENTED` or `STALE ROW` line. A non-zero exit means it could not find the
+   repository, and its output proves nothing. If it flags a skill, fix `agent-skills/README.md`
+   as the script says.
 4. Confirm the branch edits no inherited upstream file:
    `git diff --name-only main...HEAD` must list nothing from the inherited groups in
    [AGENTS.md](../../AGENTS.md#what-is-ours-and-what-is-inherited). If one is listed, revert it

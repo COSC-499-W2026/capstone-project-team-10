@@ -19,7 +19,7 @@ These steps bind **every agent**, whatever tool runs it: Claude Code, Codex, Cur
 
 Then read the project-doc sections named under [Read this before doing anything else](#read-this-before-doing-anything-else). Session start does not replace that reading.
 
-In Claude Code, all four steps are prompted automatically. [.claude/settings.json](.claude/settings.json) registers a `SessionStart` hook, [.claude/hooks/session-start.sh](.claude/hooks/session-start.sh), which lists every `SKILL.md` under `agent-skills/` and tells the session to do the steps above. It fires on startup, resume, `/clear` and compaction. The hook only prompts. It cannot invoke a skill itself, so the steps still bind you if the hook did not run. [.claude/skills/install-anti-slop-py/](.claude/skills/install-anti-slop-py/SKILL.md) is a pointer that also puts the vendored skill in Claude Code's skill list.
+In Claude Code, all four steps are prompted automatically. [.claude/settings.json](.claude/settings.json) registers a `SessionStart` hook, [.claude/hooks/session-start.sh](.claude/hooks/session-start.sh), which lists every `SKILL.md` under `agent-skills/` and tells the session to do the steps above. It fires on startup, resume, `/clear` and compaction. The hook only prompts. It cannot invoke a skill itself, so the steps still bind you if the hook did not run. [.claude/skills/install-anti-slop-py/](.claude/skills/install-anti-slop-py/SKILL.md) puts the vendored skill in Claude Code's skill list. Claude Code loads it whenever someone talks about adding anti-slop or banning `Any`, so its body tells the agent not to install and to use the vendored linter instead.
 
 **Adding a skill.** Follow [Adding a skill](agent-skills/README.md#adding-a-skill) in `agent-skills/README.md`. Session start needs no change: step 2 and the Claude Code hook both find a new skill by searching the folder. What does need changing, in the same PR, is the table in `agent-skills/README.md`, which is in the [documentation set](#you-must-update-the-documentation-set). If the new skill must be loaded by every session regardless of the task, the way test-driven development is, it also needs its own step here and a box in the **Agent skills** section of the [pull request template](pull_request_template.md).
 
@@ -30,10 +30,10 @@ Source: the `anti-slop-py` linter, vendored in this repository at [agent-skills/
 **What checks it.** Run it on your change after you edit Python and before you say the work is done:
 
 ```bash
-PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main
+PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-`review` reports findings on the lines your change touched and nothing else, so the violations already in `src/` stay silent. Nothing runs it for you: there is no commit hook and no CI. You run it, and the [pull request template](pull_request_template.md) asks whether you did. It uses the linter's built-in `agent` preset, because there is no `[tool.anti-slop]` configuration: the install skill has deliberately not been run (see [agent-skills/README.md](agent-skills/README.md)), so there is no `tools/anti_slop/` copy either. Under that preset the escape-hatch rules are errors and fail the run with exit 1. The five policy rules only warn: `no-adhoc-isinstance`, `no-module-mocking`, `no-object-parameters`, `no-shape-in-symbol-names`, `no-string-attribute-access`. A warning is still a rule you follow, except the one rule 6 below sets aside. The linter needs Python 3.12 or newer, which the conda environment provides.
+`review` reports findings on the lines your change touched and nothing else, so the violations already in `src/` stay silent. The paths `src tests utils` limit it to the team's Python. Without them it also walks the vendored linter in `agent-skills/`, which is new on any branch that adds or updates it, and reports dozens of warnings on code nobody here may edit. Nothing runs it for you: there is no commit hook and no CI. You run it, and the [pull request template](pull_request_template.md) asks whether you did. It uses the linter's built-in `agent` preset, because there is no `[tool.anti-slop]` configuration: the install skill has deliberately not been run (see [agent-skills/README.md](agent-skills/README.md)), so there is no `tools/anti_slop/` copy either. Under that preset the escape-hatch rules are errors and fail the run with exit 1. The five policy rules only warn: `no-adhoc-isinstance`, `no-module-mocking`, `no-object-parameters`, `no-shape-in-symbol-names`, `no-string-attribute-access`. A warning is still a rule you follow, except the one rule 6 below sets aside. The linter needs Python 3.12 or newer, which the conda environment provides.
 
 They bind code you write or change. Existing violations are not a drive-by rewrite.
 
@@ -289,7 +289,7 @@ python build_executable.py
 Lint your change with the vendored anti-slop-py linter before you open a pull request. It needs Python 3.12 or newer, which the conda environment provides, and nothing is installed for it. See [Anti-slop](#anti-slop) and §1.9 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
 ```bash
-PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main
+PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
 **Tests**: there are none yet, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.

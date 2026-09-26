@@ -26,7 +26,7 @@ I reviewed each of these and updated the ones this PR affects:
 - [ ] [AGENTS.md](AGENTS.md) — conventions, commands, architectural facts
 - [ ] [CLAUDE.md](CLAUDE.md) — agent entry point
 - [ ] [agent-skills/README.md](agent-skills/README.md) — the skill list. `sh .claude/hooks/session-start.sh`
-      prints no `UNDOCUMENTED` or `STALE ROW` line
+      exits 0 and prints no `UNDOCUMENTED` or `STALE ROW` line
 - [ ] [pull_request_template.md](pull_request_template.md) — this checklist
 - [ ] [.claude/](.claude/) — `README.md`, `commands/*.md`, `skills/*/SKILL.md`
 
@@ -78,7 +78,7 @@ If no AI agent touched this PR, mark each item N/A.
       With any other agent, it read [agent-skills/superpowers-tdd/SKILL.md](agent-skills/superpowers-tdd/SKILL.md).
 - [ ] Every agent session read each `SKILL.md` in `agent-skills/` and followed the ones that
       applied to the task. With an agent other than Claude Code, I confirmed it read `AGENTS.md`.
-- [ ] If Python changed, `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main`
+- [ ] If Python changed, `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils`
       reports no blocking finding, and none was silenced with a suppression or a cast. See
       [AGENTS.md](AGENTS.md#anti-slop).
 

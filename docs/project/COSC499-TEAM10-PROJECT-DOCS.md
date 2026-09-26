@@ -182,7 +182,7 @@ oxfmt, and a lefthook pre-commit hook). All of that was removed, because oxlint 
 Python. The app does not need any of this.
 
 ```bash
-PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main   # lint a branch
+PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils   # lint a branch
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop --explain no-any-parameters
 ```
 
@@ -199,7 +199,10 @@ or newer. The conda environment's pinned Python is 3.12.2.
 
 **What it checks.** `review --base <ref>` reports findings only on lines changed since the
 merge base with `<ref>`, including uncommitted and untracked files. The violations already in
-`src/` stay silent until someone edits those lines. `review` judges with the linter's `agent`
+`src/` stay silent until someone edits those lines. The paths `src tests utils` limit the run
+to the team's Python. Without them it also walks the vendored linter: on the branch that
+vendored it, `review --base main` reported 68 policy warnings, all inside `agent-skills/`
+(*Verified* 2026-09-25), and with the paths it reported none. `review` judges with the linter's `agent`
 preset: the ten escape-hatch rules are errors (exit 1), and the five policy rules
 (`no-adhoc-isinstance`, `no-module-mocking`, `no-object-parameters`,
 `no-shape-in-symbol-names`, `no-string-attribute-access`) are warnings that do not fail the
@@ -227,11 +230,13 @@ registers a `SessionStart` hook, [.claude/hooks/session-start.sh](../../.claude/
 It prints those steps and a list of every `SKILL.md` under `agent-skills/`, found by searching,
 and Claude Code adds the output to the session's context on startup, resume, `/clear` and
 compaction. It only prompts. It cannot invoke a skill. Other tools have no equivalent hook
-here and rely on reading `AGENTS.md`.
+here and rely on reading `AGENTS.md`. If it cannot enter the project directory, or the
+directory is not the repository root, it prints the reason to stderr and exits 1.
 
 - *Verified:* on 2026-09-25 on macOS, the script prints both skills with their frontmatter
   descriptions, from the repository root and from another directory with
-  `CLAUDE_PROJECT_DIR` set. Exit 0.
+  `CLAUDE_PROJECT_DIR` set, exit 0. With `CLAUDE_PROJECT_DIR` set to a missing directory, and
+  to an existing directory that is not the repository, it prints the reason and exits 1.
 - *Not verified:* that Claude Code fires it in a fresh session (it needs a new session after
   the settings change), and Windows, where Claude Code runs hooks through Git Bash.
 
@@ -256,6 +261,15 @@ that it loads in every session.
 with no pinned commit, and it ships a `SessionStart` hook that runs a script on your machine at
 the start of each session. This repository cannot pin the plugin commit: a marketplace source
 takes a `ref` but not a `sha`, and the plugin's own pin lives in its author's catalog.
+
+`.claude/settings.json` deliberately sets no `ref` on the marketplace, because one would not
+pin the plugin. On 2026-09-25 the marketplace repository had one tag, `v1.0.12`, dated
+2026-01-31, whose catalog lists superpowers 4.1.1. At that tag and at `main` alike, the
+catalog's `superpowers` source is the bare URL above with no `ref`, so a `ref` on the
+marketplace would pin an old catalog while the plugin code still came from superpowers'
+default branch (*Verified* by reading both catalogs, *Reasoned* for what the installer then
+fetches). The superpowers skill that must stay stable, `test-driven-development`, is instead
+vendored at a known version in `agent-skills/superpowers-tdd/` (6.4.2).
 
 - *Verified:* in the local copy of the marketplace catalog, the `superpowers` entry (6.3.0) has
   an unpinned external URL source, the plugin ships that hook, and the marketplace name
