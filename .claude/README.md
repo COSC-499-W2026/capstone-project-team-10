@@ -68,8 +68,13 @@ skill vendored in [agent-skills/](../agent-skills/), which is where the procedur
 
 A pointer repeats the skill's `name` and `description` frontmatter, because Claude Code reads
 those from this directory to decide when the skill applies. Keep them identical to the vendored
-file. `install-anti-slop-py` has deliberately not been run in this repository. See Session
-start in [AGENTS.md](../AGENTS.md#session-start).
+file. The body is ours: a pointer normally says to read and follow the vendored `SKILL.md`, but
+follow what the agent-skills table says about the skill. `install-anti-slop-py` has deliberately
+not been run in this repository, so its pointer's body tells the agent not to install anything,
+to use the linter already vendored, and to read the install procedure only if the user
+explicitly asks to install and confirms. Claude Code loads a skill whenever its description
+matches, so a pointer that said "follow it exactly" would run the install uninvited. See
+Session start in [AGENTS.md](../AGENTS.md#session-start).
 
 ---
 
@@ -88,8 +93,10 @@ whose `SKILL.md` is gone as `STALE ROW`, and it reminds the session to keep the 
 set in step with the code. It prompts only. A hook cannot invoke a skill itself. The rules it prompts for live in
 `AGENTS.md`. Change them there, and change this script only if the steps themselves change.
 
-It is POSIX `sh`, run as `sh "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"`. Verified
-on macOS on 2026-09-25 by running the script directly. Not verified on Windows, where Claude
+It is POSIX `sh`, run as `sh "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"`. If it cannot
+enter the project directory, or that directory has no `AGENTS.md` and `agent-skills/`, it prints
+the reason to stderr and exits 1, rather than printing nothing and looking like a clean start.
+Verified on macOS on 2026-09-25 by running the script directly, including both failure cases. Not verified on Windows, where Claude
 Code needs Git Bash to run it.
 
 ---
