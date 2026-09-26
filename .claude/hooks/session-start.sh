@@ -8,7 +8,20 @@
 # The rules themselves live in AGENTS.md, section "Session start". This script only
 # makes Claude Code act on them before its first reply.
 
-cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}" || exit 0
+project_dir=${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}
+
+# Fail loudly. Printing nothing would look like a clean session start with no instructions,
+# and the make-pr check that looks for warnings in this output would pass.
+if ! cd "$project_dir" 2>/dev/null; then
+  echo "session-start.sh: cannot enter the project directory '$project_dir'." >&2
+  echo "The agent-skills and TDD steps in AGENTS.md, section \"Session start\", were not shown." >&2
+  exit 1
+fi
+if [ ! -f AGENTS.md ] || [ ! -d agent-skills ]; then
+  echo "session-start.sh: '$project_dir' is not the repository root (no AGENTS.md or agent-skills/)." >&2
+  echo "The agent-skills and TDD steps in AGENTS.md, section \"Session start\", were not shown." >&2
+  exit 1
+fi
 
 # Prints one frontmatter field of a SKILL.md, e.g. `name` or `description`.
 frontmatter_field() {
@@ -72,7 +85,7 @@ cat <<'EOF'
 
 3. Apply the Anti-slop section of AGENTS.md to every line of Python you write. After you
    edit Python, and before you say the work is done, run the check it names:
-   PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main
+   PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 
 4. Keep the documentation set in step with the code as you work. The code is the source of
    truth. Before any pull request, check every file in the set against the branch diff and
