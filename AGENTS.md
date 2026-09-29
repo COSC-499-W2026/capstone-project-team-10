@@ -50,6 +50,8 @@ The linter rejects low-evidence and low-signal patterns: a value whose type was 
 
 **Read [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) first.** It is the canonical description of this codebase: setup, architecture, the signal graph, a module-by-module reference, the configuration schema, and a catalogue of known bugs and traps. Read the sections relevant to your task before you touch code. It will save you from re-deriving things that are already written down, and from re-discovering bugs that are already catalogued.
 
+For the picture, read [docs/architecture/README.md](docs/architecture/README.md) before the long reference. It holds the UML and both data-flow diagrams, and it is the only place that says when to redraw them and how (`python docs/architecture/build.py`).
+
 Sections worth knowing exist regardless of task:
 
 - **§7 Known bugs, traps, and dead code** — read before debugging anything. Several plausible-looking code paths are already known to be dead or broken, and several safe-looking edits are known to break things (cached shapes, index-ordered views, `@display_action`).
@@ -66,6 +68,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 |---|---|---|
 | [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) | **the source of truth**: setup, architecture, module reference, config schema, known bugs | almost any code change. See the section map below |
 | [docs/README.md](docs/README.md) | index of the `docs/` tree | a folder or document is added, removed or repurposed |
+| [docs/architecture/README.md](docs/architecture/README.md) | the UML, DFD level 0, DFD level 1, and the missing course plan | the redraw triggers in that file are hit. It owns the rule and the build |
 | [docs/contract/README.md](docs/contract/README.md) | team contract | the contract changes or moves |
 | [docs/proposal/README.md](docs/proposal/README.md) | project proposal | scope, goals or deliverables change |
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
@@ -84,6 +87,8 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | [.claude/README.md](.claude/README.md) | Claude Code configuration: commands, skills, the session-start hook, `settings.json` | a command, skill pointer, hook or setting is added, removed or changed |
 | [.claude/commands/](.claude/commands/) `commit.md`, `make-pr.md` | thin pointers to `docs/workflows/` | a workflow is added, removed or renamed |
 | [.claude/skills/](.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` | a pointed-to skill is renamed, moved or removed. Keep the frontmatter identical to the vendored file |
+
+**Architecture diagrams are checked on every pull request, not only when you think they changed.** Before opening a PR, compare your diff against the redraw triggers in [docs/architecture/README.md](docs/architecture/README.md). If one is hit, edit the `.mmd` sources and run `python docs/architecture/build.py`. Either way, run `python docs/architecture/build.py --check` and do not open the PR unless it exits 0. Never hand-edit an `.svg` or `viewer.html`. The step-by-step is in [docs/workflows/make-pr.md](docs/workflows/make-pr.md).
 
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking is not.** If nothing in the set needed changing, say so explicitly in the pull request description.
 
@@ -106,7 +111,7 @@ Everything else, including `src/`, `resources/`, `build_executable.py`, `benchma
 |---|---|
 | touches dependencies, the environment, or how to run the app | §1 Setup |
 | adds, removes, or renames a module or file | §4.7 directory map **and** §5 module reference |
-| changes signals, model wiring, or the display pipeline | §4.4, §4.5 |
+| changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the diagrams in [docs/architecture/](docs/architecture/README.md) (its README says how), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 — and remember the four code sites |
 | changes an export format | §6.4 |

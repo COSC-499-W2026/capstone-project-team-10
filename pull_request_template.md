@@ -14,6 +14,7 @@ I reviewed each of these and updated the ones this PR affects:
 
 - [ ] [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) — the source of truth (see section map below)
 - [ ] [docs/README.md](docs/README.md) — index of the docs tree
+- [ ] [docs/architecture/README.md](docs/architecture/README.md) — the diagrams match this PR, and `python docs/architecture/build.py --check` passes. That README says when they must be redrawn.
 - [ ] [docs/contract/README.md](docs/contract/README.md)
 - [ ] [docs/proposal/README.md](docs/proposal/README.md)
 - [ ] [docs/design/README.md](docs/design/README.md)
@@ -58,7 +59,7 @@ Quality of the updates:
 |---|---|
 | changes dependencies, the environment, or how to run the app | §1 Setup |
 | adds, removes, or renames a module or file | §4.7 map **and** §5 module reference |
-| changes signals, models, or the display pipeline | §4.4, §4.5 |
+| changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the diagrams in `docs/architecture/` (its README says how), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 (**and all four code sites**) |
 | changes an export format | §6.4 |
