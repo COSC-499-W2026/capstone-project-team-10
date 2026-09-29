@@ -8,7 +8,7 @@ Guidance for AI coding agents working in this repository. This file is the sourc
 
 **Read [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) first.** It is the canonical description of this codebase: setup, architecture, the signal graph, a module-by-module reference, the configuration schema, and a catalogue of known bugs and traps. Read the sections relevant to your task before you touch code. It will save you from re-deriving things that are already written down, and from re-discovering bugs that are already catalogued.
 
-For the picture, read [docs/architecture.md](docs/architecture.md) before the long reference. It holds the UML, the level-0 data-flow diagram, and the level-1 data-flow diagram. When you change the code those diagrams show, redraw them in that file before you open a pull request. The step is in [docs/workflows/make-pr.md](docs/workflows/make-pr.md).
+For the picture, read [docs/architecture/README.md](docs/architecture/README.md) before the long reference. It holds the UML and both data-flow diagrams, and it is the only place that says when to redraw them and how (`python docs/architecture/build.py`).
 
 Sections worth knowing exist regardless of task:
 
@@ -26,7 +26,7 @@ The documentation set is **every markdown file** in `docs/`, `tests/` and `utils
 |---|---|---|
 | [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) | **the source of truth**: setup, architecture, module reference, config schema, known bugs | almost any code change. See the section map below |
 | [docs/README.md](docs/README.md) | index of the `docs/` tree | a folder or document is added, removed or repurposed |
-| [docs/architecture.md](docs/architecture.md) | the UML, DFD level 0, DFD level 1, and the missing course plan | signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output changes. Redraw all three diagrams in that same change, before the pull request |
+| [docs/architecture/README.md](docs/architecture/README.md) | the UML, DFD level 0, DFD level 1, and the missing course plan | the redraw triggers in that file are hit. It owns the rule and the build |
 | [docs/contract/README.md](docs/contract/README.md) | team contract | the contract changes or moves |
 | [docs/proposal/README.md](docs/proposal/README.md) | project proposal | scope, goals or deliverables change |
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
@@ -41,6 +41,8 @@ The documentation set is **every markdown file** in `docs/`, `tests/` and `utils
 | [AGENTS.md](AGENTS.md) | this file: how to work in this repo | a convention, command, rule or architectural fact stated here stops being true |
 | [CLAUDE.md](CLAUDE.md) | Claude Code entry point, imports `AGENTS.md` | the agent-guidance entry point changes. It is a pointer, so it rarely changes, but check it |
 
+**Architecture diagrams are checked on every pull request, not only when you think they changed.** Before opening a PR, compare your diff against the redraw triggers in [docs/architecture/README.md](docs/architecture/README.md). If one is hit, edit the `.mmd` sources and run `python docs/architecture/build.py`. Either way, run `python docs/architecture/build.py --check` and do not open the PR unless it exits 0. Never hand-edit an `.svg` or `viewer.html`. The step-by-step is in [docs/workflows/make-pr.md](docs/workflows/make-pr.md).
+
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking is not.** If nothing in the set needed changing, say so explicitly in the pull request description.
 
 Files **not** in the set, because they are inherited from upstream *brachify* and must not be edited casually: [README-BRACHIFY.md](README-BRACHIFY.md), [virtual_environments_instructions.md](virtual_environments_instructions.md), [pull_request_template_brachify.md](pull_request_template_brachify.md), and everything in [notes/](notes/). If one of these has become wrong, record the correction in `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` rather than rewriting upstream's file.
@@ -53,7 +55,7 @@ Files **not** in the set, because they are inherited from upstream *brachify* an
 |---|---|
 | touches dependencies, the environment, or how to run the app | §1 Setup |
 | adds, removes, or renames a module or file | §4.7 directory map **and** §5 module reference |
-| changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the three diagrams in [docs/architecture.md](docs/architecture.md), and §4.4, §4.5 |
+| changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the diagrams in [docs/architecture/](docs/architecture/README.md) (its README says how), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 — and remember the four code sites |
 | changes an export format | §6.4 |

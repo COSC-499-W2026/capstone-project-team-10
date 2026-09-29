@@ -283,6 +283,9 @@ permissive licence, and do not strip the `LICENSE` file.
 
 ## 4. Architecture
 
+The pictures (UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
+which also says when they must be redrawn. This section is the prose reference behind them.
+
 ### 4.1 Technology stack
 
 | Concern | Library |
@@ -409,12 +412,14 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper
 ├── docs/                      course documentation
+│   ├── architecture/          UML and DFD sources, rendered SVGs, build.py, README
+│   ├── contract/ proposal/ design/ minutes/ logs/   course documents, README only
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     empty placeholder
-├── utils/                     empty placeholder
+├── tests/                     README only, no tests yet (§8)
+├── utils/                     README only
 ├── notes/                     upstream developer notes
-├── benchmarks/                dead code (§7.3)
+├── benchmarks/                dead code (§7.4)
 ├── resources/                 splash image and icon
 ├── user_guide/                Brachify User Manual.docx
 ├── Images/                    README screenshots
@@ -745,7 +750,7 @@ There are two near-duplicate implementations of the cylinder point cloud and sur
 intersection — one pair inside `get_all_interstitial_lengths` in this file, another at module
 scope in [`mesh/channel.py`](../../src/classes/mesh/channel.py). The `template_reference.py`
 copy is the better one (it pre-filters the cloud by z-range for speed). The `channel.py` copies
-appear unused. See §7.3.
+appear unused. See §7.4.
 
 ---
 
@@ -1004,7 +1009,7 @@ repository root:
 |---|---|
 | `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` | this file, the source of truth |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
-| [docs/architecture.md](../architecture.md) | UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. Redraw the three diagrams in the same change when signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output changes. The pull-request step is in [docs/workflows/make-pr.md](../workflows/make-pr.md). |
+| [docs/architecture/README.md](../architecture/README.md) | UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
 | [docs/contract/README.md](../contract/README.md) | team contract |
 | [docs/proposal/README.md](../proposal/README.md) | project proposal |
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |
@@ -1055,7 +1060,7 @@ Beyond the set-wide rule above, update **this** document when you:
 |---|---|
 | dependency, environment, run command | §1 Setup |
 | new module or file | §4.7 directory map **and** §5 module reference |
-| new/changed signal or model wiring | §4.4 |
+| new/changed signal or model wiring | §4.4, and the diagrams in [docs/architecture/](../architecture/README.md) |
 | new/changed view or widget | §4.3, §5.6 |
 | new/changed config key | §6.2 (and remember the four code sites) |
 | new/changed export format | §6.4 |
