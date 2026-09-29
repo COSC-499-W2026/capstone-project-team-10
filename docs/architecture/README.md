@@ -1,7 +1,7 @@
-# Architecture map
+# System Architecture
 
 A one-page picture of brachify. Detail lives in
-[project/COSC499-TEAM10-PROJECT-DOCS.md](project/COSC499-TEAM10-PROJECT-DOCS.md).
+[project/COSC499-TEAM10-PROJECT-DOCS.md](../project/COSC499-TEAM10-PROJECT-DOCS.md).
 When the two disagree, that file wins, and when that file disagrees with the code, the code wins.
 
 *Reasoned from code*, read 2026-09-24. Runtime checks are marked *Verified* only where the project docs already recorded them.
@@ -14,9 +14,37 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 This is the upstream app. Team 10 has not changed `src/`.
 
-The three pictures below are the map. They are *Reasoned from code*. The editor preview does not draw a mermaid block, so each picture is an SVG in [diagrams/](diagrams/). The `.mmd` file beside each SVG is the same diagram. When you redraw one, render the `.mmd` again and replace the SVG. Redraw all three in the same change when signals, values, the view order, a model, `ShapeModel`, the display path, or an export input or output changes. [AGENTS.md](../AGENTS.md) tells agents to do that before a pull request, and [workflows/make-pr.md](workflows/make-pr.md) blocks opening the PR until it is done.
+The three pictures below are the map. They are *Reasoned from code*. Everything about them lives
+in this folder, and this README is the only place that says when and how to redraw them.
 
-To zoom and pan when a picture gets crowded, open [diagrams/viewer.html](diagrams/viewer.html) in a browser. Scroll zooms, drag moves, and each picture has its own size.
+### Keeping the pictures current
+
+Edit only the `.mmd` files in [diagrams/](diagrams/). Everything else is derived.
+
+```bash
+python docs/architecture/build.py          # re-render stale SVGs, refresh viewer.html
+python docs/architecture/build.py --check  # change nothing, exit 1 if anything is stale
+python docs/architecture/build.py --install-hook   # once per clone, does the build at commit time
+```
+
+The build needs Node (it runs mermaid-cli through `npx`). Each SVG carries the hash of its source,
+so `--check` cannot be fooled by timestamps. It also fails when a diagram is not embedded below.
+
+**Redraw when** signals, values, the view order, a model, `ShapeModel`, the display path, or what
+Import reads or Export writes changes. Redraw all three in the same change, before the pull
+request. If none of those changed, leave the pictures alone.
+
+Other documents link here and do not repeat this rule. If the rule changes, change it here.
+
+| File | Role | Edit by hand? |
+|---|---|---|
+| `diagrams/*.mmd` | the diagram sources | yes |
+| `diagrams/*.svg` | rendered pictures, shown below | no, run `build.py` |
+| `viewer.html` | zoom and pan page, its list of pictures is generated | no, run `build.py` |
+| `build.py` | the build and the check | when the tooling changes |
+
+To zoom and pan when a picture gets crowded, open [viewer.html](viewer.html) in a browser. Scroll
+zooms, drag moves, and each picture has its own size.
 
 ### UML
 
@@ -64,8 +92,8 @@ Course scaffolding only. No application behaviour.
 
 **Not written down in this repository.**
 
-- [docs/proposal/](proposal/README.md) is a placeholder.
-- The team contract is a Google Doc, linked from [docs/contract/](contract/README.md). It was not read for this map.
+- [docs/proposal/](../proposal/README.md) is a placeholder.
+- The team contract is a Google Doc, linked from [docs/contract/](../contract/README.md). It was not read for this map.
 - GitHub Issues are disabled on this fork.
 
 Do not treat the list below as the course plan. It is only unfinished work the code and the project docs already name.
