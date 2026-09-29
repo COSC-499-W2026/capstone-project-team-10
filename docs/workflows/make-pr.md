@@ -22,11 +22,9 @@ exactly.
 
 ## Update the architecture diagrams first
 
-Before `gh pr create`, read the diff from `main`. If it changes signals, values, the view order, a model, `ShapeModel`, the display path, or what Import reads or Export writes, redraw the three pictures on this branch and commit that edit. The pictures are the SVG files in [docs/diagrams/](../diagrams/), shown from [docs/architecture.md](../architecture.md). The `.mmd` file next to each SVG is the same diagram. Then open the pull request.
+Before `gh pr create`, read the diff from `main` and check it against the redraw triggers in [docs/architecture/README.md](../architecture/README.md). If one is hit, edit the `.mmd` sources, run `python docs/architecture/build.py`, and commit the result. Then run `python docs/architecture/build.py --check`. It must exit 0 before you open the pull request.
 
-If none of those changed, leave the diagrams alone. On the documentation gate, leave the architecture box unticked and append `— **N/A**, diagrams unchanged because <reason>`.
-
-Nothing generates the diagrams. You redraw them. A pull request that changes those areas and leaves the three diagrams stale does not follow this workflow.
+If no trigger is hit, leave the diagrams alone. On the documentation gate, leave the architecture box unticked and append `— **N/A**, diagrams unchanged because <reason>`.
 
 ## Target this repository, never upstream
 
