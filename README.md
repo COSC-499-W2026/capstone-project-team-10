@@ -35,7 +35,8 @@ application. The application is *brachify*; see
 [docs/](docs/), [tests/](tests/), [utils/](utils/) and [.claude/](.claude/), plus this README,
 [AGENTS.md](AGENTS.md), [CLAUDE.md](CLAUDE.md),
 [pull_request_template.md](pull_request_template.md) and
-[agent-skills/README.md](agent-skills/README.md). The whole set is reviewed on every pull
+[agent-skills/README.md](agent-skills/README.md), except the weekly log entries in
+[docs/logs/](docs/logs/), which record past work. The whole set is reviewed on every pull
 request and every implementation, and whatever the change affects is updated in that same PR**
 — never as a follow-up, never as a separate docs PR. The code is the source of truth: where a
 document disagrees with it, the document is wrong.
@@ -50,7 +51,7 @@ Reviewing a file and concluding it needs no change is fine. Not looking is not. 
 the set needed changing, the PR description must say so.
 
 [pull_request_template.md](pull_request_template.md) turns this into a per-file checklist the
-reviewer signs off. [AGENTS.md](AGENTS.md) carries the same rule for AI agents. §9.0 of the
+author fills in on every PR. [AGENTS.md](AGENTS.md) carries the same rule for AI agents. §9.0 of the
 source of truth is the canonical statement of it.
 
 ## Team Contract
