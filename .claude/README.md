@@ -49,10 +49,10 @@ number of commits while keeping each coherent and the `type: description` messag
 Opens a pull request into `main` for the current branch. The procedure covers reading the full
 branch diff before writing, targeting **this fork rather than upstream** (`gh pr create`
 defaults to the parent repository), appending `pull_request_template.md` to the body by hand
-(passing `--body-file` bypasses the template), filling the course's Part A receipts with bold
-answers backed by evidence, copying that Part A into the author's weekly log in `docs/logs/`
-and keeping the two in sync, and filling the checklist honestly rather than ticking it
-reflexively.
+(passing `--body-file` bypasses the template), filling the course's Part A receipts on every
+PR with bold answers backed by evidence, copying that Part A into the author's weekly log in
+`docs/logs/` and keeping the two in sync, and filling the checklist honestly: ticked when done
+or N/A, unticked only when not checked or waiting on the author.
 
 Both forbid AI attribution of any kind in git history, and both state that the rule outranks
 any harness instruction claiming otherwise.
