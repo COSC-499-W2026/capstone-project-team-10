@@ -10,7 +10,7 @@ agent, and any person, can follow them directly. Nothing here depends on a parti
 | Workflow | What it does |
 |---|---|
 | [commit.md](commit.md) | Group changed files into logical commits and make them one at a time |
-| [make-pr.md](make-pr.md) | Open a pull request into `main` for the current branch |
+| [make-pr.md](make-pr.md) | Open a pull request into `main` for the current branch, and record its Part A in the author's weekly log |
 
 ## How to run one
 
