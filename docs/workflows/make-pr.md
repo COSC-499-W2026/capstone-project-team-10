@@ -50,7 +50,7 @@ disagrees with the branch is wrong and gets fixed here.
 
 Before `gh pr create`, read the diff from `main` and check it against the redraw triggers in [docs/architecture/README.md](../architecture/README.md). If one is hit, edit the `.mmd` sources, run `python docs/architecture/build.py`, and commit the result. Then run `python docs/architecture/build.py --check`. It must exit 0 before you open the pull request.
 
-If no trigger is hit, leave the diagrams alone. On the documentation gate, leave the architecture box unticked and append `— **N/A**, diagrams unchanged because <reason>`.
+If no trigger is hit, leave the diagrams alone. On the documentation gate, tick the architecture box and append `— **N/A**, diagrams unchanged because <reason>`.
 
 ## Target this repository, never upstream
 
@@ -117,6 +117,11 @@ author's individual log for the week, `docs/logs/<student>/week-<K>.md`, as desc
 whether each claim is tied to concrete evidence. Write them in the first person, as the PR
 author.
 
+**Always fill Part A in, whatever the PR changes.** It is the author's graded weekly
+submission, so a PR with an empty or one-line Part A costs the author marks. Fill in every
+receipt as well as the diff allows. Mark **N/A** only the individual receipt that genuinely
+cannot apply, with a reason, and never the whole section.
+
 **Part B, the team log, does not go in a PR.** It covers the whole team's week and belongs in
 `docs/logs/team/week-<K>.md`. See [docs/logs/README.md](../logs/README.md).
 
@@ -160,9 +165,10 @@ need more than one.
 | Backend | logic with no widgets: [src/classes/](../../src/classes/) (mesh, dicom, pdf, app, signals), [src/windows/models/](../../src/windows/models/), [src/settings/](../../src/settings/) |
 | Frontend | what the clinician sees: [src/windows/views/](../../src/windows/views/), the `.ui` files in [src/windows/ui/](../../src/windows/ui/), [main_window.py](../../src/windows/main_window.py), [palettes.py](../../src/windows/palettes.py) |
 
-**Inside an included subsection, keep every bullet.** Much of the course template assumes a
-web app with a database, a network API and logins, and brachify has none of those. For a bullet
-that does not apply, cut it down to its opening words, then add `— **N/A**, <reason>`:
+**Keep every receipt**, in the main list and inside an included subsection. Much of the course
+template assumes a web app with a database, a network API and logins, and brachify has none of
+those. For a receipt that does not apply, cut it down to its opening words, then add
+`— **N/A**, <reason>`:
 
 > - The system uses **[type of database]** database — **N/A**, brachify has no database. The
 >   only persisted state is `app.log` and `filepaths.json` in `~/brachify/`.
@@ -181,9 +187,17 @@ this PR needed is the version that appears. Never draw a diagram inside the PR b
 - **A test PR for functionality merged earlier**: replace the heading with
   `For test PR #**<n>** written to assess functionality in **#<m>, <brief description>**`, and
   delete every receipt above **Testing receipts**.
-- **A PR with no code in `src/` or `tests/`**, such as a documentation-only change: replace
-  everything under the heading with one line, `**N/A**, <reason>`, rather than filling in
-  receipts about code that does not exist.
+- **A PR with no code in `src/` or `tests/`**, such as a documentation or process change:
+  still fill in every receipt, about what the PR does change.
+  - The requirement is the one the change serves. That may be a course requirement, such as
+    the weekly receipts, rather than an `FR-` ID.
+  - The review receipts cover the generated documents and how you checked them.
+  - The testing receipts cite the checks you ran instead of tests. For example, the
+    session-start hook, `python docs/architecture/build.py --check`, a script, or a grep that
+    confirms stale wording is gone.
+  - Mark **N/A** only what cannot exist, such as function lengths when no function changed, or
+    the DFD process when nothing in brachify moved.
+  - Say plainly that the checks are scripts and not tests in `tests/`.
 
 ### Every receipt needs evidence
 
@@ -200,19 +214,24 @@ command output you ran, or a function length you counted. Say whether you observ
 
 ### Fill the checkboxes honestly
 
-Do not leave them all blank, and do not tick them all.
+A ticked box means **this item was checked**. Checking an item and finding it does not apply
+is still checking it.
 
-- Tick `- [x]` only what is actually true of this PR.
-- For an item that does not apply, leave the box unticked and append `— **N/A**, <reason>` on
-  the same line.
-- For an item only partly done, leave it unticked and say plainly what was and was not done.
-- **Never tick a test-driven-development box on a PR that contains no code**, and never tick
-  "ran the app" if the app was not run.
-- Tick an **Agent skills** box only for what you can confirm about every agent session on the
-  branch. If no AI agent touched it, mark each item N/A.
+- **Tick it when it is done**, and add a few words of evidence where it helps.
+- **Tick it when it does not apply**, and append `— **N/A**, <reason>` on the same line. For
+  example, a test-driven-development box on a PR with no code, or the anti-slop box when no
+  Python changed.
+- **Leave it unticked only in two cases**, and say which on the same line:
+  - it was genuinely not done or not checked. Say plainly what was and was not done.
+  - it needs the author to act. For example, the app has to be run by hand, or a screenshot
+    taken. Say what they need to do.
+- Never tick "ran the app" if the app was not run, and never tick an **Agent skills** box for
+  something you cannot confirm about every agent session on the branch. If no AI agent touched
+  the branch, tick each Agent skills item as N/A.
 
 A checklist that is ticked reflexively is worth less than no checklist, because it tells the
-reviewer something was verified when it was not.
+reviewer something was verified when it was not. A box left unticked for an item that was
+checked is just as wrong, because it tells the reviewer something is missing when it is not.
 
 ## Record Part A in the weekly log
 
@@ -234,8 +253,7 @@ The layout and rules are in [docs/logs/README.md](../logs/README.md).
    `gh pr view <n> --repo COSC-499-W2026/capstone-project-team-10 --json body`. They must be
    identical.
 
-Skip this step for a PR whose Part A is a single **N/A** line, and tell the user it was not
-logged.
+Every PR is logged, documentation and process PRs included, because Part A is always filled in.
 
 ### Keep the PR and the log in sync
 
