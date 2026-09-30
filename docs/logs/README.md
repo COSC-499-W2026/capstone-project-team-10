@@ -41,8 +41,8 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
   merging.
 - **The PR description and the log section stay identical.** An edit to one is copied to the
   other in the same step, whether it came from review, from GitHub's editor or from the file.
-- **A PR with no receipts is not logged.** A documentation-only PR, whose Part A is a single
-  **N/A** line, gets no section.
+- **Every PR is logged.** A documentation or process PR still has a full Part A, so it gets a
+  section like any other.
 
 ## Team log: Part B
 
