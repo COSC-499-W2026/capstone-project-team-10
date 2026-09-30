@@ -100,4 +100,5 @@ _or_, and delete the italic guidance lines, the same way as Part A.
   **[list other considerations and why you did not go with them]**.
 ```
 
-The diagrams come from `docs/architecture/`, the same as in Part A.
+The diagrams come from [docs/architecture/diagrams/](../architecture/diagrams/), the same as in
+Part A. [docs/architecture/README.md](../architecture/README.md) says when they are redrawn.
