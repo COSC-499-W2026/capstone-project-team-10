@@ -527,6 +527,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   └── <skill>/               one folder per skill, vendored as-is
 ├── .claude/                   Claude Code config: commands, skills, SessionStart hook
 ├── docs/                      course documentation
+│   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
 ├── tests/                     empty placeholder
@@ -1130,7 +1131,9 @@ It is never a follow-up task and never a separate "docs PR".
 
 The set is **every markdown file the team owns**: every markdown file in `docs/`, `tests/`,
 `utils/` and `.claude/`, plus four files at the repository root and the index of the vendored
-skills. Files inherited from upstream are never part of it (see below).
+skills. Files inherited from upstream are never part of it (see below). Nor are the weekly log
+entries, `docs/logs/<student>/week-<K>.md` and `docs/logs/team/week-<K>.md`: they record work
+already done and are never rewritten to match later code. `docs/logs/README.md` stays in.
 
 | File | Covers |
 |---|---|
@@ -1140,17 +1143,17 @@ skills. Files inherited from upstream are never part of it (see below).
 | [docs/proposal/README.md](../proposal/README.md) | project proposal |
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |
 | [docs/minutes/README.md](../minutes/README.md) | meeting minutes |
-| [docs/logs/README.md](../logs/README.md) | team and individual logs |
+| [docs/logs/README.md](../logs/README.md) | weekly log layout, Part A sync with PRs, Part B template |
 | [docs/workflows/README.md](../workflows/README.md) | index of the tool-agnostic workflows |
 | [docs/workflows/commit.md](../workflows/commit.md) | the canonical commit procedure |
-| [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure |
+| [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure, including the weekly log entry |
 | [tests/README.md](../../tests/README.md) | TDD policy, `tests/` scoping rule, what to test first |
 | [utils/README.md](../../utils/README.md) | `utils/` scoping rule and what belongs there |
 | [README.md](../../README.md) | repository entry point |
 | [AGENTS.md](../../AGENTS.md) | how to work in this repo |
 | [CLAUDE.md](../../CLAUDE.md) | agent entry point, imports `AGENTS.md` |
 | [agent-skills/README.md](../../agent-skills/README.md) | the skills every agent loads at session start |
-| [pull_request_template.md](../../pull_request_template.md) | Team 10's PR checklist, which enforces this set |
+| [pull_request_template.md](../../pull_request_template.md) | Team 10's PR template: the course's Part A receipts, and the checklists that enforce this set |
 | [.claude/README.md](../../.claude/README.md) | Claude Code configuration: commands, skills, session-start hook |
 | [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md` | pointers to `docs/workflows/` |
 | [.claude/skills/](../../.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` |
@@ -1185,7 +1188,7 @@ appears once.
 
 [AGENTS.md](../../AGENTS.md) carries the same table for AI agents, and the
 [pull request template](../../pull_request_template.md) turns it into a per-file checklist the
-reviewer signs off.
+author fills in on every PR.
 
 ### 9.1 When this file specifically must be updated
 
@@ -1232,7 +1235,7 @@ Beyond the set-wide rule above, update **this** document when you:
 | [AGENTS.md](../../AGENTS.md) | instructions for AI agents; points here for project context |
 | [CLAUDE.md](../../CLAUDE.md) | Claude Code entry point; imports `AGENTS.md` |
 | [agent-skills/](../../agent-skills/) | skills every agent reads at session start, including the anti-slop-py linter behind the anti-slop rules in `AGENTS.md` (§1.9, §1.10) |
-| [pull_request_template.md](../../pull_request_template.md) | Team 10 PR checklist, includes the update-this-doc gate |
+| [pull_request_template.md](../../pull_request_template.md) | Team 10 PR template: the course's Part A receipts, then the update-this-doc gate |
 | [pull_request_template_brachify.md](../../pull_request_template_brachify.md) | upstream's original review process, preserved |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
 | [README-BRACHIFY.md](../../README-BRACHIFY.md) | upstream project README (user-facing) |
