@@ -24,13 +24,14 @@ claim is marked either *Verified* (observed at runtime) or *Reasoned from code*.
 | [proposal/](proposal/) | Project proposal |
 | [design/](design/) | UI mocks and design artifacts |
 | [minutes/](minutes/) | Minutes from team meetings |
-| [logs/](logs/) | Team and individual logs |
+| [logs/](logs/) | Weekly individual logs (Part A, written by `/make-pr`) and team logs (Part B) |
 | [workflows/](workflows/) | **Tool-agnostic procedures** any AI agent or person can follow: how to commit, how to open a PR |
 
 ## Keeping it current
 
 **Every markdown file the team owns forms the documentation set**, listed in §9.0 of
-[the source of truth](project/COSC499-TEAM10-PROJECT-DOCS.md). **The whole set is reviewed on
+[the source of truth](project/COSC499-TEAM10-PROJECT-DOCS.md). The weekly log entries in
+[logs/](logs/) are the exception, since they record past work. **The whole set is reviewed on
 every pull request and every implementation, and whatever the change affects is updated in
 that same PR** — never as a follow-up, never as a separate docs PR. Files inherited from
 upstream *brachify* are never edited; §9.0 lists those too.
@@ -39,7 +40,7 @@ Reviewing a file and concluding it needs no change is fine. Not looking is not. 
 the set needed changing, the PR description must say so.
 
 The [pull request template](../pull_request_template.md) turns this into a per-file checklist
-the reviewer signs off. [AGENTS.md](../AGENTS.md) carries the same rule for AI agents, and §9.0
+the author fills in on every PR. [AGENTS.md](../AGENTS.md) carries the same rule for AI agents, and §9.0
 of [the source of truth](project/COSC499-TEAM10-PROJECT-DOCS.md) is the canonical statement of
 it.
 
