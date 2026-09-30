@@ -1,4 +1,4 @@
-# Week 1, Ariq
+# Week 4, Ariq
 
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
@@ -12,7 +12,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Therefore, I implemented/generated code so that **the four Team 10 students get a PR template
   that opens with Part A, with all 142 placeholders pre-bolded (`pull_request_template.md`),
   a `/make-pr` procedure that fills Part A with evidence on every PR, ticks N/A boxes, and copies
-  Part A into their weekly log (`docs/workflows/make-pr.md`), and week 1 log files for each
+  Part A into their weekly log (`docs/workflows/make-pr.md`), and week 4 log files for each
   student and the team (`docs/logs/`). The instructor and TAs get one Part A per PR, identical in
   the PR description and in the log**.
 
@@ -39,7 +39,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   log empty**. Therefore, I did **change the rules in `make-pr.md`, `pull_request_template.md`
   and `docs/logs/README.md` so an N/A box is ticked, a box stays blank only when it was not
   checked or waits on the author, and Part A is filled in on every PR, then refilled this PR's
-  description and `docs/logs/ariq/week-1.md`**.
+  description and `docs/logs/ariq/week-4.md`**.
 - The PR does not contain any temporary workaround because **the Change checklist, Review
   section and upstream footer are deleted rather than commented out, and every file that
   described them was updated in this PR. A grep of the documentation set for their wording
