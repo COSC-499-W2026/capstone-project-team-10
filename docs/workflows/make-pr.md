@@ -163,10 +163,12 @@ that does not apply, cut it down to its opening words, then add `— **N/A**, <r
 > - The system uses **[type of database]** database — **N/A**, brachify has no database. The
 >   only persisted state is `app.log` and `filepaths.json` in `~/brachify/`.
 
-A diagram placeholder takes the current system architecture diagram, Level 0 DFD or Level 1
-DFD from `docs/architecture/`, pasted as Mermaid so it renders in the PR. If the change alters
-what a diagram shows, redraw it there in the same PR first and paste the new version. If the
-folder or the diagram does not exist yet, say so rather than inventing one.
+A diagram placeholder takes the matching source from
+[docs/architecture/diagrams/](../architecture/diagrams/), pasted as a Mermaid block so it
+renders in the PR: `uml.mmd` for the system architecture diagram, `dfd-0.mmd` for Level 0 and
+`dfd-1.mmd` for Level 1. Paste it after
+[Update the architecture diagrams first](#update-the-architecture-diagrams-first), so a redraw
+this PR needed is the version that appears. Never draw a diagram inside the PR body.
 
 ### Tests in this PR or another
 
