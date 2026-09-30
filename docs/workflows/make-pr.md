@@ -125,8 +125,12 @@ author.
 Replace each `[...]` placeholder, brackets included, with the real answer in bold. The
 template already wraps each placeholder in `**...**`, so replace only the text inside.
 
-> As part of requirement **R2, import a DICOM plan folder**, the user needs to do **open the
-> Import tab, choose a folder, and read the patient and channel summary**.
+> As part of requirement **FR-CN-13, save and restore every cylinder setting in a config
+> file**, the user needs to do **set the cylinder and collar, save the config, reopen
+> brachify, load that config, and see the same values**.
+
+Name the requirement by its ID from the functional requirements tables in
+[docs/proposal/README.md](../proposal/README.md), such as `FR-SV-05` or `FR-CN-13`.
 
 Then tidy what is left:
 
