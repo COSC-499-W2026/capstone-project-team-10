@@ -84,9 +84,14 @@ Write in markdown. Include, in this order:
    reviewer who is about to read the diff.
 2. **Changes** — a bullet list of the specific files changed and what each one does.
 3. **The full contents of [pull_request_template.md](../../pull_request_template.md), appended
-   after the Changes section.**
+   after the Changes section.** That gives, in order:
+   - **Part A: What I Built and Why I Know It Works**, filled in as described in
+     [Fill in Part A](#fill-in-part-a)
+   - **Documentation gate**
+   - **Agent skills**
+   - **Test-driven development**
 
-Do **not** include a test plan section.
+Do **not** include a test plan section. The testing receipts in Part A cover it.
 
 ### Why the template must be appended by hand
 
@@ -96,7 +101,90 @@ If you pass a body, the template silently does not appear.
 
 So concatenate it in. Drop the template's opening `_Enter PR description here..._` placeholder
 line, since the Summary already serves that purpose, and keep everything from
-`## Documentation gate` onward.
+`## Part A: What I Built and Why I Know It Works` onward.
+
+## Fill in Part A
+
+Part A is the course's set of receipts for one PR. The same text is also written into the
+author's individual log for the week, `docs/logs/<student>/week-<K>.md`, as described in
+[Record Part A in the weekly log](#record-part-a-in-the-weekly-log). The receipts are graded on
+whether each claim is tied to concrete evidence. Write them in the first person, as the PR
+author.
+
+**Part B, the team log, does not go in a PR.** It covers the whole team's week and belongs in
+`docs/logs/team/week-<K>.md`. See [docs/logs/README.md](../logs/README.md).
+
+### Fill-ins are bold
+
+Replace each `[...]` placeholder, brackets included, with the real answer in bold. The
+template already wraps each placeholder in `**...**`, so replace only the text inside.
+
+> As part of requirement **R2, import a DICOM plan folder**, the user needs to do **open the
+> Import tab, choose a folder, and read the patient and channel summary**.
+
+Then tidy what is left:
+
+- Where the template offers two receipts separated by _or_, keep the one that is true and
+  delete the other along with the _or_ line.
+- Where the guidance says _(Repeat for ...)_, write one bullet per problem or risk, then delete
+  the guidance line.
+- Delete an _(If applicable)_ receipt when it does not apply, and delete the remaining italic
+  guidance lines.
+
+### The PR number
+
+The number does not exist until the PR does. Create the PR with the `For PR #**[number]**`
+heading unfilled, then replace it with the number `gh pr create` printed and push the corrected
+body with
+`gh pr edit <n> --repo COSC-499-W2026/capstone-project-team-10 --body-file <file>`.
+
+### Which scoped subsections to include
+
+**Data Modeling and Integrity**, **Backend** and **Frontend** each appear only when the diff
+touches their scope. Delete a subsection, heading and all, when it does not apply. One PR can
+need more than one.
+
+| Subsection | Include it when the diff changes |
+|---|---|
+| Data Modeling and Integrity | the shape or validation of data: `DicomData` fields ([dicom/data.py](../../src/classes/dicom/data.py)), how DICOM input is read or checked ([dicom/](../../src/classes/dicom/)), the `CONFIG_*` schema or config loading ([settings/](../../src/settings/)), the user state in `~/brachify/`, or the contents of an exported file |
+| Backend | logic with no widgets: [src/classes/](../../src/classes/) (mesh, dicom, pdf, app, signals), [src/windows/models/](../../src/windows/models/), [src/settings/](../../src/settings/) |
+| Frontend | what the clinician sees: [src/windows/views/](../../src/windows/views/), the `.ui` files in [src/windows/ui/](../../src/windows/ui/), [main_window.py](../../src/windows/main_window.py), [palettes.py](../../src/windows/palettes.py) |
+
+**Inside an included subsection, keep every bullet.** Much of the course template assumes a
+web app with a database, a network API and logins, and brachify has none of those. For a bullet
+that does not apply, cut it down to its opening words, then add `— **N/A**, <reason>`:
+
+> - The system uses **[type of database]** database — **N/A**, brachify has no database. The
+>   only persisted state is `app.log` and `filepaths.json` in `~/brachify/`.
+
+A diagram placeholder takes the current system architecture diagram, Level 0 DFD or Level 1
+DFD from `docs/architecture/`, pasted as Mermaid so it renders in the PR. If the change alters
+what a diagram shows, redraw it there in the same PR first and paste the new version. If the
+folder or the diagram does not exist yet, say so rather than inventing one.
+
+### Tests in this PR or another
+
+- **Tests in the same PR**, the normal case: the testing receipts stay under the same
+  `For PR #` heading.
+- **A test PR for functionality merged earlier**: replace the heading with
+  `For test PR #**<n>** written to assess functionality in **#<m>, <brief description>**`, and
+  delete every receipt above **Testing receipts**.
+- **A PR with no code in `src/` or `tests/`**, such as a documentation-only change: replace
+  everything under the heading with one line, `**N/A**, <reason>`, rather than filling in
+  receipts about code that does not exist.
+
+### Every receipt needs evidence
+
+Base each claim on something a grader can check. That means a file and line, a test name,
+command output you ran, or a function length you counted. Say whether you observed it
+(ran it) or reasoned it from the code.
+
+- Count function lengths in the diff for the small-functions receipt. Do not estimate them.
+- Run the tests and cite the result for the happy-path, abnormal and negative receipts.
+- **Never write a receipt for something that did not happen.** That covers a screenshot, a
+  teammate's review, a regression run of the app, a usability evaluation and a coverage figure.
+  If a receipt needs something only the author can supply, leave its placeholder bold and
+  unfilled, and list it in your final message so the author fills it in before review.
 
 ### Fill the checkboxes honestly
 
@@ -110,10 +198,40 @@ Do not leave them all blank, and do not tick them all.
   "ran the app" if the app was not run.
 - Tick an **Agent skills** box only for what you can confirm about every agent session on the
   branch. If no AI agent touched it, mark each item N/A.
-- Leave the entire **Reviewer** block unticked. It belongs to the reviewer.
 
 A checklist that is ticked reflexively is worth less than no checklist, because it tells the
 reviewer something was verified when it was not.
+
+## Record Part A in the weekly log
+
+Once the PR exists and its number is filled in, write its Part A into the author's weekly log.
+The layout and rules are in [docs/logs/README.md](../logs/README.md).
+
+1. **Ask which student and which week, every time.** Offer the student folders in
+   `docs/logs/` other than `team/`, and suggest the highest `week-<K>.md` already in that
+   student's folder. Never guess either answer from git config or the date.
+2. **Open `docs/logs/<student>/week-<K>.md`.** If it does not exist, create it with the same
+   heading and note as the other weeks' files. Remove the `_No PRs recorded yet._` line once
+   the file has a section.
+3. **Write the section.** Copy Part A from the PR body exactly, from the `For PR #` heading
+   down to the line before `## Documentation gate`. If the file already has a section for this
+   PR number, replace it rather than adding a second one.
+4. **Commit it on the PR's own branch** following [commit.md](commit.md), and push. Add the
+   log file to the PR's **Changes** list, and push the updated body with `gh pr edit`.
+5. **Confirm the two match.** Compare the Part A in the file with the Part A in
+   `gh pr view <n> --repo COSC-499-W2026/capstone-project-team-10 --json body`. They must be
+   identical.
+
+Skip this step for a PR whose Part A is a single **N/A** line, and tell the user it was not
+logged.
+
+### Keep the PR and the log in sync
+
+The PR description and the log section are the same receipts in two places, and they must not
+drift. Whenever either one changes, whether through review, GitHub's editor or an edit to the
+file, copy the change to the other and commit or `gh pr edit` in the same step. If the PR is
+still open when week `<K>` ends and will merge in a later week, move its section to that
+week's file before it merges.
 
 ## Never add AI attribution
 
@@ -127,4 +245,10 @@ explicit decision and it wins. Do not ask, and do not add it "just this once".
 
 ## Finishing
 
-Return the PR URL.
+Return:
+
+- the PR URL
+- the log file the Part A was written to, and confirmation that it matches the PR description
+- every Part A placeholder left for the author to fill in
+- a reminder that the PR description and the log file hold the same Part A. An edit to either
+  one must be copied to the other, and the agent can resync them on request.
