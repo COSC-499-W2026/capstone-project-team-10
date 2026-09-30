@@ -7,7 +7,8 @@ _Enter PR description here... what is it supposed to do?_
 _These are the course's receipts for this PR. The same text is copied into the author's
 individual log, `docs/logs/<student>/week-<K>.md`, and the two are kept identical. Replace
 every `[...]` with the real answer in **bold**, keep one side of each "or", and delete the
-italic guidance lines. The rules are in
+italic guidance lines. Fill in every receipt whatever the PR changes, and mark one that cannot
+apply **N/A** with a reason. The rules are in
 [docs/workflows/make-pr.md](docs/workflows/make-pr.md#fill-in-part-a)._
 
 ### For PR #**[number]**
