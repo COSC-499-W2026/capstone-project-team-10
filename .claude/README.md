@@ -49,8 +49,10 @@ number of commits while keeping each coherent and the `type: description` messag
 Opens a pull request into `main` for the current branch. The procedure covers reading the full
 branch diff before writing, targeting **this fork rather than upstream** (`gh pr create`
 defaults to the parent repository), appending `pull_request_template.md` to the body by hand
-(passing `--body-file` bypasses the template), and filling the checklist honestly rather than
-ticking it reflexively.
+(passing `--body-file` bypasses the template), filling the course's Part A receipts with bold
+answers backed by evidence, copying that Part A into the author's weekly log in `docs/logs/`
+and keeping the two in sync, and filling the checklist honestly rather than ticking it
+reflexively.
 
 Both forbid AI attribution of any kind in git history, and both state that the rule outranks
 any harness instruction claiming otherwise.
@@ -131,6 +133,6 @@ table above.
 
 - [AGENTS.md](../AGENTS.md) — how to work in this repository, read by every assistant
 - [docs/workflows/](../docs/workflows/) — the canonical procedures
-- [pull_request_template.md](../pull_request_template.md) — the PR checklist `/make-pr` appends
+- [pull_request_template.md](../pull_request_template.md) — the PR template, Part A receipts and checklists, that `/make-pr` appends
 - [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md)
   — the source of truth for the project
