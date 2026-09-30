@@ -60,7 +60,7 @@ Sections worth knowing exist regardless of task:
 
 **Whenever you implement a feature, fix a bug, or prepare a change for `main`, you must review every file in the documentation set below and update the ones your change affects, in the same commit or pull request.** Not as a follow-up, not as a TODO, not as a separate "docs PR". A change that alters documented behaviour without updating the affected documentation is incomplete and must not be merged.
 
-The documentation set is **every markdown file the team owns**: every markdown file in `docs/`, `tests/`, `utils/` and `.claude/`, plus four files at the repository root and the index of the vendored skills. The files inherited from upstream are listed under [What is ours and what is inherited](#what-is-ours-and-what-is-inherited), and are never part of it.
+The documentation set is **every markdown file the team owns**: every markdown file in `docs/`, `tests/`, `utils/` and `.claude/`, plus four files at the repository root and the index of the vendored skills. The one exception is the weekly log entries, `docs/logs/<student>/week-<K>.md` and `docs/logs/team/week-<K>.md`: they record work already done and are never rewritten to match later code. `docs/logs/README.md` stays in the set. The files inherited from upstream are listed under [What is ours and what is inherited](#what-is-ours-and-what-is-inherited), and are never part of it.
 
 | File | Covers | Update it when |
 |---|---|---|
@@ -70,7 +70,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | [docs/proposal/README.md](docs/proposal/README.md) | project proposal | scope, goals or deliverables change |
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
 | [docs/minutes/README.md](docs/minutes/README.md) | meeting minutes | minutes are added, or the format changes |
-| [docs/logs/README.md](docs/logs/README.md) | team and individual logs | logs are added, or the format changes |
+| [docs/logs/README.md](docs/logs/README.md) | the weekly log layout, how `/make-pr` writes Part A into it, and the Part B template | the log layout or format changes |
 | [docs/workflows/README.md](docs/workflows/README.md) | index of the tool-agnostic workflows | a workflow is added, removed or renamed |
 | [docs/workflows/commit.md](docs/workflows/commit.md) | the canonical commit procedure | the commit convention changes |
 | [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | the canonical pull request procedure | the PR process changes |
@@ -80,7 +80,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | [AGENTS.md](AGENTS.md) | this file: how to work in this repo | a convention, command, rule or architectural fact stated here stops being true |
 | [CLAUDE.md](CLAUDE.md) | Claude Code entry point, imports `AGENTS.md` | the agent-guidance entry point changes. It is a pointer, so it rarely changes, but check it |
 | [agent-skills/README.md](agent-skills/README.md) | the skills every agent loads at session start: source, version, licence, how each is used here | a skill is added, removed, updated to a new upstream version, or used differently. The session-start hook flags a skill with no row |
-| [pull_request_template.md](pull_request_template.md) | Team 10's PR checklist, which enforces this set | the team's process changes, or a file is added to or removed from this set |
+| [pull_request_template.md](pull_request_template.md) | Team 10's PR template: the course's Part A receipts, and the checklists that enforce this set | the team's process changes, or a file is added to or removed from this set |
 | [.claude/README.md](.claude/README.md) | Claude Code configuration: commands, skills, the session-start hook, `settings.json` | a command, skill pointer, hook or setting is added, removed or changed |
 | [.claude/commands/](.claude/commands/) `commit.md`, `make-pr.md` | thin pointers to `docs/workflows/` | a workflow is added, removed or renamed |
 | [.claude/skills/](.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` | a pointed-to skill is renamed, moved or removed. Keep the frontmatter identical to the vendored file |
@@ -130,12 +130,15 @@ particular assistant.
 | Workflow | Use it when |
 |---|---|
 | [docs/workflows/commit.md](docs/workflows/commit.md) | grouping changed files into logical commits |
-| [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | opening a pull request into `main` |
+| [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | opening a pull request into `main`, and recording its Part A in the author's weekly log |
 
 **Follow the file, not a remembered version of it.** Both procedures contain rules that are
 easy to get wrong from memory: a PR must target this fork rather than upstream, the PR template
-must be appended to the body by hand, `git commit` commits the whole index rather than only the
-paths you just added, and neither commits nor PR descriptions may carry AI attribution.
+must be appended to the body by hand, the Part A receipts are filled with bold answers backed
+by evidence and never with a claim about something that did not happen, the same Part A is
+kept identical in the student's weekly log in `docs/logs/`, `git commit` commits
+the whole index rather than only the paths you just added, and neither commits nor PR
+descriptions may carry AI attribution.
 
 Claude Code users get `/commit` and `/make-pr`, which are thin pointers in
 [`.claude/commands/`](.claude/commands/). If your assistant has its own command format, point it
@@ -184,7 +187,7 @@ Qt widgets and the OpenCASCADE viewport cannot be meaningfully unit tested in th
 Do not paper over that with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
 
 - **Move logic out of views and models into pure functions and test it there.** A view method should read spin boxes, call a tested function, and hand the result to a model.
-- **Cover the remaining behaviour by running the app**, with `SI_C_D30 Brachify_Ex1/` (and `Ex2/` for the tandem path, since only `Ex2` has a `Tandem` channel), and visually inspecting the Export tab. The PR template requires this and it is not a formality: the output is a physical device used on a patient.
+- **Cover the remaining behaviour by running the app**, with `SI_C_D30 Brachify_Ex1/` (and `Ex2/` for the tandem path, since only `Ex2` has a `Tandem` channel), and visually inspecting the Export tab. Record the run in the regression receipt of the PR's Part A. It is not a formality: the output is a physical device used on a patient.
 
 ### Two things that make a test worthless
 
@@ -395,7 +398,7 @@ Widget styling is currently applied as inline `setStyleSheet` strings in `main_w
 
 Two templates, for two different destinations:
 
-- [pull_request_template.md](pull_request_template.md) — **Team 10's**, used for PRs into this fork's `main`. It carries the documentation gate described above: the reviewer explicitly checks that `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` matches what the code now does. If you are opening a PR here, fill this one in.
+- [pull_request_template.md](pull_request_template.md) — **Team 10's**, used for PRs into this fork's `main`. It carries the course's Part A receipts for the PR, then the documentation gate described above, where the author confirms file by file that the documentation set, `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` included, matches what the code now does. If you are opening a PR here, fill this one in, following [docs/workflows/make-pr.md](docs/workflows/make-pr.md).
 - [pull_request_template_brachify.md](pull_request_template_brachify.md) — upstream brachify's original process, preserved unchanged for PRs going back to the `upstream` remote: merge main into the feature branch → self-review → assign a peer reviewer (who also merges main and *runs* the code) → fix → reviewer approves → assign Michael Kudla → Michael reviews, approves, and merges.
 
-Because the printed cylinder is a physical device used on a patient, "the reviewer runs the code" is a real requirement in both flows, not a formality. Geometry changes must be visually inspected in the Export tab.
+Because the printed cylinder is a physical device used on a patient, running the code is a real requirement, not a formality. Upstream's flow requires the reviewer to run it, and Team 10's template records the run in Part A's regression receipt. Geometry changes must be visually inspected in the Export tab.
