@@ -278,14 +278,15 @@ Quality of the updates:
       `pull_request_template_brachify.md`, `virtual_environments_instructions.md`, `notes/`,
       `user_guide/`, `3D Models and Templates/`, `Images/`, `LICENSE`, `requirements.txt`, the
       sample DICOM folders), or any vendored file inside a skill's folder in `agent-skills/`.
-      `spec-file.txt` and `environment.yml` changed only if a dependency did. See
+      `spec-file.txt` and `environment.yml` changed only if a dependency did, and then for
+      Windows, macOS and Linux together, as §1.1 of the source of truth describes. See
       [AGENTS.md](AGENTS.md#what-is-ours-and-what-is-inherited).
 
 **Which section of the source of truth applies:**
 
 | If this PR... | Update |
 |---|---|
-| changes dependencies, the environment, or how to run the app | §1 Setup |
+| changes dependencies, the environment, or how to run the app | §1 Setup. A dependency follows the procedure in §1.1, for Windows, macOS and Linux together |
 | adds, removes, or renames a module or file | §4.7 map **and** §5 module reference |
 | changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the diagrams in `docs/architecture/` (its README says how), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |

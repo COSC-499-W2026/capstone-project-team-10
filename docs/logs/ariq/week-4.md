@@ -90,3 +90,99 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`git diff --name-only
   origin/main...HEAD` lists no file outside markdown, so nothing under `src/` changed and the app
   behaves as before. The app was not run and no screenshot was taken**.
+
+### For PR #**9**
+
+- As part of requirement **§1 Setup of the project docs, which must give every teammate a
+  working brachify environment on their own OS, and the proposal's choice of pytest as the
+  testing framework (`docs/proposal/README.md`, testing options), which needs pytest
+  installed**, the user needs to do **clone the repository on Windows, macOS or Linux, create
+  the conda environment from `spec-file.txt` (Windows) or the §1.2 `conda create` command
+  (macOS and Linux), and get the same packages on each, `pytest` and `pyinstaller` included**.
+- Therefore, I implemented/generated code so that **every Team 10 developer, on any of the
+  three operating systems, installs the same nine dependencies (`environment.yml`,
+  `spec-file.txt`, the §1.2 command), and any developer or agent adding a dependency follows
+  one cross-OS procedure (§1.1 of the project docs, `AGENTS.md`)**.
+
+#### Review and design
+
+- When I reviewed the **generated `environment.yml`** for this functionality, I noticed **it
+  never named `pyside6`. Windows only got PySide6 through `matplotlib`, and the `osx-arm64`
+  build of `matplotlib` has no Qt dependency, so a Mac environment built from it could not
+  start `src/launch.py`**. Therefore, I did **name `pyside6`, `numpy` and `pytest` in
+  `environment.yml`, and confirm with a dry-run solve on macOS that it now resolves
+  `pyside6` 6.11.2**.
+- When I reviewed the **first generated version of `environment.yml` and the §1.2 command**,
+  I noticed **every package was pinned to the Windows lockfile's exact version, which meant
+  three places to bump on every upgrade, while the goal was the same dependencies on every OS,
+  not the same versions**. Therefore, I did **remove every pin except `python=3.12` and
+  `pythonocc-core=7.7.2`, and state in §1.1 that versions may differ between operating
+  systems**.
+- When I reviewed the **generated `spec-file.txt` lines for `pytest`**, I noticed **they were
+  not written by `conda list --explicit` on Windows, which is how the file is normally
+  regenerated, because I have no Windows machine**. Therefore, I did **solve for `win-64` from
+  macOS with all 179 existing packages pinned, confirm none changed and only six were added,
+  check each URL returns HTTP 200, and record it as *Not verified* on Windows in §1.3**.
+- When I reviewed the **generated proposal to containerise the app with Docker**, I noticed
+  **brachify is a desktop GUI with an OpenGL viewport, so a container has no screen to show
+  it, and PyInstaller cannot build the Windows `.exe` from a Linux container**. Therefore, I
+  did **drop Docker and write the reasons into §1.11 and `AGENTS.md`, with CI named as the one
+  case worth reconsidering**.
+- When I reviewed the **merge with PR #7**, I noticed **PR #7 had removed the template's
+  Change checklist, where the dependency checkbox lived**. Therefore, I did **move the
+  cross-OS rule into the existing `spec-file.txt` and `environment.yml` line under Quality of
+  the updates**.
+- The PR does not contain any temporary workaround because **it changes dependency lists and
+  documentation, not code logic. The one step I could not run, creating the environment from
+  `spec-file.txt` on Windows, is recorded as *Not verified* in §1.3 rather than worked around**.
+- The PR only contains small functions — **N/A**, the PR adds no functions. No `.py` file
+  changed.
+- By doing **a grep of the documentation set for the wording of the removed pins (`6.8.1`,
+  `3.10.9`, `same version`, `pinned command`) after removing them**, I found that my feature
+  contribution contained **dead code, stale lines in §4.7, §7.4, §7.5, §9.0, `AGENTS.md` and
+  the PR template that still described pinned versions, and duplicate code, the full
+  dependency procedure about to be written into three files**. Therefore, I did **rewrite each
+  stale line, and keep the procedure in §1.1 only, with `AGENTS.md` and the template pointing
+  to it**.
+
+  Now, I can confirm that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`environment.yml`, `spec-file.txt` and §1 of
+  `docs/project/COSC499-TEAM10-PROJECT-DOCS.md`** because **conda reads the first two
+  directly, and §1 Setup is where the section map in §9.2 sends any dependency or environment
+  change**.
+- This work belongs in a process in the DFD — **N/A**, the PR changes the development
+  environment, not brachify. No process in `docs/architecture/diagrams/dfd-1.mmd` moves.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **creating a Mac
+  environment from the §1.2 command (PySide6 6.11.2, matplotlib 3.11.2, reportlab 5.0.1,
+  pyinstaller 6.22.3, pytest 9.1.1, pydicom 3.0.2, numpy 1.26.4 on Python 3.12.14), launching
+  the app natively from it until it logged `main window initialization complete`, a dry-run
+  solve of `environment.yml` on macOS, and `conda search` finding `pythonocc-core` 7.7.2 for
+  `win-64`, `osx-arm64`, `osx-64` and `linux-64`** passed. These are environment checks run
+  from the shell, not tests in `tests/`.
+- I wrote tests to cover abnormal situations involving **the blank line and comment added to
+  `spec-file.txt`, parsed with conda's own reader (`conda.cli.common.specs_from_url`), which
+  skipped both and returned all 185 package URLs** and they passed.
+- I checked that these negative cases involving **the Mac environment created before this PR,
+  where `import pytest` and `import PyInstaller` both failed with `ModuleNotFoundError`**
+  failed as expected.
+- When I reviewed the generated tests — **N/A**, no tests were generated. The first tests are
+  in the next PR, which builds on this one.
+- Among these tests, unit and integration tests — **N/A**, none of the checks is a unit or
+  integration test. They are environment checks run from the shell.
+- These tests are included in the directory — **N/A**, nothing was added to `tests/`.
+- This new test PR did not break anything else in the system because **the app launched
+  natively in the new environment and initialised the 3D viewport. DICOM import and the
+  Export tab were not exercised, and no screenshot was taken. `python -m pytest` on this
+  branch reports the same 36 collection errors as on `main`, all inside the vendored
+  `agent-skills/anti-slop-py/`, because no `pytest.ini` exists yet. The next PR adds it**.

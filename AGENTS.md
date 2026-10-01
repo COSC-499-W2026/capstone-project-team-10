@@ -56,7 +56,7 @@ Sections worth knowing exist regardless of task:
 
 - **§7 Known bugs, traps, and dead code** — read before debugging anything. Several plausible-looking code paths are already known to be dead or broken, and several safe-looking edits are known to break things (cached shapes, index-ordered views, `@display_action`).
 - **§2 Standing mandate** — the honesty rules that govern that document.
-- **§1 Setup** — verified working setup for macOS and Windows.
+- **§1 Setup** — verified working setup for macOS and Windows, the Linux command (not yet verified), and the procedure for adding a dependency on all three.
 
 ### You must update the documentation set
 
@@ -101,7 +101,7 @@ This repository is a fork of [brachify/brachify](https://github.com/brachify/bra
 | **Ours, documentation** | the documentation set above | reviewed on every PR and updated in the same PR as the change |
 | **Inherited from upstream brachify** | [README-BRACHIFY.md](README-BRACHIFY.md) (upstream's `README.md`, renamed), [pull_request_template_brachify.md](pull_request_template_brachify.md) (upstream's `pull_request_template.md`, renamed), [virtual_environments_instructions.md](virtual_environments_instructions.md), [notes/](notes/) including its markdown in `notes/code_notes/`, [user_guide/](user_guide/), [3D Models and Templates/](3D%20Models%20and%20Templates/), [Images/](Images/), [LICENSE](LICENSE), [requirements.txt](requirements.txt), `SI_C_D30 Brachify_Ex1/`, `SI_C_D30 Brachify_Ex2/` | **never edited.** If one has become wrong, record the correction in `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` instead. The sample DICOM folders are de-identified clinical data |
 | **Vendored from third parties** | every file inside a skill's folder in [agent-skills/](agent-skills/). Only `agent-skills/README.md` is ours | **never edited.** Replaced wholesale from upstream, as `agent-skills/README.md` describes |
-| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated with `conda list --explicit > spec-file.txt` after a dependency change, `environment.yml` changes when a dependency is added, and `.vscode/settings.json` is fixed by the first change that adds a test (see [Testing](#testing-write-the-test-first)) |
+| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated on Windows with `conda list --explicit > spec-file.txt` after a dependency change, and `environment.yml` changes when a dependency is added or removed. Both, and the macOS and Linux command in §1.2 of the project docs, list the same dependencies, given in §1.1 there. Versions may differ between operating systems. `.vscode/settings.json` is fixed by the first change that adds a test (see [Testing](#testing-write-the-test-first)) |
 
 Everything else, including `src/`, `resources/`, `build_executable.py`, `benchmarks/` and `.gitignore`, is code the team changes normally, with the documentation set kept in step.
 
@@ -109,7 +109,7 @@ Everything else, including `src/`, `resources/`, `build_executable.py`, `benchma
 
 | If your change... | Update section |
 |---|---|
-| touches dependencies, the environment, or how to run the app | §1 Setup |
+| touches dependencies, the environment, or how to run the app | §1 Setup. A dependency follows the procedure in §1.1, for Windows, macOS and Linux together |
 | adds, removes, or renames a module or file | §4.7 directory map **and** §5 module reference |
 | changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the diagrams in [docs/architecture/](docs/architecture/README.md) (its README says how), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
@@ -271,13 +271,17 @@ The geometry kernel is OpenCASCADE via `pythonocc-core` (`OCC.Core.*`), DICOM pa
 **conda only — never `pip install` into the environment** (mixing the two is a known breakage here). Full details, including debugging notes, in [virtual_environments_instructions.md](virtual_environments_instructions.md).
 
 ```bash
-conda create --name <env> --file spec-file.txt   # canonical: pinned, reproducible
+conda create --name <env> --file spec-file.txt   # Windows, canonical: pinned, reproducible
 conda activate <env>
 conda env create -f environment.yml              # only when testing a dependency change
 conda list --explicit > spec-file.txt            # regenerate after any dependency change
 ```
 
+`spec-file.txt` is Windows only. On macOS and Linux, use the `conda create` command in §1.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md). Windows, macOS and Linux install the same dependencies, `pytest` and `pyinstaller` included, but not necessarily the same versions: only `python=3.12` and `pythonocc-core=7.7.2` are pinned outside the Windows lockfile. **A dependency is added for Windows, macOS and Linux together, or not at all.** Before adding one, confirm conda-forge builds it for `win-64`, `osx-arm64`, `osx-64` and `linux-64`, then add it to all three places listed in §1.1 there and regenerate `spec-file.txt`. §1.1 has the full procedure, including the check command and what to do without a Windows machine.
+
 `pythonocc-core` is pinned to 7.7.2; versions above it have never produced a working environment.
+
+**There is no Docker setup, on purpose.** brachify is a desktop GUI that needs a screen and OpenGL, the `.exe` can only be built on Windows, and conda already gives every OS the same environment. Do not propose containerising the app. §1.11 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) gives the full reasons, and the one case worth reconsidering, which is CI.
 
 Run the app:
 

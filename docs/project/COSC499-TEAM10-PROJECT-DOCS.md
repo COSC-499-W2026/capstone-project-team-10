@@ -41,24 +41,82 @@ when this one disagrees with the code, **the code wins and this file must be cor
   ([virtual_environments_instructions.md](../../virtual_environments_instructions.md)).
 - Python 3.12 (3.11 also works upstream).
 - Git.
+- Node, **optional**. Only redrawing the architecture diagrams needs it
+  ([docs/architecture/README.md](../architecture/README.md)). `build.py --check`, which runs
+  on every pull request, is plain Python and does not.
 
 `pythonocc-core` is pinned to **7.7.2**. Upstream has never produced a working environment
 above that version. Do not bump it casually.
+
+**Windows, macOS and Linux install the same dependencies.** Every package the app, the tests
+or the build imports directly is listed by name on every OS. The *versions* may differ between
+them, and that is accepted. The list is written in three places that must agree:
+
+| Where | Used by | Versions |
+|---|---|---|
+| [spec-file.txt](../../spec-file.txt) | Windows (§1.3) | every package locked to an exact build |
+| the `conda create` command in §1.2 | macOS and Linux | newest available when you run it |
+| [environment.yml](../../environment.yml) | `conda env create -f environment.yml`, on any OS | newest available when you run it |
+
+| Package | Why it is listed |
+|---|---|
+| `python=3.12` | the interpreter. Pinned to 3.12 everywhere (the Windows lockfile has 3.12.2) |
+| `pythonocc-core=7.7.2` | the geometry kernel. The one hard version pin, see above |
+| `pyside6` | the Qt GUI |
+| `matplotlib` | the PDF reference sheet plots |
+| `numpy` | geometry and DICOM maths |
+| `reportlab` | the PDF reference sheet |
+| `pydicom` | DICOM import |
+| `pyinstaller` | building the `.exe` (§1.7) |
+| `pytest` | the test suite (§8) |
+
+**A dependency is added for Windows, macOS and Linux together, or not at all.** Never add one
+for a single OS. In the same pull request:
+
+1. **Check that conda-forge builds it for every platform the team uses.** A package missing
+   on any one of them is not added. Raise it with the team instead.
+
+   ```bash
+   for p in win-64 osx-arm64 osx-64 linux-64; do
+     conda search -q --override-channels -c conda-forge <package> --platform $p | tail -1
+   done
+   ```
+
+   Each line must print a version. A `noarch` package shows up for all four.
+2. **Add it by name, without a version, to all three places** in the first table above, and
+   give it a row in the second table saying why it is needed. Name only `python` and
+   `pythonocc-core` with a version. Pinning anything else is a deliberate decision for the
+   team, not a default.
+3. **Install it in your own environment** with `conda install -c conda-forge <package>`, never
+   `pip`. Then run the app.
+4. **Regenerate `spec-file.txt` on Windows** with `conda list --explicit > spec-file.txt`. With
+   no Windows machine, solve for Windows from your own OS as §1.3 describes, and mark it
+   *Not verified* there and in the pull request.
+5. **Say in the pull request which operating systems you actually ran it on.** The others
+   are *Not verified* until a teammate on that OS runs it.
+
+Removing a dependency is the same change in reverse: take it out of all three places and the
+second table, and regenerate `spec-file.txt`.
 
 ### 1.2 macOS setup — verified working
 
 > Verified on 2026-09-21: macOS (Darwin 25.6.0), Apple Silicon (arm64), Python 3.12.
 > The app launches, the Qt window opens, and the OpenCASCADE 3D viewport initialises.
 
-`spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and 141 of
-its 184 pinned package URLs are Windows binaries.
+> Unpinned command with `pyinstaller` and `pytest` verified on 2026-10-01: macOS (Darwin 25.6.0),
+> Apple Silicon. It installed PySide6 6.11.2, matplotlib 3.11.2, reportlab 5.0.1, pyinstaller
+> 6.22.3, pytest 9.1.1, pydicom 3.0.2 and numpy 1.26.4 on Python 3.12.14. In it the app launched
+> natively, completed main window initialisation and initialised the viewport. DICOM import and the Export tab were not exercised in that run.
 
-`environment.yml` alone is **also not sufficient on macOS.** It never names PySide6. On
-Windows that is harmless because conda-forge's `matplotlib` meta-package depends on
-`pyside6 >=6.7.2` for `win-64` — which is why PySide6 appears in the Windows lockfile without
-being requested. The `osx-arm64` build of `matplotlib` has no Qt dependency at all, so a Mac
-environment built from `environment.yml` has no PySide6 and `src/launch.py` dies on its first
-import. Name it explicitly:
+`spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and most of
+its 185 pinned package URLs are Windows binaries.
+
+**PySide6 must be named explicitly on macOS.** On Windows, conda-forge's `matplotlib`
+meta-package depends on `pyside6 >=6.7.2`, which is why PySide6 appeared in the Windows
+lockfile without being requested. The `osx-arm64` build of `matplotlib` has no Qt dependency,
+so a Mac environment that does not name `pyside6` has no PySide6 and `src/launch.py` dies on
+its first import. `environment.yml` did not name it until 2026-09-30. It does now. The command
+below names every package in §1.1:
 
 ```bash
 # 1. Install a conda. Miniforge defaults to conda-forge, which is the only channel
@@ -68,22 +126,35 @@ brew install --cask miniforge
 conda init zsh
 # open a new terminal here
 
-# 2. Create the environment. pythonocc-core is the one hard pin.
+# 2. Create the environment with the same dependencies as spec-file.txt (§1.1).
 conda create -n brachify -c conda-forge \
   python=3.12 \
   pythonocc-core=7.7.2 \
   pyside6 \
   matplotlib \
+  numpy \
   reportlab \
-  pydicom
+  pydicom \
+  pyinstaller \
+  pytest
 
 # 3. Run, from the repository root
 conda activate brachify
 python src/launch.py
 ```
 
-`numpy` arrives transitively via `matplotlib-base` and does not need naming. `pyinstaller` is
-deliberately omitted — it exists only to build the Windows `.exe`.
+The versions this installs are whatever is newest that day, so they can differ from Windows
+and from a teammate's Mac. On 2026-09-30 a Mac environment had PySide6 6.11.2, matplotlib
+3.11.2 and reportlab 5.0.1, against 6.8.1, 3.10.9 and 4.5.1 in `spec-file.txt`. That is
+expected. An environment created before 2026-09-30 has no `pytest` or `pyinstaller`. Add them
+with `conda install -n brachify -c conda-forge pytest pyinstaller`, or recreate it with the
+command above. `pyinstaller` is listed on every OS so the list is the same everywhere, but the
+`.exe` itself is still built only on Windows (§1.7).
+
+**Linux.** Use the same `conda create` command. Install Miniforge with its Linux installer
+instead of Homebrew, and run `conda init` for your shell. `pythonocc-core` 7.7.2 is built for
+`linux-64` on conda-forge (*Verified* 2026-09-30 with `conda search --platform linux-64`).
+*Not verified:* creating the environment or running the app on Linux.
 
 ### 1.3 Windows setup — the upstream-supported path
 
@@ -94,6 +165,31 @@ python src/launch.py
 ```
 
 `spec-file.txt` is the canonical, fully pinned lockfile. Prefer it on Windows.
+
+The six `pytest` lines at the end of `spec-file.txt` (`iniconfig`, `pluggy`, `pygments`,
+`tomli`, `exceptiongroup`, `pytest`) were not written by `conda list --explicit` on Windows.
+They were solved from macOS on 2026-09-30 with `CONDA_SUBDIR=win-64 conda create --dry-run`,
+pinning all 179 existing packages. The solve kept every one of them unchanged and added only
+those six, and each URL returned HTTP 200. *Not verified:* creating the environment from this
+file on a Windows machine. The next Windows teammate to do so should confirm it, and may
+regenerate the file there.
+
+To do the same for a new dependency from macOS or Linux, turn every URL in `spec-file.txt`
+into a `name==version=build` pin, add the new package, and ask conda for a Windows solve:
+
+```bash
+grep '^https' spec-file.txt | sed -E 's#.*/##; s#\.(conda|tar\.bz2)$##' \
+  | awk -F- '{b=$NF; v=$(NF-1); n=$1; for(i=2;i<NF-1;i++) n=n"-"$i; print n"=="v"="b}' > win-pins.txt
+echo "<package>" >> win-pins.txt
+CONDA_SUBDIR=win-64 conda create -n win-dryrun --dry-run --json --override-channels \
+  -c conda-forge -c https://repo.anaconda.com/pkgs/main -c https://repo.anaconda.com/pkgs/msys2 \
+  --file win-pins.txt > win-solve.json
+```
+
+In `win-solve.json`, `actions.LINK` lists every package. Every pinned one must come back
+unchanged. For each new one, its URL is `<base_url>/<platform>/<dist_name>.conda`. Check that
+each URL returns HTTP 200, append them to `spec-file.txt` after the existing lines, and then
+delete `win-pins.txt` and `win-solve.json`.
 
 ### 1.4 Running
 
@@ -195,7 +291,7 @@ PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop --explain no-any-pa
 and add a `[tool.anti-slop]` table to a `pyproject.toml`. That has not been done. The
 repository has no `pyproject.toml`, so every run uses the linter's built-in defaults, and
 running it means putting `agent-skills/anti-slop-py/src` on `PYTHONPATH`. It needs Python 3.12
-or newer. The conda environment's pinned Python is 3.12.2.
+or newer. The Windows lockfile pins Python 3.12.2, and macOS gets the newest 3.12 (§1.1).
 
 **What it checks.** `review --base <ref>` reports findings only on lines changed since the
 merge base with `<ref>`, including uncommitted and untracked files. The violations already in
@@ -278,6 +374,41 @@ vendored at a known version in `agent-skills/superpowers-tdd/` (6.4.2).
   without a further prompt, that a plugin from an external source is not installed until each
   person installs it (Claude Code v2.1.195 and later), and that third-party marketplaces do not
   auto-update by default. Nobody has yet opened this repository on a fresh machine to observe it.
+
+### 1.11 Why there is no Docker setup
+
+Containerising brachify for development was considered on 2026-09-30 and rejected. The
+reasons, so the question does not have to be reopened from scratch:
+
+1. **brachify is a desktop GUI, and a container has no screen.** It is a PySide6 window with
+   an OpenGL viewport (§4.5), not a web server, so there is no port to open in a browser.
+   Started with `docker compose up`, Qt finds no display and exits. Showing the window takes
+   one of two workarounds, and neither suits a team on macOS and Windows:
+   - **A virtual display streamed to the browser** (Xvfb plus noVNC at `localhost:6080`). It
+     is the same Qt program, but the viewport renders in software with no GPU. Camera drags
+     lag, the file dialogs browse the container's filesystem instead of yours, and the
+     widgets take Linux styling rather than what clinicians see on Windows.
+   - **The host's display over X11** (XQuartz on macOS, an X server on Windows). The window
+     is native, but the OpenCASCADE viewport needs OpenGL forwarded over X11, which XQuartz
+     does not do reliably. That would leave the viewport, the core of the app, broken.
+2. **Docker cannot build the product.** What ships is a Windows `.exe` built by PyInstaller
+   (§1.7), and PyInstaller only builds for the operating system it runs on. A Linux container
+   cannot produce the `.exe`, so a production image would have nothing to ship.
+3. **conda already provides the reproducible environment.** `pytest`, the anti-slop linter
+   (§1.9) and `build.py --check` all run headless inside the conda environment, and every
+   operating system installs the same dependencies from it (§1.1). An image would be a second
+   environment holding the same packages, kept in step by hand. The only tool missing from
+   conda is Node, needed only to redraw the diagrams (§1.1), which is too rare to justify an
+   image.
+
+What was done instead: Windows, macOS and Linux install the same dependency list (§1.1).
+
+**When to reconsider.** If the team adds CI, a Linux container that runs `python -m pytest`
+and the anti-slop linter on every pull request could be worth it, because neither needs a
+screen. That would be a CI image, not a way to run the app.
+
+*Reasoned from the architecture and the tools' documented behaviour, not tested here.* The
+noVNC and XQuartz workarounds were not tried.
 
 ---
 
@@ -521,7 +652,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── README.md                  course scaffolding template
 ├── README-BRACHIFY.md         upstream project README
 ├── LICENSE                    BSL 1.1
-├── environment.yml            loose conda spec (see §1.2 caveat)
+├── environment.yml            conda spec, the same dependency list as every OS (§1.1)
 ├── spec-file.txt              pinned conda lockfile — WINDOWS ONLY
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper
@@ -1037,7 +1168,7 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | `get_cylinder_from_dicom()` in `dicom/fileio.py` | never called; passes `tip=`/`base=` to a `BrachyCylinder.__init__` that accepts neither — would raise `TypeError` |
 | `benchmarks/benchmarking.py` | `total` used before assignment → `NameError` |
 | `benchmarks/channels.py` | imports `Application.BRep.Channel` and `testing.data.channels`, neither of which exists; contains a hardcoded `C://Users//nsmel//...` path |
-| `requirements.txt` | unused and stale — typo `matlplotlib`, and every pin disagrees with `spec-file.txt` (PySide6 6.9.3 vs 6.8.1, pydicom 2.4.3 vs 3.0.2, pyinstaller 6.0.0 vs 6.20.0). **Do not use it.** |
+| `requirements.txt` | unused and stale — typo `matlplotlib`, and every pin disagrees with `spec-file.txt` (PySide6 6.9.3 vs 6.8.1, pydicom 2.4.3 vs 3.0.2, pyinstaller 6.0.0 vs 6.20.0). It has no `pytest`. **Do not use it.** The dependency list is in §1.1 |
 | `intersections.are_colliding()` | defined, never called — needle collision detection is not performed |
 | `AppSignals.exportFile` | declared, never emitted, never connected |
 | `DicomData.central_axis_flag` | set in `__init__`, missing from `reset()`, never read |
@@ -1051,7 +1182,9 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - `QIcon("resources\\brachify_splash-ico.ico")` in
   [app.py](../../src/classes/app.py) and [main_window.py](../../src/windows/main_window.py) uses
   a Windows path separator. On macOS/Linux this silently yields a null icon. Cosmetic.
-- `spec-file.txt` is `win-64` only (§1.2).
+- `spec-file.txt` is `win-64` only (§1.2). macOS and Linux install the same dependencies
+  from the command in §1.2, but nothing locks their versions, so they can differ from
+  Windows (§1.1).
 
 ### 7.6 Traps that are not bugs — know these before editing
 
@@ -1182,8 +1315,8 @@ short:
 - **Vendored from third parties, never edited:** every file inside a skill's folder in
   `agent-skills/`. Only `agent-skills/README.md` is ours.
 - **Inherited, changed only by their procedure:** `spec-file.txt` and `environment.yml` (a
-  dependency change, §1), and `.vscode/settings.json` (fixed by the first change that adds a
-  test, §8.2).
+  dependency change, with the same dependency list as §1.1), and `.vscode/settings.json`
+  (fixed by the first change that adds a test, §8.2).
 
 *Verified* on 2026-09-25: every file listed as inherited was byte-for-byte identical to
 `upstream/main` at `f89cafe`, and the two renamed files are identical to upstream's originals.
@@ -1212,7 +1345,7 @@ Beyond the set-wide rule above, update **this** document when you:
 
 | Change | Section |
 |---|---|
-| dependency, environment, run command | §1 Setup |
+| dependency, environment, run command | §1 Setup. A dependency follows the procedure in §1.1, for Windows, macOS and Linux together |
 | new module or file | §4.7 directory map **and** §5 module reference |
 | new/changed signal or model wiring | §4.4, and the diagrams in [docs/architecture/](../architecture/README.md) |
 | new/changed view or widget | §4.3, §5.6 |
