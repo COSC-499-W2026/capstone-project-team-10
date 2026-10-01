@@ -8,8 +8,11 @@ channels:
 dependencies:
   - python=3.12
   - matplotlib
+  - numpy
   - reportlab
   - pydicom
   - pip
   - pyinstaller
+  - pyside6
+  - pytest
   - pythonocc-core=7.7.2
