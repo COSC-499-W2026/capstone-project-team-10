@@ -40,7 +40,8 @@ when this one disagrees with the code, **the code wins and this file must be cor
   mixing conda and pip is a known, documented breakage here
   ([virtual_environments_instructions.md](../../virtual_environments_instructions.md)).
 - Python 3.12 (3.11 also works upstream).
-- Git.
+- Git. On Windows, install **Git for Windows**, which brings Git Bash with it. Claude Code
+  runs the session-start hook through Git Bash (§1.10).
 - Node, **optional**. Only redrawing the architecture diagrams needs it
   ([docs/architecture/README.md](../architecture/README.md)). `build.py --check`, which runs
   on every pull request, is plain Python and does not.
@@ -345,7 +346,30 @@ directory is not the repository root, it prints the reason to stderr and exits 1
   `CLAUDE_PROJECT_DIR` set, exit 0. With `CLAUDE_PROJECT_DIR` set to a missing directory, and
   to an existing directory that is not the repository, it prints the reason and exits 1.
 - *Not verified:* that Claude Code fires it in a fresh session (it needs a new session after
-  the settings change), and Windows, where Claude Code runs hooks through Git Bash.
+  the settings change), and Windows.
+
+**On Windows, Linux and macOS.** The hook is POSIX `sh`. On macOS and Linux, Claude Code runs
+hook commands with `sh`. On Windows it runs them with Git Bash, which comes with Git for
+Windows (§1.1). Without Git for Windows it falls back to PowerShell, where `sh` does not exist
+and the hook fails with a visible error. That case is not supported. (All of this is *from the
+Claude Code docs, not tested here*.) The likeliest breakage on Windows was line endings. Git
+for Windows defaults to `core.autocrlf=true`, which would check the script out with CRLF, and
+`sh` then fails on `\r`. [.gitattributes](../../.gitattributes) now forces `eol=lf` for every
+`*.sh`, and
+[tests/tooling/test_line_endings.py](../../tests/tooling/test_line_endings.py) fails if a
+tracked shell script loses that attribute (*Verified* 2026-09-30 on macOS, including removing
+`.gitattributes` to watch it fail). To run the check by hand:
+
+```bash
+sh .claude/hooks/session-start.sh                                # macOS, Linux, Git Bash
+```
+
+```powershell
+& "$env:ProgramFiles\Git\bin\sh.exe" .claude/hooks/session-start.sh   # Windows PowerShell
+```
+
+A clone made on Windows before `.gitattributes` existed keeps its CRLF copy until the file is
+checked out again. Delete the script and run `git checkout -- .claude/hooks/session-start.sh`.
 
 **The superpowers plugin.** The same file registers the `superpowers-marketplace`
 marketplace and enables the `superpowers` plugin for this project. A Claude Code user needs it
@@ -412,7 +436,8 @@ reasons, so the question does not have to be reopened from scratch:
    conda is Node, needed only to redraw the diagrams (§1.1), which is too rare to justify an
    image.
 
-What was done instead: Windows, macOS and Linux install the same dependency list (§1.1).
+What was done instead: Windows, macOS and Linux install the same dependency list (§1.1), and
+the session-start hook was made safe on Windows (§1.10).
 
 **When to reconsider.** If the team adds CI, a Linux container that runs `python -m pytest`
 and the anti-slop linter on every pull request could be worth it, because neither needs a
@@ -668,6 +693,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper, HIDDEN_IMPORTS tested (§1.7)
 ├── pytest.ini                 test runner config, puts src/ and the root on sys.path (§8.2)
+├── .gitattributes             keeps *.sh at LF line endings on Windows (§1.10)
 ├── agent-skills/              skills every agent reads at session start (§1.10)
 │   ├── README.md              the skill list: upstream, version, licence, how used
 │   └── <skill>/               one folder per skill, vendored as-is
@@ -1238,7 +1264,7 @@ it pass, then break the code on purpose to confirm the test catches it.
 
 Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `tests/dicom/`,
 `tests/views/`, `tests/settings/`, and so on. Tests of repository files outside `src/`
-(`build_executable.py`) go in `tests/tooling/`. Nothing sits loose at the
+(`build_executable.py`, `.gitattributes`) go in `tests/tooling/`. Nothing sits loose at the
 root of `tests/`. Every function in `tests/` has a docstring saying what it checks, how it
 fails, and why that matters
 ([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)). See
@@ -1253,6 +1279,7 @@ tooling in [tests/tooling/](../../tests/tooling/):
 | Test | Fails when |
 |---|---|
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
+| `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 
 Run them from the repository root, in the conda environment:
 
@@ -1260,7 +1287,7 @@ Run them from the repository root, in the conda environment:
 python -m pytest
 ```
 
-- *Verified* 2026-09-30 on macOS: 3 passed. Each test was watched failing before its fix, and
+- *Verified* 2026-09-30 on macOS: 5 passed. Each test was watched failing before its fix, and
   failing again when the fix was reverted on purpose.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
