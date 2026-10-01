@@ -1,0 +1,128 @@
+%% title: Projected framework - UML
+%% alt: Existing brachify classes extended with proposed structures, editing, templates and validation
+classDiagram
+  direction LR
+  class RadiotherapyApp {
+    signals
+    values
+  }
+  class MainWindow
+  class NavigationModel {
+    views index 0 to 4
+  }
+  class DisplayModel {
+    shapes by label
+  }
+  class OrbitCameraViewer3d
+  class DicomModel
+  class CylinderModel
+  class ChannelsModel
+  class TandemModel
+  class ShapeModel {
+    label
+    TopoDS_Shape
+    ShapeTypes
+  }
+
+  RadiotherapyApp --> MainWindow
+  RadiotherapyApp --> AppSignals
+  RadiotherapyApp --> Values
+  MainWindow --> NavigationModel
+  MainWindow --> DisplayModel
+  DisplayModel --> OrbitCameraViewer3d
+  NavigationModel --> DicomModel
+  NavigationModel --> CylinderModel
+  NavigationModel --> ChannelsModel
+  NavigationModel --> TandemModel
+  CylinderModel --> ShapeModel
+  ChannelsModel --> ShapeModel
+  TandemModel --> ShapeModel
+  DisplayModel o-- ShapeModel
+
+  %% New classes are proposed responsibilities, not existing APIs.
+  class StructureModel {
+    <<proposed>>
+    ROI identifiers and classification
+    closed models and unavailable reasons
+    visibility opacity colour and bounds
+  }
+  class StructureBuilder {
+    <<proposed>>
+    transformContours()
+    reconstructClosedModels()
+  }
+  class DesignSession {
+    <<proposed>>
+    immutable imported baseline
+    current cylinder and needle state
+    perNeedleOverrides
+    disabled and removed status
+  }
+  class EditHistory {
+    <<proposed>>
+    atomic single and group edits
+    undo()
+    redo()
+    resetToImported()
+  }
+  class TemplateLibrary {
+    <<proposed>>
+    locked defaults and custom templates
+    saveAndSearch()
+    importAndExport()
+    previewAndApply()
+    checkNeedleFit()
+  }
+  class DesignValidator {
+    <<proposed>>
+    clinical rules and Central Axis protection
+    needle length angle and spacing
+    cylinder wall and organ distances
+    intersection and proximity warnings
+  }
+  class ReviewControls {
+    <<proposed>>
+    structure list and filters
+    opacity colour and visibility
+    original-path overlay and slicing
+    measurements and warning highlights
+  }
+  class ExportService {
+    <<proposed>>
+    current design to STL and STEP
+    PDF with edited paths and dead space
+    JSON with all cylinder settings
+  }
+
+  MainWindow --> DesignSession
+  MainWindow --> ReviewControls
+  DicomModel --> DesignSession : imported baseline
+  DicomModel --> StructureBuilder : ROI contours and axis
+  StructureBuilder --> StructureModel : aligned models
+  StructureModel --> ShapeModel : available structure geometry
+  ReviewControls --> StructureModel : display settings
+  ReviewControls --> DisplayModel : overlay and highlights
+  ReviewControls --> OrbitCameraViewer3d : camera and slicing
+  ReviewControls --> DesignValidator : checks
+  DesignSession --> CylinderModel : cylinder edits
+  DesignSession --> ChannelsModel : needle edits
+  DesignSession --> TandemModel : tandem
+  DesignSession --> EditHistory : accepted edits
+  EditHistory --> DesignSession : restored state
+  DesignSession --> TemplateLibrary : save or apply design
+  TemplateLibrary --> DesignValidator : template fit
+  DesignValidator --> DesignSession : inspect current geometry
+  DesignValidator --> StructureModel : anatomy
+  MainWindow --> ExportService
+  ExportService --> DesignSession : export state
+  ExportService --> DesignValidator : check before export
+  ExportService --> Values : config
+
+  style StructureModel fill:#e6f4ea,stroke:#237a43
+  style StructureBuilder fill:#e6f4ea,stroke:#237a43
+  style DesignSession fill:#e6f4ea,stroke:#237a43
+  style EditHistory fill:#e6f4ea,stroke:#237a43
+  style TemplateLibrary fill:#e6f4ea,stroke:#237a43
+  style DesignValidator fill:#e6f4ea,stroke:#237a43
+  style ReviewControls fill:#e6f4ea,stroke:#237a43
+  style ExportService fill:#e6f4ea,stroke:#237a43

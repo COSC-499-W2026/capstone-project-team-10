@@ -88,21 +88,14 @@ Course scaffolding only. No application behaviour.
 | The anti-slop lint hook, which does not read Python | CI |
 | macOS setup notes in the project docs | Changes to `src/` |
 
-## What the next eight months are supposed to be
+## Proposed project framework
 
-**Not written down in this repository.**
+The [project proposal](../proposal/README.md) now describes structure visualization,
+cylinder and needle editing, design checks, templates and consistent exports.
+[Projected Framework](diagrams/Projected%20Framework/README.md) contains separate UML,
+DFD level 0 and DFD level 1 copies extended for that scope, with source mappings and
+open design decisions. They describe planned work; the diagrams above still describe
+the existing application.
 
-- [docs/proposal/](../proposal/README.md) is a placeholder.
-- The team contract is a Google Doc, linked from [docs/contract/](../contract/README.md). It was not read for this map.
-- GitHub Issues are disabled on this fork.
-
-Do not treat the list below as the course plan. It is only unfinished work the code and the project docs already name.
-
-| Gap | Why it matters |
-|---|---|
-| Collar height and thickness are dropped when a tandem is generated, and they are missing from an exported config | A printed collar can disappear. Recorded in §7.1. |
-| No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
-| Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
-| Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. |
-
-When the proposal or the sponsor brief is available, replace this section with the real eight-month work. Until then this file does not invent it.
+The projected folder's README explains how to render its copies. The normal build and
+`--check` continue to cover only the original diagrams directly inside `diagrams/`.

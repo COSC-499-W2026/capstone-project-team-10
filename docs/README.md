@@ -20,7 +20,7 @@ claim is marked either *Verified* (observed at runtime) or *Reasoned from code*.
 | Folder | Contents |
 |---|---|
 | [project/](project/) | **Project documentation — the source of truth.** Setup, architecture, module reference, config schema, known bugs. |
-| [architecture/](architecture/README.md) | **The architecture map.** UML, DFD level 0, DFD level 1, the build that renders them, a zoom page, what Team 10 has added, and which course plan is still missing. |
+| [architecture/](architecture/README.md) | **The architecture map.** UML, DFD level 0, DFD level 1, the build that renders them, a zoom page, what Team 10 has added, and separate projected diagrams based on the proposal. |
 | [contract/](contract/) | Team contract |
 | [proposal/](proposal/) | Project proposal |
 | [design/](design/) | UI mocks and design artifacts |
