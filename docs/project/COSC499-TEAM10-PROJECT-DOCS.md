@@ -525,6 +525,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── spec-file.txt              pinned conda lockfile — WINDOWS ONLY
 ├── requirements.txt           STALE, unused — do not use (§7.4)
 ├── build_executable.py        PyInstaller wrapper
+├── pytest.ini                 test runner config: testpaths, src/ on sys.path (§8)
 ├── agent-skills/              skills every agent reads at session start (§1.10)
 │   ├── README.md              the skill list: upstream, version, licence, how used
 │   └── <skill>/               one folder per skill, vendored as-is
@@ -535,7 +536,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     README only, no tests yet (§8)
+├── tests/                     pytest suite, scoped by subfolder (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1073,6 +1074,14 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - **A clean `anti_slop review` covers only the lines you changed.** It hides every existing
   finding in untouched lines, and it lets the five policy rules through as warnings. It is
   not a statement that `src/` is clean (§1.9). Verified 2026-09-25.
+- **Fixed 2026-10-01: `docs/architecture/build.py --check` failed on every Windows clone.**
+  It hashed each `.mmd` as raw bytes, and Git on Windows (`core.autocrlf=true`, the default)
+  checks text out with CRLF line endings, so the hash never matched the stamp written on an LF
+  checkout. On an unedited `main` it reported all three diagrams stale and exited 1, which
+  blocked the pull-request gate, and re-rendering would only have moved the failure to LF
+  clones. `digest()` now hashes the LF form. *Verified* on Windows: before the fix `--check`
+  exited 1 on a clean checkout, after it exited 0. Guarded by
+  [tests/architecture/test_build.py](../../tests/architecture/test_build.py).
 
 ---
 
@@ -1096,19 +1105,23 @@ Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `test
 
 ### 8.2 Current state
 
-**There are no tests yet.** No test files, no test framework configured correctly, no CI.
+**The suite is configured, and its only tests cover repository tooling. Nothing in `src/` is
+tested yet.**
 
-- [`.vscode/settings.json`](../../.vscode/settings.json) enables pytest against a `testing/`
-  directory that does not exist. The repository now has `tests/`, so this setting is wrong and
-  should be updated to `["tests"]`.
+- [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src`, so a test
+  imports application modules the way the app does (`from classes.app import get_app`).
+  Run `python -m pytest` from the repository root.
+- [`.vscode/settings.json`](../../.vscode/settings.json) points pytest at `tests`.
+- [tests/architecture/test_build.py](../../tests/architecture/test_build.py) covers
+  `docs/architecture/build.py`: a CRLF checkout of an unchanged diagram is current, and an
+  edited one is stale (§7.6). It loads the script by path, since `docs/` is not a package.
+- **pytest is not in the conda environment.** Neither `spec-file.txt` nor `environment.yml`
+  names it. *Verified* 2026-10-01 only with Python 3.13.3 and pytest 8.4.2 outside conda,
+  on Windows. Adding it to the environment is a dependency change (§1).
 - `benchmarks/` is dead (§7.4) and is not a test suite.
-- There is no `.github/` directory, no CI of any kind, and no git hook. The anti-slop
-  linter is run by hand (§1.9) and never runs a test. `agent-skills/anti-slop-py/.github/` is upstream's CI, vendored with the linter, and
+- There is no `.github/` directory, no CI of any kind, and no git hook. Tests and the anti-slop
+  linter are run by hand (§1.9). `agent-skills/anti-slop-py/.github/` is upstream's CI, vendored with the linter, and
   GitHub does not run it from there.
-
-The first change that adds a test must also put `src/` on `sys.path` — either a `conftest.py`
-at the repository root that inserts it, or `pythonpath = ["src"]` in a `pytest.ini` /
-`pyproject.toml` — and fix the `.vscode` setting above to point at `tests`.
 
 ### 8.3 Highest-value targets
 
@@ -1182,8 +1195,8 @@ short:
 - **Vendored from third parties, never edited:** every file inside a skill's folder in
   `agent-skills/`. Only `agent-skills/README.md` is ours.
 - **Inherited, changed only by their procedure:** `spec-file.txt` and `environment.yml` (a
-  dependency change, §1), and `.vscode/settings.json` (fixed by the first change that adds a
-  test, §8.2).
+  dependency change, §1), and `.vscode/settings.json` (its pytest path was fixed when the
+  first test landed, §8.2).
 
 *Verified* on 2026-09-25: every file listed as inherited was byte-for-byte identical to
 `upstream/main` at `f89cafe`, and the two renamed files are identical to upstream's originals.

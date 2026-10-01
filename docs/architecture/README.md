@@ -28,7 +28,8 @@ python docs/architecture/build.py --install-hook   # once per clone, does the bu
 ```
 
 The build needs Node (it runs mermaid-cli through `npx`). Each SVG carries the hash of its source,
-so `--check` cannot be fooled by timestamps. It also fails when a diagram is not embedded below.
+so `--check` cannot be fooled by timestamps. The hash is taken over LF line endings, so a Windows
+checkout with CRLF matches a stamp written on macOS or Linux. It also fails when a diagram is not embedded below.
 
 **Redraw when** signals, values, the view order, a model, `ShapeModel`, the display path, or what
 Import reads or Export writes changes. Redraw all three in the same change, before the pull
@@ -84,7 +85,7 @@ Course scaffolding only. No application behaviour.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Tests |
+| This documentation set, agent rules, commit and PR workflows | Tests for `src/` |
 | The anti-slop lint hook, which does not read Python | CI |
 | macOS setup notes in the project docs | Changes to `src/` |
 

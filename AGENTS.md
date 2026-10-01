@@ -101,7 +101,7 @@ This repository is a fork of [brachify/brachify](https://github.com/brachify/bra
 | **Ours, documentation** | the documentation set above | reviewed on every PR and updated in the same PR as the change |
 | **Inherited from upstream brachify** | [README-BRACHIFY.md](README-BRACHIFY.md) (upstream's `README.md`, renamed), [pull_request_template_brachify.md](pull_request_template_brachify.md) (upstream's `pull_request_template.md`, renamed), [virtual_environments_instructions.md](virtual_environments_instructions.md), [notes/](notes/) including its markdown in `notes/code_notes/`, [user_guide/](user_guide/), [3D Models and Templates/](3D%20Models%20and%20Templates/), [Images/](Images/), [LICENSE](LICENSE), [requirements.txt](requirements.txt), `SI_C_D30 Brachify_Ex1/`, `SI_C_D30 Brachify_Ex2/` | **never edited.** If one has become wrong, record the correction in `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` instead. The sample DICOM folders are de-identified clinical data |
 | **Vendored from third parties** | every file inside a skill's folder in [agent-skills/](agent-skills/). Only `agent-skills/README.md` is ours | **never edited.** Replaced wholesale from upstream, as `agent-skills/README.md` describes |
-| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated with `conda list --explicit > spec-file.txt` after a dependency change, `environment.yml` changes when a dependency is added, and `.vscode/settings.json` is fixed by the first change that adds a test (see [Testing](#testing-write-the-test-first)) |
+| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated with `conda list --explicit > spec-file.txt` after a dependency change, `environment.yml` changes when a dependency is added, and `.vscode/settings.json` changes only when the test runner configuration does (see [Testing](#testing-write-the-test-first)) |
 
 Everything else, including `src/`, `resources/`, `build_executable.py`, `benchmarks/` and `.gitignore`, is code the team changes normally, with the documentation set kept in step.
 
@@ -168,7 +168,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**There is currently no test suite and no working test configuration.** [`.vscode/settings.json`](.vscode/settings.json) enables pytest against a `testing/` directory that does not exist; the real directory is [tests/](tests/). The first change that adds a test must also fix that setting and put `src/` on `sys.path`, either through a root `conftest.py` or `pythonpath = ["src"]` in a `pytest.ini`. Until that exists, adding it is part of your change, not a reason to skip the test.
+**The test runner is configured, and nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) points pytest at [tests/](tests/) and puts `src/` on `sys.path`, so a test imports application modules the way the app does. Run `python -m pytest` from the repository root. The only tests so far cover `docs/architecture/build.py`. pytest is not in the conda environment yet; see §8.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
 ### The loop
 
@@ -247,6 +247,7 @@ The subfolder name mirrors the `src/` path it tests:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
+| `docs/architecture/build.py` | `tests/architecture/` |
 
 Create the subfolder if it does not exist yet. Shared fixtures go in `tests/conftest.py`; fixtures used by one area go in that area's own `conftest.py`. Sample data used by tests goes in `tests/data/`, never beside the test file.
 
@@ -301,7 +302,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: there are none yet, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Nothing in `src/` is covered yet, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
