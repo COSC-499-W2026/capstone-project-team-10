@@ -293,7 +293,7 @@ Quality of the updates:
 | adds or changes a `CONFIG_*` key | §6.2 (**and all four code sites**) |
 | changes an export format | §6.4 |
 | finds or fixes a bug | §7 Known bugs, traps and dead code |
-| adds tests | §8 |
+| adds tests | §8, and every function in it has a docstring |
 | adds, removes, or updates a skill in `agent-skills/` | the table in [agent-skills/README.md](agent-skills/README.md); §1.10 only if how skills load changes |
 
 ## Agent skills
@@ -317,9 +317,13 @@ If no AI agent touched this PR, mark each item N/A.
 This project writes the test first. See
 [AGENTS.md](AGENTS.md#testing-write-the-test-first).
 
+- [ ] `python -m pytest` passes from the repository root.
 - [ ] I wrote the test **before** the code.
 - [ ] I **watched it fail**, then made it pass.
 - [ ] I broke the code on purpose and confirmed the test caught it.
+- [ ] Every test, helper and fixture I wrote has a docstring saying what it checks, how it
+      fails, and why that matters, with no `#` comment repeating it. See
+      [AGENTS.md](AGENTS.md#every-function-in-tests-explains-itself).
 - [ ] The test lives in the correctly scoped subfolder (`tests/mesh/`, `tests/dicom/`, …) and
       not at the root of `tests/`. See [tests/README.md](tests/README.md).
 - [ ] Logic that could not be tested was moved out of the view or model into a pure function
