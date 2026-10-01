@@ -101,7 +101,7 @@ This repository is a fork of [brachify/brachify](https://github.com/brachify/bra
 | **Ours, documentation** | the documentation set above | reviewed on every PR and updated in the same PR as the change |
 | **Inherited from upstream brachify** | [README-BRACHIFY.md](README-BRACHIFY.md) (upstream's `README.md`, renamed), [pull_request_template_brachify.md](pull_request_template_brachify.md) (upstream's `pull_request_template.md`, renamed), [virtual_environments_instructions.md](virtual_environments_instructions.md), [notes/](notes/) including its markdown in `notes/code_notes/`, [user_guide/](user_guide/), [3D Models and Templates/](3D%20Models%20and%20Templates/), [Images/](Images/), [LICENSE](LICENSE), [requirements.txt](requirements.txt), `SI_C_D30 Brachify_Ex1/`, `SI_C_D30 Brachify_Ex2/` | **never edited.** If one has become wrong, record the correction in `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` instead. The sample DICOM folders are de-identified clinical data |
 | **Vendored from third parties** | every file inside a skill's folder in [agent-skills/](agent-skills/). Only `agent-skills/README.md` is ours | **never edited.** Replaced wholesale from upstream, as `agent-skills/README.md` describes |
-| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated on Windows with `conda list --explicit > spec-file.txt` after a dependency change, and `environment.yml` changes when a dependency is added or removed. Both, and the macOS and Linux command in §1.2 of the project docs, list the same dependencies, given in §1.1 there. Versions may differ between operating systems. `.vscode/settings.json` is fixed by the first change that adds a test (see [Testing](#testing-write-the-test-first)) |
+| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated on Windows with `conda list --explicit > spec-file.txt` after a dependency change, and `environment.yml` changes when a dependency is added or removed. Both, and the macOS and Linux command in §1.2 of the project docs, list the same dependencies, given in §1.1 there. Versions may differ between operating systems. `.vscode/settings.json` changes only when the test runner does |
 
 Everything else, including `src/`, `resources/`, `build_executable.py`, `benchmarks/` and `.gitignore`, is code the team changes normally, with the documentation set kept in step.
 
@@ -117,7 +117,7 @@ Everything else, including `src/`, `resources/`, `build_executable.py`, `benchma
 | changes an export format | §6.4 |
 | finds a new bug or trap | §7 Known bugs, traps and dead code — add it there, don't leave it in a commit message |
 | fixes a listed bug | §7 Known bugs, traps and dead code — mark the entry fixed, don't silently delete it |
-| adds tests | §8 |
+| adds tests | §8, and every function in it has a docstring (see [Every function in tests/ explains itself](#every-function-in-tests-explains-itself)) |
 | adds, removes, or updates a skill in `agent-skills/` | the table in [agent-skills/README.md](agent-skills/README.md). §1.10 only if how skills are loaded changes |
 
 #### Three rules when you edit anything in the set
@@ -168,7 +168,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**There is currently no test suite and no working test configuration.** [`.vscode/settings.json`](.vscode/settings.json) enables pytest against a `testing/` directory that does not exist; the real directory is [tests/](tests/). The first change that adds a test must also fix that setting and put `src/` on `sys.path`, either through a root `conftest.py` or `pythonpath = ["src"]` in a `pytest.ini`. Until that exists, adding it is part of your change, not a reason to skip the test.
+**The test runner is configured, but nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. The only tests so far are the tooling tests in `tests/tooling/`. The first test of application code still has to be written, and no missing fixture or folder is a reason to skip it.
 
 ### The loop
 
@@ -194,6 +194,21 @@ Do not paper over that with a test that merely constructs a view and asserts it 
 
 - **Move logic out of views and models into pure functions and test it there.** A view method should read spin boxes, call a tested function, and hand the result to a model.
 - **Cover the remaining behaviour by running the app**, with `SI_C_D30 Brachify_Ex1/` (and `Ex2/` for the tandem path, since only `Ex2` has a `Tandem` channel), and visually inspecting the Export tab. Record the run in the regression receipt of the PR's Part A. It is not a formality: the output is a physical device used on a patient.
+
+### Every function in tests/ explains itself
+
+**Every function in `tests/` has a docstring**: every test, helper and fixture. It says, in
+plain sentences:
+
+1. **What it checks.** The behaviour, in one sentence.
+2. **How it fails.** What input or state makes it go red, and with what error.
+3. **Why that matters.** The bug or consequence the failure prevents. For a clinical-safety
+   test, name the consequence for the patient.
+
+A helper says it is a helper, not a test. Do not leave a `#` comment that repeats the
+docstring or restates the code beside it. Move what it says into the docstring and delete it.
+A `#` comment stays only for something the docstring cannot say, such as why one line is
+written the way it is. [tests/tooling/](tests/tooling/) shows the form.
 
 ### Two things that make a test worthless
 
@@ -247,6 +262,7 @@ The subfolder name mirrors the `src/` path it tests:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
+| repository files outside `src/`: `build_executable.py` | `tests/tooling/` |
 
 Create the subfolder if it does not exist yet. Shared fixtures go in `tests/conftest.py`; fixtures used by one area go in that area's own `conftest.py`. Sample data used by tests goes in `tests/data/`, never beside the test file.
 
@@ -305,11 +321,11 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: there are none yet, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Only tooling is tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
-Every module imports as if `src/` were the root (`from classes.app import get_app`, `from windows.views...`), so `src/` must be on `sys.path` — hence `--paths=src` in the PyInstaller invocation and `PYTHONPATH` when running. Do not "fix" these into `src.`-prefixed imports.
+Every module imports as if `src/` were the root (`from classes.app import get_app`, `from windows.views...`), so `src/` must be on `sys.path` — hence `--paths=src` in the PyInstaller invocation, `PYTHONPATH` when running, and `pythonpath = src .` in [pytest.ini](pytest.ini) for the tests. Do not "fix" these into `src.`-prefixed imports.
 
 Several resource paths are hardcoded Windows-style (e.g. `QIcon("resources\\brachify_splash-ico.ico")` in [app.py](src/classes/app.py) and [main_window.py](src/windows/main_window.py)). The app is developed and shipped on Windows; on macOS/Linux these silently produce a missing icon rather than a crash.
 

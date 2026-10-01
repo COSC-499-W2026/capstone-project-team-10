@@ -67,8 +67,8 @@ them, and that is accepted. The list is written in three places that must agree:
 | `numpy` | geometry and DICOM maths |
 | `reportlab` | the PDF reference sheet |
 | `pydicom` | DICOM import |
-| `pyinstaller` | building the `.exe` (§1.7) |
-| `pytest` | the test suite (§8) |
+| `pyinstaller` | building the `.exe` (§1.7), and the hidden-import test (§8.2) |
+| `pytest` | the test suite (§8.2) |
 
 **A dependency is added for Windows, macOS and Linux together, or not at all.** Never add one
 for a single OS. In the same pull request:
@@ -88,7 +88,7 @@ for a single OS. In the same pull request:
    `pythonocc-core` with a version. Pinning anything else is a deliberate decision for the
    team, not a default.
 3. **Install it in your own environment** with `conda install -c conda-forge <package>`, never
-   `pip`. Then run the app.
+   `pip`. Then run the app and `python -m pytest`.
 4. **Regenerate `spec-file.txt` on Windows** with `conda list --explicit > spec-file.txt`. With
    no Windows machine, solve for Windows from your own OS as §1.3 describes, and mark it
    *Not verified* there and in the pull request.
@@ -105,8 +105,9 @@ second table, and regenerate `spec-file.txt`.
 
 > Unpinned command with `pyinstaller` and `pytest` verified on 2026-10-01: macOS (Darwin 25.6.0),
 > Apple Silicon. It installed PySide6 6.11.2, matplotlib 3.11.2, reportlab 5.0.1, pyinstaller
-> 6.22.3, pytest 9.1.1, pydicom 3.0.2 and numpy 1.26.4 on Python 3.12.14. In it the app launched
-> natively, completed main window initialisation and initialised the viewport. DICOM import and the Export tab were not exercised in that run.
+> 6.22.3, pytest 9.1.1, pydicom 3.0.2 and numpy 1.26.4 on Python 3.12.14. In it the test suite
+> passed, and the app launched natively, completed main window initialisation and initialised
+> the viewport. DICOM import and the Export tab were not exercised in that run.
 
 `spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and most of
 its 185 pinned package URLs are Windows binaries.
@@ -148,7 +149,7 @@ and from a teammate's Mac. On 2026-09-30 a Mac environment had PySide6 6.11.2, m
 3.11.2 and reportlab 5.0.1, against 6.8.1, 3.10.9 and 4.5.1 in `spec-file.txt`. That is
 expected. An environment created before 2026-09-30 has no `pytest` or `pyinstaller`. Add them
 with `conda install -n brachify -c conda-forge pytest pyinstaller`, or recreate it with the
-command above. `pyinstaller` is listed on every OS so the list is the same everywhere, but the
+command above. `pyinstaller` is listed so the build's hidden imports can be tested (§8.2). The
 `.exe` itself is still built only on Windows (§1.7).
 
 **Linux.** Use the same `conda create` command. Install Miniforge with its Linux installer
@@ -252,6 +253,11 @@ python build_executable.py     # output: dist/brachify/brachify.exe
 
 `--exclude-module PyQt5` in that script is load-bearing: PyQt5 and PySide6 clash at runtime.
 
+Its hidden imports are listed in `HIDDEN_IMPORTS`, and
+[tests/tooling/test_build_executable.py](../../tests/tooling/test_build_executable.py) fails
+if one of them cannot be imported. PyInstaller only logs `ERROR: Hidden import ... not found`
+for a missing one and still builds, exit 0 (§7.4).
+
 ### 1.8 IDE
 
 Point VS Code at the environment interpreter (`Cmd+Shift+P` → *Python: Select Interpreter*)
@@ -261,6 +267,11 @@ works. On the verified macOS setup that path is:
 ```
 /opt/homebrew/Caskroom/miniforge/base/envs/brachify/bin/python3.12
 ```
+
+With that interpreter selected, VS Code's Testing panel finds the suite, because
+[.vscode/settings.json](../../.vscode/settings.json) points pytest at `tests` and
+[pytest.ini](../../pytest.ini) sets the import paths (§8.2). *Reasoned from the settings, not
+verified in VS Code.*
 
 ### 1.9 Lint tooling
 
@@ -655,7 +666,8 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── environment.yml            conda spec, the same dependency list as every OS (§1.1)
 ├── spec-file.txt              pinned conda lockfile — WINDOWS ONLY
 ├── requirements.txt           STALE, unused — do not use (§7.4)
-├── build_executable.py        PyInstaller wrapper
+├── build_executable.py        PyInstaller wrapper, HIDDEN_IMPORTS tested (§1.7)
+├── pytest.ini                 test runner config, puts src/ and the root on sys.path (§8.2)
 ├── agent-skills/              skills every agent reads at session start (§1.10)
 │   ├── README.md              the skill list: upstream, version, licence, how used
 │   └── <skill>/               one folder per skill, vendored as-is
@@ -666,7 +678,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     README only, no tests yet (§8)
+├── tests/                     tooling tests only, none for src/ yet (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1079,8 +1091,9 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 
 ## 7. Known bugs, traps, and dead code
 
-Everything here was found by reading the code during the 2026-09-21 audit. Nothing here has
-been fixed. Severity is our judgement, not upstream's.
+Everything here was found by reading the code during the 2026-09-21 audit, unless its entry
+gives a later date. An entry that has since been fixed says **Fixed** with the date and stays
+listed. Severity is our judgement, not upstream's.
 
 ### 7.1 HIGH — the base collar silently disappears after generating a tandem
 
@@ -1169,6 +1182,7 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | `benchmarks/benchmarking.py` | `total` used before assignment → `NameError` |
 | `benchmarks/channels.py` | imports `Application.BRep.Channel` and `testing.data.channels`, neither of which exists; contains a hardcoded `C://Users//nsmel//...` path |
 | `requirements.txt` | unused and stale — typo `matlplotlib`, and every pin disagrees with `spec-file.txt` (PySide6 6.9.3 vs 6.8.1, pydicom 2.4.3 vs 3.0.2, pyinstaller 6.0.0 vs 6.20.0). It has no `pytest`. **Do not use it.** The dependency list is in §1.1 |
+| **Fixed 2026-09-30.** `build_executable.py` hidden imports `pydicom.encoders.gdcm` and `pydicom.encoders.pylibjpeg` | found 2026-09-30. pydicom 3, the version pinned since the lockfile was made, moved both modules to `pydicom.pixels.encoders.*`. PyInstaller logged `ERROR: Hidden import 'pydicom.encoders.gdcm' not found` (and the same for `pylibjpeg`) and built anyway with exit 0 (*Verified* 2026-09-30 by a trial build on macOS). Both now name `pydicom.pixels.encoders.*`, the trial build analyses them with no error, and `tests/tooling/test_build_executable.py` guards the list. Probably harmless before the fix, since the app never decodes pixel data (*Reasoned from code*). *Not verified:* a Windows `.exe` build |
 | `intersections.are_colliding()` | defined, never called — needle collision detection is not performed |
 | `AppSignals.exportFile` | declared, never emitted, never connected |
 | `DicomData.central_axis_flag` | set in `__init__`, missing from `reset()`, never read |
@@ -1223,25 +1237,38 @@ session start (§1.10). The full rules, including the anti-slop rules, live in
 it pass, then break the code on purpose to confirm the test catches it.
 
 Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `tests/dicom/`,
-`tests/views/`, `tests/settings/`, and so on. Nothing sits loose at the root of `tests/`. See
+`tests/views/`, `tests/settings/`, and so on. Tests of repository files outside `src/`
+(`build_executable.py`) go in `tests/tooling/`. Nothing sits loose at the
+root of `tests/`. Every function in `tests/` has a docstring saying what it checks, how it
+fails, and why that matters
+([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)). See
 [tests/README.md](../../tests/README.md). `utils/` follows the same scoping rule; see
 [utils/README.md](../../utils/README.md).
 
 ### 8.2 Current state
 
-**There are no tests yet.** No test files, no test framework configured correctly, no CI.
+**There are no tests of `src/` yet.** The only tests, added 2026-09-30, cover repository
+tooling in [tests/tooling/](../../tests/tooling/):
 
-- [`.vscode/settings.json`](../../.vscode/settings.json) enables pytest against a `testing/`
-  directory that does not exist. The repository now has `tests/`, so this setting is wrong and
-  should be updated to `["tests"]`.
+| Test | Fails when |
+|---|---|
+| `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
+
+Run them from the repository root, in the conda environment:
+
+```bash
+python -m pytest
+```
+
+- *Verified* 2026-09-30 on macOS: 3 passed. Each test was watched failing before its fix, and
+  failing again when the fix was reverted on purpose.
+- [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
+  import as though `src/` were the root and `build_executable` imports from the root.
+  [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
 - `benchmarks/` is dead (§7.4) and is not a test suite.
-- There is no `.github/` directory, no CI of any kind, and no git hook. The anti-slop
-  linter is run by hand (§1.9) and never runs a test. `agent-skills/anti-slop-py/.github/` is upstream's CI, vendored with the linter, and
-  GitHub does not run it from there.
-
-The first change that adds a test must also put `src/` on `sys.path` — either a `conftest.py`
-at the repository root that inserts it, or `pythonpath = ["src"]` in a `pytest.ini` /
-`pyproject.toml` — and fix the `.vscode` setting above to point at `tests`.
+- There is no `.github/` directory, no CI of any kind, and no git hook. Tests and the
+  anti-slop linter (§1.9) are run by hand. `agent-skills/anti-slop-py/.github/` is upstream's
+  CI, vendored with the linter, and GitHub does not run it from there.
 
 ### 8.3 Highest-value targets
 
@@ -1316,7 +1343,7 @@ short:
   `agent-skills/`. Only `agent-skills/README.md` is ours.
 - **Inherited, changed only by their procedure:** `spec-file.txt` and `environment.yml` (a
   dependency change, with the same dependency list as §1.1), and `.vscode/settings.json`
-  (fixed by the first change that adds a test, §8.2).
+  (pointed at `tests` on 2026-09-30 by the change that added the first tests, §8.2).
 
 *Verified* on 2026-09-25: every file listed as inherited was byte-for-byte identical to
 `upstream/main` at `f89cafe`, and the two renamed files are identical to upstream's originals.
@@ -1352,7 +1379,7 @@ Beyond the set-wide rule above, update **this** document when you:
 | new/changed config key | §6.2 (and remember the four code sites) |
 | new/changed export format | §6.4 |
 | bug found or fixed | §7 |
-| test added | §8 |
+| test added | §8, and every function in it has a docstring ([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)) |
 | skill added, removed, or updated in `agent-skills/` | the table in `agent-skills/README.md`; §1.10 only if how skills load changes |
 
 ### 9.3 Rules for edits
