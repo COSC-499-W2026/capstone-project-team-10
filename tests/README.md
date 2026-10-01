@@ -28,6 +28,7 @@ The subfolder name mirrors the `src/` path under test:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
+| `docs/architecture/build.py` | `tests/architecture/` |
 
 Create the subfolder if it does not exist yet. Add a row above when you create a new scope.
 
@@ -36,6 +37,8 @@ tests/
 ├── README.md
 ├── conftest.py            fixtures shared by everything
 ├── data/                  sample inputs, never beside a test file
+├── architecture/
+│   └── test_build.py
 ├── dicom/
 │   ├── conftest.py        fixtures used only by dicom tests
 │   └── test_fileio.py
@@ -54,15 +57,19 @@ Naming: `test_<module>.py`, mirroring the module under test. A test for
 Fixtures shared across the whole suite go in `tests/conftest.py`. Fixtures used by one area go
 in that area's own `conftest.py`. Sample data goes in `tests/data/`, never next to a test file.
 
-## Before the first test runs
+## Running the tests
 
-The suite is not yet configured. The first change that adds a test must also:
+```bash
+python -m pytest        # from the repository root
+```
 
-1. Put `src/` on `sys.path`, either with a root `conftest.py` or `pythonpath = ["src"]` in a
-   `pytest.ini` / `pyproject.toml`. Every module in this project imports as though `src/` were
-   the root (`from classes.app import get_app`), so nothing imports without this.
-2. Fix [`.vscode/settings.json`](../.vscode/settings.json), which currently points pytest at a
-   `testing/` directory that does not exist. It should read `["tests"]`.
+[pytest.ini](../pytest.ini) sets `testpaths = tests` and `pythonpath = src`. Every module in
+this project imports as though `src/` were the root (`from classes.app import get_app`), so a
+test imports it the same way. [`.vscode/settings.json`](../.vscode/settings.json) points the
+editor's test runner at `tests` too.
+
+pytest is not in the conda environment yet. See §8.2 of
+[the project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
 
