@@ -186,3 +186,87 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   Export tab were not exercised, and no screenshot was taken. `python -m pytest` on this
   branch reports the same 36 collection errors as on `main`, all inside the vendored
   `agent-skills/anti-slop-py/`, because no `pytest.ini` exists yet. The next PR adds it**.
+
+### For PR #**10**
+
+- As part of requirement **the proposal's choice of pytest as the testing framework
+  (`docs/proposal/README.md`, testing options), and the rule in `AGENTS.md` that the first
+  change adding a test must also configure the runner**, the user needs to do **run
+  `python -m pytest` from the repository root and see the build's hidden imports checked,
+  then run `python build_executable.py` on Windows and get pydicom 3's encoder modules
+  bundled into `brachify.exe`**.
+- Therefore, I implemented/generated code so that **Team 10 developers get a working test
+  runner (`pytest.ini`, `.vscode/settings.json`), a build whose hidden imports name modules
+  that exist (`HIDDEN_IMPORTS` in `build_executable.py`), and a test that fails if one ever
+  stops existing (`tests/tooling/test_build_executable.py`)**.
+
+#### Review and design
+
+- When I reviewed the **generated `build_executable.py`** for this functionality, I noticed
+  **its hidden imports `pydicom.encoders.gdcm` and `pydicom.encoders.pylibjpeg` do not exist
+  in pydicom 3.0.2. A trial PyInstaller build on macOS logged `ERROR: Hidden import
+  'pydicom.encoders.gdcm' not found` and the same for `pylibjpeg`, then exited 0**.
+  Therefore, I did **point both at `pydicom.pixels.encoders.*`, where pydicom 3 keeps them.
+  The trial build then analysed both with no error**.
+- When I reviewed the **restructured `build_executable.py`**, I noticed **it builds the same
+  `--hidden-import` arguments as before, so the only reason for the change is that a test
+  needs to read the list**. Therefore, I did **keep the `HIDDEN_IMPORTS` list, so the test can
+  import it rather than parse the file, and leave every other PyInstaller argument as it was**.
+- When I reviewed the **generated tests in `tests/tooling/`**, I noticed **their purpose was
+  written as single-line `#` comments, which a reader skims past and which repeated what the
+  code already showed**. Therefore, I did **move each explanation into a docstring, delete the
+  `#` comments, and add the rule to `AGENTS.md`, `tests/README.md` and the PR template**.
+- When I reviewed **how pytest runs from the repository root**, I noticed **with no
+  configuration it collected the vendored linter in `agent-skills/` and reported 36
+  collection errors**. Therefore, I did **set `testpaths = tests` in `pytest.ini`, so only the
+  team's tests run**.
+- The PR does not contain any temporary workaround because **the fix names the modules where
+  pydicom 3 keeps them, with no suppression or fallback, and the test keeps the list honest
+  from now on**.
+- The PR only contains small functions that are **11 lines** long. That is
+  `test_hidden_import_exists_in_the_environment`, counted with its decorator and docstring,
+  and `build_executable.py` has no functions.
+- I did **run `anti_slop review --base main src tests utils build_executable.py`, which
+  reported no findings, and check that the only module-level value added, `HIDDEN_IMPORTS`,
+  is read by both the build and the test** to ensure that my feature contribution does not
+  contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`build_executable.py` (existing), `pytest.ini` (new, at the root)
+  and `tests/tooling/test_build_executable.py` (new)** because **pytest reads its
+  configuration from the root, and `AGENTS.md` scopes tests of repository files outside
+  `src/` to `tests/tooling/`**.
+- This work belongs in a process in the DFD — **N/A**, the PR changes the build and the test
+  runner, not brachify. No process in `docs/architecture/diagrams/dfd-1.mmd` moves.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_hidden_import_exists_in_the_environment` for `OCC`, `pydicom.pixels.encoders.gdcm`
+  and `pydicom.pixels.encoders.pylibjpeg`** passed. `python -m pytest` reports 3 passed.
+- I wrote tests to cover abnormal situations — **N/A**, the test has one input, a module name,
+  and the only abnormal input is a missing module, which is the negative case below.
+- I checked that these negative cases involving **the old names `pydicom.encoders.gdcm` and
+  `pydicom.encoders.pylibjpeg`, put back on this branch on purpose,** failed as expected: 2
+  failed with `ModuleNotFoundError`, 1 passed, and all 3 passed again once the fix was
+  restored.
+- When I reviewed the **`test_hidden_import_exists_in_the_environment`**, I noticed **its
+  first run errored at collection with `AttributeError: module 'build_executable' has no
+  attribute 'HIDDEN_IMPORTS'`, a failure for the wrong reason**. Therefore, I did **extract
+  the list first without changing the build, so the test then failed for the right reason, on
+  the two missing modules, before the fix**.
+- Among these tests, **`test_hidden_import_exists_in_the_environment`** are unit tests and
+  integration tests are not required because **the build's integration, a full PyInstaller
+  run, takes minutes and was run by hand on macOS instead, and the test checks the one input
+  the build depends on**.
+- These tests are included in the directory **`tests/tooling/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`
+  passes with 3 tests, `python docs/architecture/build.py --check` exits 0, and the trial
+  PyInstaller build on macOS exits 0 with no hidden-import error. A Windows `.exe` build was
+  not run and no screenshot was taken**.
