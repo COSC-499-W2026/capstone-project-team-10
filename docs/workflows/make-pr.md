@@ -23,6 +23,9 @@ exactly.
   `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils` and fix
   every blocking finding before opening the PR. Nothing else runs this check. Do not silence a
   finding with a suppression comment or a `cast`.
+- Run `python -m pytest` from the repository root, in the conda environment. Every test must
+  pass before you open the PR. There is no CI, so nothing else runs the suite. A failure you
+  did not cause still goes in the PR description by name.
 
 ## Bring the documentation set up to date
 
@@ -35,7 +38,8 @@ disagrees with the branch is wrong and gets fixed here.
    parts of the source of truth the change touches.
 2. Update every file the branch made stale, and commit the updates on this branch, following
    [commit.md](commit.md). The PR carries the code and its documentation together.
-3. Run `sh .claude/hooks/session-start.sh` from the repository root. It must exit 0 and print
+3. Run `sh .claude/hooks/session-start.sh` from the repository root (in Windows PowerShell,
+   `& "$env:ProgramFiles\Git\bin\sh.exe" .claude/hooks/session-start.sh`). It must exit 0 and print
    no `UNDOCUMENTED` or `STALE ROW` line. A non-zero exit means it could not find the
    repository, and its output proves nothing. If it flags a skill, fix `agent-skills/README.md`
    as the script says.

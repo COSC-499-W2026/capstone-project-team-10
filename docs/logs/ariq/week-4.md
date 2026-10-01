@@ -270,3 +270,90 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   passes with 3 tests, `python docs/architecture/build.py --check` exits 0, and the trial
   PyInstaller build on macOS exits 0 with no hidden-import error. A Windows `.exe` build was
   not run and no screenshot was taken**.
+
+### For PR #**11**
+
+- As part of requirement **Session start in `AGENTS.md`, which the session-start hook must
+  print at the start of every Claude Code session, on Windows as well as macOS and Linux**,
+  the user needs to do **clone the repository on Windows with Git for Windows, open it in
+  Claude Code, and get the session-start steps printed, or run the hook by hand from
+  PowerShell with `& "$env:ProgramFiles\Git\bin\sh.exe" .claude/hooks/session-start.sh`**.
+- Therefore, I implemented/generated code so that **Team 10 developers on Windows get the
+  hook checked out with LF line endings (`.gitattributes`), a test that fails if any tracked
+  shell script loses that (`tests/tooling/test_line_endings.py`), and docs for running it by
+  hand from every shell (§1.10, `AGENTS.md`, `.claude/README.md`, `make-pr.md`)**.
+
+#### Review and design
+
+- When I reviewed the **generated plan to rewrite the hook in Python** for this
+  functionality, I noticed **no single Python command name works on every OS. This Mac has no
+  `python` on `PATH`, only `python3`, and a conda environment on Windows has `python` but no
+  `python3`, so a Python hook would need the same shell to pick an interpreter**. Therefore, I
+  did **keep the `sh` script and fix what actually breaks it on Windows, the CRLF checkout**.
+- When I reviewed the **generated wording "Windows users need Git Bash or WSL"**, I noticed
+  **it overstated the requirement. Git Bash comes with Git for Windows, which is how Windows
+  users get `git` at all, and Claude Code uses it for hooks**. Therefore, I did **list Git for
+  Windows as the Windows prerequisite in §1.1, and say that only Windows without it, where
+  Claude Code falls back to PowerShell, is unsupported**.
+- When I reviewed the **generated advice for fixing an existing CRLF clone**, I noticed **it
+  ran `git reset --hard`, which throws away a teammate's uncommitted work**. Therefore, I did
+  **replace it with deleting the one script and running
+  `git checkout -- .claude/hooks/session-start.sh`**.
+- When I reviewed the **generated `test_shell_script_is_checked_out_with_lf_on_every_os`**, I
+  noticed **it runs once per tracked script, so if the script list came back empty it would
+  run zero times and pass without checking anything**. Therefore, I did **add
+  `test_session_start_hook_is_a_tracked_shell_script` as a guard**.
+- The PR does not contain any temporary workaround because **`.gitattributes` is git's
+  standard, permanent way to fix a file's line endings on every clone, and Windows without
+  Git for Windows is documented as unsupported rather than patched around**.
+- The PR only contains small functions that are **10, 7 and 15 lines** long:
+  `tracked_shell_scripts`, `test_session_start_hook_is_a_tracked_shell_script` and
+  `test_shell_script_is_checked_out_with_lf_on_every_os`, each counted with its decorator and
+  docstring.
+- I did **run `anti_slop review --base main src tests utils build_executable.py`, which
+  reported no findings, and keep the git call that lists scripts in one helper used by both
+  the guard and the parametrized test** to ensure that my feature contribution does not
+  contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`.gitattributes` (new, at the root) and
+  `tests/tooling/test_line_endings.py` (new)** because **git reads `.gitattributes` from the
+  repository root, and `AGENTS.md` scopes tests of repository files outside `src/` to
+  `tests/tooling/`**.
+- This work belongs in a process in the DFD — **N/A**, the PR changes how the repository is
+  checked out, not brachify. No process in `docs/architecture/diagrams/dfd-1.mmd` moves.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_session_start_hook_is_a_tracked_shell_script` and
+  `test_shell_script_is_checked_out_with_lf_on_every_os[.claude/hooks/session-start.sh]`**
+  passed. `python -m pytest` reports 5 passed, with #10's 3.
+- I wrote tests to cover abnormal situations involving **no tracked shell scripts at all,
+  which would make the parametrized test run zero times.
+  `test_session_start_hook_is_a_tracked_shell_script` covers it** and they passed.
+- I checked that these negative cases involving **removing `.gitattributes` on this branch on
+  purpose, so `git check-attr eol` answers `unspecified`,** failed as expected: 1 failed, 4
+  passed, and all 5 passed again once it was restored.
+- When I reviewed the **`test_shell_script_is_checked_out_with_lf_on_every_os`**, I noticed
+  **a check of the script's bytes would pass on macOS whether or not `.gitattributes` existed,
+  since the file is LF here already, so it could never fail on the machine it was written
+  on**. Therefore, I did **assert on git's `eol` attribute instead, which is what decides the
+  Windows checkout and which fails on any OS when the rule is missing**.
+- Among these tests, **`test_session_start_hook_is_a_tracked_shell_script` and
+  `test_shell_script_is_checked_out_with_lf_on_every_os`** are integration tests and unit
+  tests are not required because **both test what git does with the repository, through
+  `git ls-files` and `git check-attr`, and there is no logic of ours to test apart from
+  git**.
+- These tests are included in the directory **`tests/tooling/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`
+  passes with 5 tests, `sh .claude/hooks/session-start.sh` exits 0 with no `UNDOCUMENTED` or
+  `STALE ROW` line, and `python docs/architecture/build.py --check` exits 0. Adding
+  `.gitattributes` did not change the hook's bytes on macOS (`git status` showed no
+  renormalised file). The hook was not run on Windows, and no screenshot was taken**.
