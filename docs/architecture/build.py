@@ -6,11 +6,15 @@ The only files a person edits are the `*.mmd` sources. This script derives the r
   * `diagrams/<name>.svg`  rendered from `<name>.mmd` with mermaid-cli (needs Node)
   * `viewer.html`          its list of pictures, discovered from the `*.mmd` files
 
+`--check` also fails when `src/` has a module, package, model or view that
+`system-architecture.mmd` does not name. That diagram is drawn by hand, so this is what keeps it
+from going stale. The fix is to edit the `.mmd`, not to silence the check.
+
 Usage, from anywhere:
 
   python docs/architecture/build.py              render whatever is stale, rewrite the viewer
   python docs/architecture/build.py --check      change nothing, exit 1 if anything is stale
-  python docs/architecture/build.py --install-hook   run the build on every commit that touches a .mmd
+  python docs/architecture/build.py --install-hook   build on a commit that touches a .mmd, check on one that touches src/
 
 An SVG records the hash of its source in a leading comment, so "stale" means the hash does not
 match, never a timestamp. Adding a diagram is: drop a `<name>.mmd` in diagrams/, run this, and
@@ -111,15 +115,62 @@ def unembedded():
     return [m.stem for m in sources() if f"diagrams/{m.stem}.svg" not in readme]
 
 
+SRC = HERE.parents[1] / "src"
+PACKAGES = [SRC / "classes" / n for n in ("dicom", "mesh", "pdf")] + [SRC / "settings"]
+
+
+def camel(stem):
+    return "".join(w.capitalize() for w in stem.split("_"))
+
+
+def drift():
+    """Names in src/ that system-architecture.mmd does not mention.
+
+    The system architecture is drawn by hand, so this is what stops it going stale: a new module,
+    package, model or view fails `--check` until the diagram names it.
+    """
+    mmd = DIAGRAMS / "system-architecture.mmd"
+    if not mmd.exists() or not SRC.exists():
+        return []
+    text = mmd.read_text()
+    segments = {}
+    for seg in re.split(r"<br/>|\"", text):
+        m = re.match(r"\s*(\w+): (.*)", seg)
+        if m:
+            segments[m.group(1)] = m.group(2)
+
+    def named(stem, where):
+        return re.search(rf"\b{re.escape(stem)}\b", where) is not None
+
+    missing = []
+    classes = SRC / "classes"
+    for d in sorted(p for p in classes.iterdir() if p.is_dir() and p.name != "__pycache__"):
+        if d.name not in segments:
+            missing.append(f"package src/classes/{d.name}/ has no '{d.name}:' line")
+    for pkg in PACKAGES:
+        line = segments.get(pkg.name, "")
+        for f in sorted(pkg.glob("*.py")):
+            if f.stem != "__init__" and not named(f.stem, line):
+                missing.append(f"{f.relative_to(SRC.parent)} is not on the '{pkg.name}:' line")
+    for f in sorted((SRC / "windows" / "models").glob("*_model.py")):
+        if not named(camel(f.stem), text):
+            missing.append(f"{f.relative_to(SRC.parent)}: {camel(f.stem)} is not named")
+    for f in sorted((SRC / "windows" / "views").glob("*_view.py")):
+        if f.stem != "custom_view" and not named(camel(f.stem[: -len("_view")]), text):
+            missing.append(f"{f.relative_to(SRC.parent)}: {camel(f.stem[: -len('_view')])} is not named")
+    return missing
+
+
 def check():
     problems = [f"{m.name}: its SVG is missing or older than the source" for m in sources() if not svg_is_current(m)]
     if not problems and viewer_text() != VIEWER.read_text():
         problems.append("viewer.html does not list the current diagrams")
     problems += [f"{n}: not embedded in README.md" for n in unembedded()]
+    problems += [f"system-architecture.mmd is out of date, {m}" for m in drift()]
     for p in problems:
         print("STALE", p)
     if problems:
-        print("Run: python docs/architecture/build.py")
+        print("Run: python docs/architecture/build.py. If it reports system-architecture.mmd, edit that file first.")
     return 1 if problems else 0
 
 
@@ -139,6 +190,9 @@ HOOK = """#!/bin/sh
 if git diff --cached --name-only | grep -q '^docs/architecture/diagrams/.*\\.mmd$'; then
   python3 docs/architecture/build.py || exit 1
   git add docs/architecture/diagrams docs/architecture/viewer.html
+fi
+if git diff --cached --name-only | grep -q '^src/.*\\.py$'; then
+  python3 docs/architecture/build.py --check || exit 1
 fi
 """
 
