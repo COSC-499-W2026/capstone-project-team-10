@@ -91,6 +91,22 @@ def test_drift_names_a_new_package(tree: dict) -> None:
     assert "package src/classes/network/ has no 'network:' line" in problems
 
 
+def test_drift_names_each_file_in_a_new_package(tree: dict) -> None:
+    """Check that a file inside a brand new src/classes package is reported as well as the package.
+
+    Fails with only the package message if the per-file check covers a fixed list of package
+    names. A new subsystem would then be flagged once, someone would add the bare package line,
+    and every module inside it would still be missing from the diagram.
+    """
+    build = load_build_module()
+    write(tree["src"] / "classes" / "network" / "client.py")
+    problems = build.drift(src=tree["src"], mmd=tree["mmd"])
+    assert problems == [
+        "package src/classes/network/ has no 'network:' line",
+        "src/classes/network/client.py is not on the 'network:' line",
+    ]
+
+
 def test_drift_names_a_new_model(tree: dict) -> None:
     """Check that a new *_model.py is reported until its CamelCase class name is in the diagram.
 

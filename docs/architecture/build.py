@@ -123,6 +123,48 @@ def camel(stem):
     return "".join(w.capitalize() for w in stem.split("_"))
 
 
+def named(stem, where):
+    """True when `stem` appears as a whole word in `where`."""
+    return re.search(rf"\b{re.escape(stem)}\b", where) is not None
+
+
+def package_lines(text):
+    """Map each `name: a, b, c` line of the diagram to its package name."""
+    lines = {}
+    for seg in re.split(r"<br/>|\"", text):
+        m = re.match(r"\s*(\w+): (.*)", seg)
+        if m:
+            lines[m.group(1)] = m.group(2)
+    return lines
+
+
+def package_drift(src, lines):
+    """Packages, and files inside them, that have no entry on their package's line."""
+    classes = src / "classes"
+    packages = sorted(p for p in classes.iterdir() if p.is_dir() and p.name != "__pycache__")
+    missing = [
+        f"package src/classes/{d.name}/ has no '{d.name}:' line"
+        for d in packages
+        if d.name not in lines
+    ]
+    for pkg in packages + [src / "settings"]:
+        line = lines.get(pkg.name, "")
+        for f in sorted(pkg.glob("*.py")):
+            if f.stem != "__init__" and not named(f.stem, line):
+                missing.append(f"{f.relative_to(src.parent)} is not on the '{pkg.name}:' line")
+    return missing
+
+
+def window_drift(src, text, folder, suffix, skip=()):
+    """Models or views in src/windows/<folder> whose CamelCase name the diagram lacks."""
+    missing = []
+    for f in sorted((src / "windows" / folder).glob(f"*{suffix}.py")):
+        name = camel(f.stem[: -len(suffix)]) if folder == "views" else camel(f.stem)
+        if f.stem not in skip and not named(name, text):
+            missing.append(f"{f.relative_to(src.parent)}: {name} is not named")
+    return missing
+
+
 def drift(src=SRC, mmd=SYSTEM_ARCHITECTURE):
     """Names in src/ that system-architecture.mmd does not mention.
 
@@ -132,33 +174,11 @@ def drift(src=SRC, mmd=SYSTEM_ARCHITECTURE):
     if not mmd.exists() or not src.exists():
         return []
     text = mmd.read_text()
-    segments = {}
-    for seg in re.split(r"<br/>|\"", text):
-        m = re.match(r"\s*(\w+): (.*)", seg)
-        if m:
-            segments[m.group(1)] = m.group(2)
-
-    def named(stem, where):
-        return re.search(rf"\b{re.escape(stem)}\b", where) is not None
-
-    missing = []
-    classes = src / "classes"
-    for d in sorted(p for p in classes.iterdir() if p.is_dir() and p.name != "__pycache__"):
-        if d.name not in segments:
-            missing.append(f"package src/classes/{d.name}/ has no '{d.name}:' line")
-    packages = [classes / n for n in ("dicom", "mesh", "pdf")] + [src / "settings"]
-    for pkg in packages:
-        line = segments.get(pkg.name, "")
-        for f in sorted(pkg.glob("*.py")):
-            if f.stem != "__init__" and not named(f.stem, line):
-                missing.append(f"{f.relative_to(src.parent)} is not on the '{pkg.name}:' line")
-    for f in sorted((src / "windows" / "models").glob("*_model.py")):
-        if not named(camel(f.stem), text):
-            missing.append(f"{f.relative_to(src.parent)}: {camel(f.stem)} is not named")
-    for f in sorted((src / "windows" / "views").glob("*_view.py")):
-        if f.stem != "custom_view" and not named(camel(f.stem[: -len("_view")]), text):
-            missing.append(f"{f.relative_to(src.parent)}: {camel(f.stem[: -len('_view')])} is not named")
-    return missing
+    return (
+        package_drift(src, package_lines(text))
+        + window_drift(src, text, "models", "_model")
+        + window_drift(src, text, "views", "_view", skip=("custom_view",))
+    )
 
 
 def check():
