@@ -28,7 +28,7 @@ The subfolder name mirrors the `src/` path under test:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
-| repository files outside `src/`: `build_executable.py`, `.gitattributes` | `tests/tooling/` |
+| repository files outside `src/`: `build_executable.py`, `.gitattributes`, `docs/architecture/build.py` | `tests/tooling/` |
 
 Create the subfolder if it does not exist yet. Add a row above when you create a new scope.
 
@@ -46,7 +46,7 @@ tests/
 ├── pdf/
 ├── settings/
 │   └── test_load.py
-├── tooling/               exists: build and line-ending checks
+├── tooling/               exists: build, line-ending and architecture diagram checks
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
 └── views/

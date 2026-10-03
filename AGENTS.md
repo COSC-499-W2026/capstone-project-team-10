@@ -264,7 +264,7 @@ The subfolder name mirrors the `src/` path it tests:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
-| repository files outside `src/`: `build_executable.py`, `.gitattributes` | `tests/tooling/` |
+| repository files outside `src/`: `build_executable.py`, `.gitattributes`, `docs/architecture/build.py` | `tests/tooling/` |
 
 Create the subfolder if it does not exist yet. Shared fixtures go in `tests/conftest.py`; fixtures used by one area go in that area's own `conftest.py`. Sample data used by tests goes in `tests/data/`, never beside the test file.
 
