@@ -116,21 +116,20 @@ def unembedded():
 
 
 SRC = HERE.parents[1] / "src"
-PACKAGES = [SRC / "classes" / n for n in ("dicom", "mesh", "pdf")] + [SRC / "settings"]
+SYSTEM_ARCHITECTURE = DIAGRAMS / "system-architecture.mmd"
 
 
 def camel(stem):
     return "".join(w.capitalize() for w in stem.split("_"))
 
 
-def drift():
+def drift(src=SRC, mmd=SYSTEM_ARCHITECTURE):
     """Names in src/ that system-architecture.mmd does not mention.
 
     The system architecture is drawn by hand, so this is what stops it going stale: a new module,
     package, model or view fails `--check` until the diagram names it.
     """
-    mmd = DIAGRAMS / "system-architecture.mmd"
-    if not mmd.exists() or not SRC.exists():
+    if not mmd.exists() or not src.exists():
         return []
     text = mmd.read_text()
     segments = {}
@@ -143,21 +142,22 @@ def drift():
         return re.search(rf"\b{re.escape(stem)}\b", where) is not None
 
     missing = []
-    classes = SRC / "classes"
+    classes = src / "classes"
     for d in sorted(p for p in classes.iterdir() if p.is_dir() and p.name != "__pycache__"):
         if d.name not in segments:
             missing.append(f"package src/classes/{d.name}/ has no '{d.name}:' line")
-    for pkg in PACKAGES:
+    packages = [classes / n for n in ("dicom", "mesh", "pdf")] + [src / "settings"]
+    for pkg in packages:
         line = segments.get(pkg.name, "")
         for f in sorted(pkg.glob("*.py")):
             if f.stem != "__init__" and not named(f.stem, line):
-                missing.append(f"{f.relative_to(SRC.parent)} is not on the '{pkg.name}:' line")
-    for f in sorted((SRC / "windows" / "models").glob("*_model.py")):
+                missing.append(f"{f.relative_to(src.parent)} is not on the '{pkg.name}:' line")
+    for f in sorted((src / "windows" / "models").glob("*_model.py")):
         if not named(camel(f.stem), text):
-            missing.append(f"{f.relative_to(SRC.parent)}: {camel(f.stem)} is not named")
-    for f in sorted((SRC / "windows" / "views").glob("*_view.py")):
+            missing.append(f"{f.relative_to(src.parent)}: {camel(f.stem)} is not named")
+    for f in sorted((src / "windows" / "views").glob("*_view.py")):
         if f.stem != "custom_view" and not named(camel(f.stem[: -len("_view")]), text):
-            missing.append(f"{f.relative_to(SRC.parent)}: {camel(f.stem[: -len('_view')])} is not named")
+            missing.append(f"{f.relative_to(src.parent)}: {camel(f.stem[: -len('_view')])} is not named")
     return missing
 
 
