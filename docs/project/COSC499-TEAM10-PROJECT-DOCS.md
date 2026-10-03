@@ -563,7 +563,7 @@ permissive licence, and do not strip the `LICENSE` file.
 
 ## 4. Architecture
 
-The pictures (UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
+The pictures (system architecture, UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
 which also says when they must be redrawn. This section is the prose reference behind them.
 
 ### 4.1 Technology stack
@@ -699,7 +699,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   └── <skill>/               one folder per skill, vendored as-is
 ├── .claude/                   Claude Code config: commands, skills, SessionStart hook
 ├── docs/                      course documentation
-│   ├── architecture/          UML and DFD sources, rendered SVGs, build.py, README
+│   ├── architecture/          system architecture, UML and DFD sources, rendered SVGs, build.py, README
 │   ├── contract/ proposal/ design/ minutes/   course documents, README only
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
@@ -1331,7 +1331,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 |---|---|
 | `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` | this file, the source of truth |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
-| [docs/architecture/README.md](../architecture/README.md) | UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
+| [docs/architecture/README.md](../architecture/README.md) | System architecture, UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
 | [docs/contract/README.md](../contract/README.md) | team contract |
 | [docs/proposal/README.md](../proposal/README.md) | project proposal |
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |
