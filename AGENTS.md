@@ -68,7 +68,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 |---|---|---|
 | [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) | **the source of truth**: setup, architecture, module reference, config schema, known bugs | almost any code change. See the section map below |
 | [docs/README.md](docs/README.md) | index of the `docs/` tree | a folder or document is added, removed or repurposed |
-| [docs/architecture/README.md](docs/architecture/README.md) | the UML, DFD level 0, DFD level 1, and the missing course plan | the redraw triggers in that file are hit. It owns the rule and the build |
+| [docs/architecture/README.md](docs/architecture/README.md) | the system architecture, UML, DFD level 0, DFD level 1, and the missing course plan | the redraw triggers in that file are hit. It owns the rule and the build |
 | [docs/contract/README.md](docs/contract/README.md) | team contract | the contract changes or moves |
 | [docs/proposal/README.md](docs/proposal/README.md) | project proposal | scope, goals or deliverables change |
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
@@ -87,6 +87,8 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | [.claude/README.md](.claude/README.md) | Claude Code configuration: commands, skills, the session-start hook, `settings.json` | a command, skill pointer, hook or setting is added, removed or changed |
 | [.claude/commands/](.claude/commands/) `commit.md`, `make-pr.md` | thin pointers to `docs/workflows/` | a workflow is added, removed or renamed |
 | [.claude/skills/](.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` | a pointed-to skill is renamed, moved or removed. Keep the frontmatter identical to the vendored file |
+
+**The system architecture diagram is yours to keep current.** If your change adds, removes or renames a module, package, model or view, or changes a layer, a library, a file the app reads or writes, or which layer calls which, edit [docs/architecture/diagrams/system-architecture.mmd](docs/architecture/diagrams/system-architecture.mmd) in the same change, then run `python docs/architecture/build.py`. `build.py --check` fails on a `src/` module the diagram does not name, so you will be stopped if you forget. Do this for the user and for their teammates without being asked. Rules for the diagram are in [docs/architecture/README.md](docs/architecture/README.md).
 
 **Architecture diagrams are checked on every pull request, not only when you think they changed.** Before opening a PR, compare your diff against the redraw triggers in [docs/architecture/README.md](docs/architecture/README.md). If one is hit, edit the `.mmd` sources and run `python docs/architecture/build.py`. Either way, run `python docs/architecture/build.py --check` and do not open the PR unless it exits 0. Never hand-edit an `.svg` or `viewer.html`. The step-by-step is in [docs/workflows/make-pr.md](docs/workflows/make-pr.md).
 
@@ -262,7 +264,7 @@ The subfolder name mirrors the `src/` path it tests:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
-| repository files outside `src/`: `build_executable.py`, `.gitattributes` | `tests/tooling/` |
+| repository files outside `src/`: `build_executable.py`, `.gitattributes`, `docs/architecture/build.py` | `tests/tooling/` |
 
 Create the subfolder if it does not exist yet. Shared fixtures go in `tests/conftest.py`; fixtures used by one area go in that area's own `conftest.py`. Sample data used by tests goes in `tests/data/`, never beside the test file.
 

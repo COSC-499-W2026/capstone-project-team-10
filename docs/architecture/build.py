@@ -6,11 +6,15 @@ The only files a person edits are the `*.mmd` sources. This script derives the r
   * `diagrams/<name>.svg`  rendered from `<name>.mmd` with mermaid-cli (needs Node)
   * `viewer.html`          its list of pictures, discovered from the `*.mmd` files
 
+`--check` also fails when `src/` has a module, package, model or view that
+`system-architecture.mmd` does not name. That diagram is drawn by hand, so this is what keeps it
+from going stale. The fix is to edit the `.mmd`, not to silence the check.
+
 Usage, from anywhere:
 
   python docs/architecture/build.py              render whatever is stale, rewrite the viewer
   python docs/architecture/build.py --check      change nothing, exit 1 if anything is stale
-  python docs/architecture/build.py --install-hook   run the build on every commit that touches a .mmd
+  python docs/architecture/build.py --install-hook   build on a commit that touches a .mmd, check on one that touches src/
 
 An SVG records the hash of its source in a leading comment, so "stale" means the hash does not
 match, never a timestamp. Adding a diagram is: drop a `<name>.mmd` in diagrams/, run this, and
@@ -111,15 +115,82 @@ def unembedded():
     return [m.stem for m in sources() if f"diagrams/{m.stem}.svg" not in readme]
 
 
+SRC = HERE.parents[1] / "src"
+SYSTEM_ARCHITECTURE = DIAGRAMS / "system-architecture.mmd"
+
+
+def camel(stem):
+    return "".join(w.capitalize() for w in stem.split("_"))
+
+
+def named(stem, where):
+    """True when `stem` appears as a whole word in `where`."""
+    return re.search(rf"\b{re.escape(stem)}\b", where) is not None
+
+
+def package_lines(text):
+    """Map each `name: a, b, c` line of the diagram to its package name."""
+    lines = {}
+    for seg in re.split(r"<br/>|\"", text):
+        m = re.match(r"\s*(\w+): (.*)", seg)
+        if m:
+            lines[m.group(1)] = m.group(2)
+    return lines
+
+
+def package_drift(src, lines):
+    """Packages, and files inside them, that have no entry on their package's line."""
+    classes = src / "classes"
+    packages = sorted(p for p in classes.iterdir() if p.is_dir() and p.name != "__pycache__")
+    missing = [
+        f"package src/classes/{d.name}/ has no '{d.name}:' line"
+        for d in packages
+        if d.name not in lines
+    ]
+    for pkg in packages + [src / "settings"]:
+        line = lines.get(pkg.name, "")
+        for f in sorted(pkg.glob("*.py")):
+            if f.stem != "__init__" and not named(f.stem, line):
+                missing.append(f"{f.relative_to(src.parent)} is not on the '{pkg.name}:' line")
+    return missing
+
+
+def window_drift(src, text, folder, suffix, skip=()):
+    """Models or views in src/windows/<folder> whose CamelCase name the diagram lacks."""
+    missing = []
+    for f in sorted((src / "windows" / folder).glob(f"*{suffix}.py")):
+        name = camel(f.stem[: -len(suffix)]) if folder == "views" else camel(f.stem)
+        if f.stem not in skip and not named(name, text):
+            missing.append(f"{f.relative_to(src.parent)}: {name} is not named")
+    return missing
+
+
+def drift(src=SRC, mmd=SYSTEM_ARCHITECTURE):
+    """Names in src/ that system-architecture.mmd does not mention.
+
+    The system architecture is drawn by hand, so this is what stops it going stale: a new module,
+    package, model or view fails `--check` until the diagram names it.
+    """
+    if not mmd.exists() or not src.exists():
+        return []
+    text = mmd.read_text()
+    return (
+        package_drift(src, package_lines(text))
+        + window_drift(src, text, "models", "_model")
+        + window_drift(src, text, "views", "_view", skip=("custom_view",))
+    )
+
+
 def check():
     problems = [f"{m.name}: its SVG is missing or older than the source" for m in sources() if not svg_is_current(m)]
     if not problems and viewer_text() != VIEWER.read_text():
         problems.append("viewer.html does not list the current diagrams")
     problems += [f"{n}: not embedded in README.md" for n in unembedded()]
+    problems += [f"system-architecture.mmd is out of date, {m}" for m in drift()]
     for p in problems:
         print("STALE", p)
     if problems:
-        print("Run: python docs/architecture/build.py")
+        print("Run: python docs/architecture/build.py. If it reports system-architecture.mmd, edit that file first.")
     return 1 if problems else 0
 
 
@@ -139,6 +210,9 @@ HOOK = """#!/bin/sh
 if git diff --cached --name-only | grep -q '^docs/architecture/diagrams/.*\\.mmd$'; then
   python3 docs/architecture/build.py || exit 1
   git add docs/architecture/diagrams docs/architecture/viewer.html
+fi
+if git diff --cached --name-only | grep -q '^src/.*\\.py$'; then
+  python3 docs/architecture/build.py --check || exit 1
 fi
 """
 

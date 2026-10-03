@@ -54,6 +54,8 @@ disagrees with the branch is wrong and gets fixed here.
 
 Before `gh pr create`, read the diff from `main` and check it against the redraw triggers in [docs/architecture/README.md](../architecture/README.md). If one is hit, edit the `.mmd` sources, run `python docs/architecture/build.py`, and commit the result. Then run `python docs/architecture/build.py --check`. It must exit 0 before you open the pull request.
 
+Always do this for the system architecture: `build.py --check` compares `src/` with `diagrams/system-architecture.mmd` and fails if the diagram does not name a module you added. Add it to the `.mmd` rather than working around the check.
+
 If no trigger is hit, leave the diagrams alone. On the documentation gate, tick the architecture box and append `— **N/A**, diagrams unchanged because <reason>`.
 
 ## Target this repository, never upstream
@@ -179,7 +181,7 @@ those. For a receipt that does not apply, cut it down to its opening words, then
 
 A diagram placeholder takes the matching source from
 [docs/architecture/diagrams/](../architecture/diagrams/), pasted as a Mermaid block so it
-renders in the PR: `uml.mmd` for the system architecture diagram, `dfd-0.mmd` for Level 0 and
+renders in the PR: `system-architecture.mmd` for the system architecture diagram, `dfd-0.mmd` for Level 0 and
 `dfd-1.mmd` for Level 1. Paste it after
 [Update the architecture diagrams first](#update-the-architecture-diagrams-first), so a redraw
 this PR needed is the version that appears. Never draw a diagram inside the PR body.

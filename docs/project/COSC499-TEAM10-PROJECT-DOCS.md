@@ -563,7 +563,7 @@ permissive licence, and do not strip the `LICENSE` file.
 
 ## 4. Architecture
 
-The pictures (UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
+The pictures (system architecture, UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
 which also says when they must be redrawn. This section is the prose reference behind them.
 
 ### 4.1 Technology stack
@@ -699,7 +699,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   └── <skill>/               one folder per skill, vendored as-is
 ├── .claude/                   Claude Code config: commands, skills, SessionStart hook
 ├── docs/                      course documentation
-│   ├── architecture/          UML and DFD sources, rendered SVGs, build.py, README
+│   ├── architecture/          system architecture, UML and DFD sources, rendered SVGs, build.py, README
 │   ├── contract/ proposal/ design/ minutes/   course documents, README only
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
@@ -1264,7 +1264,7 @@ it pass, then break the code on purpose to confirm the test catches it.
 
 Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `tests/dicom/`,
 `tests/views/`, `tests/settings/`, and so on. Tests of repository files outside `src/`
-(`build_executable.py`, `.gitattributes`) go in `tests/tooling/`. Nothing sits loose at the
+(`build_executable.py`, `.gitattributes`, `docs/architecture/build.py`) go in `tests/tooling/`. Nothing sits loose at the
 root of `tests/`. Every function in `tests/` has a docstring saying what it checks, how it
 fails, and why that matters
 ([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)). See
@@ -1280,6 +1280,7 @@ tooling in [tests/tooling/](../../tests/tooling/):
 |---|---|
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
+| `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
 
 Run them from the repository root, in the conda environment:
 
@@ -1289,6 +1290,11 @@ python -m pytest
 
 - *Verified* 2026-09-30 on macOS: 5 passed. Each test was watched failing before its fix, and
   failing again when the fix was reverted on purpose.
+- *Verified* 2026-10-02 on macOS: 13 passed, with `test_architecture_drift.py` added. The drift
+  check itself was written before its tests, which the test-first rule forbids. The tests were
+  then written against a `drift(src, mmd)` signature the code did not have yet and watched
+  failing (6 of 7 red). The 8th test, for files inside a new package, was red first and then
+  fixed. Two deliberate breaks of the check, and one stale diagram, were each caught.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
@@ -1331,7 +1337,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 |---|---|
 | `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` | this file, the source of truth |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
-| [docs/architecture/README.md](../architecture/README.md) | UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
+| [docs/architecture/README.md](../architecture/README.md) | System architecture, UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
 | [docs/contract/README.md](../contract/README.md) | team contract |
 | [docs/proposal/README.md](../proposal/README.md) | project proposal |
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |
