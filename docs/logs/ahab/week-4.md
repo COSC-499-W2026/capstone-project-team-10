@@ -3,6 +3,39 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
+### For PR #**4**
+
+- As part of requirement **the course's weekly Part B receipts, which ask the team to show its system DFD and architecture diagram, and the need for a newcomer to see the app without reading the long project doc**, the user needs to do **open `docs/architecture/README.md`, read the UML, DFD level 0 and DFD level 1, open `viewer.html` to zoom and pan a crowded picture, and before opening a PR run `python docs/architecture/build.py --check`**.
+- Therefore, I implemented/generated code so that **the instructor, the TAs and the four Team 10 students get a one-page architecture map with three diagrams (`docs/architecture/README.md`, `diagrams/uml.mmd`, `dfd-0.mmd`, `dfd-1.mmd`), and agents are told to redraw them before a PR when the code they show changes (`AGENTS.md`, `docs/workflows/make-pr.md`, `pull_request_template.md`)**.
+
+#### Review and design
+
+- When I reviewed the **first generated placement of the map, `docs/architecture.md` with the pictures in `docs/diagrams/`**, for this functionality, I noticed **a reviewer, Ariq, said the map should not live there, and asked for either a section in the project docs or a folder of its own, with every reference to a stale file updated**. Therefore, I did **move everything into `docs/architecture/` (the README, `diagrams/`, `build.py` and `viewer.html`) and update `AGENTS.md`, `docs/README.md`, the project docs, `make-pr.md` and the PR template to point there. On 2026-10-02, at the merge commit, a grep of the documentation set for `architecture.md` outside `docs/architecture/` and for `docs/diagrams` returns 0 matches**.
+- When I reviewed the **generated UML, DFD level 0 and DFD level 1**, I noticed **reviewers Ariq and Writable04 were asked to check that the two DFDs match the app, and Writable04 observed that they show the current system and suggested adding diagrams of the intended design**. Therefore, I did **keep the pictures to the current system, mark them *Reasoned from code*, and say in the README that the next eight months of work are not written down in the repository, rather than inventing a plan**. On 2026-10-02 I compared the UML and both DFDs with `src/` again and found them consistent with it. That is *Reasoned from code*, and the app was not run.
+- The PR does not contain any temporary workaround because **it adds documentation and one build script. The pictures are rendered from the `.mmd` sources by `build.py`, which stamps each SVG with the hash of its source, so a stale picture is detected instead of papered over**.
+- The PR only contains small functions that are **2 to 10 lines** long. They are `digest`, `sources`, `unembedded`, `viewer_text`, `header`, `size`, `svg_is_current`, `render`, `build`, `check`, `install_hook` and `viewer_body` in `build.py`, counted with `ast` at the merge commit.
+- I did **run `anti_slop review --base 68dc1e5^1 docs/architecture/build.py` at the merge commit, which reported no findings, and grep the documentation set for the removed `architecture.md` and `docs/diagrams` paths** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`docs/architecture/` (new)** because **a reviewer asked for one folder that holds the map and all its diagrams, rather than a file in `docs/` or a long section of the project docs**.
+- This work belongs in a process in the DFD — **N/A**, the PR documents brachify and changes no code in it. No process in `docs/architecture/diagrams/dfd-1.mmd` moves.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0) and `sh .claude/hooks/session-start.sh` (exit 0), both run at the merge commit on 2026-10-02** passed. These are repository checks run from the shell, not tests in `tests/`. How I checked the zoom and pan page at the time: **[describe how you opened `viewer.html` and checked zoom and pan, and add a screenshot]**.
+- I wrote tests to cover abnormal situations — **N/A**, `build.py` had no tests when this PR merged, because the test runner was added later in #10. Tests for `build.py` start in #12.
+- I checked that these negative cases involving **appending a line to `uml.mmd` in a scratch checkout of the merge commit without re-rendering** failed as expected: `build.py --check` printed `STALE uml.mmd` and exited 1, then exited 0 again once the file was restored.
+- When I reviewed the generated tests — **N/A**, no tests were generated.
+- Among these tests, unit and integration tests — **N/A**, none of the checks is a unit or integration test. They are shell checks on the repository.
+- These tests are included in the directory — **N/A**, nothing was added to `tests/`. The check lives in `docs/architecture/build.py`.
+- This new test PR did not break anything else in the system because **`git diff --name-only` between the merge commit and its first parent lists no file under `src/`, so the app is unchanged. The app was not run and no screenshot of it was taken**.
+
 ### For PR #**12**
 
 - As part of requirement **the instructor's request for a system architecture design, which this repository lacked beside the UML and the two DFDs, and the weekly Part B in `docs/logs/README.md`, which asks the team to report its system architecture diagram each week**, the user needs to do **open `docs/architecture/README.md`, read the system architecture diagram to see which layer every module sits in, and later open a PR that adds a module and be told by `build.py --check` to name it in the diagram**.
