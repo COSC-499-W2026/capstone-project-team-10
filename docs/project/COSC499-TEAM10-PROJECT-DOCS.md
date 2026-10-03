@@ -1290,10 +1290,11 @@ python -m pytest
 
 - *Verified* 2026-09-30 on macOS: 5 passed. Each test was watched failing before its fix, and
   failing again when the fix was reverted on purpose.
-- *Verified* 2026-10-02 on macOS: 12 passed, with `test_architecture_drift.py` added. The drift
+- *Verified* 2026-10-02 on macOS: 13 passed, with `test_architecture_drift.py` added. The drift
   check itself was written before its tests, which the test-first rule forbids. The tests were
   then written against a `drift(src, mmd)` signature the code did not have yet and watched
-  failing (6 of 7 red), and two deliberate breaks of the check were each caught.
+  failing (6 of 7 red). The 8th test, for files inside a new package, was red first and then
+  fixed. Two deliberate breaks of the check, and one stale diagram, were each caught.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
