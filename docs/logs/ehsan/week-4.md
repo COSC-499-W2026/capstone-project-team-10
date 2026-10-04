@@ -14,9 +14,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Therefore, I implemented/generated code so that **every Team 10 student on Windows, where
   Git checks text out with CRLF line endings, passes the diagram check on an unchanged
   checkout. `digest()` in `docs/architecture/build.py` now hashes the LF form of each `.mmd`
-  source, so a Windows clone and a macOS or Linux clone agree on the same fingerprint. The
-  team also gets the repository's first pytest setup (`pytest.ini`, `.vscode/settings.json`
-  pointed at `tests`) and its first tests (`tests/architecture/test_build.py`)**.
+  source, so a Windows clone and a macOS or Linux clone agree on the same fingerprint. Two
+  tests in `tests/tooling/test_architecture_build.py` guard it**.
 
 #### Review and design
 
@@ -35,14 +34,31 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   `docs/workflows/commit.md` forbid**. Therefore, I did **strip the trailer from every commit
   message before the first push, confirm 0 trailers with `git log --format=%B`, and confirm with
   `git diff` that the code was byte-identical afterwards**.
+- When I reviewed the **merge of `main` after PRs #9 to #12 landed**, I noticed **PR #10 had
+  added the same pytest setup this PR added (`pytest.ini`, `.vscode/settings.json`), placed
+  tooling tests in `tests/tooling/`, and introduced a rule that every function in `tests/` has
+  a docstring. That left 11 conflicting hunks in `AGENTS.md`, the project docs,
+  `tests/README.md` and `pytest.ini`**. Therefore, I did **take `main`'s side of every
+  conflict, drop this PR's duplicate pytest setup and its `tests/architecture/` scope, move the
+  test to `tests/tooling/test_architecture_build.py`, turn its comments into docstrings, add it
+  to the §8.2 table and the `tests/README.md` tree, and confirm it still fails with the fix
+  reverted**.
+- When I reviewed the **generated merge commit**, I noticed **it carried the same
+  `Co-authored-by` trailer, and the first attempt to strip it with `git filter-branch` also
+  rewrote the GitHub-signed merge commits from `main`, so the branch no longer contained
+  `main`'s real history**. Therefore, I did **reset before pushing, redo the merge with the
+  already-resolved files and finish it with `git merge --continue`, then confirm with
+  `git merge-base --is-ancestor origin/main HEAD` that `main` is intact and that the merge
+  has no trailer**.
 - The PR does not contain any temporary workaround because **the line endings are normalised
   inside `digest()`, the one function that computes the hash for both rendering and checking,
   so the fix holds whatever a clone's `core.autocrlf` setting is. I considered adding a
   `.gitattributes` rule (`*.mmd text eol=lf`) instead, but that only changes files after a
   re-checkout and leaves the check fragile on any clone that overrides it**.
-- The PR only contains small functions that are **3 to 6 lines** long. Counted with `ast`:
-  `digest` 3 lines, `write_diagram` 5, `test_svg_is_current_when_source_is_checked_out_with_crlf`
-  6, `test_svg_is_stale_when_source_text_changed` 4.
+- The PR only contains small functions that are **3 to 10 lines** long, docstrings included.
+  Counted with `ast`: `digest` 3 lines, `load_build_module` 9, `write_diagram` 9,
+  `test_svg_is_current_when_source_is_checked_out_with_crlf` 10,
+  `test_svg_is_stale_when_source_text_changed` 9.
 - I did **read the full diff from `main`, run the anti-slop linter on `src`, `tests`, `utils`
   and `docs/architecture` (no findings), and confirm that `digest()` is still the only place the
   hash is computed, with `svg_is_current()` and `render()` both calling it** to ensure that my
@@ -56,13 +72,13 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   - high cyclomatic complexity
   - classes/modules/functions with many unrelated responsibilities
 
-  The SHA-256 literal in `test_build.py` is the test's expected value, derived outside the code
+  The SHA-256 literal in `test_architecture_build.py` is the test's expected value, derived outside the code
   under test from the exact bytes named in the comment beside it. It is not a hardcoded value in
   production code.
 - This work is written in **`docs/architecture/build.py` and the new
-  `tests/architecture/test_build.py`** because **`build.py` owns the render and the check, and
-  `tests/` is scoped by subfolder to the code it covers. The new `tests/architecture/` scope is
-  recorded in `tests/README.md` and `AGENTS.md`**.
+  `tests/tooling/test_architecture_build.py`** because **`build.py` owns the render and the
+  check, and `tests/README.md` scopes tests of repository files outside `src/`, including
+  `docs/architecture/build.py`, to `tests/tooling/`**.
 - This work belongs in a process in the DFD — **N/A**, the PR changes the team's diagram
   tooling, not brachify. No process in `docs/architecture/diagrams/dfd-1.mmd` moves.
 
@@ -76,8 +92,9 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   and they passed.
 - I checked that these negative cases involving **the CRLF test run before the fix (failed with
   `assert False is True`), the CRLF test run with `digest()` reverted to raw bytes (failed
-  again), and `--check` on an unedited `main` before the fix (exit 1, all three diagrams
-  reported stale)** failed as expected.
+  again, also after the move to `tests/tooling/`), and `--check` on an unedited `main` before
+  the fix (exit 1, all three diagrams reported stale on 2026-10-01, all four on 2026-10-04)**
+  failed as expected.
 - When I reviewed the **`test_svg_is_stale_when_source_text_changed`**, I noticed **it passed
   the first time it ran, because it guards behaviour that already worked, and a test that never
   fails proves nothing on its own**. Therefore, I did **keep it as a guard against an
@@ -88,9 +105,12 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   required because **`svg_is_current()` only reads two files and compares a hash. The real
   `--check` run on the repository's own diagrams covers the end-to-end path**.
 - These tests are included in the directory
-  **`tests/architecture/test_build.py`**.
-- This new test PR did not break anything else in the system because **after merging the
-  latest `main`, `python -m pytest` passed (2 passed), `--check` exited 0,
-  `sh .claude/hooks/session-start.sh` exited 0 with no flags, and the anti-slop review reported
-  no findings. Nothing under `src/` changed, so the app behaves as before. The app was not run
-  and no screenshot was taken**.
+  **`tests/tooling/test_architecture_build.py`**.
+- This new test PR did not break anything else in the system because **after merging `main`
+  at PR #12, on Windows, `test_architecture_build.py` and `test_line_endings.py` passed (4
+  passed), `--check` exited 0, `sh .claude/hooks/session-start.sh` exited 0 with no flags, and
+  the anti-slop review reported no findings. `test_architecture_drift.py` fails 5 of 8 with
+  backslash paths in its messages, identically on a clean checkout of `main`, so this PR did
+  not cause it. `test_build_executable.py` was not collected, because PyInstaller is not
+  installed outside conda on this machine. Nothing under `src/` changed, so the app behaves as
+  before. The app was not run and no screenshot was taken**.
