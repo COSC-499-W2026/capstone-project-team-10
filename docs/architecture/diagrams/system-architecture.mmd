@@ -1,0 +1,17 @@
+%% title: System architecture
+%% alt: System architecture of brachify, a layered desktop application with a presentation layer, application state, domain services, third party libraries and local storage
+flowchart TB
+  ext["<b>External</b><br/>In: DICOM folder, config JSON, tandem STEP file, user settings<br/>Out: STL, STEP, PDF sheet, config JSON"]
+  pres["<b>Presentation layer, PySide6</b><br/>MainWindow with nav buttons and dialogs<br/>Five views: Import, Cylinder, Channels, Tandem, Export<br/>OrbitCameraViewer3d, the OpenCASCADE canvas"]
+  state["<b>Application state, QObject models</b><br/>RadiotherapyApp with signals and values<br/>DicomModel, CylinderModel, ChannelsModel, TandemModel<br/>NavigationModel, DisplayModel, ShapeModel"]
+  domain["<b>Domain services</b><br/>dicom: fileio, data<br/>mesh: cylinder, channel, tandem, notch, helper, intersections, fileio<br/>pdf: template_reference, canvas<br/>settings: defaults, load, values, reset"]
+  lib["<b>Libraries</b><br/>PySide6, pydicom, pythonocc-core with OpenCASCADE, reportlab, matplotlib, numpy"]
+  disk[("<b>Local storage, ~/brachify</b><br/>app.log, filepaths.json")]
+
+  ext -->|"inputs"| pres
+  pres -->|"outputs"| ext
+  pres -->|"user actions, app signals"| state
+  state -->|"shapes_changed repaints the canvas"| pres
+  state -->|"calls"| domain
+  domain -->|"uses"| lib
+  domain -->|"reads and writes"| disk

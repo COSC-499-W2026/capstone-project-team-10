@@ -98,8 +98,14 @@ set in step with the code. It prompts only. A hook cannot invoke a skill itself.
 It is POSIX `sh`, run as `sh "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"`. If it cannot
 enter the project directory, or that directory has no `AGENTS.md` and `agent-skills/`, it prints
 the reason to stderr and exits 1, rather than printing nothing and looking like a clean start.
-Verified on macOS on 2026-09-25 by running the script directly, including both failure cases. Not verified on Windows, where Claude
-Code needs Git Bash to run it.
+Verified on macOS on 2026-09-25 by running the script directly, including both failure cases.
+
+On Windows, Claude Code runs hooks with Git Bash, which comes with Git for Windows. Without it,
+Claude Code falls back to PowerShell and the hook fails with a visible error. The repository's
+`.gitattributes` keeps every `*.sh` at LF endings, because a CRLF checkout, Git for Windows'
+default, would break `sh`. `tests/tooling/test_line_endings.py` guards that. The PowerShell
+command for running the script by hand, and what is and is not verified on Windows, are in
+§1.10 of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
 ---
 

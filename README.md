@@ -25,6 +25,10 @@ Be sure to keep your docs and README.md up-to-date.
 the source of truth for this project.** Setup, architecture, module reference, configuration
 schema, and known bugs. Read it before working on the code.
 
+Setup for Windows, macOS and Linux is §1 of the source of truth. All three install the same
+dependencies, and §1.1 there says how to add one. Run the tests with `python -m pytest` from
+the repository root.
+
 The section above this one is the course's folder-structure template and does not describe the
 application. The application is *brachify*; see
 [README-BRACHIFY.md](README-BRACHIFY.md) for the user-facing overview.

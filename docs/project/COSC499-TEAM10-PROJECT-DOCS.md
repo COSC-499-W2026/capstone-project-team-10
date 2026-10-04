@@ -40,25 +40,85 @@ when this one disagrees with the code, **the code wins and this file must be cor
   mixing conda and pip is a known, documented breakage here
   ([virtual_environments_instructions.md](../../virtual_environments_instructions.md)).
 - Python 3.12 (3.11 also works upstream).
-- Git.
+- Git. On Windows, install **Git for Windows**, which brings Git Bash with it. Claude Code
+  runs the session-start hook through Git Bash (§1.10).
+- Node, **optional**. Only redrawing the architecture diagrams needs it
+  ([docs/architecture/README.md](../architecture/README.md)). `build.py --check`, which runs
+  on every pull request, is plain Python and does not.
 
 `pythonocc-core` is pinned to **7.7.2**. Upstream has never produced a working environment
 above that version. Do not bump it casually.
+
+**Windows, macOS and Linux install the same dependencies.** Every package the app, the tests
+or the build imports directly is listed by name on every OS. The *versions* may differ between
+them, and that is accepted. The list is written in three places that must agree:
+
+| Where | Used by | Versions |
+|---|---|---|
+| [spec-file.txt](../../spec-file.txt) | Windows (§1.3) | every package locked to an exact build |
+| the `conda create` command in §1.2 | macOS and Linux | newest available when you run it |
+| [environment.yml](../../environment.yml) | `conda env create -f environment.yml`, on any OS | newest available when you run it |
+
+| Package | Why it is listed |
+|---|---|
+| `python=3.12` | the interpreter. Pinned to 3.12 everywhere (the Windows lockfile has 3.12.2) |
+| `pythonocc-core=7.7.2` | the geometry kernel. The one hard version pin, see above |
+| `pyside6` | the Qt GUI |
+| `matplotlib` | the PDF reference sheet plots |
+| `numpy` | geometry and DICOM maths |
+| `reportlab` | the PDF reference sheet |
+| `pydicom` | DICOM import |
+| `pyinstaller` | building the `.exe` (§1.7), and the hidden-import test (§8.2) |
+| `pytest` | the test suite (§8.2) |
+
+**A dependency is added for Windows, macOS and Linux together, or not at all.** Never add one
+for a single OS. In the same pull request:
+
+1. **Check that conda-forge builds it for every platform the team uses.** A package missing
+   on any one of them is not added. Raise it with the team instead.
+
+   ```bash
+   for p in win-64 osx-arm64 osx-64 linux-64; do
+     conda search -q --override-channels -c conda-forge <package> --platform $p | tail -1
+   done
+   ```
+
+   Each line must print a version. A `noarch` package shows up for all four.
+2. **Add it by name, without a version, to all three places** in the first table above, and
+   give it a row in the second table saying why it is needed. Name only `python` and
+   `pythonocc-core` with a version. Pinning anything else is a deliberate decision for the
+   team, not a default.
+3. **Install it in your own environment** with `conda install -c conda-forge <package>`, never
+   `pip`. Then run the app and `python -m pytest`.
+4. **Regenerate `spec-file.txt` on Windows** with `conda list --explicit > spec-file.txt`. With
+   no Windows machine, solve for Windows from your own OS as §1.3 describes, and mark it
+   *Not verified* there and in the pull request.
+5. **Say in the pull request which operating systems you actually ran it on.** The others
+   are *Not verified* until a teammate on that OS runs it.
+
+Removing a dependency is the same change in reverse: take it out of all three places and the
+second table, and regenerate `spec-file.txt`.
 
 ### 1.2 macOS setup — verified working
 
 > Verified on 2026-09-21: macOS (Darwin 25.6.0), Apple Silicon (arm64), Python 3.12.
 > The app launches, the Qt window opens, and the OpenCASCADE 3D viewport initialises.
 
-`spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and 141 of
-its 184 pinned package URLs are Windows binaries.
+> Unpinned command with `pyinstaller` and `pytest` verified on 2026-10-01: macOS (Darwin 25.6.0),
+> Apple Silicon. It installed PySide6 6.11.2, matplotlib 3.11.2, reportlab 5.0.1, pyinstaller
+> 6.22.3, pytest 9.1.1, pydicom 3.0.2 and numpy 1.26.4 on Python 3.12.14. In it the test suite
+> passed, and the app launched natively, completed main window initialisation and initialised
+> the viewport. DICOM import and the Export tab were not exercised in that run.
 
-`environment.yml` alone is **also not sufficient on macOS.** It never names PySide6. On
-Windows that is harmless because conda-forge's `matplotlib` meta-package depends on
-`pyside6 >=6.7.2` for `win-64` — which is why PySide6 appears in the Windows lockfile without
-being requested. The `osx-arm64` build of `matplotlib` has no Qt dependency at all, so a Mac
-environment built from `environment.yml` has no PySide6 and `src/launch.py` dies on its first
-import. Name it explicitly:
+`spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and most of
+its 185 pinned package URLs are Windows binaries.
+
+**PySide6 must be named explicitly on macOS.** On Windows, conda-forge's `matplotlib`
+meta-package depends on `pyside6 >=6.7.2`, which is why PySide6 appeared in the Windows
+lockfile without being requested. The `osx-arm64` build of `matplotlib` has no Qt dependency,
+so a Mac environment that does not name `pyside6` has no PySide6 and `src/launch.py` dies on
+its first import. `environment.yml` did not name it until 2026-09-30. It does now. The command
+below names every package in §1.1:
 
 ```bash
 # 1. Install a conda. Miniforge defaults to conda-forge, which is the only channel
@@ -68,22 +128,35 @@ brew install --cask miniforge
 conda init zsh
 # open a new terminal here
 
-# 2. Create the environment. pythonocc-core is the one hard pin.
+# 2. Create the environment with the same dependencies as spec-file.txt (§1.1).
 conda create -n brachify -c conda-forge \
   python=3.12 \
   pythonocc-core=7.7.2 \
   pyside6 \
   matplotlib \
+  numpy \
   reportlab \
-  pydicom
+  pydicom \
+  pyinstaller \
+  pytest
 
 # 3. Run, from the repository root
 conda activate brachify
 python src/launch.py
 ```
 
-`numpy` arrives transitively via `matplotlib-base` and does not need naming. `pyinstaller` is
-deliberately omitted — it exists only to build the Windows `.exe`.
+The versions this installs are whatever is newest that day, so they can differ from Windows
+and from a teammate's Mac. On 2026-09-30 a Mac environment had PySide6 6.11.2, matplotlib
+3.11.2 and reportlab 5.0.1, against 6.8.1, 3.10.9 and 4.5.1 in `spec-file.txt`. That is
+expected. An environment created before 2026-09-30 has no `pytest` or `pyinstaller`. Add them
+with `conda install -n brachify -c conda-forge pytest pyinstaller`, or recreate it with the
+command above. `pyinstaller` is listed so the build's hidden imports can be tested (§8.2). The
+`.exe` itself is still built only on Windows (§1.7).
+
+**Linux.** Use the same `conda create` command. Install Miniforge with its Linux installer
+instead of Homebrew, and run `conda init` for your shell. `pythonocc-core` 7.7.2 is built for
+`linux-64` on conda-forge (*Verified* 2026-09-30 with `conda search --platform linux-64`).
+*Not verified:* creating the environment or running the app on Linux.
 
 ### 1.3 Windows setup — the upstream-supported path
 
@@ -94,6 +167,31 @@ python src/launch.py
 ```
 
 `spec-file.txt` is the canonical, fully pinned lockfile. Prefer it on Windows.
+
+The six `pytest` lines at the end of `spec-file.txt` (`iniconfig`, `pluggy`, `pygments`,
+`tomli`, `exceptiongroup`, `pytest`) were not written by `conda list --explicit` on Windows.
+They were solved from macOS on 2026-09-30 with `CONDA_SUBDIR=win-64 conda create --dry-run`,
+pinning all 179 existing packages. The solve kept every one of them unchanged and added only
+those six, and each URL returned HTTP 200. *Not verified:* creating the environment from this
+file on a Windows machine. The next Windows teammate to do so should confirm it, and may
+regenerate the file there.
+
+To do the same for a new dependency from macOS or Linux, turn every URL in `spec-file.txt`
+into a `name==version=build` pin, add the new package, and ask conda for a Windows solve:
+
+```bash
+grep '^https' spec-file.txt | sed -E 's#.*/##; s#\.(conda|tar\.bz2)$##' \
+  | awk -F- '{b=$NF; v=$(NF-1); n=$1; for(i=2;i<NF-1;i++) n=n"-"$i; print n"=="v"="b}' > win-pins.txt
+echo "<package>" >> win-pins.txt
+CONDA_SUBDIR=win-64 conda create -n win-dryrun --dry-run --json --override-channels \
+  -c conda-forge -c https://repo.anaconda.com/pkgs/main -c https://repo.anaconda.com/pkgs/msys2 \
+  --file win-pins.txt > win-solve.json
+```
+
+In `win-solve.json`, `actions.LINK` lists every package. Every pinned one must come back
+unchanged. For each new one, its URL is `<base_url>/<platform>/<dist_name>.conda`. Check that
+each URL returns HTTP 200, append them to `spec-file.txt` after the existing lines, and then
+delete `win-pins.txt` and `win-solve.json`.
 
 ### 1.4 Running
 
@@ -156,6 +254,11 @@ python build_executable.py     # output: dist/brachify/brachify.exe
 
 `--exclude-module PyQt5` in that script is load-bearing: PyQt5 and PySide6 clash at runtime.
 
+Its hidden imports are listed in `HIDDEN_IMPORTS`, and
+[tests/tooling/test_build_executable.py](../../tests/tooling/test_build_executable.py) fails
+if one of them cannot be imported. PyInstaller only logs `ERROR: Hidden import ... not found`
+for a missing one and still builds, exit 0 (§7.4).
+
 ### 1.8 IDE
 
 Point VS Code at the environment interpreter (`Cmd+Shift+P` → *Python: Select Interpreter*)
@@ -165,6 +268,11 @@ works. On the verified macOS setup that path is:
 ```
 /opt/homebrew/Caskroom/miniforge/base/envs/brachify/bin/python3.12
 ```
+
+With that interpreter selected, VS Code's Testing panel finds the suite, because
+[.vscode/settings.json](../../.vscode/settings.json) points pytest at `tests` and
+[pytest.ini](../../pytest.ini) sets the import paths (§8.2). *Reasoned from the settings, not
+verified in VS Code.*
 
 ### 1.9 Lint tooling
 
@@ -195,7 +303,7 @@ PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop --explain no-any-pa
 and add a `[tool.anti-slop]` table to a `pyproject.toml`. That has not been done. The
 repository has no `pyproject.toml`, so every run uses the linter's built-in defaults, and
 running it means putting `agent-skills/anti-slop-py/src` on `PYTHONPATH`. It needs Python 3.12
-or newer. The conda environment's pinned Python is 3.12.2.
+or newer. The Windows lockfile pins Python 3.12.2, and macOS gets the newest 3.12 (§1.1).
 
 **What it checks.** `review --base <ref>` reports findings only on lines changed since the
 merge base with `<ref>`, including uncommitted and untracked files. The violations already in
@@ -238,7 +346,30 @@ directory is not the repository root, it prints the reason to stderr and exits 1
   `CLAUDE_PROJECT_DIR` set, exit 0. With `CLAUDE_PROJECT_DIR` set to a missing directory, and
   to an existing directory that is not the repository, it prints the reason and exits 1.
 - *Not verified:* that Claude Code fires it in a fresh session (it needs a new session after
-  the settings change), and Windows, where Claude Code runs hooks through Git Bash.
+  the settings change), and Windows.
+
+**On Windows, Linux and macOS.** The hook is POSIX `sh`. On macOS and Linux, Claude Code runs
+hook commands with `sh`. On Windows it runs them with Git Bash, which comes with Git for
+Windows (§1.1). Without Git for Windows it falls back to PowerShell, where `sh` does not exist
+and the hook fails with a visible error. That case is not supported. (All of this is *from the
+Claude Code docs, not tested here*.) The likeliest breakage on Windows was line endings. Git
+for Windows defaults to `core.autocrlf=true`, which would check the script out with CRLF, and
+`sh` then fails on `\r`. [.gitattributes](../../.gitattributes) now forces `eol=lf` for every
+`*.sh`, and
+[tests/tooling/test_line_endings.py](../../tests/tooling/test_line_endings.py) fails if a
+tracked shell script loses that attribute (*Verified* 2026-09-30 on macOS, including removing
+`.gitattributes` to watch it fail). To run the check by hand:
+
+```bash
+sh .claude/hooks/session-start.sh                                # macOS, Linux, Git Bash
+```
+
+```powershell
+& "$env:ProgramFiles\Git\bin\sh.exe" .claude/hooks/session-start.sh   # Windows PowerShell
+```
+
+A clone made on Windows before `.gitattributes` existed keeps its CRLF copy until the file is
+checked out again. Delete the script and run `git checkout -- .claude/hooks/session-start.sh`.
 
 **The superpowers plugin.** The same file registers the `superpowers-marketplace`
 marketplace and enables the `superpowers` plugin for this project. A Claude Code user needs it
@@ -278,6 +409,42 @@ vendored at a known version in `agent-skills/superpowers-tdd/` (6.4.2).
   without a further prompt, that a plugin from an external source is not installed until each
   person installs it (Claude Code v2.1.195 and later), and that third-party marketplaces do not
   auto-update by default. Nobody has yet opened this repository on a fresh machine to observe it.
+
+### 1.11 Why there is no Docker setup
+
+Containerising brachify for development was considered on 2026-09-30 and rejected. The
+reasons, so the question does not have to be reopened from scratch:
+
+1. **brachify is a desktop GUI, and a container has no screen.** It is a PySide6 window with
+   an OpenGL viewport (§4.5), not a web server, so there is no port to open in a browser.
+   Started with `docker compose up`, Qt finds no display and exits. Showing the window takes
+   one of two workarounds, and neither suits a team on macOS and Windows:
+   - **A virtual display streamed to the browser** (Xvfb plus noVNC at `localhost:6080`). It
+     is the same Qt program, but the viewport renders in software with no GPU. Camera drags
+     lag, the file dialogs browse the container's filesystem instead of yours, and the
+     widgets take Linux styling rather than what clinicians see on Windows.
+   - **The host's display over X11** (XQuartz on macOS, an X server on Windows). The window
+     is native, but the OpenCASCADE viewport needs OpenGL forwarded over X11, which XQuartz
+     does not do reliably. That would leave the viewport, the core of the app, broken.
+2. **Docker cannot build the product.** What ships is a Windows `.exe` built by PyInstaller
+   (§1.7), and PyInstaller only builds for the operating system it runs on. A Linux container
+   cannot produce the `.exe`, so a production image would have nothing to ship.
+3. **conda already provides the reproducible environment.** `pytest`, the anti-slop linter
+   (§1.9) and `build.py --check` all run headless inside the conda environment, and every
+   operating system installs the same dependencies from it (§1.1). An image would be a second
+   environment holding the same packages, kept in step by hand. The only tool missing from
+   conda is Node, needed only to redraw the diagrams (§1.1), which is too rare to justify an
+   image.
+
+What was done instead: Windows, macOS and Linux install the same dependency list (§1.1), and
+the session-start hook was made safe on Windows (§1.10).
+
+**When to reconsider.** If the team adds CI, a Linux container that runs `python -m pytest`
+and the anti-slop linter on every pull request could be worth it, because neither needs a
+screen. That would be a CI image, not a way to run the app.
+
+*Reasoned from the architecture and the tools' documented behaviour, not tested here.* The
+noVNC and XQuartz workarounds were not tried.
 
 ---
 
@@ -396,7 +563,7 @@ permissive licence, and do not strip the `LICENSE` file.
 
 ## 4. Architecture
 
-The pictures (UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
+The pictures (system architecture, UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
 which also says when they must be redrawn. This section is the prose reference behind them.
 
 ### 4.1 Technology stack
@@ -521,21 +688,23 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── README.md                  course scaffolding template
 ├── README-BRACHIFY.md         upstream project README
 ├── LICENSE                    BSL 1.1
-├── environment.yml            loose conda spec (see §1.2 caveat)
+├── environment.yml            conda spec, the same dependency list as every OS (§1.1)
 ├── spec-file.txt              pinned conda lockfile — WINDOWS ONLY
 ├── requirements.txt           STALE, unused — do not use (§7.4)
-├── build_executable.py        PyInstaller wrapper
+├── build_executable.py        PyInstaller wrapper, HIDDEN_IMPORTS tested (§1.7)
+├── pytest.ini                 test runner config, puts src/ and the root on sys.path (§8.2)
+├── .gitattributes             keeps *.sh at LF line endings on Windows (§1.10)
 ├── agent-skills/              skills every agent reads at session start (§1.10)
 │   ├── README.md              the skill list: upstream, version, licence, how used
 │   └── <skill>/               one folder per skill, vendored as-is
 ├── .claude/                   Claude Code config: commands, skills, SessionStart hook
 ├── docs/                      course documentation
-│   ├── architecture/          UML and DFD sources, rendered SVGs, build.py, README
+│   ├── architecture/          system architecture, UML and DFD sources, rendered SVGs, build.py, README
 │   ├── contract/ proposal/ design/ minutes/   course documents, README only
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     README only, no tests yet (§8)
+├── tests/                     tooling tests only, none for src/ yet (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -948,8 +1117,9 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 
 ## 7. Known bugs, traps, and dead code
 
-Everything here was found by reading the code during the 2026-09-21 audit. Nothing here has
-been fixed. Severity is our judgement, not upstream's.
+Everything here was found by reading the code during the 2026-09-21 audit, unless its entry
+gives a later date. An entry that has since been fixed says **Fixed** with the date and stays
+listed. Severity is our judgement, not upstream's.
 
 ### 7.1 HIGH — the base collar silently disappears after generating a tandem
 
@@ -1037,7 +1207,8 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | `get_cylinder_from_dicom()` in `dicom/fileio.py` | never called; passes `tip=`/`base=` to a `BrachyCylinder.__init__` that accepts neither — would raise `TypeError` |
 | `benchmarks/benchmarking.py` | `total` used before assignment → `NameError` |
 | `benchmarks/channels.py` | imports `Application.BRep.Channel` and `testing.data.channels`, neither of which exists; contains a hardcoded `C://Users//nsmel//...` path |
-| `requirements.txt` | unused and stale — typo `matlplotlib`, and every pin disagrees with `spec-file.txt` (PySide6 6.9.3 vs 6.8.1, pydicom 2.4.3 vs 3.0.2, pyinstaller 6.0.0 vs 6.20.0). **Do not use it.** |
+| `requirements.txt` | unused and stale — typo `matlplotlib`, and every pin disagrees with `spec-file.txt` (PySide6 6.9.3 vs 6.8.1, pydicom 2.4.3 vs 3.0.2, pyinstaller 6.0.0 vs 6.20.0). It has no `pytest`. **Do not use it.** The dependency list is in §1.1 |
+| **Fixed 2026-09-30.** `build_executable.py` hidden imports `pydicom.encoders.gdcm` and `pydicom.encoders.pylibjpeg` | found 2026-09-30. pydicom 3, the version pinned since the lockfile was made, moved both modules to `pydicom.pixels.encoders.*`. PyInstaller logged `ERROR: Hidden import 'pydicom.encoders.gdcm' not found` (and the same for `pylibjpeg`) and built anyway with exit 0 (*Verified* 2026-09-30 by a trial build on macOS). Both now name `pydicom.pixels.encoders.*`, the trial build analyses them with no error, and `tests/tooling/test_build_executable.py` guards the list. Probably harmless before the fix, since the app never decodes pixel data (*Reasoned from code*). *Not verified:* a Windows `.exe` build |
 | `intersections.are_colliding()` | defined, never called — needle collision detection is not performed |
 | `AppSignals.exportFile` | declared, never emitted, never connected |
 | `DicomData.central_axis_flag` | set in `__init__`, missing from `reset()`, never read |
@@ -1051,7 +1222,9 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - `QIcon("resources\\brachify_splash-ico.ico")` in
   [app.py](../../src/classes/app.py) and [main_window.py](../../src/windows/main_window.py) uses
   a Windows path separator. On macOS/Linux this silently yields a null icon. Cosmetic.
-- `spec-file.txt` is `win-64` only (§1.2).
+- `spec-file.txt` is `win-64` only (§1.2). macOS and Linux install the same dependencies
+  from the command in §1.2, but nothing locks their versions, so they can differ from
+  Windows (§1.1).
 
 ### 7.6 Traps that are not bugs — know these before editing
 
@@ -1090,25 +1263,45 @@ session start (§1.10). The full rules, including the anti-slop rules, live in
 it pass, then break the code on purpose to confirm the test catches it.
 
 Test files are **scoped by subfolder** mirroring `src/` — `tests/mesh/`, `tests/dicom/`,
-`tests/views/`, `tests/settings/`, and so on. Nothing sits loose at the root of `tests/`. See
+`tests/views/`, `tests/settings/`, and so on. Tests of repository files outside `src/`
+(`build_executable.py`, `.gitattributes`, `docs/architecture/build.py`) go in `tests/tooling/`. Nothing sits loose at the
+root of `tests/`. Every function in `tests/` has a docstring saying what it checks, how it
+fails, and why that matters
+([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)). See
 [tests/README.md](../../tests/README.md). `utils/` follows the same scoping rule; see
 [utils/README.md](../../utils/README.md).
 
 ### 8.2 Current state
 
-**There are no tests yet.** No test files, no test framework configured correctly, no CI.
+**There are no tests of `src/` yet.** The only tests, added 2026-09-30, cover repository
+tooling in [tests/tooling/](../../tests/tooling/):
 
-- [`.vscode/settings.json`](../../.vscode/settings.json) enables pytest against a `testing/`
-  directory that does not exist. The repository now has `tests/`, so this setting is wrong and
-  should be updated to `["tests"]`.
+| Test | Fails when |
+|---|---|
+| `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
+| `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
+| `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
+
+Run them from the repository root, in the conda environment:
+
+```bash
+python -m pytest
+```
+
+- *Verified* 2026-09-30 on macOS: 5 passed. Each test was watched failing before its fix, and
+  failing again when the fix was reverted on purpose.
+- *Verified* 2026-10-02 on macOS: 13 passed, with `test_architecture_drift.py` added. The drift
+  check itself was written before its tests, which the test-first rule forbids. The tests were
+  then written against a `drift(src, mmd)` signature the code did not have yet and watched
+  failing (6 of 7 red). The 8th test, for files inside a new package, was red first and then
+  fixed. Two deliberate breaks of the check, and one stale diagram, were each caught.
+- [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
+  import as though `src/` were the root and `build_executable` imports from the root.
+  [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
 - `benchmarks/` is dead (§7.4) and is not a test suite.
-- There is no `.github/` directory, no CI of any kind, and no git hook. The anti-slop
-  linter is run by hand (§1.9) and never runs a test. `agent-skills/anti-slop-py/.github/` is upstream's CI, vendored with the linter, and
-  GitHub does not run it from there.
-
-The first change that adds a test must also put `src/` on `sys.path` — either a `conftest.py`
-at the repository root that inserts it, or `pythonpath = ["src"]` in a `pytest.ini` /
-`pyproject.toml` — and fix the `.vscode` setting above to point at `tests`.
+- There is no `.github/` directory, no CI of any kind, and no git hook. Tests and the
+  anti-slop linter (§1.9) are run by hand. `agent-skills/anti-slop-py/.github/` is upstream's
+  CI, vendored with the linter, and GitHub does not run it from there.
 
 ### 8.3 Highest-value targets
 
@@ -1144,7 +1337,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 |---|---|
 | `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` | this file, the source of truth |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
-| [docs/architecture/README.md](../architecture/README.md) | UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
+| [docs/architecture/README.md](../architecture/README.md) | System architecture, UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
 | [docs/contract/README.md](../contract/README.md) | team contract |
 | [docs/proposal/README.md](../proposal/README.md) | project proposal |
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |
@@ -1182,8 +1375,8 @@ short:
 - **Vendored from third parties, never edited:** every file inside a skill's folder in
   `agent-skills/`. Only `agent-skills/README.md` is ours.
 - **Inherited, changed only by their procedure:** `spec-file.txt` and `environment.yml` (a
-  dependency change, §1), and `.vscode/settings.json` (fixed by the first change that adds a
-  test, §8.2).
+  dependency change, with the same dependency list as §1.1), and `.vscode/settings.json`
+  (pointed at `tests` on 2026-09-30 by the change that added the first tests, §8.2).
 
 *Verified* on 2026-09-25: every file listed as inherited was byte-for-byte identical to
 `upstream/main` at `f89cafe`, and the two renamed files are identical to upstream's originals.
@@ -1212,14 +1405,14 @@ Beyond the set-wide rule above, update **this** document when you:
 
 | Change | Section |
 |---|---|
-| dependency, environment, run command | §1 Setup |
+| dependency, environment, run command | §1 Setup. A dependency follows the procedure in §1.1, for Windows, macOS and Linux together |
 | new module or file | §4.7 directory map **and** §5 module reference |
 | new/changed signal or model wiring | §4.4, and the diagrams in [docs/architecture/](../architecture/README.md) |
 | new/changed view or widget | §4.3, §5.6 |
 | new/changed config key | §6.2 (and remember the four code sites) |
 | new/changed export format | §6.4 |
 | bug found or fixed | §7 |
-| test added | §8 |
+| test added | §8, and every function in it has a docstring ([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)) |
 | skill added, removed, or updated in `agent-skills/` | the table in `agent-skills/README.md`; §1.10 only if how skills load changes |
 
 ### 9.3 Rules for edits

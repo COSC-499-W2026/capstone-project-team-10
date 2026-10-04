@@ -278,21 +278,22 @@ Quality of the updates:
       `pull_request_template_brachify.md`, `virtual_environments_instructions.md`, `notes/`,
       `user_guide/`, `3D Models and Templates/`, `Images/`, `LICENSE`, `requirements.txt`, the
       sample DICOM folders), or any vendored file inside a skill's folder in `agent-skills/`.
-      `spec-file.txt` and `environment.yml` changed only if a dependency did. See
+      `spec-file.txt` and `environment.yml` changed only if a dependency did, and then for
+      Windows, macOS and Linux together, as §1.1 of the source of truth describes. See
       [AGENTS.md](AGENTS.md#what-is-ours-and-what-is-inherited).
 
 **Which section of the source of truth applies:**
 
 | If this PR... | Update |
 |---|---|
-| changes dependencies, the environment, or how to run the app | §1 Setup |
+| changes dependencies, the environment, or how to run the app | §1 Setup. A dependency follows the procedure in §1.1, for Windows, macOS and Linux together |
 | adds, removes, or renames a module or file | §4.7 map **and** §5 module reference |
 | changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the diagrams in `docs/architecture/` (its README says how), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
 | adds or changes a `CONFIG_*` key | §6.2 (**and all four code sites**) |
 | changes an export format | §6.4 |
 | finds or fixes a bug | §7 Known bugs, traps and dead code |
-| adds tests | §8 |
+| adds tests | §8, and every function in it has a docstring |
 | adds, removes, or updates a skill in `agent-skills/` | the table in [agent-skills/README.md](agent-skills/README.md); §1.10 only if how skills load changes |
 
 ## Agent skills
@@ -316,9 +317,13 @@ If no AI agent touched this PR, mark each item N/A.
 This project writes the test first. See
 [AGENTS.md](AGENTS.md#testing-write-the-test-first).
 
+- [ ] `python -m pytest` passes from the repository root.
 - [ ] I wrote the test **before** the code.
 - [ ] I **watched it fail**, then made it pass.
 - [ ] I broke the code on purpose and confirmed the test caught it.
+- [ ] Every test, helper and fixture I wrote has a docstring saying what it checks, how it
+      fails, and why that matters, with no `#` comment repeating it. See
+      [AGENTS.md](AGENTS.md#every-function-in-tests-explains-itself).
 - [ ] The test lives in the correctly scoped subfolder (`tests/mesh/`, `tests/dicom/`, …) and
       not at the root of `tests/`. See [tests/README.md](tests/README.md).
 - [ ] Logic that could not be tested was moved out of the view or model into a pure function
