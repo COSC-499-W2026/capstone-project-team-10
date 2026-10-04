@@ -23,6 +23,9 @@ exactly.
   `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils` and fix
   every blocking finding before opening the PR. Nothing else runs this check. Do not silence a
   finding with a suppression comment or a `cast`.
+- Run `python -m pytest` from the repository root, in the conda environment. Every test must
+  pass before you open the PR. There is no CI, so nothing else runs the suite. A failure you
+  did not cause still goes in the PR description by name.
 
 ## Bring the documentation set up to date
 
@@ -35,7 +38,8 @@ disagrees with the branch is wrong and gets fixed here.
    parts of the source of truth the change touches.
 2. Update every file the branch made stale, and commit the updates on this branch, following
    [commit.md](commit.md). The PR carries the code and its documentation together.
-3. Run `sh .claude/hooks/session-start.sh` from the repository root. It must exit 0 and print
+3. Run `sh .claude/hooks/session-start.sh` from the repository root (in Windows PowerShell,
+   `& "$env:ProgramFiles\Git\bin\sh.exe" .claude/hooks/session-start.sh`). It must exit 0 and print
    no `UNDOCUMENTED` or `STALE ROW` line. A non-zero exit means it could not find the
    repository, and its output proves nothing. If it flags a skill, fix `agent-skills/README.md`
    as the script says.
@@ -49,6 +53,8 @@ disagrees with the branch is wrong and gets fixed here.
 ## Update the architecture diagrams first
 
 Before `gh pr create`, read the diff from `main` and check it against the redraw triggers in [docs/architecture/README.md](../architecture/README.md). If one is hit, edit the `.mmd` sources, run `python docs/architecture/build.py`, and commit the result. Then run `python docs/architecture/build.py --check`. It must exit 0 before you open the pull request.
+
+Always do this for the system architecture: `build.py --check` compares `src/` with `diagrams/system-architecture.mmd` and fails if the diagram does not name a module you added. Add it to the `.mmd` rather than working around the check.
 
 If no trigger is hit, leave the diagrams alone. On the documentation gate, tick the architecture box and append `— **N/A**, diagrams unchanged because <reason>`.
 
@@ -175,7 +181,7 @@ those. For a receipt that does not apply, cut it down to its opening words, then
 
 A diagram placeholder takes the matching source from
 [docs/architecture/diagrams/](../architecture/diagrams/), pasted as a Mermaid block so it
-renders in the PR: `uml.mmd` for the system architecture diagram, `dfd-0.mmd` for Level 0 and
+renders in the PR: `system-architecture.mmd` for the system architecture diagram, `dfd-0.mmd` for Level 0 and
 `dfd-1.mmd` for Level 1. Paste it after
 [Update the architecture diagrams first](#update-the-architecture-diagrams-first), so a redraw
 this PR needed is the version that appears. Never draw a diagram inside the PR body.

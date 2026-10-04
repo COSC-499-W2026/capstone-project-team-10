@@ -182,3 +182,11 @@ https://conda.anaconda.org/conda-forge/win-64/matplotlib-3.10.9-py312h2e8e312_0.
 https://conda.anaconda.org/conda-forge/win-64/vtk-9.2.6-qt_py312h1234567_223.conda
 https://conda.anaconda.org/conda-forge/win-64/occt-7.7.2-all_h165458f_201.conda
 https://conda.anaconda.org/conda-forge/win-64/pythonocc-core-7.7.2-all_h47b224c_202.conda
+
+# Added dependencies after October 2026 (UBCO Capstone)
+https://conda.anaconda.org/conda-forge/noarch/iniconfig-2.3.0-pyhd8ed1ab_0.conda
+https://conda.anaconda.org/conda-forge/noarch/pluggy-1.6.0-pyhf9edf01_1.conda
+https://conda.anaconda.org/conda-forge/noarch/pygments-2.21.0-pyhcf101f3_0.conda
+https://conda.anaconda.org/conda-forge/noarch/tomli-2.4.1-pyhcf101f3_0.conda
+https://conda.anaconda.org/conda-forge/noarch/exceptiongroup-1.3.1-pyhd8ed1ab_0.conda
+https://conda.anaconda.org/conda-forge/noarch/pytest-9.1.1-pyhc364b38_2.conda

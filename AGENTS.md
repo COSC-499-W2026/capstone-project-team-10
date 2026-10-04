@@ -13,7 +13,7 @@ These steps bind **every agent**, whatever tool runs it: Claude Code, Codex, Cur
 1. **Load test-driven development.** Load the superpowers `test-driven-development` skill and follow it for the whole session. No production code without a failing test first. In Claude Code with the superpowers plugin installed, invoke it with the Skill tool (installing the plugin is §1.10 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md)). Every other agent reads the vendored copy, [agent-skills/superpowers-tdd/SKILL.md](agent-skills/superpowers-tdd/SKILL.md), in full, and [writing-good-tests.md](agent-skills/superpowers-tdd/writing-good-tests.md) beside it before writing a test. The repo-specific rules are in [Testing: write the test first](#testing-write-the-test-first), and where they are stricter than the skill, they win.
 2. **Load the repository skills.** Every skill vendored in [agent-skills/](agent-skills/) is a folder holding a `SKILL.md`. Search the folder for every `SKILL.md`, however deep, and read each one in full, so you know what it does. Do not rely on a list of names written anywhere, this one included: the folder is the list. Then read [agent-skills/README.md](agent-skills/README.md). Its table says how each skill is used in this repository, and a note there binds you. For example, `install-anti-slop-py` is known to every agent but **deliberately not run**. Follow a skill's procedure when its description matches the task in front of you and the table does not say otherwise. Do not run a procedure just because it is listed.
 
-   Compare what you found with the table, both ways. A `SKILL.md` with **no row** is undocumented: someone added the skill without recording how it is used here. Do not follow its procedure. Tell the user, ask how this repository should use it, and add the row as [Adding a skill](agent-skills/README.md#adding-a-skill) describes, in the current change. A row whose `SKILL.md` **no longer exists** is stale: tell the user and remove it as [Updating or removing a skill](agent-skills/README.md#updating-or-removing-a-skill) describes. In Claude Code the session-start hook flags both, marked `UNDOCUMENTED` and `STALE ROW`, and `sh .claude/hooks/session-start.sh` runs the same check by hand in any shell.
+   Compare what you found with the table, both ways. A `SKILL.md` with **no row** is undocumented: someone added the skill without recording how it is used here. Do not follow its procedure. Tell the user, ask how this repository should use it, and add the row as [Adding a skill](agent-skills/README.md#adding-a-skill) describes, in the current change. A row whose `SKILL.md` **no longer exists** is stale: tell the user and remove it as [Updating or removing a skill](agent-skills/README.md#updating-or-removing-a-skill) describes. In Claude Code the session-start hook flags both, marked `UNDOCUMENTED` and `STALE ROW`, and `sh .claude/hooks/session-start.sh` runs the same check by hand on macOS, Linux or Git Bash. In Windows PowerShell, run it through Git for Windows' `sh.exe`, as §1.10 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) shows.
 3. **Apply [Anti-slop](#anti-slop).** It is in force for the whole session and rejects low-evidence, low-signal implementation.
 4. **Keep the documentation set in step with the code as you work.** The code is the source of truth. Whatever your change makes stale in the [documentation set](#you-must-update-the-documentation-set) is updated in the same pull request, and before any pull request you check every file in the set against the branch diff. Never edit an [inherited upstream file](#what-is-ours-and-what-is-inherited).
 
@@ -56,7 +56,7 @@ Sections worth knowing exist regardless of task:
 
 - **§7 Known bugs, traps, and dead code** — read before debugging anything. Several plausible-looking code paths are already known to be dead or broken, and several safe-looking edits are known to break things (cached shapes, index-ordered views, `@display_action`).
 - **§2 Standing mandate** — the honesty rules that govern that document.
-- **§1 Setup** — verified working setup for macOS and Windows.
+- **§1 Setup** — verified working setup for macOS and Windows, the Linux command (not yet verified), and the procedure for adding a dependency on all three.
 
 ### You must update the documentation set
 
@@ -68,7 +68,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 |---|---|---|
 | [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) | **the source of truth**: setup, architecture, module reference, config schema, known bugs | almost any code change. See the section map below |
 | [docs/README.md](docs/README.md) | index of the `docs/` tree | a folder or document is added, removed or repurposed |
-| [docs/architecture/README.md](docs/architecture/README.md) | the UML, DFD level 0, DFD level 1, and the missing course plan | the redraw triggers in that file are hit. It owns the rule and the build |
+| [docs/architecture/README.md](docs/architecture/README.md) | the system architecture, UML, DFD level 0, DFD level 1, and the missing course plan | the redraw triggers in that file are hit. It owns the rule and the build |
 | [docs/contract/README.md](docs/contract/README.md) | team contract | the contract changes or moves |
 | [docs/proposal/README.md](docs/proposal/README.md) | project proposal | scope, goals or deliverables change |
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
@@ -88,6 +88,8 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | [.claude/commands/](.claude/commands/) `commit.md`, `make-pr.md` | thin pointers to `docs/workflows/` | a workflow is added, removed or renamed |
 | [.claude/skills/](.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` | a pointed-to skill is renamed, moved or removed. Keep the frontmatter identical to the vendored file |
 
+**The system architecture diagram is yours to keep current.** If your change adds, removes or renames a module, package, model or view, or changes a layer, a library, a file the app reads or writes, or which layer calls which, edit [docs/architecture/diagrams/system-architecture.mmd](docs/architecture/diagrams/system-architecture.mmd) in the same change, then run `python docs/architecture/build.py`. `build.py --check` fails on a `src/` module the diagram does not name, so you will be stopped if you forget. Do this for the user and for their teammates without being asked. Rules for the diagram are in [docs/architecture/README.md](docs/architecture/README.md).
+
 **Architecture diagrams are checked on every pull request, not only when you think they changed.** Before opening a PR, compare your diff against the redraw triggers in [docs/architecture/README.md](docs/architecture/README.md). If one is hit, edit the `.mmd` sources and run `python docs/architecture/build.py`. Either way, run `python docs/architecture/build.py --check` and do not open the PR unless it exits 0. Never hand-edit an `.svg` or `viewer.html`. The step-by-step is in [docs/workflows/make-pr.md](docs/workflows/make-pr.md).
 
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking is not.** If nothing in the set needed changing, say so explicitly in the pull request description.
@@ -101,7 +103,7 @@ This repository is a fork of [brachify/brachify](https://github.com/brachify/bra
 | **Ours, documentation** | the documentation set above | reviewed on every PR and updated in the same PR as the change |
 | **Inherited from upstream brachify** | [README-BRACHIFY.md](README-BRACHIFY.md) (upstream's `README.md`, renamed), [pull_request_template_brachify.md](pull_request_template_brachify.md) (upstream's `pull_request_template.md`, renamed), [virtual_environments_instructions.md](virtual_environments_instructions.md), [notes/](notes/) including its markdown in `notes/code_notes/`, [user_guide/](user_guide/), [3D Models and Templates/](3D%20Models%20and%20Templates/), [Images/](Images/), [LICENSE](LICENSE), [requirements.txt](requirements.txt), `SI_C_D30 Brachify_Ex1/`, `SI_C_D30 Brachify_Ex2/` | **never edited.** If one has become wrong, record the correction in `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` instead. The sample DICOM folders are de-identified clinical data |
 | **Vendored from third parties** | every file inside a skill's folder in [agent-skills/](agent-skills/). Only `agent-skills/README.md` is ours | **never edited.** Replaced wholesale from upstream, as `agent-skills/README.md` describes |
-| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated with `conda list --explicit > spec-file.txt` after a dependency change, `environment.yml` changes when a dependency is added, and `.vscode/settings.json` changes only when the test runner configuration does (see [Testing](#testing-write-the-test-first)) |
+| **Inherited, changed only by their procedure** | [spec-file.txt](spec-file.txt) and [environment.yml](environment.yml), [.vscode/settings.json](.vscode/settings.json) | never hand-edited for documentation. `spec-file.txt` is regenerated on Windows with `conda list --explicit > spec-file.txt` after a dependency change, and `environment.yml` changes when a dependency is added or removed. Both, and the macOS and Linux command in §1.2 of the project docs, list the same dependencies, given in §1.1 there. Versions may differ between operating systems. `.vscode/settings.json` changes only when the test runner does |
 
 Everything else, including `src/`, `resources/`, `build_executable.py`, `benchmarks/` and `.gitignore`, is code the team changes normally, with the documentation set kept in step.
 
@@ -109,7 +111,7 @@ Everything else, including `src/`, `resources/`, `build_executable.py`, `benchma
 
 | If your change... | Update section |
 |---|---|
-| touches dependencies, the environment, or how to run the app | §1 Setup |
+| touches dependencies, the environment, or how to run the app | §1 Setup. A dependency follows the procedure in §1.1, for Windows, macOS and Linux together |
 | adds, removes, or renames a module or file | §4.7 directory map **and** §5 module reference |
 | changes signals, values, view order, a model, `ShapeModel`, the display path, or an export input or output | the diagrams in [docs/architecture/](docs/architecture/README.md) (its README says how), and §4.4, §4.5 |
 | adds or changes a view or widget | §4.3, §5.6 |
@@ -117,7 +119,7 @@ Everything else, including `src/`, `resources/`, `build_executable.py`, `benchma
 | changes an export format | §6.4 |
 | finds a new bug or trap | §7 Known bugs, traps and dead code — add it there, don't leave it in a commit message |
 | fixes a listed bug | §7 Known bugs, traps and dead code — mark the entry fixed, don't silently delete it |
-| adds tests | §8 |
+| adds tests | §8, and every function in it has a docstring (see [Every function in tests/ explains itself](#every-function-in-tests-explains-itself)) |
 | adds, removes, or updates a skill in `agent-skills/` | the table in [agent-skills/README.md](agent-skills/README.md). §1.10 only if how skills are loaded changes |
 
 #### Three rules when you edit anything in the set
@@ -168,7 +170,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, and nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) points pytest at [tests/](tests/) and puts `src/` on `sys.path`, so a test imports application modules the way the app does. Run `python -m pytest` from the repository root. The only tests so far cover `docs/architecture/build.py`. pytest is not in the conda environment yet; see §8.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
+**The test runner is configured, but nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. The only tests so far are the tooling tests in `tests/tooling/`. The first test of application code still has to be written, and no missing fixture or folder is a reason to skip it.
 
 ### The loop
 
@@ -194,6 +196,21 @@ Do not paper over that with a test that merely constructs a view and asserts it 
 
 - **Move logic out of views and models into pure functions and test it there.** A view method should read spin boxes, call a tested function, and hand the result to a model.
 - **Cover the remaining behaviour by running the app**, with `SI_C_D30 Brachify_Ex1/` (and `Ex2/` for the tandem path, since only `Ex2` has a `Tandem` channel), and visually inspecting the Export tab. Record the run in the regression receipt of the PR's Part A. It is not a formality: the output is a physical device used on a patient.
+
+### Every function in tests/ explains itself
+
+**Every function in `tests/` has a docstring**: every test, helper and fixture. It says, in
+plain sentences:
+
+1. **What it checks.** The behaviour, in one sentence.
+2. **How it fails.** What input or state makes it go red, and with what error.
+3. **Why that matters.** The bug or consequence the failure prevents. For a clinical-safety
+   test, name the consequence for the patient.
+
+A helper says it is a helper, not a test. Do not leave a `#` comment that repeats the
+docstring or restates the code beside it. Move what it says into the docstring and delete it.
+A `#` comment stays only for something the docstring cannot say, such as why one line is
+written the way it is. [tests/tooling/](tests/tooling/) shows the form.
 
 ### Two things that make a test worthless
 
@@ -247,7 +264,7 @@ The subfolder name mirrors the `src/` path it tests:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
-| `docs/architecture/build.py` | `tests/architecture/` |
+| repository files outside `src/`: `build_executable.py`, `.gitattributes`, `docs/architecture/build.py` | `tests/tooling/` |
 
 Create the subfolder if it does not exist yet. Shared fixtures go in `tests/conftest.py`; fixtures used by one area go in that area's own `conftest.py`. Sample data used by tests goes in `tests/data/`, never beside the test file.
 
@@ -272,13 +289,17 @@ The geometry kernel is OpenCASCADE via `pythonocc-core` (`OCC.Core.*`), DICOM pa
 **conda only — never `pip install` into the environment** (mixing the two is a known breakage here). Full details, including debugging notes, in [virtual_environments_instructions.md](virtual_environments_instructions.md).
 
 ```bash
-conda create --name <env> --file spec-file.txt   # canonical: pinned, reproducible
+conda create --name <env> --file spec-file.txt   # Windows, canonical: pinned, reproducible
 conda activate <env>
 conda env create -f environment.yml              # only when testing a dependency change
 conda list --explicit > spec-file.txt            # regenerate after any dependency change
 ```
 
+`spec-file.txt` is Windows only. On macOS and Linux, use the `conda create` command in §1.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md). Windows, macOS and Linux install the same dependencies, `pytest` and `pyinstaller` included, but not necessarily the same versions: only `python=3.12` and `pythonocc-core=7.7.2` are pinned outside the Windows lockfile. **A dependency is added for Windows, macOS and Linux together, or not at all.** Before adding one, confirm conda-forge builds it for `win-64`, `osx-arm64`, `osx-64` and `linux-64`, then add it to all three places listed in §1.1 there and regenerate `spec-file.txt`. §1.1 has the full procedure, including the check command and what to do without a Windows machine.
+
 `pythonocc-core` is pinned to 7.7.2; versions above it have never produced a working environment.
+
+**There is no Docker setup, on purpose.** brachify is a desktop GUI that needs a screen and OpenGL, the `.exe` can only be built on Windows, and conda already gives every OS the same environment. Do not propose containerising the app. §1.11 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) gives the full reasons, and the one case worth reconsidering, which is CI.
 
 Run the app:
 
@@ -302,11 +323,11 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Nothing in `src/` is covered yet, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Only tooling is tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
-Every module imports as if `src/` were the root (`from classes.app import get_app`, `from windows.views...`), so `src/` must be on `sys.path` — hence `--paths=src` in the PyInstaller invocation and `PYTHONPATH` when running. Do not "fix" these into `src.`-prefixed imports.
+Every module imports as if `src/` were the root (`from classes.app import get_app`, `from windows.views...`), so `src/` must be on `sys.path` — hence `--paths=src` in the PyInstaller invocation, `PYTHONPATH` when running, and `pythonpath = src .` in [pytest.ini](pytest.ini) for the tests. Do not "fix" these into `src.`-prefixed imports.
 
 Several resource paths are hardcoded Windows-style (e.g. `QIcon("resources\\brachify_splash-ico.ico")` in [app.py](src/classes/app.py) and [main_window.py](src/windows/main_window.py)). The app is developed and shipped on Windows; on macOS/Linux these silently produce a missing icon rather than a crash.
 

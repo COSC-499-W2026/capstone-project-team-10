@@ -14,7 +14,7 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 This is the upstream app. Team 10 has not changed `src/`.
 
-The three pictures below are the map. They are *Reasoned from code*. Everything about them lives
+The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
 
 ### Keeping the pictures current
@@ -24,7 +24,7 @@ Edit only the `.mmd` files in [diagrams/](diagrams/). Everything else is derived
 ```bash
 python docs/architecture/build.py          # re-render stale SVGs, refresh viewer.html
 python docs/architecture/build.py --check  # change nothing, exit 1 if anything is stale
-python docs/architecture/build.py --install-hook   # once per clone, does the build at commit time
+python docs/architecture/build.py --install-hook   # once per clone, builds on a .mmd commit, checks on a src/ commit
 ```
 
 The build needs Node (it runs mermaid-cli through `npx`). Each SVG carries the hash of its source,
@@ -32,8 +32,16 @@ so `--check` cannot be fooled by timestamps. The hash is taken over LF line endi
 checkout with CRLF matches a stamp written on macOS or Linux. It also fails when a diagram is not embedded below.
 
 **Redraw when** signals, values, the view order, a model, `ShapeModel`, the display path, or what
-Import reads or Export writes changes. Redraw all three in the same change, before the pull
+Import reads or Export writes changes. Redraw all four in the same change, before the pull
 request. If none of those changed, leave the pictures alone.
+
+**The system architecture is also checked against `src/`.** `--check` fails when a module in
+`src/classes/{dicom,mesh,pdf}/`, `src/settings/`, a `*_model.py` or a `*_view.py` is not named in
+[system-architecture.mmd](diagrams/system-architecture.mmd). Adding a file therefore forces a
+diagram edit. The check cannot see a change that adds no file, so also redraw that diagram when a
+layer, a library, a file the app reads or writes, or the direction of a dependency changes. Edit
+the `.mmd` by hand: each domain line (`mesh:`, `pdf:`, ...) lists the module names, and the other
+boxes are prose.
 
 Other documents link here and do not repeat this rule. If the rule changes, change it here.
 
@@ -46,6 +54,31 @@ Other documents link here and do not repeat this rule. If the rule changes, chan
 
 To zoom and pan when a picture gets crowded, open [viewer.html](viewer.html) in a browser. Scroll
 zooms, drag moves, and each picture has its own size.
+
+### System architecture
+
+The whole application as layers, from the people and files outside it down to the libraries and
+disk it stands on. Read it top to bottom: the plan and the settings come in through the views,
+the views drive the models, the models call the domain services, and the services use the
+libraries and disk. Two arrows point back up: outputs leave through the Export view, and
+`shapes_changed` carries finished shapes from the models to the canvas.
+
+![System architecture. External actors and files, the PySide6 presentation layer, the QObject models, the domain services, third party libraries, and local storage.](diagrams/system-architecture.svg)
+
+| Layer | Contents | Source |
+|---|---|---|
+| External | TPS DICOM export, config JSON, tandem STEP file, STL and STEP out, PDF out | outside the repo |
+| Presentation | `MainWindow`, the five views, the OpenCASCADE canvas | `src/windows/` |
+| Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel` and `ShapeModel` | `src/classes/app.py`, `src/windows/models/` |
+| Domain services | DICOM readers, OpenCASCADE geometry, PDF sheet, config load and reset | `src/classes/dicom/`, `mesh/`, `pdf/`, `src/settings/` |
+| Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib | conda environment |
+| Local storage | `app.log` and `filepaths.json` in `~/brachify` | `src/classes/info.py` |
+
+It is a single process desktop app. There is no server, database or network call. Views reach
+other views by index and reach the models through `get_app().window`, so the layering above is the
+intended direction of dependency, not one the code enforces. Export is the exception that shows it:
+`Export_View` reads the cylinder, channel and tandem models directly and runs the boolean cut
+itself.
 
 ### UML
 

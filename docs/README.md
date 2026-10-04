@@ -7,7 +7,7 @@ Project documentation for COSC 499 capstone team 10.
 **[project/COSC499-TEAM10-PROJECT-DOCS.md](project/COSC499-TEAM10-PROJECT-DOCS.md) is the
 source of truth for this project.**
 
-Setup (macOS and Windows), architecture, a module-by-module reference, the configuration
+Setup (Windows, macOS and Linux, all installing the same dependencies), architecture, a module-by-module reference, the configuration
 schema, and a catalogue of known bugs and traps. Read it before working on the code. When any
 other document disagrees with it, that document is out of date — and when it disagrees with the
 code, **the code wins and the file must be corrected.**
@@ -20,7 +20,7 @@ claim is marked either *Verified* (observed at runtime) or *Reasoned from code*.
 | Folder | Contents |
 |---|---|
 | [project/](project/) | **Project documentation — the source of truth.** Setup, architecture, module reference, config schema, known bugs. |
-| [architecture/](architecture/README.md) | **The architecture map.** UML, DFD level 0, DFD level 1, the build that renders them, a zoom page, what Team 10 has added, and which course plan is still missing. |
+| [architecture/](architecture/README.md) | **The architecture map.** System architecture, UML, DFD level 0, DFD level 1, the build that renders them, a zoom page, what Team 10 has added, and which course plan is still missing. |
 | [contract/](contract/) | Team contract |
 | [proposal/](proposal/) | Project proposal |
 | [design/](design/) | UI mocks and design artifacts |
@@ -56,6 +56,6 @@ These are inherited from upstream *brachify* and are useful but not authoritativ
 |---|---|
 | [README-BRACHIFY.md](../README-BRACHIFY.md) | Upstream project README — user-facing overview and screenshots |
 | [user_guide/Brachify User Manual.docx](../user_guide/Brachify%20User%20Manual.docx) | End-user manual. Authoritative on **clinical workflow and treatment-plan requirements**. |
-| [virtual_environments_instructions.md](../virtual_environments_instructions.md) | Upstream conda guide. Windows-centric — see §1.2 of the project docs for macOS. |
+| [virtual_environments_instructions.md](../virtual_environments_instructions.md) | Upstream conda guide. Windows-centric — see §1.2 of the project docs for macOS and Linux, and §1.1 for adding a dependency. |
 | [notes/](../notes/) | Short upstream developer notes (Qt Designer workflow, exe build, pythonocc display tips) |
 | [../README.md](../README.md) | The course's folder-structure template. Does not describe this code. |
