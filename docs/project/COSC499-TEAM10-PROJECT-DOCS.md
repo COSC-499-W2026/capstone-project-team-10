@@ -566,6 +566,12 @@ permissive licence, and do not strip the `LICENSE` file.
 The pictures (system architecture, UML, DFD level 0, DFD level 1) live in [docs/architecture/](../architecture/README.md),
 which also says when they must be redrawn. This section is the prose reference behind them.
 
+*Reasoned from the proposal:* `diagrams/projected-framework/` holds planned UML and DFD
+responsibilities for structure review, editing, templates, history and validation. They
+are not implemented application behaviour. The existing UML and DFD sources now live in
+`diagrams/existing-framework/`; `system-architecture.mmd` stays directly in `diagrams/`.
+The build discovers both folders recursively and generates the shared viewer.
+
 ### 4.1 Technology stack
 
 | Concern | Library |
@@ -699,7 +705,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   └── <skill>/               one folder per skill, vendored as-is
 ├── .claude/                   Claude Code config: commands, skills, SessionStart hook
 ├── docs/                      course documentation
-│   ├── architecture/          system architecture, UML and DFD sources, rendered SVGs, build.py, README
+│   ├── architecture/          system architecture, existing/projected UML and DFD sources, SVGs, build.py, README
 │   ├── contract/ proposal/ design/ minutes/   course documents, README only
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
@@ -1228,6 +1234,13 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 7.6 Traps that are not bugs — know these before editing
 
+- **Fixed 2026-10-04: diagrams in subfolders were skipped by the architecture build.**
+  Moving UML and DFD sources into `existing-framework/` left broken viewer links;
+  the old non-recursive discovery also missed stale projected diagrams. The build now
+  discovers nested sources and retains relative paths in viewer links and embedding
+  checks. *Verified* by four regression cases in `tests/tooling/test_architecture_build.py`,
+  watched failing before the fix and again after deliberately reverting discovery.
+
 - **`BrachyCylinder.shape()` caches.** Clear `self._shape` in any new mutator.
 - **`NavigationModel.views` order is frozen** (§4.3). It is indexed positionally everywhere.
 - **`@display_action` is mandatory** on any view method that changes geometry (§4.5).
@@ -1278,6 +1291,7 @@ tooling in [tests/tooling/](../../tests/tooling/):
 
 | Test | Fails when |
 |---|---|
+| `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
@@ -1295,6 +1309,8 @@ python -m pytest
   then written against a `drift(src, mmd)` signature the code did not have yet and watched
   failing (6 of 7 red). The 8th test, for files inside a new package, was red first and then
   fixed. Two deliberate breaks of the check, and one stale diagram, were each caught.
+- *Verified* 2026-10-04 on macOS: 17 passed, including four nested-diagram CLI cases.
+  `python docs/architecture/build.py --check` also passed for all seven diagrams.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
@@ -1337,7 +1353,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 |---|---|
 | `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` | this file, the source of truth |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
-| [docs/architecture/README.md](../architecture/README.md) | System architecture, UML, DFD level 0, DFD level 1, Team 10's additions, and the missing course plan. That README owns when to redraw and how. |
+| [docs/architecture/README.md](../architecture/README.md) | System architecture, UML, DFD level 0, DFD level 1, Team 10's additions, and the proposed project framework. That README owns when to redraw and how. |
 | [docs/contract/README.md](../contract/README.md) | team contract |
 | [docs/proposal/README.md](../proposal/README.md) | project proposal |
 | [docs/design/README.md](../design/README.md) | UI mocks and design artifacts |

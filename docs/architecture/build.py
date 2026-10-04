@@ -17,8 +17,8 @@ Usage, from anywhere:
   python docs/architecture/build.py --install-hook   build on a commit that touches a .mmd, check on one that touches src/
 
 An SVG records the hash of its source in a leading comment, so "stale" means the hash does not
-match, never a timestamp. Adding a diagram is: drop a `<name>.mmd` in diagrams/, run this, and
-embed `diagrams/<name>.svg` in README.md. `--check` fails if a diagram is not embedded there.
+match, never a timestamp. Adding a diagram is: drop a `<name>.mmd` anywhere under diagrams/, run this, and
+embed its relative SVG path in README.md. `--check` fails if a diagram is not embedded there.
 """
 import argparse
 import hashlib
@@ -54,7 +54,7 @@ SECTION = """  <section>
 
 
 def sources():
-    return sorted(DIAGRAMS.glob("*.mmd"))
+    return sorted(DIAGRAMS.rglob("*.mmd"))
 
 
 def digest(mmd):
@@ -99,7 +99,7 @@ def viewer_body():
         parts.append(SECTION.format(
             title=html.escape(header(mmd, "title")),
             alt=html.escape(header(mmd, "alt")),
-            name=mmd.stem, w=w, h=h,
+            name=mmd.relative_to(DIAGRAMS).with_suffix("").as_posix(), w=w, h=h,
         ))
     return "\n".join(parts)
 
@@ -112,7 +112,11 @@ def viewer_text():
 
 def unembedded():
     readme = README.read_text()
-    return [m.stem for m in sources() if f"diagrams/{m.stem}.svg" not in readme]
+    return [
+        m.relative_to(DIAGRAMS).with_suffix("").as_posix()
+        for m in sources()
+        if m.with_suffix(".svg").relative_to(HERE).as_posix() not in readme
+    ]
 
 
 SRC = HERE.parents[1] / "src"

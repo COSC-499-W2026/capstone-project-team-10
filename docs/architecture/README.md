@@ -46,8 +46,8 @@ Other documents link here and do not repeat this rule. If the rule changes, chan
 
 | File | Role | Edit by hand? |
 |---|---|---|
-| `diagrams/*.mmd` | the diagram sources | yes |
-| `diagrams/*.svg` | rendered pictures, shown below | no, run `build.py` |
+| `diagrams/**/*.mmd` | the diagram sources | yes |
+| `diagrams/**/*.svg` | rendered pictures, shown below | no, run `build.py` |
 | `viewer.html` | zoom and pan page, its list of pictures is generated | no, run `build.py` |
 | `build.py` | the build and the check | when the tooling changes |
 
@@ -83,7 +83,7 @@ itself.
 
 Who owns what. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. Views are reached by index on `NavigationModel`, 0 through 4. Do not reorder them.
 
-![UML. RadiotherapyApp owns signals, values, and the window. The geometry models wrap ShapeModel.](diagrams/uml.svg)
+![UML. RadiotherapyApp owns signals, values, and the window. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
 `DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder and channel models.
 
@@ -91,13 +91,13 @@ Who owns what. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.val
 
 The app as one process.
 
-![DFD level 0. One process, brachify, with the plan coming in and the mesh and PDF going out.](diagrams/dfd-0.svg)
+![DFD level 0. One process, brachify, with the plan coming in and the mesh and PDF going out.](diagrams/existing-framework/dfd-0.svg)
 
 ### DFD level 1
 
 The same process opened into the five tabs. The viewport is not a sixth process. It paints shapes. That path is the UML, from the geometry models to `ShapeModel` to `DisplayModel`.
 
-![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them.](diagrams/dfd-1.svg)
+![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them.](diagrams/existing-framework/dfd-1.svg)
 
 Five tabs, in this fixed order. The code addresses them by index. Do not reorder them.
 
@@ -117,18 +117,39 @@ Course scaffolding only. No application behaviour.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Tests |
-| The anti-slop lint hook, which does not read Python | CI |
+| This documentation set, agent rules, commit and PR workflows | Tests of application behaviour |
+| Tooling tests and the manually run anti-slop-py linter | CI |
 | macOS setup notes in the project docs | Changes to `src/` |
 
 ## Proposed project framework
 
 The [project proposal](../proposal/README.md) now describes structure visualization,
 cylinder and needle editing, design checks, templates and consistent exports.
-[Projected Framework](diagrams/Projected%20Framework/README.md) contains separate UML,
-DFD level 0 and DFD level 1 copies extended for that scope, with source mappings and
-open design decisions. They describe planned work; the diagrams above still describe
-the existing application.
+[projected-framework/](diagrams/projected-framework/) contains separate UML,
+DFD level 0 and DFD level 1 diagrams for that scope. These are proposed responsibilities,
+reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 
-The projected folder's README explains how to render its copies. The normal build and
-`--check` continue to cover only the original diagrams directly inside `diagrams/`.
+The build recursively discovers diagrams in both `existing-framework/` and
+`projected-framework/`, as well as the top-level system architecture. Run the commands
+above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
+The existing application's behaviour has not changed, so its four diagram sources did
+not require a redraw. The UML and DFD paths changed to keep existing and proposed
+behaviour separate.
+
+### Projected UML
+
+![Proposed classes for structures, editing, templates, validation and export.](diagrams/projected-framework/uml.svg)
+
+### Projected DFD level 0
+
+![Proposed interactions with physicists, the treatment planning system and export consumers.](diagrams/projected-framework/dfd-0.svg)
+
+### Projected DFD level 1
+
+![Proposed import, editing, structures, templates, history, checks, review and export flows.](diagrams/projected-framework/dfd-1.svg)
+
+The proposal's milestone 1 FR-SV-01–07 maps to structure reconstruction, display state
+and anatomy checks. FR-CN-01–20 maps to design editing, templates, history, validation
+and exports. Milestone 2 describes the corresponding review and editing controls.
+Class names in the projected UML express a design proposal; storage formats, clinical
+thresholds and the concrete UI arrangement still need implementation decisions.
