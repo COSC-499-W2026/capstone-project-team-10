@@ -81,15 +81,16 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   - high cyclomatic complexity
   - classes/modules/functions with many unrelated responsibilities
 
-  The SHA-256 literal in `test_architecture_build.py` is the test's expected value, derived outside the code
-  under test from the exact bytes named in the comment beside it. It is not a hardcoded value in
-  production code.
-- This work is written in **`docs/architecture/build.py` and the new
-  `tests/tooling/test_architecture_build.py`** because **`build.py` owns the render and the
+  The SHA-256 literal in `test_architecture_build.py` is the test's expected value, derived
+  outside the code under test from the exact bytes named in the comment beside it. It is not a
+  hardcoded value in production code.
+- This work is written in **`docs/architecture/build.py` and two tests added to
+  `tests/tooling/test_architecture_build.py`, which PR #13 also uses for its own tests** because **`build.py` owns the render and the
   check, and `tests/README.md` scopes tests of repository files outside `src/`, including
   `docs/architecture/build.py`, to `tests/tooling/`**.
 - This work belongs in a process in the DFD — **N/A**, the PR changes the team's diagram
-  tooling, not brachify. No process in `docs/architecture/diagrams/dfd-1.mmd` moves.
+  tooling, not brachify. No process in
+  `docs/architecture/diagrams/existing-framework/dfd-1.mmd` moves.
 
 #### Testing receipts
 
@@ -102,9 +103,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - I checked that these negative cases involving **the CRLF test run before the fix (failed with
   `assert False is True`), the CRLF test run with `digest()` reverted to raw bytes (failed
   again, also after the move to `tests/tooling/` and after combining it with PR #13's file),
-  and `--check` on an unedited `main` before
-  the fix (exit 1, all three diagrams reported stale on 2026-10-01, all four on 2026-10-04)**
-  failed as expected.
+  and `--check` on an unedited `main` before the fix (exit 1, all three diagrams reported
+  stale on 2026-10-01, all four on 2026-10-04)** failed as expected.
 - When I reviewed the **`test_svg_is_stale_when_source_text_changed`**, I noticed **it passed
   the first time it ran, because it guards behaviour that already worked, and a test that never
   fails proves nothing on its own**. Therefore, I did **keep it as a guard against an
