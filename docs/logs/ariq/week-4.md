@@ -357,3 +357,90 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   `STALE ROW` line, and `python docs/architecture/build.py --check` exits 0. Adding
   `.gitattributes` did not change the hook's bytes on macOS (`git status` showed no
   renormalised file). The hook was not run on Windows, and no screenshot was taken**.
+
+### For PR #**15**
+
+- As part of requirement **the course's Weekly Expectations, Part B, which asks for one team
+  log per week in `logs/team/week-K.md`, on a `weekly-logs` branch, naming its authors and
+  covering everyone's merged work**, the user needs to do **open `docs/logs/team/week-4.md` and
+  audit the team's week: the goal, who did what, whether the goal was met and on what
+  evidence, what the team found in the code base, the current DFD and system architecture
+  diagram, and how the team's process changed**.
+- Therefore, I implemented/generated code so that **the instructor and TAs get the week 4 Part
+  B, with each claim traced to a PR, a command run on `main` at `901bce9`, or a receipt in a
+  member's `docs/logs/<student>/week-4.md`. The four Team 10 students get a team log that names
+  all of them as authors and covers PRs #4 and #7 to #14**.
+
+#### Review and design
+
+- When I reviewed the **first PR data the agent collected** for this functionality, I noticed
+  **`gh pr view 7` to `14` had resolved to the upstream `brachify/brachify` repository and
+  returned a different project's 2024 tandem PRs, because `gh` defaults to a fork's parent**.
+  Therefore, I did **re-fetch every PR with `--repo COSC-499-W2026/capstone-project-team-10`,
+  and take each author, file count, line count and approver from that output**.
+- When I reviewed the **generated "met the goal" receipt**, I noticed **it said every test had
+  been shown red in its PR's receipt. #8's `test_svg_is_stale_when_source_text_changed` passed
+  on its first run, as Ehsan's receipt says**. Therefore, I did **narrow it to "each PR that
+  adds tests records tests failing before the fix, or with the fix reverted", which is true of
+  #8, #10, #11, #12, #13 and #14**.
+- When I reviewed the **generated closing line of the code-base receipt**, I noticed **"the
+  team can confirm that the code base does not contain many dependencies between modules" is
+  false. Ahab's #12 records in `docs/architecture/README.md` that views reach each other by
+  index and that `Export_View` reads three models directly, and no PR changed `src/`**.
+  Therefore, I did **limit the confirmation to the tooling and tests added this week, and keep
+  the upstream coupling as a finding that is still there**.
+- When I reviewed the **generated DFD alternatives**, I noticed **they said Gilles had proposed
+  showing the intended flows in the same DFDs. Ahab's #4 receipt says Gilles suggested adding
+  diagrams of the intended design, not mixing them in**. Therefore, I did **reword it to what
+  Gilles suggested, and say that #13 drew those flows separately**.
+- When I reviewed the **generated prose about teammates**, I noticed **it used "he" and "his"
+  for Ehsan and Gilles, whose pronouns nobody had stated**. Therefore, I did **replace both with
+  names. A grep for gendered pronouns in the file returns 0 matches**.
+- When I reviewed the **receipt on alternative workload distributions**, I noticed **no PR,
+  review or log records what the team discussed, so any answer would be invented**.
+  Therefore, I did **leave a bold TODO for the team instead of filling it in**.
+- The PR does not contain any temporary workaround because **it adds no code logic. It
+  replaces the `_Not written yet._` line in one markdown file with the week's Part B. The one
+  open item, the TODO above, is marked in bold where it sits rather than hidden**.
+- The PR only contains small functions — **N/A**, the PR adds no functions.
+  `git diff --name-only main...HEAD` lists only `docs/logs/team/week-4.md`.
+- I did **take every number from a script over `gh pr view --repo ...` output, not from
+  memory. That covers the files, lines, markdown share, generated share and approvers. I also
+  pinned the three embedded diagrams to commit `901bce9`, so the log keeps showing the week 4
+  versions when the diagrams change later, and linked each PR's own receipts rather than
+  copying them** to ensure that my feature contribution does not contain any of the
+  following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`docs/logs/team/week-4.md` (existing, created empty by #7), on the
+  `weekly-logs` branch** because **`docs/logs/README.md` puts one team log per week in
+  `docs/logs/team/`, and the course asks for logs on a `weekly-logs` branch, kept separate from
+  code**.
+- This work belongs in a process in the DFD — **N/A**, the PR is the team's weekly log, not
+  brachify. No process in `docs/architecture/diagrams/existing-framework/dfd-1.mmd` moves.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python -m pytest
+  -q` (20 passed), `python docs/architecture/build.py --check` (exit 0), `sh
+  .claude/hooks/session-start.sh` (exit 0, no `UNDOCUMENTED` or `STALE ROW` line), and `curl`
+  on the three embedded diagram URLs (HTTP 200 each), all run on this branch on macOS on
+  2026-10-04** passed. These are repository checks run from the shell, not tests in `tests/`.
+- I wrote tests to cover abnormal situations — **N/A**, the PR has no code for a test to
+  exercise.
+- I checked that these negative cases involving **a grep for unfilled `**[` placeholders and a
+  grep for gendered pronouns in `docs/logs/team/week-4.md`** failed as expected, with 0
+  matches each.
+- When I reviewed the generated tests — **N/A**, no tests were generated.
+- Among these tests, unit and integration tests — **N/A**, none of the checks is a unit or
+  integration test. They are shell checks on the repository.
+- These tests are included in the directory — **N/A**, nothing was added to `tests/`.
+- This new test PR did not break anything else in the system because **`git diff --name-only
+  main...HEAD` lists only `docs/logs/team/week-4.md`, so nothing under `src/` changed and the
+  suite passes as on `main` (20 passed). The app was not run and no screenshot was taken**.
