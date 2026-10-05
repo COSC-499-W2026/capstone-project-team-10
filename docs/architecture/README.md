@@ -82,9 +82,9 @@ itself.
 
 ### UML
 
-Who owns what. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. Views are reached by index on `NavigationModel`, 0 through 4. Do not reorder them.
+Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
 
-![UML. RadiotherapyApp owns signals, values, and the window. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
+![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
 `DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder and channel models.
 
@@ -92,13 +92,13 @@ Who owns what. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.val
 
 The app as one process.
 
-![DFD level 0. One process, brachify, with the plan coming in and the mesh and PDF going out.](diagrams/existing-framework/dfd-0.svg)
+![DFD level 0. One process, brachify, with the plan and a config JSON coming in and the mesh and PDF going out.](diagrams/existing-framework/dfd-0.svg)
 
 ### DFD level 1
 
 The same process opened into the five tabs. The viewport is not a sixth process. It paints shapes. That path is the UML, from the geometry models to `ShapeModel` to `DisplayModel`.
 
-![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them.](diagrams/existing-framework/dfd-1.svg)
+![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them. Import also reads a config JSON. Tandem takes the tandem channel from channels and the length and diameter from cylinder. Export reads the plan for the PDF and writes STL or STEP.](diagrams/existing-framework/dfd-1.svg)
 
 Five tabs, in this fixed order. The code addresses them by index. Do not reorder them.
 
