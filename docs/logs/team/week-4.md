@@ -3,7 +3,7 @@
 _Team log. Part B, written once for the whole team, covering everyone's merged work this week.
 The template is in [docs/logs/README.md](../README.md#team-log-part-b)._
 
-**Authors:** Ariq Muldi (`ariqmuldi`), Ehsan (`ebabar5`), Ahab Masud Siddiqui (`Ayyhab`),
+**Authors:** Ariq Muldi (`ariqmuldi`), Ehsan Babar (`ebabar5`), Ahab Masud Siddiqui (`Ayyhab`),
 Gilles Fricker (`Writable04`).
 
 **PRs covered:** the nine PRs merged into `main` between 2026-09-29 and 2026-10-04. Every number
@@ -45,9 +45,7 @@ author's `docs/logs/<student>/week-4.md`.
   framework: UML and DFDs for the proposal's scope, kept apart from the existing ones in
   `projected-framework/`, with the build finding diagrams in both folders (#13)**. Every member
   also reviewed: each of the nine PRs has two approving reviews from teammates other than its
-  author. We considered alternative workload distributions such as **TODO (team): the
-  alternatives we discussed are not recorded in any PR or log. Fill this in before submitting,
-  or delete this sentence**.
+  author.
 - Based on **checks run on `main` at `901bce9` and the receipts in each PR**:
   - **`python -m pytest -q` went from no configured runner to 20 passing tests. Observed on
     macOS on 2026-10-04. Ehsan's #14 receipt reports the suite passing on Windows, 17 of 17,
