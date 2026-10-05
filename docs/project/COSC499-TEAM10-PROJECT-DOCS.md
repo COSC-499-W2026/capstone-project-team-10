@@ -1268,6 +1268,18 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   exited 1 on a clean checkout (three diagrams on 2026-10-01, all four on 2026-10-04 once
   `system-architecture.mmd` existed), after it exited 0. Guarded by
   [tests/tooling/test_architecture_build.py](../../tests/tooling/test_architecture_build.py).
+- **Fixed 2026-10-04: `docs/architecture/build.py` could not render a diagram on Windows.**
+  `render()` started mermaid-cli as the bare name `npx`. On Windows npx is `npx.cmd`, which
+  `subprocess` does not find by name, so every render raised `FileNotFoundError` even with Node
+  installed, and no Windows clone could redraw a diagram. `npx()` now resolves the full path
+  with `shutil.which`, and exits with a message when Node is missing. *Verified* on Windows: the
+  new test in `test_architecture_build.py` failed with `FileNotFoundError` before the fix and
+  passed after it, and `build.py` then rendered three diagrams.
+- **Fixed 2026-10-04: the drift check reported backslash paths on Windows.** `package_drift`
+  and `window_drift` printed `relative_to()` paths with the OS separator, so the same missing
+  module read `src\classes\mesh\...` on Windows and `src/classes/mesh/...` elsewhere, and 5 of
+  the 8 tests in `test_architecture_drift.py` failed on every Windows clone, `main` included.
+  Both now print `.as_posix()`. *Verified* on Windows: 5 failed before, all 8 passed after.
 
 ---
 
@@ -1300,10 +1312,11 @@ tooling in [tests/tooling/](../../tests/tooling/):
 
 | Test | Fails when |
 |---|---|
-| `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current (§7.6) |
+| `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
+
 Run them from the repository root, in the conda environment:
 
 ```bash
@@ -1319,6 +1332,11 @@ python -m pytest
   fixed. Two deliberate breaks of the check, and one stale diagram, were each caught.
 - *Verified* 2026-10-04 on macOS: 17 passed, including four nested-diagram CLI cases.
   `python docs/architecture/build.py --check` also passed for all seven diagrams.
+- *Verified* 2026-10-04 on Windows, outside conda: 17 passed with
+  `--ignore=tests/tooling/test_build_executable.py`, which needs PyInstaller from the conda
+  environment. Before the two Windows fixes in §7.6, 5 of the drift tests failed here and the
+  `npx` test failed with `FileNotFoundError`. `build.py` rendered on Windows and `--check`
+  exited 0 for all seven diagrams.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
