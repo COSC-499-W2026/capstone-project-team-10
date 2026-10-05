@@ -1,0 +1,24 @@
+---
+config:
+  layout: elk
+  flowchart:
+    wrappingWidth: 260
+---
+%% title: Projected framework - DFD level 0
+%% alt: Proposed brachify system with structure review, editing, templates and validation
+%% Proposed design based on docs/proposal/README.md; not implemented behaviour.
+flowchart LR
+  tps["Treatment planning system"]
+  physicist["Medical physicist"]
+  admin["Administrator physicist"]
+  printer["Printer or CAD"]
+  brachify(("0 brachify<br/>Proposed framework"))
+
+  tps -->|"RTPLAN and RTSTRUCT<br/>needle paths and ROI contours"| brachify
+  physicist -->|"cylinder, needles, tandem and edits<br/>undo, redo and reset"| brachify
+  physicist -->|"structure display, filters and slice controls<br/>template and JSON config files"| brachify
+  admin -->|"clinic template definitions<br/>library management requests"| brachify
+  brachify -->|"template previews and library status"| admin
+  brachify -->|"STL or STEP of current design"| printer
+  brachify -->|"PDF sheet, JSON config and shared templates"| physicist
+  brachify -->|"3D preview, original-path overlay<br/>measurements, organ distances and rule warnings"| physicist

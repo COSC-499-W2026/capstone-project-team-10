@@ -181,8 +181,8 @@ those. For a receipt that does not apply, cut it down to its opening words, then
 
 A diagram placeholder takes the matching source from
 [docs/architecture/diagrams/](../architecture/diagrams/), pasted as a Mermaid block so it
-renders in the PR: `system-architecture.mmd` for the system architecture diagram, `dfd-0.mmd` for Level 0 and
-`dfd-1.mmd` for Level 1. Paste it after
+renders in the PR: `system-architecture.mmd` for the system architecture diagram, `existing-framework/dfd-0.mmd` for Level 0 and
+`existing-framework/dfd-1.mmd` for Level 1. Paste it after
 [Update the architecture diagrams first](#update-the-architecture-diagrams-first), so a redraw
 this PR needed is the version that appears. Never draw a diagram inside the PR body.
 

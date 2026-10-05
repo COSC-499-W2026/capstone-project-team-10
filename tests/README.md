@@ -47,6 +47,8 @@ tests/
 ├── settings/
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
+│   ├── test_architecture_build.py
+│   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
 └── views/
@@ -114,3 +116,6 @@ list of highest-value targets. All are pure functions needing neither Qt nor Ope
 4. `template_reference.extract_points_from_channels2()` — all three `z=0` branches.
 
 Keep §8 updated as tests land.
+
+`tooling/test_architecture_build.py` runs the real diagram CLI against temporary trees.
+It checks nested viewer URLs and rejects missing, stale or unembedded nested diagrams.
