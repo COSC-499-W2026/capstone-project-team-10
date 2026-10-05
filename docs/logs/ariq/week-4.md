@@ -444,3 +444,73 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`git diff --name-only
   main...HEAD` lists only `docs/logs/team/week-4.md`, so nothing under `src/` changed and the
   suite passes as on `main` (20 passed). The app was not run and no screenshot was taken**.
+
+### For PR #**16**
+
+- As part of requirement **the course's Weekly Expectations, Part B, which asks for one team
+  log per week in `logs/team/week-K.md`, on a `weekly-logs` branch, naming its authors**, the
+  user needs to do **open `docs/logs/team/week-4.md`, see every author named in full, and read
+  each receipt as an answer, with no placeholder left for the team**.
+- Therefore, I implemented/generated code so that **the instructor and TAs get a week 4 team
+  log with Ehsan Babar named in full beside the other three authors, and with no unanswered
+  TODO in the workload receipt**.
+
+#### Review and design
+
+- When I reviewed the **team log as merged in #15** for this functionality, I noticed **it
+  still carried two items that #15's description had asked the team to settle before merging:
+  Ehsan was named without a surname, and the workload receipt ended in a bold "TODO (team)"
+  that a grader would read as an unanswered receipt. #15 was merged before either was
+  settled**. Therefore, I did **add "Babar" to the authors line, and delete the workload
+  sentence, because the team discussed it and decided that no alternative distribution applied
+  this week. Writing one in would have been a claim about a discussion that did not happen**.
+- When I reviewed the **bullet after the deletion**, I noticed **it had to end on a complete
+  sentence and not leave a dangling clause**. Therefore, I did **end it at "each of the nine PRs
+  has two approving reviews from teammates other than its author.", which is unchanged from
+  #15**.
+- When I reviewed **my #15 section in `docs/logs/ariq/week-4.md`**, I noticed **it says I left
+  a bold TODO, which is no longer true of the file**. Therefore, I did **leave that section
+  unchanged, because `docs/logs/README.md` says log entries record work already done, and
+  record the follow-up in this section instead**.
+- The PR does not contain any temporary workaround because **it removes the only placeholder
+  in the team log rather than deferring it. A grep for `TODO` and for unfilled `**[`
+  placeholders in `docs/logs/team/week-4.md` returns 0 matches each**.
+- The PR only contains small functions — **N/A**, the PR adds no functions.
+  `git diff --name-only origin/main...HEAD` lists only markdown files in `docs/logs/`.
+- I did **read the full diff from `origin/main`, which is one changed line on authors and three
+  deleted lines on the workload sentence, and grep the file for `TODO`, unfilled placeholders
+  and gendered pronouns (0 matches each)** to ensure that my feature contribution does not
+  contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`docs/logs/team/week-4.md` (existing), on the `weekly-logs`
+  branch** because **it corrects the team log that #15 added there, and the course asks for
+  logs on a `weekly-logs` branch, kept separate from code**.
+- This work belongs in a process in the DFD — **N/A**, the PR is the team's weekly log, not
+  brachify. No process in `docs/architecture/diagrams/existing-framework/dfd-1.mmd` moves.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python -m pytest
+  -q` (20 passed), `python docs/architecture/build.py --check` (exit 0) and `sh
+  .claude/hooks/session-start.sh` (exit 0, no `UNDOCUMENTED` or `STALE ROW` line), all run on
+  this branch on macOS on 2026-10-04** passed. These are repository checks run from the shell,
+  not tests in `tests/`.
+- I wrote tests to cover abnormal situations — **N/A**, the PR has no code for a test to
+  exercise.
+- I checked that these negative cases involving **a grep of `docs/logs/team/week-4.md` for
+  `TODO`, for unfilled `**[` placeholders and for gendered pronouns** failed as expected, with
+  0 matches each.
+- When I reviewed the generated tests — **N/A**, no tests were generated.
+- Among these tests, unit and integration tests — **N/A**, none of the checks is a unit or
+  integration test. They are shell checks on the repository.
+- These tests are included in the directory — **N/A**, nothing was added to `tests/`.
+- This new test PR did not break anything else in the system because **`git diff --name-only
+  origin/main...HEAD` lists only the two log files, so nothing under `src/` changed and the
+  suite passes as on `main` (20 passed). The app was not run and no screenshot was taken**.
