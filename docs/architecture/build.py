@@ -17,8 +17,9 @@ Usage, from anywhere:
   python docs/architecture/build.py --install-hook   build on a commit that touches a .mmd, check on one that touches src/
 
 An SVG records the hash of its source in a leading comment, so "stale" means the hash does not
-match, never a timestamp. Adding a diagram is: drop a `<name>.mmd` anywhere under diagrams/, run this, and
-embed its relative SVG path in README.md. `--check` fails if a diagram is not embedded there.
+match, never a timestamp. The hash is taken over LF line endings, so a CRLF checkout matches.
+Adding a diagram is: drop a `<name>.mmd` anywhere under diagrams/, run this, and embed its
+relative SVG path in README.md. `--check` fails if a diagram is not embedded there.
 """
 import argparse
 import hashlib
@@ -58,7 +59,8 @@ def sources():
 
 
 def digest(mmd):
-    return hashlib.sha256(mmd.read_bytes()).hexdigest()
+    # Git on Windows checks text out with CRLF, so hash the LF form every clone agrees on.
+    return hashlib.sha256(mmd.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def header(mmd, key):
@@ -186,7 +188,7 @@ def drift(src=SRC, mmd=SYSTEM_ARCHITECTURE):
 
 
 def check():
-    problems = [f"{m.name}: its SVG is missing or older than the source" for m in sources() if not svg_is_current(m)]
+    problems = [f"{m.name}: its SVG is missing or its stamp does not match the source" for m in sources() if not svg_is_current(m)]
     if not problems and viewer_text() != VIEWER.read_text():
         problems.append("viewer.html does not list the current diagrams")
     problems += [f"{n}: not embedded in README.md" for n in unembedded()]

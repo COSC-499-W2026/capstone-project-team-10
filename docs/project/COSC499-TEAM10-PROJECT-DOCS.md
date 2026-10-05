@@ -1259,6 +1259,15 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - **A clean `anti_slop review` covers only the lines you changed.** It hides every existing
   finding in untouched lines, and it lets the five policy rules through as warnings. It is
   not a statement that `src/` is clean (§1.9). Verified 2026-09-25.
+- **Fixed 2026-10-01: `docs/architecture/build.py --check` failed on every Windows clone.**
+  It hashed each `.mmd` as raw bytes, and Git on Windows (`core.autocrlf=true`, the default)
+  checks text out with CRLF line endings, so the hash never matched the stamp written on an LF
+  checkout. On an unedited `main` it reported every diagram stale and exited 1, which
+  blocked the pull-request gate, and re-rendering would only have moved the failure to LF
+  clones. `digest()` now hashes the LF form. *Verified* on Windows: before the fix `--check`
+  exited 1 on a clean checkout (three diagrams on 2026-10-01, all four on 2026-10-04 once
+  `system-architecture.mmd` existed), after it exited 0. Guarded by
+  [tests/tooling/test_architecture_build.py](../../tests/tooling/test_architecture_build.py).
 
 ---
 
@@ -1291,11 +1300,10 @@ tooling in [tests/tooling/](../../tests/tooling/):
 
 | Test | Fails when |
 |---|---|
-| `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check |
+| `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
-
 Run them from the repository root, in the conda environment:
 
 ```bash

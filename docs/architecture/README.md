@@ -28,7 +28,8 @@ python docs/architecture/build.py --install-hook   # once per clone, builds on a
 ```
 
 The build needs Node (it runs mermaid-cli through `npx`). Each SVG carries the hash of its source,
-so `--check` cannot be fooled by timestamps. It also fails when a diagram is not embedded below.
+so `--check` cannot be fooled by timestamps. The hash is taken over LF line endings, so a Windows
+checkout with CRLF matches a stamp written on macOS or Linux. It also fails when a diagram is not embedded below.
 
 **Redraw when** signals, values, the view order, a model, `ShapeModel`, the display path, or what
 Import reads or Export writes changes. Redraw all four in the same change, before the pull
