@@ -50,6 +50,15 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   already-resolved files and finish it with `git merge --continue`, then confirm with
   `git merge-base --is-ancestor origin/main HEAD` that `main` is intact and that the merge
   has no trailer**.
+- When I reviewed the **merge of `main` after PR #13 landed**, I noticed **PR #13 had created
+  its own `tests/tooling/test_architecture_build.py` for nested diagrams, and its fixture wrote
+  the test diagrams with `write_text` and stamped the raw bytes. On Windows that writes CRLF, so
+  with this PR's fix the diagrams looked stale, `build.py` tried to render them, and the test
+  crashed with `FileNotFoundError` on `npx`. On macOS it passes, which is why it went
+  unnoticed**. Therefore, I did **combine both files into one, keep every PR #13 test, and
+  write the fixture's diagrams with `newline="\n"` so its stamp is correct on every OS. I ran
+  PR #13's tests unchanged against the fix first and watched them fail, then 6 of 6 passed. I
+  also merged the two §8.2 table rows for the file into one**.
 - The PR does not contain any temporary workaround because **the line endings are normalised
   inside `digest()`, the one function that computes the hash for both rendering and checking,
   so the fix holds whatever a clone's `core.autocrlf` setting is. I considered adding a
@@ -92,7 +101,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   and they passed.
 - I checked that these negative cases involving **the CRLF test run before the fix (failed with
   `assert False is True`), the CRLF test run with `digest()` reverted to raw bytes (failed
-  again, also after the move to `tests/tooling/`), and `--check` on an unedited `main` before
+  again, also after the move to `tests/tooling/` and after combining it with PR #13's file),
+  and `--check` on an unedited `main` before
   the fix (exit 1, all three diagrams reported stale on 2026-10-01, all four on 2026-10-04)**
   failed as expected.
 - When I reviewed the **`test_svg_is_stale_when_source_text_changed`**, I noticed **it passed
@@ -107,8 +117,9 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - These tests are included in the directory
   **`tests/tooling/test_architecture_build.py`**.
 - This new test PR did not break anything else in the system because **after merging `main`
-  at PR #12, on Windows, `test_architecture_build.py` and `test_line_endings.py` passed (4
-  passed), `--check` exited 0, `sh .claude/hooks/session-start.sh` exited 0 with no flags, and
+  at PR #13, on Windows, `test_architecture_build.py` (6 passed, PR #13's four cases
+  included) and `test_line_endings.py` (2 passed) passed, `--check` exited 0 with the diagrams
+  in their new subfolders, `sh .claude/hooks/session-start.sh` exited 0 with no flags, and
   the anti-slop review reported no findings. `test_architecture_drift.py` fails 5 of 8 with
   backslash paths in its messages, identically on a clean checkout of `main`, so this PR did
   not cause it. `test_build_executable.py` was not collected, because PyInstaller is not
