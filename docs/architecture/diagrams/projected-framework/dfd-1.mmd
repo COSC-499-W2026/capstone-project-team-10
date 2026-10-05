@@ -1,0 +1,82 @@
+---
+config:
+  layout: elk
+  flowchart:
+    wrappingWidth: 260
+---
+%% title: Projected framework - DFD level 1
+%% alt: Proposed data flow through import, editing, structure review, templates, checks and export
+%% Processes describe responsibilities, not a new tab order. Dashed-border nodes are new.
+flowchart TB
+  tps["Treatment planning system"]
+  physicist["Medical physicist"]
+  admin["Administrator physicist"]
+  printer["Printer or CAD"]
+
+  p1(("1 Import<br/>DICOM and JSON config"))
+  p2(("2 Cylinder<br/>tip, notch and collar"))
+  p3(("3 Channels<br/>custom paths and properties"))
+  p4(("4 Tandem<br/>curve or STEP"))
+  p5(("5 Export<br/>current design"))
+  p6(("6 Structures<br/>transform and reconstruct"))
+  p7(("7 Templates<br/>preview, apply and share"))
+  p8(("8 Edit history<br/>undo, redo and reset"))
+  p9(("9 Design checks<br/>rules and distances"))
+  p10(("10 Scene review<br/>filters, overlay and slicing"))
+  d1[("D1 Imported baseline<br/>original paths, axis and ROI contours")]
+  d2[("D2 Current design<br/>settings, shapes and needle status")]
+  d3[("D3 Structures<br/>models, ROI IDs, types and availability")]
+  d4[("D4 Template library<br/>locked defaults and custom designs")]
+  d5[("D5 Edit history")]
+
+  tps -->|"RTPLAN and RTSTRUCT"| p1
+  physicist -->|"JSON config"| p1
+  p1 -->|"validated import"| d1
+  p1 -->|"restored settings including collar"| d2
+  p1 -->|"import errors and missing keys"| physicist
+  d1 -->|"axis and cylinder dimensions"| p2
+  d1 -->|"original needle paths"| p3
+  d1 -->|"ROI contours and common transform"| p6
+  physicist -->|"size, tip, notch and collar"| p2
+  physicist -->|"points or angles, move, rotate<br/>type, overrides, disable or remove"| p3
+  physicist -->|"curve or STEP"| p4
+  p2 -->|"cylinder and length offset"| d2
+  p2 -->|"shared length offset"| p3
+  p2 -->|"cylinder and length offset"| p4
+  p3 -->|"edited needle solids and status"| d2
+  p4 -->|"tandem solid"| d2
+  p6 -->|"closed models or unavailable reasons"| d3
+
+  physicist -->|"save, search, preview, apply<br/>import or export template"| p7
+  admin -->|"clinic template definitions<br/>library management requests"| p7
+  p7 -->|"template previews and library status"| admin
+  d4 -->|"templates and lock state"| p7
+  p7 -->|"validated custom templates"| d4
+  d2 -->|"selected design to save"| p7
+  p7 -->|"confirmed design; DICOM optional"| d2
+  p7 -->|"preview, fit errors and shared files"| physicist
+
+  d2 -->|"accepted edit snapshots"| p8
+  d1 -->|"original geometry for reset"| p8
+  physicist -->|"undo, redo or reset"| p8
+  p8 -->|"history entries; group edit is atomic"| d5
+  d5 -->|"prior and next states"| p8
+  p8 -->|"restored design"| d2
+
+  d2 -->|"current cylinder and needles"| p9
+  d3 -->|"available tumour and organs"| p9
+  p9 -->|"measurements and violations"| p10
+  p9 -->|"current export warnings"| p5
+  d2 -->|"current geometry and status"| p10
+  d1 -->|"original-path overlay"| p10
+  d3 -->|"models and availability"| p10
+  physicist -->|"visibility, opacity, colour<br/>filters, camera and slice controls"| p10
+  p10 -->|"validated display properties"| d3
+  p10 -->|"3D preview, distances and highlights"| physicist
+  d2 -->|"current design and all settings"| p5
+  physicist -->|"export request"| p5
+  p5 -->|"STL or STEP after boolean cut"| printer
+  p5 -->|"PDF sheet, JSON config and warnings"| physicist
+
+  classDef proposed fill:#e6f4ea,stroke:#237a43,stroke-width:2px,stroke-dasharray:5 3;
+  class p6,p7,p8,p9,p10,d3,d4,d5 proposed;

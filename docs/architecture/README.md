@@ -47,8 +47,8 @@ Other documents link here and do not repeat this rule. If the rule changes, chan
 
 | File | Role | Edit by hand? |
 |---|---|---|
-| `diagrams/*.mmd` | the diagram sources | yes |
-| `diagrams/*.svg` | rendered pictures, shown below | no, run `build.py` |
+| `diagrams/**/*.mmd` | the diagram sources | yes |
+| `diagrams/**/*.svg` | rendered pictures, shown below | no, run `build.py` |
 | `viewer.html` | zoom and pan page, its list of pictures is generated | no, run `build.py` |
 | `build.py` | the build and the check | when the tooling changes |
 
@@ -84,7 +84,7 @@ itself.
 
 Who owns what. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. Views are reached by index on `NavigationModel`, 0 through 4. Do not reorder them.
 
-![UML. RadiotherapyApp owns signals, values, and the window. The geometry models wrap ShapeModel.](diagrams/uml.svg)
+![UML. RadiotherapyApp owns signals, values, and the window. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
 `DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder and channel models.
 
@@ -92,13 +92,13 @@ Who owns what. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.val
 
 The app as one process.
 
-![DFD level 0. One process, brachify, with the plan coming in and the mesh and PDF going out.](diagrams/dfd-0.svg)
+![DFD level 0. One process, brachify, with the plan coming in and the mesh and PDF going out.](diagrams/existing-framework/dfd-0.svg)
 
 ### DFD level 1
 
 The same process opened into the five tabs. The viewport is not a sixth process. It paints shapes. That path is the UML, from the geometry models to `ShapeModel` to `DisplayModel`.
 
-![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them.](diagrams/dfd-1.svg)
+![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them.](diagrams/existing-framework/dfd-1.svg)
 
 Five tabs, in this fixed order. The code addresses them by index. Do not reorder them.
 
@@ -118,25 +118,39 @@ Course scaffolding only. No application behaviour.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Tests for `src/` |
-| The anti-slop lint hook, which does not read Python | CI |
+| This documentation set, agent rules, commit and PR workflows | Tests of application behaviour |
+| Tooling tests and the manually run anti-slop-py linter | CI |
 | macOS setup notes in the project docs | Changes to `src/` |
 
-## What the next eight months are supposed to be
+## Proposed project framework
 
-**Not written down in this repository.**
+The [project proposal](../proposal/README.md) now describes structure visualization,
+cylinder and needle editing, design checks, templates and consistent exports.
+[projected-framework/](diagrams/projected-framework/) contains separate UML,
+DFD level 0 and DFD level 1 diagrams for that scope. These are proposed responsibilities,
+reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 
-- [docs/proposal/](../proposal/README.md) is a placeholder.
-- The team contract is a Google Doc, linked from [docs/contract/](../contract/README.md). It was not read for this map.
-- GitHub Issues are disabled on this fork.
+The build recursively discovers diagrams in both `existing-framework/` and
+`projected-framework/`, as well as the top-level system architecture. Run the commands
+above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
+The existing application's behaviour has not changed, so its four diagram sources did
+not require a redraw. The UML and DFD paths changed to keep existing and proposed
+behaviour separate.
 
-Do not treat the list below as the course plan. It is only unfinished work the code and the project docs already name.
+### Projected UML
 
-| Gap | Why it matters |
-|---|---|
-| Collar height and thickness are dropped when a tandem is generated, and they are missing from an exported config | A printed collar can disappear. Recorded in §7.1. |
-| No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
-| Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
-| Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. |
+![Proposed classes for structures, editing, templates, validation and export.](diagrams/projected-framework/uml.svg)
 
-When the proposal or the sponsor brief is available, replace this section with the real eight-month work. Until then this file does not invent it.
+### Projected DFD level 0
+
+![Proposed interactions with physicists, the treatment planning system and export consumers.](diagrams/projected-framework/dfd-0.svg)
+
+### Projected DFD level 1
+
+![Proposed import, editing, structures, templates, history, checks, review and export flows.](diagrams/projected-framework/dfd-1.svg)
+
+The proposal's milestone 1 FR-SV-01–07 maps to structure reconstruction, display state
+and anatomy checks. FR-CN-01–20 maps to design editing, templates, history, validation
+and exports. Milestone 2 describes the corresponding review and editing controls.
+Class names in the projected UML express a design proposal; storage formats, clinical
+thresholds and the concrete UI arrangement still need implementation decisions.

@@ -68,7 +68,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 |---|---|---|
 | [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) | **the source of truth**: setup, architecture, module reference, config schema, known bugs | almost any code change. See the section map below |
 | [docs/README.md](docs/README.md) | index of the `docs/` tree | a folder or document is added, removed or repurposed |
-| [docs/architecture/README.md](docs/architecture/README.md) | the system architecture, UML, DFD level 0, DFD level 1, and the missing course plan | the redraw triggers in that file are hit. It owns the rule and the build |
+| [docs/architecture/README.md](docs/architecture/README.md) | the system architecture, UML, DFD level 0, DFD level 1, and the proposed project framework | the redraw triggers in that file are hit. It owns the rule and the build |
 | [docs/contract/README.md](docs/contract/README.md) | team contract | the contract changes or moves |
 | [docs/proposal/README.md](docs/proposal/README.md) | project proposal | scope, goals or deliverables change |
 | [docs/design/README.md](docs/design/README.md) | UI mocks and design artifacts | the UI changes, or a mock is added or superseded |
