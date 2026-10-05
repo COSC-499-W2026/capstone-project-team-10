@@ -133,3 +133,116 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   `.as_posix()`. `test_build_executable.py` was not collected, because PyInstaller is not
   installed outside conda on this machine. Nothing under `src/` changed, so the app behaves as
   before. The app was not run and no screenshot was taken**.
+
+### For PR #**14**
+
+- As part of requirement **the course's Part A Backend receipts, which require the Level 0 and
+  Level 1 DFDs and take them from `docs/architecture/diagrams/existing-framework/`, and the
+  team's pull-request gate in `docs/workflows/make-pr.md`, which requires the diagrams to be
+  redrawn when a signal, a model or an export input or output changes and
+  `python docs/architecture/build.py --check` to exit 0**, the user needs to do **open
+  `docs/architecture/README.md`, read the UML and the two DFDs as a true picture of which class
+  creates each model, which signals connect them, and what Import reads and Export writes, and,
+  on Windows, edit a `.mmd` and run `python docs/architecture/build.py` to redraw it**.
+- Therefore, I implemented/generated code so that **a teammate reading the architecture docs,
+  and every Team 10 student on Windows, gets diagrams that match the code. The UML now shows
+  `MainWindow.initModels()` creating the five models (`main_window.py` lines 177 to 181) and
+  the canvas (line 193), where it used to show `NavigationModel` owning the models and
+  `DisplayModel` owning the canvas. It draws `values_changed` and `tandem_changed`
+  (`main_window.py` 184 to 185, `tandem_model.py` 317 to 318) and `shapes_changed` (line 201)
+  as dashed arrows. DFD level 1 adds the config JSON import (`import_view.py` line 27), the
+  tandem channel and cylinder flows into Tandem, and the plan Export reads for the PDF
+  (`export_view.py` line 119), and labels Export's output `STL or STEP` instead of the
+  operation `boolean cut`. DFD level 0 adds the config JSON input. `build.py` now renders on
+  Windows, and its drift check reports the same forward-slash paths on every OS**.
+
+#### Review and design
+
+- When I reviewed the **generated first draft of `dfd-1.mmd`** for this functionality, I
+  noticed **it sent the tandem channel and cylinder into Tandem from the "Plan and settings"
+  store. In the code they come from the other models: `TandemModel` connects to
+  `ChannelsModel.tandem_changed` and `CylinderModel.values_changed` (`tandem_model.py` lines
+  317 to 318), and `update_cylinder` reads the cylinder's length and diameter**. Therefore, I
+  did **draw them as two flows from process 3 and process 2 into process 4, which is also what
+  the UML's dashed arrows show, and re-rendered**.
+- When I reviewed the **rendered UML**, I noticed **the arrow from `MainWindow` to
+  `TandemModel` runs just under the `AppSignals` box, so at a glance it could look like it
+  starts there**. Therefore, I did **try declaring the `AppSignals` and `Values` relations
+  last. Mermaid produced an identical layout, so I reverted it to keep the diff small. The
+  arrow visibly leaves `MainWindow`, and `AppSignals` has its own arrow from
+  `RadiotherapyApp`**.
+- When I reviewed the **generated first commit**, I noticed **it carried a `Co-authored-by`
+  trailer naming the agent tool, which `AGENTS.md` and `docs/workflows/commit.md` forbid**.
+  Therefore, I did **strip it from this PR's five commits only, before pushing, confirm 0
+  trailers with `git log --format=%B`, and confirm with `git merge-base --is-ancestor` that
+  #8's head is untouched underneath**.
+- When I reviewed the **§8.2 table in the project docs**, I noticed **it had no blank line
+  before "Run them from the repository root", so GitHub renders that sentence as a table row**.
+  Therefore, I did **add the blank line**.
+- The PR does not contain any temporary workaround because **`npx()` resolves the program the
+  same way a terminal does, through `shutil.which`, so it finds `npx.cmd` on Windows and `npx`
+  elsewhere with no OS branch. I considered `shell=True`, but that routes the command through
+  `cmd.exe`, and this repository's own path contains a space (`cs assignments`), which would
+  need quoting. I also considered hard-coding `npx.cmd` on Windows, which would add an OS
+  check for something the standard library already handles. `.as_posix()` is the documented
+  way to print a path with forward slashes, so the messages no longer depend on the OS**.
+- The PR only contains small functions that are **6 to 15 lines** long, docstrings included.
+  Counted with `ast`: `npx` 6 lines, `render` 7, `window_drift` 8,
+  `test_npx_names_a_program_this_machine_can_start` 10, and `package_drift` 15, an existing
+  function where I changed one line.
+- I did **read the full diff from `main`, run the anti-slop linter on `src`, `tests`, `utils`
+  and `docs/architecture` (no findings), and confirm that `render()` is the only place that
+  starts `npx` and calls `npx()`, and that the two drift functions are the only places that
+  print a source path** to ensure that my feature contribution does not contain any of the
+  following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`docs/architecture/build.py`, the three sources in
+  `docs/architecture/diagrams/existing-framework/` with their rendered SVGs, and a test in
+  `tests/tooling/test_architecture_build.py`** because **`docs/architecture/README.md` owns
+  every diagram and the build that renders them, a person edits only the `.mmd` files and
+  `build.py` derives the SVGs, and `tests/README.md` scopes tests of
+  `docs/architecture/build.py` to `tests/tooling/`**.
+- This work belongs in a process in the DFD — **N/A**, the PR corrects the diagrams and the
+  team's diagram tooling. No brachify process moves. The processes in
+  `docs/architecture/diagrams/existing-framework/dfd-1.mmd` are the same five tabs, with the
+  flows between them corrected.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_npx_names_a_program_this_machine_can_start`, all 8 tests in
+  `tests/tooling/test_architecture_drift.py` on Windows, and running
+  `python docs/architecture/build.py` on this Windows checkout, which rendered the three
+  changed diagrams, followed by `--check` (exit 0 for all seven diagrams)** passed.
+- I wrote tests to cover abnormal situations involving **a module, package, model or view
+  that `system-architecture.mmd` does not name. Those are the existing drift tests from #12,
+  which this PR makes pass on Windows rather than adds** and they passed.
+- I checked that these negative cases involving **the `npx` test before the fix (failed with
+  `FileNotFoundError`), the drift tests before the fix (5 of 8 failed on backslash paths),
+  `.as_posix()` removed again on purpose (5 failed), and `npx()` made to return the bare name
+  `"npx"` again on purpose (1 failed)** failed as expected.
+- When I reviewed the **`test_npx_names_a_program_this_machine_can_start`**, I noticed **it
+  starts `npx --version` rather than a full render, so it does not prove a diagram renders**.
+  Therefore, I did **keep it that way, because a render downloads mermaid-cli and takes about
+  a minute, and cover the full render by running `build.py` on Windows, which rendered the
+  three diagrams in this PR**.
+- Among these tests, **the 8 drift tests in `test_architecture_drift.py`** are unit tests and
+  **`test_npx_names_a_program_this_machine_can_start`, which starts the real `npx` through the
+  operating system,** are integration tests.
+- These tests are included in the directory **`tests/tooling/`, in
+  `test_architecture_build.py` and `test_architecture_drift.py`**.
+- This new test PR did not break anything else in the system because **on Windows,
+  `python -m pytest --ignore=tests/tooling/test_build_executable.py` passed 17 of 17,
+  `--check` exited 0, `sh .claude/hooks/session-start.sh` exited 0 with no flags, and the
+  anti-slop review reported no findings. `test_build_executable.py` was not collected,
+  because PyInstaller is only in the conda environment, which this machine does not have. I
+  opened the rendered UML and DFD level 1 in a browser and checked every arrow and label
+  against the code. Nothing under `src/` changed, so the app behaves as before. The app was
+  not run**.

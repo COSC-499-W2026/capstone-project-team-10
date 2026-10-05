@@ -122,3 +122,16 @@ def test_svg_is_stale_when_source_text_changed(tmp_path: Path) -> None:
     build = load_build_module()
     mmd = write_diagram(tmp_path, b"flowchart LR\n  a --> c\n")
     assert build.svg_is_current(mmd) is False
+
+
+@pytest.mark.skipif(shutil.which("npx") is None, reason="the diagram build needs Node")
+def test_npx_names_a_program_this_machine_can_start() -> None:
+    """Check that the npx command build.py renders with can actually be started here.
+
+    Fails with FileNotFoundError if build.py starts npx by its bare name. On Windows npx is
+    npx.cmd, which subprocess does not find by name, so every render crashes even with Node
+    installed and no Windows clone can redraw a diagram. Skipped where Node is absent.
+    """
+    build = load_build_module()
+    result = subprocess.run([build.npx(), "--version"], capture_output=True)
+    assert result.returncode == 0

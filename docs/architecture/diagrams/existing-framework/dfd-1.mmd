@@ -14,7 +14,8 @@ flowchart TB
   d2[("Shapes")]
 
   tps -->|"DICOM folder"| p1
-  p1 -->|"needles and Central Axis"| d1
+  physicist -->|"config JSON"| p1
+  p1 -->|"needles, Central Axis, settings"| d1
   physicist -->|"size and collar"| p2
   d1 --> p2
   p2 -->|"cylinder solid"| d2
@@ -22,7 +23,10 @@ flowchart TB
   d1 --> p3
   p3 -->|"needle solids"| d2
   physicist -->|"curve or STEP"| p4
+  p3 -->|"tandem channel"| p4
+  p2 -->|"length and diameter"| p4
   p4 -->|"tandem solid"| d2
   d2 --> p5
-  p5 -->|"boolean cut"| printer
+  d1 -->|"patient and plan"| p5
+  p5 -->|"STL or STEP"| printer
   p5 -->|"PDF and JSON"| physicist

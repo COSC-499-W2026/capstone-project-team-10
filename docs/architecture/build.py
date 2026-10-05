@@ -25,6 +25,7 @@ import argparse
 import hashlib
 import html
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -78,10 +79,18 @@ def svg_is_current(mmd):
     return bool(m) and m.group(1) == digest(mmd)
 
 
+def npx():
+    # On Windows npx is npx.cmd, which subprocess cannot start by its bare name.
+    found = shutil.which("npx")
+    if not found:
+        sys.exit("rendering needs Node, and npx is not on PATH")
+    return found
+
+
 def render(mmd):
     svg = mmd.with_suffix(".svg")
     subprocess.run(
-        ["npx", "--yes", MERMAID_CLI, "-i", str(mmd), "-o", str(svg), "--quiet"],
+        [npx(), "--yes", MERMAID_CLI, "-i", str(mmd), "-o", str(svg), "--quiet"],
         check=True,
     )
     svg.write_text(STAMP.format(digest(mmd)) + "\n" + svg.read_text())
@@ -157,7 +166,7 @@ def package_drift(src, lines):
         line = lines.get(pkg.name, "")
         for f in sorted(pkg.glob("*.py")):
             if f.stem != "__init__" and not named(f.stem, line):
-                missing.append(f"{f.relative_to(src.parent)} is not on the '{pkg.name}:' line")
+                missing.append(f"{f.relative_to(src.parent).as_posix()} is not on the '{pkg.name}:' line")
     return missing
 
 
@@ -167,7 +176,7 @@ def window_drift(src, text, folder, suffix, skip=()):
     for f in sorted((src / "windows" / folder).glob(f"*{suffix}.py")):
         name = camel(f.stem[: -len(suffix)]) if folder == "views" else camel(f.stem)
         if f.stem not in skip and not named(name, text):
-            missing.append(f"{f.relative_to(src.parent)}: {name} is not named")
+            missing.append(f"{f.relative_to(src.parent).as_posix()}: {name} is not named")
     return missing
 
 
