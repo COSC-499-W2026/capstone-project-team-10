@@ -1,5 +1,5 @@
 %% title: UML
-%% alt: UML of RadiotherapyApp, the models, and ShapeModel
+%% alt: UML of RadiotherapyApp, the models MainWindow creates, the signals between them, and ShapeModel
 classDiagram
   class RadiotherapyApp {
     signals
@@ -27,12 +27,17 @@ classDiagram
   RadiotherapyApp --> AppSignals
   RadiotherapyApp --> Values
   MainWindow --> NavigationModel
+  MainWindow --> OrbitCameraViewer3d
   MainWindow --> DisplayModel
-  DisplayModel --> OrbitCameraViewer3d
-  NavigationModel --> DicomModel
-  NavigationModel --> CylinderModel
-  NavigationModel --> ChannelsModel
-  NavigationModel --> TandemModel
+  DisplayModel ..> OrbitCameraViewer3d : shapes_changed
+  MainWindow --> DicomModel
+  MainWindow --> CylinderModel
+  MainWindow --> ChannelsModel
+  MainWindow --> TandemModel
+  DicomModel ..> CylinderModel : values_changed
+  DicomModel ..> ChannelsModel : values_changed
+  CylinderModel ..> TandemModel : values_changed
+  ChannelsModel ..> TandemModel : tandem_changed
   CylinderModel --> ShapeModel
   ChannelsModel --> ShapeModel
   TandemModel --> ShapeModel
