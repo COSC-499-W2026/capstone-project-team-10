@@ -120,8 +120,16 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   at PR #13, on Windows, `test_architecture_build.py` (6 passed, PR #13's four cases
   included) and `test_line_endings.py` (2 passed) passed, `--check` exited 0 with the diagrams
   in their new subfolders, `sh .claude/hooks/session-start.sh` exited 0 with no flags, and
-  the anti-slop review reported no findings. `test_architecture_drift.py` fails 5 of 8 with
-  backslash paths in its messages, identically on a clean checkout of `main`, so this PR did
-  not cause it. `test_build_executable.py` was not collected, because PyInstaller is not
+  the anti-slop review reported no findings. `test_architecture_drift.py` fails 5 of 8 on
+  this Windows machine, and the same 5 fail on a clean checkout of `main`, so this PR did
+  not cause it. Those five tests assert the whole message. `package_drift` and
+  `window_drift` build it by putting a `pathlib.Path` from `relative_to()` into an
+  f-string, and on Windows that path prints with `\`. The tests expect `/`, as in
+  `src/classes/mesh/intersections.py is not on the 'mesh:' line`. The check found the
+  right file. The three that pass expect either an empty list
+  (`test_drift_is_empty_when_the_diagram_names_every_module`,
+  `test_the_real_system_architecture_names_every_module_in_src`) or a message typed with
+  `/` in the source (`test_drift_names_a_new_package`). PR #14 prints the paths with
+  `.as_posix()`. `test_build_executable.py` was not collected, because PyInstaller is not
   installed outside conda on this machine. Nothing under `src/` changed, so the app behaves as
   before. The app was not run and no screenshot was taken**.
