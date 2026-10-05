@@ -120,4 +120,5 @@ Keep §8 updated as tests land.
 `tooling/test_architecture_build.py` runs the real diagram CLI against temporary trees.
 It checks nested viewer URLs and rejects missing, stale or unembedded nested diagrams. It
 also checks that a diagram checked out with CRLF line endings, as Git for Windows does, still
-matches a stamp written on macOS or Linux.
+matches a stamp written on macOS or Linux, and that the `npx` it renders with can be started,
+which on Windows means `npx.cmd`. That test is skipped where Node is not installed.
