@@ -23,7 +23,10 @@ Be sure to keep your docs and README.md up-to-date.
 
 **[docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) is
 the source of truth for this project.** Setup, architecture, module reference, configuration
-schema, and known bugs. Read it before working on the code.
+schema, and known bugs. Read it before working on the code. New to the code? Read
+[docs/project/COSC499-BRACHIFY-INIT-DOCS.md](docs/project/COSC499-BRACHIFY-INIT-DOCS.md) first:
+it walks through the code as inherited from upstream, folder by folder, with no background
+assumed.
 
 Setup for Windows, macOS and Linux is §1 of the source of truth. All three install the same
 dependencies, and §1.1 there says how to add one. Run the tests with `python -m pytest` from
