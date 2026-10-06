@@ -242,6 +242,7 @@ concluding it needs no change is fine. Not looking is not.
 I reviewed each of these and updated the ones this PR affects:
 
 - [ ] [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) — the source of truth (see section map below)
+- [ ] [docs/project/COSC499-BRACHIFY-INIT-DOCS.md](docs/project/COSC499-BRACHIFY-INIT-DOCS.md) — the init guide to the inherited code. Not rewritten: any section this PR makes out of date gets a short note pointing to the new documentation
 - [ ] [docs/README.md](docs/README.md) — index of the docs tree
 - [ ] [docs/architecture/README.md](docs/architecture/README.md) — the diagrams match this PR, and `python docs/architecture/build.py --check` passes. That README says when they must be redrawn.
 - [ ] [docs/contract/README.md](docs/contract/README.md)
