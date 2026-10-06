@@ -8,7 +8,8 @@ _These are the course's receipts for this PR. The same text is copied into the a
 individual log, `docs/logs/<student>/week-<K>.md`, and the two are kept identical. Replace
 every `[...]` with the real answer in **bold**, keep one side of each "or", and delete the
 italic guidance lines. Fill in every receipt whatever the PR changes, and mark one that cannot
-apply **N/A** with a reason. The rules are in
+apply **N/A** with a reason. Keep each answer to the shortest phrase that names its evidence,
+and write nothing outside the template's own sentences. The rules are in
 [docs/workflows/make-pr.md](docs/workflows/make-pr.md#fill-in-part-a)._
 
 ### For PR #**[number]**
