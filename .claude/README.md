@@ -50,7 +50,7 @@ Opens a pull request into `main` for the current branch. The procedure covers re
 branch diff before writing, targeting **this fork rather than upstream** (`gh pr create`
 defaults to the parent repository), appending `pull_request_template.md` to the body by hand
 (passing `--body-file` bypasses the template), filling the course's Part A receipts on every
-PR with bold answers backed by evidence, copying that Part A into the author's weekly log in
+PR with minimal bold answers backed by evidence, copying that Part A into the author's weekly log in
 `docs/logs/` and keeping the two in sync, and filling the checklist honestly: ticked when done
 or N/A, unticked only when not checked or waiting on the author.
 

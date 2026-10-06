@@ -141,8 +141,8 @@ particular assistant.
 
 **Follow the file, not a remembered version of it.** Both procedures contain rules that are
 easy to get wrong from memory: a PR must target this fork rather than upstream, the PR template
-must be appended to the body by hand, Part A is filled in on every PR with bold answers backed
-by evidence and never with a claim about something that did not happen, the same Part A is
+must be appended to the body by hand, Part A is filled in on every PR with minimal bold answers
+backed by evidence and never with a claim about something that did not happen, the same Part A is
 kept identical in the student's weekly log in `docs/logs/`, a checkbox that does not apply is
 ticked with **N/A** rather than left blank, `git commit` commits
 the whole index rather than only the paths you just added, and neither commits nor PR

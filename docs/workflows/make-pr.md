@@ -125,11 +125,57 @@ author.
 
 **Always fill Part A in, whatever the PR changes.** It is the author's graded weekly
 submission, so a PR with an empty or one-line Part A costs the author marks. Fill in every
-receipt as well as the diff allows. Mark **N/A** only the individual receipt that genuinely
-cannot apply, with a reason, and never the whole section.
+receipt, minimally, as [Keep Part A minimal](#keep-part-a-minimal) describes. Mark **N/A** only
+the individual receipt that genuinely cannot apply, with a reason, and never the whole section.
 
 **Part B, the team log, does not go in a PR.** It covers the whole team's week and belongs in
 `docs/logs/team/week-<K>.md`. See [docs/logs/README.md](../logs/README.md).
+
+### Keep Part A minimal
+
+The grader checks that each claim has evidence, and also how quickly that evidence can be
+audited. In week 4, two individual logs lost a mark for being "excessively long, which makes
+the evidence less minimal and quick to audit". The log that got full marks gave one short answer
+per receipt. Part A is the same text in the PR description and in the log, so keep it short in
+both.
+
+- **Write only the template's sentences.** Replace the bold placeholders and write nothing
+  before, after or between them. A receipt ends where the template's sentence ends. Do not add
+  a follow-up sentence such as "`python -m pytest` reports 3 passed." after the closing `**`.
+  Put that fact inside the fill-in, or leave it out.
+- **One claim and one piece of evidence per fill-in.** Answer the placeholder with the shortest
+  phrase a grader can check: a file, a test name, or a command and its result. Do not explain
+  how you got there, list everything you considered, or restate what another receipt says.
+- **Repeat only for problems that changed the PR.** Where the template says _(Repeat for
+  ...)_, write one bullet for each problem whose fix is in this diff, the most significant
+  first. Leave out routine fixes such as rewrapping a line, stripping a commit trailer or
+  resolving a merge conflict. One to three bullets is usually enough.
+- **An N/A reason is one clause.** `— **N/A**, the PR adds no functions.` and nothing after it.
+- **Reread before you open the PR.** Delete every sentence outside a fill-in, and every clause
+  inside one that a grader would not check. For scale, the full-marks week 4 section,
+  [PR #13 in Gilles's log](../logs/gilles/week-4.md), is about 650 words for a PR with code and
+  tests. A documentation or process PR should be shorter.
+
+Too long:
+
+> - When I reviewed the **generated `build_executable.py`** for this functionality, I noticed
+>   **its hidden imports `pydicom.encoders.gdcm` and `pydicom.encoders.pylibjpeg` do not exist
+>   in pydicom 3.0.2. A trial PyInstaller build on macOS logged `ERROR: Hidden import
+>   'pydicom.encoders.gdcm' not found` and the same for `pylibjpeg`, then exited 0**.
+>   Therefore, I did **point both at `pydicom.pixels.encoders.*`, where pydicom 3 keeps them.
+>   The trial build then analysed both with no error**.
+> - The functionality works correctly because the happy path tests involving
+>   **`test_hidden_import_exists_in_the_environment`** passed. `python -m pytest` reports 3
+>   passed.
+
+Minimal:
+
+> - When I reviewed the **generated `build_executable.py`** for this functionality, I noticed
+>   **two hidden imports that pydicom 3 does not have (PyInstaller logged `Hidden import
+>   'pydicom.encoders.gdcm' not found`)**. Therefore, I did **point both at
+>   `pydicom.pixels.encoders.*`**.
+> - The functionality works correctly because the happy path tests involving
+>   **`test_hidden_import_exists_in_the_environment` (3 passed)** passed.
 
 ### Fill-ins are bold
 
@@ -203,7 +249,8 @@ this PR needed is the version that appears. Never draw a diagram inside the PR b
     confirms stale wording is gone.
   - Mark **N/A** only what cannot exist, such as function lengths when no function changed, or
     the DFD process when nothing in brachify moved.
-  - Say plainly that the checks are scripts and not tests in `tests/`.
+  - Say once, in the unit-and-integration receipt, that the checks are scripts and not tests
+    in `tests/`. Do not repeat it in the other testing receipts.
 
 ### Every receipt needs evidence
 

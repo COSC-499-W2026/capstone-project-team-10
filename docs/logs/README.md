@@ -41,6 +41,9 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
   merging.
 - **The PR description and the log section stay identical.** An edit to one is copied to the
   other in the same step, whether it came from review, from GitHub's editor or from the file.
+- **Minimal.** One short answer per receipt, with nothing written outside the template's
+  sentences. The grader marks a log down for length that slows the audit. See
+  [Keep Part A minimal](../workflows/make-pr.md#keep-part-a-minimal).
 - **Every PR is logged.** A documentation or process PR still has a full Part A, so it gets a
   section like any other.
 
