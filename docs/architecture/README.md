@@ -122,6 +122,19 @@ Course scaffolding only. No application behaviour.
 | Tooling tests and the manually run anti-slop-py linter | CI |
 | macOS setup notes in the project docs | Changes to `src/` |
 
+## Known gaps in the existing code
+
+Unfinished work the code and the project docs already name. It is not the project plan,
+which is the proposed framework below.
+
+| Gap | Why it matters |
+|---|---|
+| Collar height and thickness are never written to an exported config, nor loaded back from one. Generating a tandem also drops them from the live settings, though the built cylinder keeps its collar | A collar saved in a config file is lost when the file is reopened. Recorded in §7.1. |
+| A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
+| No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
+| Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
+| Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
+
 ## Proposed project framework
 
 The [project proposal](../proposal/README.md) now describes structure visualization,
