@@ -309,6 +309,9 @@ If no AI agent touched this PR, mark each item N/A.
       With any other agent, it read [agent-skills/superpowers-tdd/SKILL.md](agent-skills/superpowers-tdd/SKILL.md).
 - [ ] Every agent session read each `SKILL.md` in `agent-skills/` and followed the ones that
       applied to the task. With an agent other than Claude Code, I confirmed it read `AGENTS.md`.
+- [ ] Every agent session read the repository, code included, before its first reply, and said
+      in that reply which files it read in full and which it skipped. See step 5 of
+      [Session start](AGENTS.md#session-start).
 - [ ] If Python changed, `PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils`
       reports no blocking finding, and none was silenced with a suppression or a cast. See
       [AGENTS.md](AGENTS.md#anti-slop).

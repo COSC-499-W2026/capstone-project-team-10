@@ -12,7 +12,7 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 ## Already built
 
-This is the upstream app. Team 10 has not changed `src/`.
+This is the upstream app. Team 10's only change to `src/` so far is a fix to how the Channels list shows its selection, which changes no diagram.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -114,13 +114,14 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Course scaffolding only. No application behaviour.
+Mostly course scaffolding. The one change to application behaviour is a Channels view fix.
 
 | In the repo | Not in the repo |
 |---|---|
 | This documentation set, agent rules, commit and PR workflows | Tests of application behaviour |
 | Tooling tests and the manually run anti-slop-py linter | CI |
-| macOS setup notes in the project docs | Changes to `src/` |
+| macOS setup notes in the project docs | New features in `src/` |
+| The Channels list selection fix in `channels_view.py` | |
 
 ## Proposed project framework
 

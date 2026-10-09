@@ -91,4 +91,14 @@ cat <<'EOF'
    truth. Before any pull request, check every file in the set against the branch diff and
    update what the change made stale, in the same PR. The set, and the upstream files that
    must never be edited, are in AGENTS.md, section "You must update the documentation set".
+
+5. Read the repository, the code included. The team's instruction, verbatim:
+   "Please understand this repo and read everything in detail, not just the md, but also
+   the code, which is obviously the source of truth. Please be honest about this and
+   actually do it."
+   Read docs/project/COSC499-TEAM10-PROJECT-DOCS.md and the rest of the documentation set,
+   then every hand-written source file under src/ end to end, and tests/. Where the markdown
+   disagrees with the code, the code is right. In your first reply, say which files you read
+   in full and which you skipped or skimmed, and why. Details in AGENTS.md, step 5 of
+   "Session start".
 EOF

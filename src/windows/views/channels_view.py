@@ -136,6 +136,12 @@ class ChannelsView(CustomView):
         is_disabled = self.channelsmodel.is_channel_disabled(label)
         is_tandem = self.channelsmodel.is_channel_tandem(label)
         lister = self.ui.listwidget_channels
+        if selected_channel is None:
+            # clear the list's highlight and current item so it matches the model,
+            # and so clicking the same channel again emits currentItemChanged
+            lister.blockSignals(True)
+            lister.setCurrentRow(-1)
+            lister.blockSignals(False)
         for i in range(lister.count()):
             text = lister.item(i).text()
             row = i
