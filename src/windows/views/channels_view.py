@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QWidget, QListWidgetItem, QMessageBox
 from classes.app import get_app
 from classes.logger import log
 from windows.models.shape_model import ShapeTypes
+from windows.ui import arrows_rc  # registers the :/arrows/ images used below
 from windows.ui.channels_view_ui import Ui_Channels_View
 from windows.views.custom_view import display_action, CustomView
 
@@ -15,6 +16,13 @@ materials = {
     ShapeTypes.TANDEM: {"rgb": [0.8, 0.8, 0.8], "transparent": True},
     ShapeTypes.SELECTED: {"rgb": [0.2, 0.2, 0.7], "transparent": True}
 }
+
+# black arrows for the spin boxes. without them, macOS in dark mode draws the native arrows
+# white on the white field the .ui stylesheets paint, and they vanish
+spin_box_arrows = """
+QDoubleSpinBox::up-arrow { image: url(:/arrows/spin_up.png); width: 7px; height: 7px; }
+QDoubleSpinBox::down-arrow { image: url(:/arrows/spin_down.png); width: 7px; height: 7px; }
+"""
 
 
 class ChannelsView(CustomView):
@@ -183,6 +191,7 @@ class ChannelsView(CustomView):
         super().__init__()
         self.ui = Ui_Channels_View()  # the converted python file from the ui file
         self.ui.setupUi(self)
+        self.setStyleSheet(spin_box_arrows)
         self.is_active = False
 
         #sets default needle length
