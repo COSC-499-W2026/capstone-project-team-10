@@ -713,7 +713,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests only, none for src/ yet (§8)
+├── tests/                     tooling tests and the Channels view test (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1237,7 +1237,8 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 7.6 Traps that are not bugs — know these before editing
 
-- **Fixed 2026-10-08: the Channels list kept a channel highlighted after leaving the tab.**
+- **Fixed 2026-10-08 in PR #19: the Channels list kept a channel highlighted after leaving
+  the tab.**
   Select a channel in the Channels tab, go to another tab and come back. `on_close` cleared
   `ChannelsModel.selected_channels`, so the viewport drew no channel as selected, but nothing
   cleared the `QListWidget`, which still showed the channel highlighted and still held it as
@@ -1245,9 +1246,22 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   clicking that channel again did nothing until a different one was clicked first.
   `ChannelsView.action_update_settings` now clears the list's current row when the model has
   no selected channel, so the list follows the model. That also covers a viewport click on
-  empty space, which empties the selection the same way. *Reasoned from code.* The tests that
-  verify it follow in a separate test PR. *Not verified:* clicking through it in the running
-  app.
+  empty space, which empties the selection the same way (*Reasoned from code*, not tested).
+  *Verified* by the two tests in `tests/views/test_channels_view.py`, which failed before the
+  fix and again when it was replaced with `clearSelection()` alone. *Not verified:* clicking
+  through it in the running app.
+- **Import `classes.mesh.cylinder` only after the `QApplication` exists.**
+  `BrachyCylinder.__init__` takes `diameter=get_app().values.config_values.get(...)` as a
+  default argument, and Python evaluates that once, when the module is imported. Before the
+  app is constructed, `get_app()` returns `None` and the import raises `AttributeError:
+  'NoneType' object has no attribute 'values'`. The app never meets this, because `app.gui()`
+  imports the windows after the app exists, but a test or script that imports the mesh,
+  DICOM or window modules first will. *Verified* 2026-10-08 while writing
+  `tests/views/conftest.py`.
+- **OpenCASCADE's viewer cannot start without a display.** Running the full `app.gui()` with
+  `QT_QPA_PLATFORM=offscreen` exits 139, a segfault, during `MainWindow.initViews()`. A headless
+  test must create `OrbitCameraViewer3d` and never call `InitDriver()` or show it, as
+  `tests/views/conftest.py` does. *Verified* 2026-10-08 on macOS.
 
 - **Fixed 2026-10-04: diagrams in subfolders were skipped by the architecture build.**
   Moving UML and DFD sources into `existing-framework/` left broken viewer links;
@@ -1322,11 +1336,13 @@ fails, and why that matters
 
 ### 8.2 Current state
 
-**There are no tests of `src/` yet.** The only tests, added 2026-09-30, cover repository
-tooling in [tests/tooling/](../../tests/tooling/):
+The tests added from 2026-09-30 cover repository tooling in
+[tests/tooling/](../../tests/tooling/). The first tests of `src/`, added 2026-10-08, are in
+[tests/views/](../../tests/views/):
 
 | Test | Fails when |
 |---|---|
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel` (§7.6) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
@@ -1352,6 +1368,14 @@ python -m pytest
   environment. Before the two Windows fixes in §7.6, 5 of the drift tests failed here and the
   `npx` test failed with `FileNotFoundError`. `build.py` rendered on Windows and `--check`
   exited 0 for all seven diagrams.
+- *Verified* 2026-10-08 on macOS, in an environment made with the §1.2 command: 22
+  passed in about 18 seconds. Both `test_channels_view.py` tests were watched failing before
+  the fix, the second also when run alone, and failing again when the fix was replaced with
+  `clearSelection()` alone. Their `channels_window` fixture in
+  [tests/views/conftest.py](../../tests/views/conftest.py) builds the real window, models and
+  views offscreen with the canvas never initialised (§7.6), points `HOME` at a temporary
+  folder so the developer's `~/brachify` config is not loaded, and imports
+  `SI_C_D30 Brachify_Ex1/`. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

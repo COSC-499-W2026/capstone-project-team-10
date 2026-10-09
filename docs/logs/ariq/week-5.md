@@ -73,6 +73,32 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   passed), `build.py --check` and `session-start.sh` (exit 0), and [author: run the app on Ex1,
   repeat the tab switch, and attach a screenshot]**.
 
+### For test PR #**20** written to assess functionality in **#19, clearing the Channels list highlight when no channel is selected**
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_returning_to_channels_tab_shows_no_channel_selected` (22 passed)** passed.
+- I wrote tests to cover abnormal situations involving **clicking the channel that was
+  current before leaving, which Qt ignores
+  (`test_channel_can_be_selected_again_after_returning_to_channels_tab`)** and they passed.
+- I checked that these negative cases involving **both tests without the #19 fix, and with
+  `clearSelection()` in place of it (2 failed each)** failed as expected.
+- When I reviewed the **generated `test_channels_view.py`**, I noticed **it imported
+  `classes.app` at the top, fixing `~/brachify` to the real home before the fixture redirected
+  `HOME`**. Therefore, I did **move the import into the helper**.
+- When I reviewed the **generated `channels_window` fixture**, I noticed **it imported the
+  mesh modules before the app existed (`AttributeError` from `BrachyCylinder`'s default
+  argument)**. Therefore, I did **create the app first and record the trap in §7.6**.
+- When I reviewed the **generated `channels_window` fixture**, I noticed **the full
+  `app.gui()` exits 139 without a display**. Therefore, I did **create the canvas without
+  `InitDriver()` and record the trap in §7.6**.
+- Among these tests, **none** are unit tests and **both tests** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (22
+  passed), `anti_slop review` (no findings), `build.py --check` and `session-start.sh` (exit
+  0)**.
+
 ### For PR #**17**
 
 - As part of requirement **the course's weekly individual log, where week 4 took a mark from
