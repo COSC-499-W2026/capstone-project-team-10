@@ -175,7 +175,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, but nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. The only tests so far are the tooling tests in `tests/tooling/`. The first test of application code still has to be written, and no missing fixture or folder is a reason to skip it.
+**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides the tooling tests in `tests/tooling/`, [tests/views/](tests/views/) tests the Channels view against the real window. None of the pure functions listed below is tested yet, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -195,9 +195,11 @@ Anything that is a pure function of its inputs. In this codebase that is most of
 
 ### What tests cannot reach here
 
-Qt widgets and the OpenCASCADE viewport cannot be meaningfully unit tested in this setup, and full solid booleans are too slow to run per commit.
+The OpenCASCADE viewport cannot be tested here: without a display, initialising it segfaults. Full solid booleans are too slow to run per commit.
 
-Do not paper over that with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
+Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and five views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. Use it when the behaviour is the widgets' own state, such as which list row is highlighted. It takes about 18 seconds per run, mostly building the thirteen channels.
+
+Do not paper over the rest with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
 
 - **Move logic out of views and models into pure functions and test it there.** A view method should read spin boxes, call a tested function, and hand the result to a model.
 - **Cover the remaining behaviour by running the app**, with `SI_C_D30 Brachify_Ex1/` (and `Ex2/` for the tandem path, since only `Ex2` has a `Tandem` channel), and visually inspecting the Export tab. Record the run in the regression receipt of the PR's Part A. It is not a formality: the output is a physical device used on a patient.
@@ -328,7 +330,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Only tooling is tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Tooling and the Channels view are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
