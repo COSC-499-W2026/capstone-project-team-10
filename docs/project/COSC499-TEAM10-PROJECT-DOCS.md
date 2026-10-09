@@ -739,7 +739,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
         ├── palettes.py        colour definitions (largely unused)
         ├── models/            six QObject models
         ├── views/             five views + custom_view.py + viewport.py
-        └── ui/                .ui sources and generated *_ui.py
+        └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
 ```
 
 ---
@@ -928,6 +928,16 @@ Regenerate after editing a `.ui`:
 
 ```bash
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
+```
+
+`arrows_rc.py` is generated the same way, from `arrows.qrc` and the two black 14×14 PNGs in
+`ui/arrows/`, and is never hand-edited either. `ChannelsView` imports it, which registers the
+images as `:/arrows/spin_up.png` and `:/arrows/spin_down.png` for its spin box stylesheet. The
+images are compiled into Python because PyInstaller bundles imported modules but not the
+`resources/` folder (§7.5). After changing an image or the `.qrc`:
+
+```bash
+pyside6-rcc src/windows/ui/arrows.qrc -o src/windows/ui/arrows_rc.py
 ```
 
 The full workflow — Designer → `.ui` → `uic` → hand-written `*_view.py` → register in
@@ -1234,6 +1244,15 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - `spec-file.txt` is `win-64` only (§1.2). macOS and Linux install the same dependencies
   from the command in §1.2, but nothing locks their versions, so they can differ from
   Windows (§1.1).
+- **Fixed 2026-10-08 on the Channels tab only: spin box arrows were invisible on macOS in dark
+  mode.** Each spin box's stylesheet paints its field white, but in dark mode macOS still
+  draws the native up and down arrows white, for a dark background, so they vanish.
+  `ChannelsView` now sets a stylesheet that draws its four spin boxes' arrows from black
+  images (§5.6), and leaves the rest of the app, the file dialogs included, in the OS colour
+  scheme. *Verified* 2026-10-08 on macOS in dark mode by rendering the Channels spin box, and
+  by `test_channels_spin_box_arrows_are_black`. *Still open:* the spin boxes on the Cylinder,
+  Tandem and Export tabs have the same invisible arrows in macOS dark mode. *Not verified:*
+  Windows, where the images replace the native arrows too.
 
 ### 7.6 Traps that are not bugs — know these before editing
 
@@ -1342,7 +1361,7 @@ The tests added from 2026-09-30 cover repository tooling in
 
 | Test | Fails when |
 |---|---|
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel` (§7.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel` (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
@@ -1376,6 +1395,11 @@ python -m pytest
   views offscreen with the canvas never initialised (§7.6), points `HOME` at a temporary
   folder so the developer's `~/brachify` config is not loaded, and imports
   `SI_C_D30 Brachify_Ex1/`. *Not verified:* Windows.
+- *Verified* 2026-10-08 on macOS: 23 passed, with `test_channels_spin_box_arrows_are_black`
+  added. It failed before the fix with the headless Fusion style's grey arrows (darkest
+  pixel 94 of 255), passed on PySide6 6.11.2 and 6.8.1, and failed again (85) when the
+  `arrows_rc` import was removed. The arrows come from the stylesheet's images, so the test
+  sees what every platform draws.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
