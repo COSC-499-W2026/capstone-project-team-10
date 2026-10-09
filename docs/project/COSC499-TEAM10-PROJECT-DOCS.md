@@ -327,7 +327,10 @@ failing. AGENTS.md says to ignore that warning. A full run with no `review`
 
 Section "Session start" of [AGENTS.md](../../AGENTS.md#session-start) requires every agent,
 in any tool, to load the superpowers `test-driven-development` skill and read every skill in
-[agent-skills/](../../agent-skills/) before its first reply. What each skill is, and where it
+[agent-skills/](../../agent-skills/) before its first reply. Its step 5 also requires reading
+this document, the rest of the documentation set, and every hand-written file under `src/` and
+`tests/`, and saying in that first reply what was read and what was skipped. That is the §2
+mandate applied to every session. What each skill is, and where it
 came from, and how each is used here, is in [agent-skills/README.md](../../agent-skills/README.md).
 This section deliberately does not list them, so it does not go stale when one is added. The
 folder is the list: agents find skills by searching it for `SKILL.md`, and so does the hook
@@ -540,8 +543,8 @@ This repository is a **fork of `brachify/brachify`**. The `upstream` remote stil
 Essentially all code was written by the upstream authors.
 
 Team 10's contribution as of the last audit consists of README edits, the course folder
-scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. No `src/` code has been
-modified by our team yet.
+scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. The first change to
+`src/` came on 2026-10-08, a fix to the Channels view's list selection (§7.6).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -1233,6 +1236,18 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   Windows (§1.1).
 
 ### 7.6 Traps that are not bugs — know these before editing
+
+- **Fixed 2026-10-08: the Channels list kept a channel highlighted after leaving the tab.**
+  Select a channel in the Channels tab, go to another tab and come back. `on_close` cleared
+  `ChannelsModel.selected_channels`, so the viewport drew no channel as selected, but nothing
+  cleared the `QListWidget`, which still showed the channel highlighted and still held it as
+  its current item. Because Qt emits `currentItemChanged` only when the current item changes,
+  clicking that channel again did nothing until a different one was clicked first.
+  `ChannelsView.action_update_settings` now clears the list's current row when the model has
+  no selected channel, so the list follows the model. That also covers a viewport click on
+  empty space, which empties the selection the same way. *Reasoned from code.* The tests that
+  verify it follow in a separate test PR. *Not verified:* clicking through it in the running
+  app.
 
 - **Fixed 2026-10-04: diagrams in subfolders were skipped by the architecture build.**
   Moving UML and DFD sources into `existing-framework/` left broken viewer links;
