@@ -3,6 +3,76 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
+### For PR #**19**
+
+- As part of requirement **FR-CN-02 (Milestone 2), edit the selected needle**, the user needs
+  to do **select a channel in the Channels tab, switch tabs, come back, and see the list and the
+  viewport agree that none is selected**.
+- Therefore, I implemented/generated code so that **physicists get a Channels list that drops
+  its highlight when no channel is selected and reselects on the next click, and every agent
+  session reads the repo, code included, before its first reply**.
+
+#### Frontend
+
+- The frontend uses **`ChannelsModel.selected_channels` as the one selection state, mirrored
+  into the list by `action_update_settings`** because **the list and the viewport must show the
+  same channel**. Benefits for using this pattern include **one source of truth, so leaving the
+  tab or clicking empty space clears both**. Possible risks include **clearing the list
+  re-entering `action_select_channel` through `currentItemChanged`**.
+  - To mitigate **that re-entry**, we implemented **`blockSignals` around `setCurrentRow(-1)`,
+    as `create_channels_list` already does**.
+- The frontend ensures only authorized users can access restricted pages — **N/A**, brachify
+  has no logins or restricted pages.
+- The frontend is designed using **PySide6 with Qt Designer `.ui` files** with design
+  components for **the five tab views**. Therefore, changing the design of
+  **`listwidget_channels` in `channels_view.ui`** will automatically change the look and feel
+  of all instances of that component throughout the system. Changes to the content will not
+  affect the design because **channel names are added at runtime by `create_channels_list`**.
+- The usability evaluation identified the following major problems — **N/A**, no usability
+  evaluation was run.
+- The frontend adopts accessibility principle — **N/A**, this PR changes selection state only.
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-02 → test PR #20,
+  `tests/views/test_channels_view.py`**
+- By using a test coverage tool — **N/A**, the repo has no coverage tool.
+
+#### Review and design
+
+- When I reviewed the **generated `action_update_settings` change** for this functionality, I
+  did not find any problems with it because **the two tests in test PR #20 fail without it,
+  and with `clearSelection()` alone, and pass with it**.
+- The PR does not contain any temporary workaround because **the list mirrors the model in the
+  method that already syncs the Channels buttons to it**.
+- The PR only contains small functions that are **35 (`action_update_settings`, 6 lines
+  added)** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the 6-line `src/` diff**
+  to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/channels_view.py`** because **the list widget
+  belongs to `ChannelsView`, and `action_update_settings` runs on every `values_changed`**.
+- This work belongs in **Channels, DFD level 1** because **it changes how that tab shows the
+  selected channel**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests — **N/A**, the tests are in
+  test PR #20.
+- I wrote tests to cover abnormal situations — **N/A**, the tests are in test PR #20.
+- I checked that these negative cases — **N/A**, the tests are in test PR #20.
+- When I reviewed the generated tests — **N/A**, the tests are in test PR #20.
+- Among these tests, unit and integration tests — **N/A**, the tests are in test PR #20.
+- These tests are included in the directory — **N/A**, the tests are in test PR #20.
+- This new test PR did not break anything else in the system because **`python -m pytest` (20
+  passed), `build.py --check` and `session-start.sh` (exit 0), and [author: run the app on Ex1,
+  repeat the tab switch, and attach a screenshot]**.
+
 ### For PR #**17**
 
 - As part of requirement **the course's weekly individual log, where week 4 took a mark from
