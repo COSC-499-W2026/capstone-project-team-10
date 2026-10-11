@@ -1208,7 +1208,7 @@ with the current UI.
 | §1–2: give the Central Axis zero dwell time | Nothing reads the dwell times. Both samples give it 222.8 s (§3.2). *Verified* |
 | §2: give the Oncentra central axis channel number 1 | Neither reader checks the channel number. It is matched by name only (§3.2) |
 | §1–2: ensure no needles intersect | Nothing checks this. `are_colliding()` is never called (§7.4) |
-| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:14-17](../../src/windows/views/channels_view.py#L14-L17)). *Verified* |
+| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:15-18](../../src/windows/views/channels_view.py#L15-L18)). *Verified* |
 | 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab does nothing (§7.8) |
 | 4.4: lists *Dead Space* in the layout, but never explains it | `CONFIG_DEADSPACE` extends each needle tip outward, in the model and in the interstitial lengths (§5.4, §5.8) |
 | 4.3: Collar Thickness "changes the diameter of the collar" | It is the collar's wall thickness. The collar's diameter is the cylinder diameter plus twice the thickness (`outer_radius = radius1 + base_thickness`, [cylinder.py:136](../../src/classes/mesh/cylinder.py#L136)) |
@@ -1500,8 +1500,8 @@ first test for `tests/mesh/`. Inspect the result in the Export tab.
 *Reasoned from code, 2026-09-29; not reproduced in the GUI.*
 
 When the selected channel is the tandem, `btn_set_tandem` reads *Clear Tandem*
-([channels_view.py:153](../../src/windows/views/channels_view.py#L153)). Pressing it calls
-`action_set_tandem()` ([channels_view.py:63-98](../../src/windows/views/channels_view.py#L63-L98)),
+([channels_view.py:161](../../src/windows/views/channels_view.py#L161)). Pressing it calls
+`action_set_tandem()` ([channels_view.py:71-106](../../src/windows/views/channels_view.py#L71-L106)),
 whose only call to `ChannelsModel.set_tandem()` runs when the selected channel is **not**
 already the tandem:
 
