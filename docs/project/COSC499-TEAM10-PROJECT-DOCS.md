@@ -747,7 +747,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests only, none for src/ yet (§8)
+├── tests/                     tooling checks and Cylinder units integration tests (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1542,11 +1542,22 @@ fails, and why that matters
 
 ### 8.2 Current state
 
-**There are no tests of `src/` yet.** The only tests, added 2026-09-30, cover repository
-tooling in [tests/tooling/](../../tests/tooling/):
+**Cylinder display units are tested in `tests/views/`.** The real offscreen window,
+models and controls exercise startup, all four cm displays, scaled steps and limits,
+pending edits, mm Apply and exported config dimensions, config reset before/after a
+cylinder exists, and Ex1 import with a 10 mm needle offset. The native canvas is never
+initialised. The fixture isolates HOME/USERPROFILE and reuses the one QApplication.
+
+*Verified* 2026-10-10: all eight new cases failed before implementation; 28 suite cases
+passed afterwards. Three deliberate breaks (cm scale, Apply conversion, rounded mm
+cache) each failed the relevant assertions. No application module is mocked.
+
+Repository tooling tests, first added 2026-09-30, live in
+[tests/tooling/](../../tests/tooling/):
 
 | Test | Fails when |
 |---|---|
+| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
