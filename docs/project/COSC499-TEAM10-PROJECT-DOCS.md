@@ -1563,7 +1563,7 @@ The tests added from 2026-09-30 cover repository tooling in
 
 | Test | Fails when |
 |---|---|
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel` (§7.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
@@ -1597,6 +1597,11 @@ python -m pytest
   views offscreen with the canvas never initialised (§7.6), points `HOME` at a temporary
   folder so the developer's `~/brachify` config is not loaded, and imports
   `SI_C_D30 Brachify_Ex1/`. *Not verified:* Windows.
+- *Verified* 2026-10-10 on macOS: 24 passed, with two viewport-pick tests added to
+  `test_channels_view.py`. They send the pick through the canvas's real `sig_topods_selected`
+  signal. Both were watched failing on the code before the viewport-pick fix, and three of the
+  four view tests failed when the fix was broken on purpose to never find the selected row.
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
