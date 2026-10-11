@@ -18,6 +18,7 @@ disagree, Canvas is right, and this README is updated to match.
 docs/logs/
 ├── README.md          this file
 ├── ahab/week-<K>.md   one individual log per student per week
+├── ahab/screenshots/  images a receipt links to, if any
 ├── ariq/week-<K>.md
 ├── ehsan/week-<K>.md
 ├── gilles/week-<K>.md
@@ -46,6 +47,12 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
   [Keep Part A minimal](../workflows/make-pr.md#keep-part-a-minimal).
 - **Every PR is logged.** A documentation or process PR still has a full Part A, so it gets a
   section like any other.
+- **Screenshots live beside the log.** A receipt that cites a screenshot links to an image
+  committed on the PR's branch in `docs/logs/<student>/screenshots/`, named
+  `pr-<n>-<step>-<what>.png`. The link is a `raw.githubusercontent.com` URL pinned to the commit
+  that added the image, as `team/week-4.md` does for its diagrams, so the PR description and the
+  log carry the same text and the link survives the merge. Rebasing that commit changes its
+  hash, so update the link in both places if you rebase.
 
 ## Team log: Part B
 
