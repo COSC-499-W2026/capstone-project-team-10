@@ -74,8 +74,13 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, unit and integration tests — **N/A**, the tests are in test PR #20.
 - These tests are included in the directory — **N/A**, the tests are in test PR #20.
 - This new test PR did not break anything else in the system because **`python -m pytest` (20
-  passed), `build.py --check` and `session-start.sh` (exit 0), and [author: on Ex1, after the
-  viewport-pick fix, repeat the tab switch and the viewport pick, and attach the screenshots]**.
+  passed), `build.py --check` and `session-start.sh` (exit 0), and a run on Ex1 on macOS:
+  Applicator2 selected (1), nothing selected after leaving Channels and returning (2), and
+  Applicator2 selected again after picking another needle in the viewport (3)**.
+
+  ![1, Applicator2 selected in the list and drawn blue](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b72a1952fb60ebaf97ad634ebfd0583b24513bcf/docs/logs/ariq/screenshots/week-5/pr-19-1-applicator2-selected.png)
+  ![2, after leaving Channels and returning, nothing selected](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b72a1952fb60ebaf97ad634ebfd0583b24513bcf/docs/logs/ariq/screenshots/week-5/pr-19-2-after-tab-switch.png)
+  ![3, after a viewport pick, Applicator2 clicked in the list and selected again](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b72a1952fb60ebaf97ad634ebfd0583b24513bcf/docs/logs/ariq/screenshots/week-5/pr-19-3-after-viewport-pick.png)
 
 ### For PR #**17**
 
