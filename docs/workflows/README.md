@@ -27,6 +27,10 @@ follow the corresponding file here.
 If yours supports its own command format, point it at the file here rather than copying the
 content, so there stays exactly one source of truth.
 
+The user may invoke `/make-pr` in any assistant. Read the current
+`docs/workflows/make-pr.md` and execute it; the routing is recorded in `AGENTS.md`,
+even when a native slash-command menu is unavailable.
+
 ## Adding a workflow
 
 1. Write the procedure here as `docs/workflows/<name>.md`. Tool-agnostic, no assistant-specific

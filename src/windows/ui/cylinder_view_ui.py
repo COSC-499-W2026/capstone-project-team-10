@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'cylinder_view.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.1
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -15,9 +15,9 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QCheckBox, QDoubleSpinBox, QGridLayout,
-    QLabel, QLayout, QPushButton, QSizePolicy,
-    QSpacerItem, QSpinBox, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
+    QGridLayout, QLabel, QLayout, QPushButton,
+    QSizePolicy, QSpacerItem, QVBoxLayout, QWidget)
 
 class Ui_Cylinder_View(object):
     def setupUi(self, Cylinder_View):
@@ -39,6 +39,21 @@ class Ui_Cylinder_View(object):
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setSizeConstraint(QLayout.SetMinimumSize)
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
+        self.label_units = QLabel(Cylinder_View)
+        self.label_units.setObjectName(u"label_units")
+        self.label_units.setStyleSheet(u"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_units, 5, 0, 1, 1)
+
+        self.combobox_units = QComboBox(Cylinder_View)
+        self.combobox_units.addItem("")
+        self.combobox_units.addItem("")
+        self.combobox_units.setObjectName(u"combobox_units")
+        self.combobox_units.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.combobox_units, 5, 1, 1, 1)
+
         self.label = QLabel(Cylinder_View)
         self.label.setObjectName(u"label")
         sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
@@ -74,7 +89,7 @@ class Ui_Cylinder_View(object):
 
         self.gridLayout.addWidget(self.label_2, 1, 0, 1, 1)
 
-        self.spinbox_length = QSpinBox(Cylinder_View)
+        self.spinbox_length = QDoubleSpinBox(Cylinder_View)
         self.spinbox_length.setObjectName(u"spinbox_length")
         sizePolicy2.setHeightForWidth(self.spinbox_length.sizePolicy().hasHeightForWidth())
         self.spinbox_length.setSizePolicy(sizePolicy2)
@@ -82,6 +97,7 @@ class Ui_Cylinder_View(object):
         self.spinbox_length.setMaximumSize(QSize(16777215, 16777215))
         self.spinbox_length.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
 "color: rgb(0, 0, 0);")
+        self.spinbox_length.setDecimals(0)
         self.spinbox_length.setMinimum(60)
         self.spinbox_length.setMaximum(300)
 
@@ -96,12 +112,14 @@ class Ui_Cylinder_View(object):
 
         self.gridLayout.addWidget(self.label_4, 2, 0, 1, 1)
 
-        self.spinbox_base_thickness = QSpinBox(Cylinder_View)
+        self.spinbox_base_thickness = QDoubleSpinBox(Cylinder_View)
         self.spinbox_base_thickness.setObjectName(u"spinbox_base_thickness")
         sizePolicy2.setHeightForWidth(self.spinbox_base_thickness.sizePolicy().hasHeightForWidth())
         self.spinbox_base_thickness.setSizePolicy(sizePolicy2)
         self.spinbox_base_thickness.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
 "color: rgb(0, 0, 0);")
+        self.spinbox_base_thickness.setDecimals(0)
+        self.spinbox_base_thickness.setMaximum(99.000000000000000)
 
         self.gridLayout.addWidget(self.spinbox_base_thickness, 2, 1, 1, 1)
 
@@ -114,15 +132,16 @@ class Ui_Cylinder_View(object):
 
         self.gridLayout.addWidget(self.label_5, 3, 0, 1, 1)
 
-        self.spinbox_base_height = QSpinBox(Cylinder_View)
+        self.spinbox_base_height = QDoubleSpinBox(Cylinder_View)
         self.spinbox_base_height.setObjectName(u"spinbox_base_height")
         sizePolicy2.setHeightForWidth(self.spinbox_base_height.sizePolicy().hasHeightForWidth())
         self.spinbox_base_height.setSizePolicy(sizePolicy2)
         self.spinbox_base_height.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
 "color: rgb(0, 0, 0);")
+        self.spinbox_base_height.setDecimals(0)
+        self.spinbox_base_height.setMaximum(99.000000000000000)
         self.spinbox_base_height.setSingleStep(1)
         self.spinbox_base_height.setValue(0)
-        self.spinbox_base_height.setDisplayIntegerBase(10)
 
         self.gridLayout.addWidget(self.spinbox_base_height, 3, 1, 1, 1)
 
@@ -181,6 +200,7 @@ class Ui_Cylinder_View(object):
         self.verticalLayout.addItem(self.verticalSpacer)
 
 #if QT_CONFIG(shortcut)
+        self.label_units.setBuddy(self.combobox_units)
         self.label.setBuddy(self.spinbox_diameter)
         self.label_2.setBuddy(self.spinbox_length)
         self.label_3.setBuddy(self.cb_add_base)
@@ -193,6 +213,10 @@ class Ui_Cylinder_View(object):
 
     def retranslateUi(self, Cylinder_View):
         Cylinder_View.setWindowTitle(QCoreApplication.translate("Cylinder_View", u"Form", None))
+        self.label_units.setText(QCoreApplication.translate("Cylinder_View", u"Units", None))
+        self.combobox_units.setItemText(0, QCoreApplication.translate("Cylinder_View", u"mm", None))
+        self.combobox_units.setItemText(1, QCoreApplication.translate("Cylinder_View", u"cm", None))
+
         self.label.setText(QCoreApplication.translate("Cylinder_View", u"Cylinder Diameter", None))
         self.spinbox_diameter.setSuffix(QCoreApplication.translate("Cylinder_View", u" mm", None))
         self.label_2.setText(QCoreApplication.translate("Cylinder_View", u"Cylinder Length", None))

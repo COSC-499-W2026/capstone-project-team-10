@@ -55,7 +55,7 @@ tests/
 └── views/
 ```
 
-Only `tooling/` and `dicom/test_data.py` exist so far. The rest of the tree shows where tests
+`tooling/`, `views/` and `dicom/test_data.py` exist. The rest of the tree shows where tests
 will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
@@ -100,8 +100,17 @@ this project imports as though `src/` were the root (`from classes.app import ge
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
 
-In `src/`, only `DicomData` has tests so far, in `dicom/test_data.py`. Everything on the list
-below is still untested.
+`dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
+field `__init__` declares. It imports no Qt or conda-only package.
+
+`views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
+widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and
+Ex1 import with needle offsets. `views/conftest.py` uses a temporary HOME/USERPROFILE,
+reuses the one QApplication and never calls `canvas.InitDriver()`. Its teardown disconnects
+application signals. No application module is mocked.
+
+Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
+green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
 

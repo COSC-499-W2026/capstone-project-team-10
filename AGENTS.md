@@ -152,6 +152,15 @@ ticked with **N/A** rather than left blank, `git commit` commits
 the whole index rather than only the paths you just added, and neither commits nor PR
 descriptions may carry AI attribution.
 
+When the user invokes `/make-pr`, read and execute `docs/workflows/make-pr.md` on the
+current branch. This routing applies in every assistant, including one without native
+slash commands; do not substitute a remembered procedure.
+
+The user prefers agents to perform GUI regression runs and capture screenshots themselves.
+Use an available desktop session and isolate test configuration. If desktop access or
+screen capture is unavailable, report the observed limitation and ask only for the evidence
+that cannot be collected. Never claim a viewport run from offscreen widget tests.
+
 Claude Code users get `/commit` and `/make-pr`, which are thin pointers in
 [`.claude/commands/`](.claude/commands/). If your assistant has its own command format, point it
 at the file in `docs/workflows/` rather than copying the content, so there stays one source of
@@ -174,7 +183,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, and almost nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Apart from the tooling tests in `tests/tooling/`, the only tests are of `DicomData` in `tests/dicom/test_data.py`. Every target listed below is still untested, and no missing fixture or folder is a reason to skip one.
+**The test runner is configured, and `DicomData` and Cylinder display units have tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides tooling tests in `tests/tooling/`, `tests/dicom/test_data.py` checks that `DicomData.reset()` clears every field `__init__` declares, and `tests/views/` checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. Its fixture reuses one QApplication and never initialises the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -222,6 +231,13 @@ written the way it is. [tests/tooling/](tests/tooling/) shows the form.
 - **Mocking so deeply that only the mock runs.** Mock at the boundary (the filesystem, `pydicom.dcmread`) and nothing below it.
 
 §8 of [the project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) carries the same target list and must be updated when you add tests.
+
+## Cylinder display units
+
+The Cylinder tab alone displays mm or cm. Its four `LengthField` instances retain exact
+mm values; Apply reads those values. Config and model updates use
+`CylinderView.set_dimensions_mm`, never direct mm writes to the displayed spin boxes.
+The selector starts in mm and is not saved. See §5.6 and §7.6 of the source of truth.
 
 ## UI copy
 
@@ -327,7 +343,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Only tooling and `DicomData` are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Tooling, `DicomData` and Cylinder display units are tested, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
