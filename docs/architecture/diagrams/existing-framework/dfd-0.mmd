@@ -7,6 +7,6 @@ flowchart LR
   brachify(("0 brachify"))
 
   tps -->|"RTPLAN and RTSTRUCT"| brachify
-  physicist -->|"diameter, length, channels, tandem, config JSON"| brachify
+  physicist -->|"cylinder mm or cm, channels, tandem, config JSON in mm"| brachify
   brachify -->|"STL or STEP"| printer
   brachify -->|"PDF sheet and JSON config"| physicist

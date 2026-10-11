@@ -223,6 +223,13 @@ written the way it is. [tests/tooling/](tests/tooling/) shows the form.
 
 §8 of [the project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) carries the same target list and must be updated when you add tests.
 
+## Cylinder display units
+
+The Cylinder tab alone displays mm or cm. Its four `LengthField` instances retain exact
+mm values; Apply reads those values. Config and model updates use
+`CylinderView.set_dimensions_mm`, never direct mm writes to the displayed spin boxes.
+The selector starts in mm and is not saved. See §5.6 and §7.6 of the source of truth.
+
 ## UI copy
 
 **Never use an em dash (`—`) or a colon (`:`) in user-facing copy.**

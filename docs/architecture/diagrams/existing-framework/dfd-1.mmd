@@ -16,7 +16,7 @@ flowchart TB
   tps -->|"DICOM folder"| p1
   physicist -->|"config JSON"| p1
   p1 -->|"needles, Central Axis, settings"| d1
-  physicist -->|"size and collar"| p2
+  physicist -->|"size and collar in mm or cm"| p2
   d1 --> p2
   p2 -->|"cylinder solid"| d2
   physicist -->|"bore, dead space"| p3
@@ -24,7 +24,7 @@ flowchart TB
   p3 -->|"needle solids"| d2
   physicist -->|"curve or STEP"| p4
   p3 -->|"tandem channel"| p4
-  p2 -->|"length and diameter"| p4
+  p2 -->|"length and diameter in mm"| p4
   p4 -->|"tandem solid"| d2
   d2 --> p5
   d1 -->|"patient and plan"| p5
