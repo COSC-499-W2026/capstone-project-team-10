@@ -44,7 +44,7 @@ tests/
 │   └── test_helper.py
 ├── models/
 ├── pdf/
-├── settings/
+├── settings/              exists: config file loading
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
 │   ├── test_architecture_build.py
@@ -54,7 +54,7 @@ tests/
 └── views/
 ```
 
-`tooling/` and `views/` exist. The rest of the tree shows where tests will go.
+`tooling/`, `views/` and `settings/` exist. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -97,6 +97,9 @@ python -m pytest
 this project imports as though `src/` were the root (`from classes.app import get_app`), and
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
+
+`settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
+imports no Qt or conda-only package.
 
 `views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
 widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and

@@ -3606,6 +3606,10 @@ number?"**. *Verified*, with a settings file holding a mix of values:
 | `"MY_NOTE": "hello"` | kept, ignored | `"hello"` | not a setting. It stays in the live settings, so they then hold 20 keys |
 | (the other 14 settings) | not found | the defaults | missing from the file |
 
+> **Out of date since 2026-10-11.** `true` and `false` are no longer kept: the default is used
+> and the key is reported missing. See §7.9 of the
+> [project docs](COSC499-TEAM10-PROJECT-DOCS.md#79-further-bugs-found-while-writing-the-init-guide).
+
 A file that is not valid JSON, or that does not exist, is treated as no file at all: every
 setting comes from the fallback. *Verified*.
 
@@ -3736,6 +3740,10 @@ file again on every start until another one is imported.
 
 - **Whether a setting makes sense.** A −3 mm hole, a 0 mm cylinder, or `true` as a length all
   load. Only "is it a number" is checked.
+
+  > **Out of date since 2026-10-11.** `true` no longer loads. Negative and zero values still do.
+  > See §7.9 of the
+  > [project docs](COSC499-TEAM10-PROJECT-DOCS.md#79-further-bugs-found-while-writing-the-init-guide).
 - **That the defaults stay the defaults.** On a first start, changing a setting changes the
   built-in default too.
 - **That the collar survives.** It is missing from the export, ignored by the import, and dropped

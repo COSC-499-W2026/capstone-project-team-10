@@ -183,7 +183,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, and Cylinder display units have integration tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides tooling tests in `tests/tooling/`, `tests/views/` checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. Its fixture reuses one QApplication and never initialises the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
+**The test runner is configured, and Cylinder display units have integration tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides tooling tests in `tests/tooling/`, `tests/settings/test_load.py` checks how `load_config_file` reads a config file, and `tests/views/` checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. Its fixture reuses one QApplication and never initialises the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -343,7 +343,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Tooling and Cylinder display units are tested, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Tooling, config loading and Cylinder display units are tested, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
@@ -422,7 +422,7 @@ A channel labelled `"Central Axis"` is mandatory — it defines the cylinder axi
 
 `DEFAULT_CONFIG_VALUES` ([settings/defaults.py](src/settings/defaults.py)) is the schema: a flat `CONFIG_*` → number dict. Adding a setting touches four places — `defaults.py`, `settings/reset.py` (`resetAllValues` to push it into a spin box, `getCurrentValues` to read it back), and the owning view's `__init__`.
 
-Config loading is lenient by design: `load_config_file` keeps any key that is present and numeric, falls back to defaults/previous values for the rest, and reports both lists through `config_keys_loaded` so `createConfigMessageText` can tell the user exactly what was and was not loaded. Unknown keys in a user's JSON are preserved but ignored.
+Config loading is lenient by design: `load_config_file` keeps any key that is present and numeric (`true` and `false` are rejected, since Python treats `True` as 1), falls back to defaults/previous values for the rest, and reports both lists through `config_keys_loaded` so `createConfigMessageText` can tell the user exactly what was and was not loaded. Unknown keys in a user's JSON are preserved but ignored.
 
 ### Qt UI files
 
