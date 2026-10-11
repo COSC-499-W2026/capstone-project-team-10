@@ -15,12 +15,19 @@ code, **the code wins and the file must be corrected.**
 It is maintained under a standing rule: it must be derived from reading the source, and every
 claim is marked either *Verified* (observed at runtime) or *Reasoned from code*. See its §2.
 
+**New to the code? Read [project/COSC499-BRACHIFY-INIT-DOCS.md](project/COSC499-BRACHIFY-INIT-DOCS.md)
+alongside it.** The init guide walks through every folder and file of the code as it came from
+upstream, before Team 10 changed `src/`, assuming no background. It uses real values from the two
+sample plans, with drawings of the model. It is a baseline: it is not rewritten when the code
+changes, so a section that a change makes out of date carries a note pointing to the new
+documentation.
+
 ## Contents
 
 | Folder | Contents |
 |---|---|
-| [project/](project/) | **Project documentation — the source of truth.** Setup, architecture, module reference, config schema, known bugs. |
-| [architecture/](architecture/README.md) | **The architecture map.** System architecture, UML, DFD level 0, DFD level 1, the build that renders them, a zoom page, and separate projected diagrams based on the proposal. |
+| [project/](project/) | **Project documentation — the source of truth.** Setup, architecture, module reference, config schema, known bugs. Also the init guide, a plain-language walkthrough of the inherited code. |
+| [architecture/](architecture/README.md) | **The architecture map.** System architecture, UML, DFD level 0, DFD level 1, the build that renders them, a zoom page, what Team 10 has added, the known gaps in the existing code, and separate projected diagrams based on the proposal. |
 | [contract/](contract/) | Team contract |
 | [proposal/](proposal/) | Project proposal |
 | [design/](design/) | UI mocks and design artifacts |

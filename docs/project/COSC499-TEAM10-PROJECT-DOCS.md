@@ -3,8 +3,11 @@
 **This file is the source of truth for project documentation.**
 
 Every other document in this repository is either upstream material we inherited, course
-scaffolding, or a pointer back here. When any two documents disagree, this one wins — and
-when this one disagrees with the code, **the code wins and this file must be corrected**.
+scaffolding, or a pointer back here. The one long companion,
+[COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md), explains the code as inherited
+from upstream for a newcomer, and is a baseline rather than a reference (§9.0). When any two
+documents disagree, this one wins — and when this one disagrees with the code, **the code wins
+and this file must be corrected**.
 
 | | |
 |---|---|
@@ -204,8 +207,13 @@ python src/launch.py
 itself (it is the script's directory), but several resource paths resolve relative to the
 current working directory.
 
-`launch.py` accepts an optional `argv[1]` folder path which auto-triggers a DICOM import; this
-exists so the separate *brachify-optimization* tool can launch straight into a plan.
+`launch.py` accepts an optional `argv[1]` folder path; this exists so the separate
+*brachify-optimization* tool can launch straight into a plan. **It does not import the plan by
+itself.** It opens the same folder picker that *Import Dicom* opens, already showing that
+folder, and the user still has to choose it; cancelling imports nothing. *Reasoned from code
+and from the message of commit `3013845`* ("Open file dialog box immediately on launch…"); not
+run with a screen. Corrected 2026-10-02; this section previously said it auto-triggers the
+import.
 
 ### 1.5 First-run behaviour you must not mistake for a hang
 
@@ -241,6 +249,12 @@ Two complete DICOM triples (RP + RS + RD) ship in the repository:
 |---|---|---|---|
 | `SI_C_D30 Brachify_Ex1/` | Varian Medical Systems | 13 | `Central Axis` + `Applicator2..13` |
 | `SI_C_D30 Brachify_Ex2/` | Varian Medical Systems | 14 | Also has a channel labelled `Tandem` — use this one to exercise the tandem path |
+
+The two are **one plan saved twice**, not two patients. Ex2 adds the `Tandem` channel; the
+needles' points are the same in both, and the RS files hold the same 42 structures under the
+same name and ID (*Verified*; see chapters 6 and 7 of
+[COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md#74-how-ex2-differs-from-ex1)). So
+Ex2 covers everything Ex1 does, plus the tandem. Ex1 is still the only sample with no tandem.
 
 Both exercise the **Varian** import branch only. We have **no sample data for the Nucletron /
 Elekta Oncentra branch**, which is roughly half of [`dicom/fileio.py`](../../src/classes/dicom/fileio.py)
@@ -477,18 +491,21 @@ stands as the permanent rule for anyone — human or AI — who edits this file:
 ### Coverage of the 2026-09-21 audit
 
 Read end to end: every hand-written `.py` file under `src/` and `benchmarks/` (~4,400 LOC
-including all 806 lines of `template_reference.py`); all seven `.ui` XML files; `README.md`,
+including all 806 lines of `template_reference.py`); all six `.ui` XML files (corrected from "seven" on 2026-10-02); `README.md`,
 `README-BRACHIFY.md`, `virtual_environments_instructions.md`, every file in `notes/`;
 `environment.yml`, `requirements.txt`, `spec-file.txt`, `build_executable.py`, `LICENSE`,
 `.gitignore`, `.vscode/*`; the full text of `user_guide/Brachify User Manual.docx`; and the
 headers of both sample DICOM sets.
 
 Not read in full, and why:
-- The seven generated `src/windows/ui/*_ui.py` files. Their complete widget inventory was
+- The six generated `src/windows/ui/*_ui.py` files. Their complete widget inventory was
   extracted from the `.ui` XML they are generated from, which is equivalent and
   authoritative. They must never be hand-edited (§5.6).
-- `3D Models and Templates/*.SLDPRT|.STL|.pdf|.docx` — binary CAD and Office assets with no
-  bearing on program behaviour.
+- `3D Models and Templates/*.SLDPRT|.STL|.pdf|.docx` — binary CAD and Office assets that no
+  code reads. Read for
+  [COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md#1-3d-models-and-templates):
+  the two Word documents are the physicist's cylinder dimensions and the printed-cylinder QA
+  checklist, and six of the dimensions' seven numbers match `DEFAULT_CONFIG_VALUES`.
 - `.vs/brachify/v17/.wsuo` — a Visual Studio binary user-state blob, committed by accident
   upstream.
 - `src/windows - Shortcut.lnk` — a Windows shortcut, committed by accident upstream.
@@ -528,11 +545,27 @@ That channel defines the cylinder's central axis and tip direction; every other 
 rotated and translated into cylinder-local coordinates relative to it. Its tip must sit at the
 tip of the cylinder and its dwell times must be zero (it is not part of the printed model).
 
+**The code matches the label more loosely than "exactly", and differently per vendor.** The
+manual's rule above is the one planners must follow; this is what the code accepts:
+
+| Vendor | Matches | Consequence |
+|---|---|---|
+| Varian | the first channel whose label, ignoring case, **contains** `central axis` or `centralaxis` | a dose-carrying needle labelled, say, `Central Axis Needle` can be taken as the axis (*Verified*) |
+| Nucletron / Oncentra | a structure whose `ROIName`, ignoring case, **is** `central axis` or `centralaxis` | exact, apart from case. *Reasoned from code*; there is no Oncentra sample (§1.6) |
+
+Nothing reads the dwell times, so a Central Axis with dwell time is not caught: both samples
+give it 222.8 s (*Verified*).
+
 If it is absent, brachify falls back to a structure whose `ROIObservationLabel` contains
 `"surface"`. If that is also absent, the import aborts with
-`MainWindow.no_central_axis_or_cylinder_outline()`.
+`MainWindow.no_central_axis_or_cylinder_outline()`. On the Oncentra path the fallback places
+the cylinder but loads no needle (§7.9).
 
-A channel labelled `Tandem` is optional; if present it supplies the tandem's rotation angle.
+A tandem channel is optional. If present it supplies the tandem's rotation angle. The match is
+a substring too: any channel whose label contains `tandem`, ignoring case, is set as the tandem
+at import ([`channels_model.py:66-67`](../../src/windows/models/channels_model.py#L66-L67)). When
+several match, the last one wins, since each match replaces the one before. *Reasoned from
+code.*
 
 ### 3.3 Repository provenance
 
@@ -708,7 +741,8 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── architecture/          system architecture, existing/projected UML and DFD sources, SVGs, build.py, README
 │   ├── contract/ proposal/ design/ minutes/   course documents, README only
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
-│   ├── project/               ← this document
+│   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
+│   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
 ├── tests/                     tooling tests only, none for src/ yet (§8)
 ├── utils/                     README only
@@ -717,7 +751,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 ├── resources/                 splash image and icon
 ├── user_guide/                Brachify User Manual.docx
 ├── Images/                    README screenshots
-├── 3D Models and Templates/   printable collets, wrenches, template cylinders
+├── 3D Models and Templates/   collet models and drawings, cylinder dimensions, QA checklist
 ├── SI_C_D30 Brachify_Ex1/     sample Varian DICOM
 ├── SI_C_D30 Brachify_Ex2/     sample Varian DICOM (has a Tandem channel)
 └── src/
@@ -733,7 +767,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     ├── settings/              defaults.py, load.py, values.py, reset.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
-        ├── palettes.py        colour definitions (largely unused)
+        ├── palettes.py        colour definitions (unused)
         ├── models/            six QObject models
         ├── views/             five views + custom_view.py + viewport.py
         └── ui/                .ui sources and generated *_ui.py
@@ -747,8 +781,8 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 
 **[`src/launch.py`](../../src/launch.py)** — builds `RadiotherapyApp`, calls `gui()`, closes the
 PyInstaller splash screen if present (`pyi_splash` exists only in frozen Windows builds, so the
-import is wrapped in a bare `except`), optionally auto-imports `argv[1]`, then enters the event
-loop.
+import is wrapped in a bare `except`), optionally opens the folder picker at `argv[1]` (it does
+not import by itself, §1.4), then enters the event loop.
 
 **[`src/classes/app.py`](../../src/classes/app.py)** — `RadiotherapyApp(QApplication)`.
 Module-level `get_app()` returns `QApplication.instance()` and is how **every** module reaches
@@ -790,7 +824,9 @@ single mutable dict every other module reads), the two most-recent config file p
 
 **[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of ~20
 fields. There is a comment in the file stating the rule explicitly: **any field added to
-`__init__` must also be added to `reset()`**, or it leaks across successive imports.
+`__init__` must also be added to `reset()`**. Keep the rule, but know how narrow the leak is:
+every import builds a **new** `DicomData`, so a field missing from `reset()` only survives an
+import that fails partway and leaves the old object in place (*Reasoned from code*; see [10.4 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#104-datapy-the-form-brachify-fills-in)).
 (`central_axis_flag` currently violates this — it is set in `__init__`, absent from `reset()`,
 and never read.)
 
@@ -832,8 +868,14 @@ All under [`src/classes/mesh/`](../../src/classes/mesh/), one concern per module
 **`cylinder.py`** — `BrachyCylinder`. `shape()` builds a `BRepPrimAPI_MakeCylinder`, finds the
 highest planar face by walking a `TopExp_Explorer`, fillets that top edge into a dome, then
 optionally fuses a base collar (`add_base`) and always fuses the orientation notch
-(`add_notch`). **`shape()` caches into `self._shape`; every mutator must clear that cache** —
-`setDiameter`, `setLength` and `enableBase` all do.
+(`add_notch`). **`shape()` reads a cache but never writes one.** It returns `self._shape` when
+one is stored, and otherwise rebuilds the solid without storing it. Only the three setters,
+`setDiameter`, `setLength` and `enableBase`, clear `_shape`, rebuild and store the result
+(*Verified* for the init guide: after calling `shape()` on a new cylinder, `_shape` was still
+empty). So **every mutator must clear the cache and rebuild it**, as those three do, or
+`shape()` keeps returning the old solid. A new cylinder rebuilds on every call until a setter
+runs, and the collar is read from the live settings at the moment of that rebuild (§7.1).
+Corrected 2026-10-02; this section previously said `shape()` caches into `self._shape`.
 
 **`channel.py`** — `NeedleChannel` plus `rounded_channel()`, the single most intricate function
 in the codebase. It:
@@ -919,7 +961,8 @@ generated `*_ui.py` counterparts.
 
 > **The `*_ui.py` files are generated. Never hand-edit them.** They carry a
 > `WARNING! All changes made in this file will be lost when recompiling UI file!` banner and
-> were produced by Qt User Interface Compiler 6.5.2.
+> were produced by Qt User Interface Compiler: `main_window_ui.py` by 6.5.2, the other five
+> by 6.8.1. All six match their `.ui` files (*Verified* by regenerating them for the init guide).
 
 Regenerate after editing a `.ui`:
 
@@ -983,9 +1026,9 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 
 Styling for the nav buttons is applied as **inline `setStyleSheet` strings** in five
 near-identical `change_color_*` methods in `main_window.py`.
-[`palettes.py`](../../src/windows/palettes.py) and [notes/style guide.txt](../../notes/style%20guide.txt)
-exist but the nav buttons do not use them. This is the most obvious refactor target in the UI
-layer.
+[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it. This is
+the most obvious refactor target in the UI layer. ([notes/style guide.txt](../../notes/style%20guide.txt)
+is about Python naming, `lower_case` functions and `CapWords` classes, not colours.)
 
 ### 5.7 The 3D viewport
 
@@ -1064,9 +1107,15 @@ gives undefined results.
 Plan authoring requirements (from the User Manual, both vendors):
 
 - A straight needle labelled **`Central Axis`**, placed as accurately as possible along the
-  cylinder axis, tip at the cylinder tip, **dwell times set to zero**.
-- No intersecting needles.
-- Optionally a needle labelled **`Tandem`** to orient the tandem.
+  cylinder axis, tip at the cylinder tip, **dwell times set to zero**. The code matches the
+  label more loosely than this and never reads dwell times (§3.2).
+- No intersecting needles. Nothing in the code checks this.
+- Oncentra only: the manual asks for the Central Axis to be channel number 1. Nothing in the
+  code checks the channel number.
+- Optionally a needle labelled **`Tandem`** to orient the tandem. Also matched as a substring
+  (§3.2).
+- A central needle that delivers dose needs a label that does not contain `Central Axis`
+  (§3.2).
 - Oncentra only: *Tip End* must be selected under Applicator Properties, and using implant
   models requires a licence that is not enabled by default.
 
@@ -1096,6 +1145,17 @@ Plan authoring requirements (from the User Manual, both vendors):
 | `CONFIG_BASE_HEIGHT` | 0.0 | collar height; 0 disables the collar | **NO — §7.1** |
 | `CONFIG_BASE_THICKNESS` | 0.0 | collar wall thickness; 0 disables the collar | **NO — §7.1** |
 
+**Where the physical defaults come from.** `3D Models and Templates/Values for Cylinders
+(1).docx` lists the physicist's cylinder dimensions, and six of them match the defaults above
+exactly: needle thread diameter 3.17, needle channel 2.7, tandem channel 3.8, tandem tap 5.0,
+tandem thread depth 7, cylinder length 160. One does not. The document gives **needle thread
+depth 4.5 mm**, and `CONFIG_CHANNELS_THREADING_DEPTH` defaults to **5.0**. *Verified* by
+reading both. Which value is correct is **not verified**. Ask the physicist before changing
+either. The collet defaults also match the collet models in that folder: the needle collet body
+is 5 mm across, and the tandem collet head is 8 mm. The QA checklist in the same folder adds
+0.6 cm to interstitial lengths for plastic needles, which is the 6.0 of `CONFIG_DEADSPACE`.
+Chapter 1 of [the init guide](COSC499-BRACHIFY-INIT-DOCS.md#1-3d-models-and-templates) has the full comparison.
+
 Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValues()` and
 `getCurrentValues()` in `settings/reset.py`, and the owning view's `__init__`.
 
@@ -1119,51 +1179,99 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 | Export Reference Sheet | `.pdf` (+ `basemap.png` alongside) | `template_reference.generate_pdf` |
 | Export Current Settings as Config | `.json` | `getCurrentValues()` — **loses 2 keys, §7.1** |
 
+### 6.5 The User Manual against the code
+
+[`user_guide/Brachify User Manual.docx`](../../user_guide/Brachify%20User%20Manual.docx) is the
+clinician's guide. It is inherited from upstream and never edited (§9.0), so where it has drifted
+from the code, the difference is recorded here. Its full text was checked against the code for
+the init guide ([chapter 19](COSC499-BRACHIFY-INIT-DOCS.md#19-user_guide)). Its screenshots were not compared
+with the current UI.
+
+**Where the manual is wrong or incomplete.** *Reasoned from code* unless marked.
+
+| The manual says | The code does |
+|---|---|
+| §1–2: the central axis must be labelled `Central Axis`, and a dose-delivering central needle needs a different label | The code matches `Central Axis` as a substring on Varian plans, so a "different" label that contains the phrase still matches (§3.2). *Verified* |
+| §1–2: give the Central Axis zero dwell time | Nothing reads the dwell times. Both samples give it 222.8 s (§3.2). *Verified* |
+| §2: give the Oncentra central axis channel number 1 | Neither reader checks the channel number. It is matched by name only (§3.2) |
+| §1–2: ensure no needles intersect | Nothing checks this. `are_colliding()` is never called (§7.4) |
+| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:13-16](../../src/windows/views/channels_view.py#L13-L16)). *Verified* |
+| 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab does nothing (§7.8) |
+| 4.4: lists *Dead Space* in the layout, but never explains it | `CONFIG_DEADSPACE` extends each needle tip outward, in the model and in the interstitial lengths (§5.4, §5.8) |
+| 4.3: Collar Thickness "changes the diameter of the collar" | It is the collar's wall thickness. The collar's diameter is the cylinder diameter plus twice the thickness (`outer_radius = radius1 + base_thickness`, [cylinder.py:136](../../src/classes/mesh/cylinder.py#L136)) |
+| 4.6: the Export tab shows the orientation notch removed from the cylinder | The notch is fused on as a raised bar (§5.4). `_final_mesh()` cuts out only channels and tandem ([export_view.py:202-210](../../src/windows/views/export_view.py#L202-L210)). *Verified* |
+| 4.6: Export Mesh saves an STL | The save dialog offers STL or STEP ([export_view.py:69](../../src/windows/views/export_view.py#L69), §6.4) |
+| 4.5: refers to "Section 4.5 Channels" | Channels is §4.4 of the manual |
+
+**Confirmed against the code.** After a DICOM import the app switches to the Export tab
+([import_view.py:142](../../src/windows/views/import_view.py#L142)). The Export tab's labels
+match `export_view.ui` exactly. *Show Tandem* is disabled when there is no tandem. The mouse
+controls match §5.7. An imported tandem must be STEP (§5.4).
+
+**Only in the manual.** These are not repeated here, because they are for clinicians, not
+developers. Read the manual for them:
+- installing a release build from `github.com/brachify/brachify-release` (not checked),
+- the click-by-click TPS export steps for BrachyVision and Oncentra, with screenshots,
+- that an imported tandem's origin must be at the base of the cylinder, `(0,0,0)`, and that
+  rotation 0° keeps its STEP-file direction, while a generated tandem at 0° points along +x,
+- that *Generate Tandem* replaces any existing tandem, imported or generated, and that each tab's
+  *Apply* button must be pressed or the change is not kept.
+
 ---
 
 ## 7. Known bugs, traps, and dead code
 
 Everything here was found by reading the code during the 2026-09-21 audit, unless its entry
-gives a later date. An entry that has since been fixed says **Fixed** with the date and stays
-listed. Severity is our judgement, not upstream's.
+gives a later date. §7.7 to §7.9 were found between 2026-09-29 and 2026-10-02, while writing
+[COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md) (the init guide), by reading the code and by running
+brachify's own code headless on copies of the sample folders. They sit at the end so the existing
+section numbers, which other files cite, stay stable. An entry that has since been fixed says
+**Fixed** with the date and stays listed. Severity is our judgement, not upstream's.
 
-### 7.1 HIGH — the base collar silently disappears after generating a tandem
+### 7.1 HIGH — the collar is never saved to, or loaded from, a settings file
 
-*Verified by static analysis; not yet reproduced in the GUI.*
+*Corrected 2026-10-02.* The 2026-09-21 audit described this as the collar disappearing after
+*Generate Tandem*. Running the real tabs headless on `SI_C_D30 Brachify_Ex2/` for the init guide
+showed that it does not, in that sequence. The bug is real, but it lives in the settings file.
+See [17.4 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#174-cylinder_viewpy-the-cylinder-tab)
+and [13.6](COSC499-BRACHIFY-INIT-DOCS.md#136-resetpy-into-the-boxes-and-back-out) there.
 
 `getCurrentValues()` ([settings/reset.py](../../src/settings/reset.py)) returns **17 of the 19**
-config keys. It omits `CONFIG_BASE_HEIGHT` and `CONFIG_BASE_THICKNESS`.
+config keys. It omits `CONFIG_BASE_HEIGHT` and `CONFIG_BASE_THICKNESS`. *Verified.* Two things
+follow.
 
-`TandemView.action_set_tandem()` ([tandem_view.py:59](../../src/windows/views/tandem_view.py))
-ends with:
+**1. The settings file loses the collar.** *Verified* for the export and the import:
 
-```python
-get_app().values.config_values = getCurrentValues()
-```
+- *Export Current Settings as Config* writes `getCurrentValues()`, so the file has no collar.
+- *Import Config File* of such a file reports both collar keys as not found and keeps the
+  current values (`load_config_file`), and `resetAllValues()` does not touch the collar spin
+  boxes either. A collar typed into a config file by hand is therefore not shown in the boxes.
+- So collar geometry cannot be saved or shared through a config file at all. A clinician who
+  reopens a saved configuration gets whatever collar the app had before, which is usually none.
 
-That **replaces the entire live config dict** with the 17-key version, permanently dropping the
-two collar keys from the running session.
+**2. *Generate Tandem* drops the collar keys from the live settings, but the cylinder keeps its
+collar.** `TandemView.action_set_tandem()` ([tandem_view.py:59](../../src/windows/views/tandem_view.py))
+ends with `get_app().values.config_values = getCurrentValues()`, replacing the whole live dict
+with the 17-key version. `BrachyCylinder.shape()` reads the collar from the live dict with a
+default of `0.0`, and `add_base()` does nothing when either is zero. But `shape()` returns the
+solid the last setter stored (§5.4), so the cylinder already built keeps its collar, and the next
+*Apply Settings* writes both keys back from the spin boxes before it rebuilds. *Verified*:
 
-`BrachyCylinder.shape()` ([cylinder.py:65-66](../../src/classes/mesh/cylinder.py)) then reads
-them with a default:
+| Step | Live collar keys | Cylinder volume | Collar |
+|---|---|---|---|
+| tick *Add Collar*, thickness 3, height 10, *Apply* | 10, 3 | 112,709.4 mm³ | there |
+| *Generate Tandem* | **missing** | 112,709.4 mm³ | still there |
+| the Export tab's solid | missing | 100,198.9 mm³, collar and tandem hole | still there |
+| length 150, *Apply* | 10, 3 again | 105,640.8 mm³ | there |
 
-```python
-base_height    = float(get_app().values.config_values.get("CONFIG_BASE_HEIGHT", 0.0))
-base_thickness = float(get_app().values.config_values.get("CONFIG_BASE_THICKNESS", 0.0))
-```
+The latent risk: any rebuild that calls a setter between *Generate Tandem* and the next *Apply*
+would build with no collar. No such path was found in the app (*Reasoned from code*; the only
+other `setLength` caller, `CylinderModel.update_height_offset`, is never connected, §7.9). Not
+checked: every path, in the GUI.
 
-Both fall back to `0.0`, and `add_base()` returns the shape unmodified when either is zero.
-
-**Reproduction path:** import a plan → Cylinder tab → tick *Add Collar*, set thickness and
-height → Apply → Tandem tab → *Generate Tandem* → back to Cylinder → change anything → Apply.
-The collar is gone, and the *Add Collar* checkbox may still read as ticked.
-
-The same 17-key omission also means **Export Current Settings as Config never writes the collar
-settings**, so collar geometry cannot be saved or shared via a config file at all.
-
-Suggested fix: add both keys to the `current_values` dict in `getCurrentValues()`. Consider
-also changing `tandem_view.py:59` to `config_values.update(getCurrentValues())` so a partial
-snapshot can never drop keys again.
+Suggested fix, test first: add both keys to the `current_values` dict in `getCurrentValues()`,
+push them into the spin boxes in `resetAllValues()`, and change `tandem_view.py:59` to
+`config_values.update(getCurrentValues())` so a partial snapshot can never drop keys again.
 
 ### 7.2 MEDIUM — unsupported TPS vendor raises an unhandled `UnboundLocalError`
 
@@ -1221,6 +1329,9 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | `add_notch(z_offset=...)` | the parameter is computed and passed but the translation is commented out, so the notch is always at `z=0` even with a collar |
 | `generate_cylinder_points` / `get_surface_intersection` / `get_interstitial_length` in `mesh/channel.py` | duplicated (worse) copies of the `template_reference.py` versions; unused |
 | `.vs/brachify/v17/.wsuo`, `src/windows - Shortcut.lnk` | Windows-only artifacts committed by accident |
+| `3D Models and Templates/readme.txt` | lists "3D Models of Wrenches" and "Template Cylinders - Multi channel and Universal", but the folder holds neither. It has four collet parts (`.SLDPRT`, three with `.STL`), two collet drawings (`.pdf`), `Values for Cylinders (1).docx` and `3D Printed Cylinder QA.docx` (*Verified*). The readme is inherited from upstream, so it is not edited |
+| `notes/deployment.txt`, `notes/background_color.txt` | stale. The first gives the old `pydicom.encoders.*` hidden imports; the second says to add a `background.png` that does not exist ([4.2 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#42-where-the-notes-have-gone-stale)). Inherited, so not edited |
+| further unused functions | `extract_points_from_channels`, `get_last_xy_points`, `get_point_at_z0` (would crash if called) and `index_before_negative_point` in `template_reference.py`; `make_arc`, `make_point`, `make_cylinder`, `make_curved_pipe`, `show_cylinder`, `make_thru_shape` in `tandem.py`; `remove_shapes`, `set_shape_colour`, `set_shape_visibility` in `display_model.py`; `DrawBox` in `viewport.py`; `explore_rp_rs` in `dicom/fileio.py`; `src/windows/palettes.py` as a whole. `calculate_protrusion_lengths` is called but its result is never used. *Reasoned from code* |
 | `.gitignore`, lines 177 and 179 | leftover merge-conflict markers, `=======` and `>>>>>>> main`, around a `files` entry. Git reads each marker as an ignore pattern. Inherited from upstream, whose `.gitignore` carries the same lines (*Verified* 2026-09-25 against `upstream/main` at `f89cafe`). Harmless today, since no file is named after a marker, but delete both lines when someone next edits `.gitignore` |
 
 ### 7.5 LOW — cross-platform rough edges
@@ -1241,10 +1352,22 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   checks. *Verified* by four regression cases in `tests/tooling/test_architecture_build.py`,
   watched failing before the fix and again after deliberately reverting discovery.
 
-- **`BrachyCylinder.shape()` caches.** Clear `self._shape` in any new mutator.
+- **`BrachyCylinder.shape()` returns a stored solid but never stores one.** Only the three
+  setters store `self._shape`. A new mutator must clear it and rebuild it, as they do, or the
+  viewport and the export keep the old solid (§5.4).
+- **`BrachyCylinder`'s default diameter is fixed when the module is imported.** The default
+  argument reads `CONFIG_CYLINDER_DIAMETER` once, so a later settings change never reaches it.
+  Every caller passes a diameter today. *Reasoned from code.*
+- **The default Tandem Height (170) is taller than the default cylinder (160).** `Tandem()`
+  with its defaults fails to build (*Verified*). The app avoids it only because import caps the
+  Tandem Height spin box at the cylinder length. A test or new code calling `Tandem()` must pass
+  a height.
+- **The Varian Central Axis match is a substring match** (§3.2). Do not label a dose-carrying
+  needle with a name that contains `Central Axis`.
 - **`NavigationModel.views` order is frozen** (§4.3). It is indexed positionally everywhere.
 - **`@display_action` is mandatory** on any view method that changes geometry (§4.5).
-- **`DicomData.__init__` and `reset()` must stay in sync** (§5.3).
+- **`DicomData.__init__` and `reset()` must stay in sync** (§5.3). A missing field only leaks
+  after an import that fails partway, since each import builds a new `DicomData`.
 - **Adding a config key touches four places** (§6.2).
 - **`*_ui.py` files are generated** — edit the `.ui` and re-run `pyside6-uic` (§5.6).
 - **The two tandem rotation spin boxes** must be written together (§5.6).
@@ -1280,6 +1403,90 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   module read `src\classes\mesh\...` on Windows and `src/classes/mesh/...` elsewhere, and 5 of
   the 8 tests in `test_architecture_drift.py` failed on every Windows clone, `main` included.
   Both now print `.as_posix()`. *Verified* on Windows: 5 failed before, all 8 passed after.
+
+
+### 7.7 MEDIUM — a tandem channel's rotation is measured from `(1, 0)`, not the axis
+
+*Verified* on a changed copy of `SI_C_D30 Brachify_Ex2/`, 2026-09-29 to 2026-10-02; not seen in
+the GUI.
+
+`NeedleChannel.get_rotation()` ([mesh/channel.py:152-158](../../src/classes/mesh/channel.py#L152-L158))
+gives the angle that *Set as Tandem*, and a channel labelled `Tandem` at import, write into the
+tandem rotation. Its comment says it measures "using 0,0". The code measures from `(1, 0)`:
+
+```python
+v1 = [1.0, 0.0, self.points[0][2]]
+v2 = self.points[0]
+angle = math.atan2(v2[1] - v1[1], v2[0] - v1[0]) * (180 / 3.14159)
+```
+
+That is `atan2(y, x - 1)`, where `points[0]` is the tip in cylinder-local coordinates, whose
+axis is `x = y = 0` (§4.6). With Ex2's tandem tip moved 6 mm to one side, the tandem was aimed at
+**32.7°**, while the tip's true direction from the axis is **30.0°**
+([10.8 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#108-what-happens-if-a-value-in-the-file-changes)).
+Evaluating the formula directly, *Reasoned from code*:
+
+| Tip `(x, y)` | Code gives | Angle from the axis | Error |
+|---|---|---|---|
+| (10, 0) | 0.0° | 0.0° | 0 |
+| (5, 5) | 51.3° | 45.0° | +6.3° |
+| (0, 10) | 95.7° | 90.0° | +5.7° |
+| (2, 2) | 63.4° | 45.0° | +18.4° |
+
+The error is zero when the tip lies on the +x axis beyond `x = 1`, and grows as the tip nears
+the cylinder axis (a tip at `(0.5, 0)` gives 180°), which is where a
+tandem tip usually sits. The generated tandem then points away from the planned channel. The
+unchanged samples cannot show it, because Ex2's tandem tip lies on the +x axis. Not yet checked:
+that the offset is not deliberate. Fix it test first: `get_rotation()` is pure maths and a good
+first test for `tests/mesh/`. Inspect the result in the Export tab.
+
+### 7.8 LOW — *Clear Tandem* on the Channels tab does nothing
+
+*Reasoned from code, 2026-09-29; not reproduced in the GUI.*
+
+When the selected channel is the tandem, `btn_set_tandem` reads *Clear Tandem*
+([channels_view.py:148](../../src/windows/views/channels_view.py#L148)). Pressing it calls
+`action_set_tandem()` ([channels_view.py:62-97](../../src/windows/views/channels_view.py#L62-L97)),
+whose only call to `ChannelsModel.set_tandem()` runs when the selected channel is **not**
+already the tandem:
+
+```python
+label = None
+if channel_label != data.tandem_channel:
+    label = channel_label
+    model.set_tandem(label)
+```
+
+So pressing *Clear Tandem* leaves `data.tandem_channel` unchanged. The channel stays the
+tandem, stays disabled, and the button keeps its label. The method then only rewrites the two
+rotation spin boxes. The Tandem tab's own *Clear Tandem* buttons are separate and are not
+affected. The User Manual does not describe this button's clear action, so what it should do is
+not written down anywhere either (§6.5). Confirm the behaviour in the running app before fixing.
+
+### 7.9 Further bugs found while writing the init guide
+
+Each row links to the init guide section with the evidence. *Verified* means brachify's own code
+was run headless and the result observed; nothing here was seen in the GUI.
+
+| Severity | Where | Problem | How sure |
+|---|---|---|---|
+| MEDIUM | holes in `SI_C_D30 Brachify_Ex2/` | two pairs of base holes overlap: Applicator10 and 11 by 0.07 mm, Applicator5 and 6 by 0.04 mm, and several walls are under 0.25 mm. At Tandem Height 120 the tandem hole also meets needle holes. Nothing warns, because `are_colliding()` is never called (§7.4). See [11.10](COSC499-BRACHIFY-INIT-DOCS.md#1110-what-happens-if-a-setting-changes) and [11.7](COSC499-BRACHIFY-INIT-DOCS.md#117-tandempy-the-tandem) | *Verified* |
+| MEDIUM | `TandemModel`, the tandem rebuild | when every try fails, as when the cylinder is shortened below the Tandem Height after a tandem exists, the rebuild ends with `cannot access local variable 'shape'`. Generating at Tandem Height 170 or 300 on Ex2's 160 mm cylinder showed five error messages first. The spin box's cap is updated only after the cylinder changes. See [15.8](COSC499-BRACHIFY-INIT-DOCS.md#158-tandem_modelpy-the-tandem) and [17.9](COSC499-BRACHIFY-INIT-DOCS.md#179-what-happens-if-something-here-changes) | *Verified* for the failure; *Reasoned from code* that the old tandem stays |
+| MEDIUM | `load_nucletron_dicom_data`, no Central Axis | the `surface` fallback places the cylinder, then loads **no needle**, because `center_index` is never set. The failure is logged with the wrong cause and nothing appears on screen. See [10.6](COSC499-BRACHIFY-INIT-DOCS.md#106-elekta-oncentra-files) | *Reasoned from code*; no Oncentra sample |
+| MEDIUM | `load_nucletron_dicom_data`, needle order | a structure with no points is skipped, which shifts every later needle's points onto the wrong channel by one place. The comment says an empty placeholder is added, but that line is commented out. The reader also assumes the structures are already in plan order and never re-sorts. See [10.6](COSC499-BRACHIFY-INIT-DOCS.md#106-elekta-oncentra-files) | *Reasoned from code*; no Oncentra sample |
+| LOW | both readers, one-point anchors | removing one single-point "anchor" channel is correct; a second one deletes the wrong entries and shifts every later needle's name and number. The code's own comment says it works for one only. Varian warns on the first anchor, Oncentra on the second. See [10.5](COSC499-BRACHIFY-INIT-DOCS.md#105-fileiopy-how-the-form-gets-filled) | *Reasoned from code* |
+| LOW | `getCurrentValues()` | crashes with `'NoneType' object has no attribute 'diameter'` if no cylinder exists yet, so *Export Current Settings as Config* before an import or *Apply* writes nothing. See [13.6](COSC499-BRACHIFY-INIT-DOCS.md#136-resetpy-into-the-boxes-and-back-out) | *Verified* |
+| LOW | `OrbitCameraViewer3d.keyPressEvent` | any key press in the 3D view raises `AttributeError: 'OrbitCameraViewer3d' object has no attribute '_key_map'`; Qt prints it and carries on. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Verified* |
+| LOW | `mesh/fileio.py:54` | the write-failure path runs `from src.classes.logger import log`, while every other file imports `classes.logger`. In the `.exe` there is no `src` package, so the handler itself fails and hides the original error. See [11.8](COSC499-BRACHIFY-INIT-DOCS.md#118-helperpy-intersectionspy-and-fileiopy) | *Reasoned from code* |
+| LOW | STL export | writing Ex2's model printed "6 faces have been skipped due to null triangulation" from OpenCASCADE, which can leave gaps in the STL. Which faces, and whether slicers mind, is not checked. See [11.8](COSC499-BRACHIFY-INIT-DOCS.md#118-helperpy-intersectionspy-and-fileiopy) | *Verified* for the message |
+| LOW | `launch.py`, start-up failure | if `RadiotherapyApp(argv)` fails, the handler calls `input(...)`, which fails in the `.exe` with no terminal, then carries on and crashes with `'NoneType' object has no attribute 'setApplicationName'`. See [8.3](COSC499-BRACHIFY-INIT-DOCS.md#83-when-starting-fails) | *Reasoned from code* |
+| LOW | `ChannelsModel.set_selected_channels` | the test for "is this a position number?" is never true, so selecting by number stores `(0,)`, which matches no needle. The app only passes labels today. See [15.7](COSC499-BRACHIFY-INIT-DOCS.md#157-channels_modelpy-the-needles) | *Verified* |
+| LOW | `CylinderModel.update_height_offset` | its comment says it is connected to `height_changed`; it is not. If it were, it would set the cylinder's **length** to the offset. See [15.6](COSC499-BRACHIFY-INIT-DOCS.md#156-cylinder_modelpy-the-cylinder) | *Reasoned from code* |
+| LOW | `DisplayModel` | `add_shape(enabled=False)` for a label never added raises `KeyError`; `update()` with an `EXPORT` shape under the default material table crashes. Neither happens in the app today. See [15.4](COSC499-BRACHIFY-INIT-DOCS.md#154-display_modelpy-what-the-3d-view-shows) | *Verified* |
+| LOW | `palettes.py` | `dark` is a `@staticmethod` and `light` is not, so `Palettes().light(window)` would pass the wrong argument. Nothing calls either. See [14.4](COSC499-BRACHIFY-INIT-DOCS.md#144-palettespy-two-themes-nothing-uses) | *Reasoned from code* |
+| LOW | `main_window.ui` | six colours are written `rgba(240, 245, 250)`, with no alpha, so Qt prints `Specified color with alpha value but no alpha given` on every start. It also asks for an icon from a Qt resource file that is not in the repository. See [18.6](COSC499-BRACHIFY-INIT-DOCS.md#186-colours-and-other-text-in-the-design-files) | *Verified* for the warning |
+| LOW | the 3D view | every redraw zooms to fit, so after *Apply* or a selection any zoom the user set is lost. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
+| LOW | spin box limits | *Cylinder Length* and the collar are `QSpinBox`, whole millimetres only, while settings files hold decimals. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
 
 ---
 
@@ -1378,6 +1585,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 | File | Covers |
 |---|---|
 | `docs/project/COSC499-TEAM10-PROJECT-DOCS.md` | this file, the source of truth |
+| [docs/project/COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md) | the init guide: a plain-language walkthrough of the code **as inherited from upstream**, before Team 10 changed `src/`. It is a baseline, so it is never rewritten to match new code. When a change makes one of its sections out of date, add a short note to that section saying so and pointing to where the new behaviour is documented. Where it and this file disagree, this file wins, and the code wins over both |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
 | [docs/architecture/README.md](../architecture/README.md) | System architecture, UML, DFD level 0, DFD level 1, Team 10's additions, and the proposed project framework. That README owns when to redraw and how. |
 | [docs/contract/README.md](../contract/README.md) | team contract |
@@ -1454,6 +1662,7 @@ Beyond the set-wide rule above, update **this** document when you:
 | new/changed config key | §6.2 (and remember the four code sites) |
 | new/changed export format | §6.4 |
 | bug found or fixed | §7 |
+| anything that makes a section of the init guide out of date | a short note in that section of [COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md), pointing here; the section itself is not rewritten |
 | test added | §8, and every function in it has a docstring ([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)) |
 | skill added, removed, or updated in `agent-skills/` | the table in `agent-skills/README.md`; §1.10 only if how skills load changes |
 
@@ -1479,10 +1688,11 @@ Beyond the set-wide rule above, update **this** document when you:
 | [pull_request_template.md](../../pull_request_template.md) | Team 10 PR template: the course's Part A receipts, then the update-this-doc gate |
 | [pull_request_template_brachify.md](../../pull_request_template_brachify.md) | upstream's original review process, preserved |
 | [docs/README.md](../README.md) | index of the `docs/` tree |
+| [COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md) | the init guide: the inherited code explained from scratch, with worked examples on the sample data. Read it first, then this file |
 | [README-BRACHIFY.md](../../README-BRACHIFY.md) | upstream project README (user-facing) |
 | [virtual_environments_instructions.md](../../virtual_environments_instructions.md) | upstream conda guide (Windows-centric) |
 | [notes/](../../notes/) | upstream developer notes |
-| [user_guide/Brachify User Manual.docx](../../user_guide/Brachify%20User%20Manual.docx) | end-user manual; authoritative on clinical workflow |
+| [user_guide/Brachify User Manual.docx](../../user_guide/Brachify%20User%20Manual.docx) | end-user manual; authoritative on clinical workflow. Where it differs from the code, see §6.5 |
 
 ---
 
@@ -1495,7 +1705,7 @@ Beyond the set-wide rule above, update **this** document when you:
 | **Applicator / cylinder** | The physical device inserted into the patient. brachify generates a printable, patient-specific one. |
 | **Tandem** | A curved central channel, typically for a uterine source. Either generated parametrically or imported as a STEP model. |
 | **Channel** | One needle path. Each becomes a bored hole in the printed cylinder. |
-| **Central Axis** | The mandatory reference channel defining the cylinder axis (§3.2). |
+| **Central Axis** | The mandatory reference channel defining the cylinder axis (§3.2). The manual says to label it exactly `Central Axis`; Varian plans are matched on a label that contains it. |
 | **Dead space** | Distance from the needle tip to the first dwell position; extends the tip in interstitial length calculations. |
 | **Collet** | A small printed insert holding a needle at the cylinder base. Models in `3D Models and Templates/`; the PDF draws tolerance rings for them. |
 | **Notch** | Small raised marker fused to the cylinder wall at `z=0` indicating orientation. |
@@ -1506,4 +1716,4 @@ Beyond the set-wide rule above, update **this** document when you:
 | **OCC / OpenCASCADE** | The B-rep CAD kernel, reached through `pythonocc-core`. |
 | **B-rep** | Boundary representation — solids described by faces/edges/vertices rather than meshes. |
 | **TopoDS_Shape** | The OCC base type for all geometry. |
-| **Dwell time** | How long the source sits at a position. Must be zero for `Central Axis`. |
+| **Dwell time** | How long the source sits at a position. Must be zero for `Central Axis`, though nothing in the code checks it (§3.2). |

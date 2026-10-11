@@ -52,6 +52,8 @@ The linter rejects low-evidence and low-signal patterns: a value whose type was 
 
 For the picture, read [docs/architecture/README.md](docs/architecture/README.md) before the long reference. It holds the UML and both data-flow diagrams, and it is the only place that says when to redraw them and how (`python docs/architecture/build.py`).
 
+To learn what a part of the inherited code does, with worked examples on the sample DICOM, read the matching chapter of [docs/project/COSC499-BRACHIFY-INIT-DOCS.md](docs/project/COSC499-BRACHIFY-INIT-DOCS.md), the init guide. It describes `src/` as it came from upstream, so check any section against the code and against the source of truth before you rely on it. Where they disagree, the source of truth wins, and the code wins over both.
+
 Sections worth knowing exist regardless of task:
 
 - **§7 Known bugs, traps, and dead code** — read before debugging anything. Several plausible-looking code paths are already known to be dead or broken, and several safe-looking edits are known to break things (cached shapes, index-ordered views, `@display_action`).
@@ -67,6 +69,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | File | Covers | Update it when |
 |---|---|---|
 | [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) | **the source of truth**: setup, architecture, module reference, config schema, known bugs | almost any code change. See the section map below |
+| [docs/project/COSC499-BRACHIFY-INIT-DOCS.md](docs/project/COSC499-BRACHIFY-INIT-DOCS.md) | the init guide: a plain-language walkthrough of the code as inherited from upstream, before Team 10 changed `src/` | a change makes one of its sections out of date. It is a baseline, so do not rewrite it to match the new code: add a short note to that section saying it is out of date and pointing to where the new behaviour is documented |
 | [docs/README.md](docs/README.md) | index of the `docs/` tree | a folder or document is added, removed or repurposed |
 | [docs/architecture/README.md](docs/architecture/README.md) | the system architecture, UML, DFD level 0, DFD level 1, and the proposed project framework | the redraw triggers in that file are hit. It owns the rule and the build |
 | [docs/contract/README.md](docs/contract/README.md) | team contract | the contract changes or moves |
@@ -119,6 +122,7 @@ Everything else, including `src/`, `resources/`, `build_executable.py`, `benchma
 | changes an export format | §6.4 |
 | finds a new bug or trap | §7 Known bugs, traps and dead code — add it there, don't leave it in a commit message |
 | fixes a listed bug | §7 Known bugs, traps and dead code — mark the entry fixed, don't silently delete it |
+| changes behaviour the init guide describes | not a section of the source of truth: add a short out-of-date note to that section of [COSC499-BRACHIFY-INIT-DOCS.md](docs/project/COSC499-BRACHIFY-INIT-DOCS.md), pointing to the new documentation. Do not rewrite the section |
 | adds tests | §8, and every function in it has a docstring (see [Every function in tests/ explains itself](#every-function-in-tests-explains-itself)) |
 | adds, removes, or updates a skill in `agent-skills/` | the table in [agent-skills/README.md](agent-skills/README.md). §1.10 only if how skills are loaded changes |
 
@@ -307,7 +311,7 @@ Run the app:
 PYTHONPATH=. python src/launch.py        # cwd must be the repo root
 ```
 
-`launch.py` accepts an optional argv[1] folder path, which auto-triggers the DICOM import (used when brachify is launched from brachify-optimization).
+`launch.py` accepts an optional argv[1] folder path (used when brachify is launched from brachify-optimization). It opens the *Import Dicom* folder picker at that folder; it does not import by itself, and the user still has to choose the folder.
 
 Build the Windows executable (output: `dist/brachify/brachify.exe`):
 
@@ -382,7 +386,7 @@ Any view method that changes geometry must be decorated with `@display_action` (
 
 [src/classes/mesh/](src/classes/mesh/) holds the OCC construction code, one concern per module: `cylinder.py` (`BrachyCylinder`, base collar, notch), `channel.py` (`NeedleChannel`, `rounded_channel` swept pipes, point cleanup), `tandem.py` (`Tandem`, 2D wire → sweep), `notch.py`, `intersections.py`, and `helper.py` (face/vector/plane utilities shared by all of them).
 
-`BrachyCylinder.shape()` caches into `self._shape`; mutators must clear that cache or the viewport shows stale geometry.
+`BrachyCylinder.shape()` returns `self._shape` when one is stored but never stores one itself; only the setters `setDiameter`, `setLength` and `enableBase` clear, rebuild and store it. A new mutator must do the same, or the viewport and the export show stale geometry.
 
 Height changes are propagated as an **offset**, not an absolute: `CylinderView.action_apply_settings` emits `height_changed(length - model.starting_length)`, and channels/tandem shift themselves by that delta. Original DICOM needle points are never mutated — `starting_length` is captured at import time and is the fixed reference.
 
@@ -392,9 +396,9 @@ The final export is a boolean: channels and tandem are `BRepAlgoAPI_Cut` out of 
 
 `read_dicom_folder` ([dicom/fileio.py](src/classes/dicom/fileio.py)) globs `**/*.dcm`, picks the first RTPLAN and first RTSTRUCT, then branches on `rp_dataset.Manufacturer` into `load_varian_dicom_data` or `load_nucletron_dicom_data`. The two vendors store channel geometry differently and have parallel `load_central_axis_*` / `load_channels_*` implementations — a fix in one usually needs the mirror fix in the other.
 
-Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**, or it leaks across imports.
+Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**. Each import builds a new `DicomData`, so a missing field only leaks after an import that fails partway, but keep the two in sync.
 
-A structure named exactly `"Central Axis"` is mandatory — it defines the cylinder axis and tip direction. Its absence surfaces via `MainWindow.no_central_axis_or_cylinder_outline()`.
+A channel labelled `"Central Axis"` is mandatory — it defines the cylinder axis and tip direction. The match is looser than that label suggests, and differs by vendor: the Varian reader accepts the first label that *contains* `central axis` or `centralaxis`, ignoring case, while the Nucletron reader needs the whole name to equal one of them. A Varian needle labelled `Central Axis Needle` can therefore be taken as the axis. If no central axis is found, the reader falls back to a structure whose label contains `surface`. Only when both are missing does the import fail through `MainWindow.no_central_axis_or_cylinder_outline()`. A `Tandem` channel is matched as a substring too. Details in §3.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
 `DicomModel.update(data)` emits `values_changed`, which fans out to `CylinderModel.load_data` and `ChannelsModel.load_data`.
 
@@ -412,7 +416,7 @@ Config loading is lenient by design: `load_config_file` keeps any key that is pr
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
 ```
 
-Widget styling is currently applied as inline `setStyleSheet` strings in `main_window.py` (the `change_color_*` methods, one near-duplicate per nav button). [src/windows/palettes.py](src/windows/palettes.py) and [notes/style guide.txt](notes/style%20guide.txt) exist but the nav buttons do not use them.
+Widget styling is currently applied as inline `setStyleSheet` strings in `main_window.py` (the `change_color_*` methods, one near-duplicate per nav button). [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
 
 ## Sample data
 
