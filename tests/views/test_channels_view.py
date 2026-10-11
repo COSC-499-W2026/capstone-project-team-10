@@ -10,6 +10,7 @@ if TYPE_CHECKING:
 CYLINDER_TAB = 1
 CHANNELS_TAB = 2
 FIRST_CHANNEL = "Applicator2"
+SECOND_CHANNEL = "Applicator3"
 
 
 def select_first_channel_then_leave_and_return(window: MainWindow) -> None:
@@ -105,3 +106,57 @@ def test_channels_spin_box_arrows_are_black(channels_window: MainWindow) -> None
     for spin_box in spin_boxes:
         for name, arrow in arrows:
             assert darkest_pixel_in_arrow(spin_box, arrow) < 40, (spin_box.objectName(), name)
+
+
+def test_list_click_selects_channel_again_after_picking_another_in_viewport(
+    channels_window: MainWindow,
+) -> None:
+    """Check that clicking a channel in the list selects it after another was picked in 3D.
+
+    The user clicks Applicator2 in the list, picks Applicator3 in the viewport, then clicks
+    Applicator2 in the list again. The pick arrives through the canvas's real
+    sig_topods_selected signal, carrying the same cached needle shape the viewport displays.
+    Fails if the model still holds Applicator3 after the second click. That happens when the
+    list keeps Applicator2 as its current item through the viewport pick, so Qt emits no
+    currentItemChanged for the second click. Disable and Set as Tandem act on the model's
+    channel, so the clinician would disable or make a tandem of a channel other than the
+    one highlighted, and that wrong channel is cut into the printed cylinder.
+    """
+    from classes.app import get_app
+
+    signals = get_app().signals
+    signals.viewChanged.emit(CYLINDER_TAB)
+    signals.viewChanged.emit(CHANNELS_TAB)
+    channel_list = channels_window.navigationmodel.views[CHANNELS_TAB].ui.listwidget_channels
+    picked_needle = channels_window.channelsmodel.channels[SECOND_CHANNEL].shape()
+
+    channel_list.setCurrentRow(0)
+    channels_window.canvas.sig_topods_selected.emit([picked_needle])
+    channel_list.setCurrentRow(0)
+
+    assert channels_window.channelsmodel.get_selected_channel() == FIRST_CHANNEL
+
+
+def test_viewport_pick_highlights_only_that_channel_in_list(channels_window: MainWindow) -> None:
+    """Check that picking a channel in the viewport makes it the list's highlighted channel.
+
+    The user clicks Applicator2 in the list, then picks Applicator3 in the viewport through
+    the canvas's real sig_topods_selected signal. Fails if the list's current item is not
+    Applicator3, or if any channel other than Applicator3 is highlighted. The list is the
+    only place that names the channel Disable and Set as Tandem will act on, so a list that
+    shows no channel, or the previous one, after a pick hides which channel the clinician
+    is about to change.
+    """
+    from classes.app import get_app
+
+    signals = get_app().signals
+    signals.viewChanged.emit(CYLINDER_TAB)
+    signals.viewChanged.emit(CHANNELS_TAB)
+    channel_list = channels_window.navigationmodel.views[CHANNELS_TAB].ui.listwidget_channels
+    picked_needle = channels_window.channelsmodel.channels[SECOND_CHANNEL].shape()
+
+    channel_list.setCurrentRow(0)
+    channels_window.canvas.sig_topods_selected.emit([picked_needle])
+
+    assert channel_list.currentItem().text() == SECOND_CHANNEL
+    assert [item.text() for item in channel_list.selectedItems()] == [SECOND_CHANNEL]

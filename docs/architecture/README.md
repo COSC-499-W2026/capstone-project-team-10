@@ -121,8 +121,21 @@ Mostly course scaffolding. The changes to application behaviour are two Channels
 | This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry, DICOM and settings functions |
 | Tooling tests and the manually run anti-slop-py linter | CI |
 | macOS setup notes in the project docs | New features in `src/` |
-| The Channels list selection fix in `channels_view.py`, and its test in `tests/views/` | |
+| The Channels list selection fix in `channels_view.py`, and its tests in `tests/views/` | |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
+
+## Known gaps in the existing code
+
+Unfinished work the code and the project docs already name. It is not the project plan,
+which is the proposed framework below.
+
+| Gap | Why it matters |
+|---|---|
+| Collar height and thickness are never written to an exported config, nor loaded back from one. Generating a tandem also drops them from the live settings, though the built cylinder keeps its collar | A collar saved in a config file is lost when the file is reopened. Recorded in §7.1. |
+| A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
+| No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
+| Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
+| Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
 
 ## Proposed project framework
 
@@ -135,8 +148,8 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The existing application's behaviour has not changed, so its four diagram sources did
-not require a redraw. The UML and DFD paths changed to keep existing and proposed
+The existing application's structure and data flow have not changed, since the Channels
+list fix only changes widget state, so its four diagram sources did not require a redraw. The UML and DFD paths changed to keep existing and proposed
 behaviour separate.
 
 ### Projected UML
