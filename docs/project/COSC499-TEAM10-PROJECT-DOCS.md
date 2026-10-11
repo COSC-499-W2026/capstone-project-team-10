@@ -745,7 +745,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests only, none for src/ yet (§8)
+├── tests/                     tooling tests, and main window tests in windows/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1370,7 +1370,8 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   so opening Export after *Apply Settings* alone highlights it too, and the
   `ImportView.dicom_file_opened` flag that guarded it is gone. *Verified* 2026-10-10 on macOS,
   headless: before the fix the click left `current_page` at 4 with the Import page showing;
-  after it the button is disabled, and *Apply Settings* or importing Ex1 enables it.
+  after it the button is disabled, and *Apply Settings* or importing Ex1 enables it. Guarded by
+  [tests/windows/test_main_window.py](../../tests/windows/test_main_window.py).
 - **A new way to make a cylinder must go through `CylinderModel`.** The Export tab is enabled
   by `CylinderModel.values_changed`, which `load_data` and `update_cylinder` emit. Code that
   assigns `cylindermodel.cylinder` directly leaves Export disabled.
@@ -1536,8 +1537,9 @@ fails, and why that matters
 
 ### 8.2 Current state
 
-**There are no tests of `src/` yet.** The only tests, added 2026-09-30, cover repository
-tooling in [tests/tooling/](../../tests/tooling/):
+The first tests of `src/`, added 2026-10-10, cover the main window's Export tab in
+[tests/windows/](../../tests/windows/). The pure functions in §8.3 still have none. The tooling
+tests, added from 2026-09-30, cover repository files in [tests/tooling/](../../tests/tooling/):
 
 | Test | Fails when |
 |---|---|
@@ -1545,6 +1547,16 @@ tooling in [tests/tooling/](../../tests/tooling/):
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
+| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6) |
+
+The `windows/` tests drive the real `MainWindow`, models and five views offscreen, through the
+`fresh_window` fixture in [tests/windows/conftest.py](../../tests/windows/conftest.py). The 3D
+canvas is created but never initialised, because OpenCASCADE's viewer segfaults without a
+display, and `HOME` points at a temporary folder so `~/brachify` is never touched. Two traps
+shape it. The mesh modules can only be imported after the app exists, because
+`BrachyCylinder.__init__` calls `get_app()` in a default argument. And the app's signals
+outlive every window, so a second window in the same run also drives the first one's
+navigation and models unless the fixture disconnects them, which it does after each test.
 
 Run them from the repository root, in the conda environment:
 
@@ -1566,6 +1578,10 @@ python -m pytest
   environment. Before the two Windows fixes in §7.6, 5 of the drift tests failed here and the
   `npx` test failed with `FileNotFoundError`. `build.py` rendered on Windows and `--check`
   exited 0 for all seven diagrams.
+- *Verified* 2026-10-10 on macOS: 25 passed, with `windows/test_main_window.py` added. Its five
+  tests were written before the fix. Three were red on `main`, and the other two, which
+  describe behaviour the fix must keep, went red once Export was disabled and before it was
+  re-enabled. Four deliberate breaks of the fix were each caught.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
