@@ -167,7 +167,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving
-  **`test_channels_spin_box_arrows_are_black` (23 passed)** passed.
+  **`test_channels_spin_box_arrows_are_black` (25 passed)** passed.
 - I wrote tests to cover abnormal situations involving **PySide6 6.8.1, the Windows lockfile's
   Qt, loading the resource compiled by 6.11.2 (3 passed)** and they passed.
 - I checked that these negative cases involving **no arrow stylesheet (darkest pixel 94) and no
@@ -178,7 +178,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **`test_channels_spin_box_arrows_are_black`**
   is an integration test.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (23
+- This new test PR did not break anything else in the system because **`python -m pytest` (25
   passed), `build.py --check` and `session-start.sh` (exit 0), and a dark-mode render of the
   Channels spin box with black arrows**.
 
