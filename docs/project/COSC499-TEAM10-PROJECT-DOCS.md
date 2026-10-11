@@ -1007,8 +1007,10 @@ precision even when the displayed value rounds. Diameter has 2 decimal places in
 four fields' mm values, including the length offset sent to Channels and Tandem. Changing
 the selector preserves pending edits and does not apply geometry or change live settings.
 The selector affects only these four controls. *Verified* 2026-10-10 by eight offscreen
-integration cases, watched failing before implementation; GUI appearance still awaits
-Ahab's app run. The stacked test PR supplies the regression cases.
+integration cases, watched failing before implementation. Ahab supplied a GUI screenshot
+showing 3.125, 17.3, 0.3 and 1.2 cm with Add Collar selected, and terminal output
+showing Ex1 import and a 13 mm height offset on Apply. The original image was not saved;
+Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cases.
 
 **Channels** (`channels_view.ui`)
 

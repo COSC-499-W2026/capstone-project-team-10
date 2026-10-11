@@ -152,6 +152,15 @@ ticked with **N/A** rather than left blank, `git commit` commits
 the whole index rather than only the paths you just added, and neither commits nor PR
 descriptions may carry AI attribution.
 
+When the user invokes `/make-pr`, read and execute `docs/workflows/make-pr.md` on the
+current branch. This routing applies in every assistant, including one without native
+slash commands; do not substitute a remembered procedure.
+
+The user prefers agents to perform GUI regression runs and capture screenshots themselves.
+Use an available desktop session and isolate test configuration. If desktop access or
+screen capture is unavailable, report the observed limitation and ask only for the evidence
+that cannot be collected. Never claim a viewport run from offscreen widget tests.
+
 Claude Code users get `/commit` and `/make-pr`, which are thin pointers in
 [`.claude/commands/`](.claude/commands/). If your assistant has its own command format, point it
 at the file in `docs/workflows/` rather than copying the content, so there stays one source of
