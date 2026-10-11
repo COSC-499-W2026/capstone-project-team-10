@@ -1366,7 +1366,8 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   That also covers a viewport click on empty space (*Reasoned from code*, not tested).
   *Verified* by the four tests in `tests/views/test_channels_view.py`: the two tab-switch
   tests failed before the first fix, and the two viewport-pick tests failed on the code before
-  the second. *Not verified:* clicking through the viewport pick in the running app.
+  the second. *Verified* 2026-10-10 on Ex1 on macOS by clicking through both in the
+  running app.
 - **Import `classes.mesh.cylinder` only after the `QApplication` exists.**
   `BrachyCylinder.__init__` takes `diameter=get_app().values.config_values.get(...)` as a
   default argument, and Python evaluates that once, when the module is imported. Before the
