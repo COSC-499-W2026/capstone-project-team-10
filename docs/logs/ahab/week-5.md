@@ -71,6 +71,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, unit and integration tests — **N/A**, the tests are in test PR #23.
 - These tests are included in the directory — **N/A**, the tests are in test PR #23.
 - This new test PR did not break anything else in the system because **`python -m pytest` (20
-  passed), `build.py --check` and `session-start.sh` (exit 0), and [author: run the app, check
-  Export is grey and does nothing, press Apply Settings, open Export, and attach a
-  screenshot]**.
+  passed), `build.py --check` and `session-start.sh` (exit 0), and a macOS run with no plan,
+  where Export was grey and did nothing, then enabled and highlighted after Apply Settings
+  ([1](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/32f86a6/docs/logs/ahab/screenshots/pr-22-1-export-grey-before-a-cylinder.png),
+  [2](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/32f86a6/docs/logs/ahab/screenshots/pr-22-2-export-enabled-after-apply-settings.png),
+  [3](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/32f86a6/docs/logs/ahab/screenshots/pr-22-3-export-open-and-highlighted.png))**.
