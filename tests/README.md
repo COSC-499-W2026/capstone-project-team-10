@@ -37,8 +37,9 @@ tests/
 ├── README.md
 ├── conftest.py            fixtures shared by everything
 ├── data/                  sample inputs, never beside a test file
-├── dicom/
+├── dicom/                 exists: DicomData's reset rule
 │   ├── conftest.py        fixtures used only by dicom tests
+│   ├── test_data.py
 │   └── test_fileio.py
 ├── mesh/
 │   └── test_helper.py
@@ -54,7 +55,8 @@ tests/
 └── views/
 ```
 
-`tooling/` and `views/` exist. The rest of the tree shows where tests will go.
+`tooling/`, `views/` and `dicom/test_data.py` exist. The rest of the tree shows where tests
+will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -97,6 +99,9 @@ python -m pytest
 this project imports as though `src/` were the root (`from classes.app import get_app`), and
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
+
+`dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
+field `__init__` declares. It imports no Qt or conda-only package.
 
 `views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
 widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and

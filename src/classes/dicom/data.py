@@ -74,6 +74,7 @@ class DicomData:
         self.channel_paths = None
 
         self.central_channel_roi = None
+        self.central_axis_flag = None
         self.central_channel = None
 
         self.approval_status = None
