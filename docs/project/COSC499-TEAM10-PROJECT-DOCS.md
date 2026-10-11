@@ -573,8 +573,8 @@ This repository is a **fork of `brachify/brachify`**. The `upstream` remote stil
 Essentially all code was written by the upstream authors.
 
 Team 10's contribution as of the last audit consists of README edits, the course folder
-scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. No `src/` code has been
-modified by our team yet.
+scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. Team 10's first `src/`
+change, on 2026-10-10, keeps the Export tab disabled until a cylinder exists (§7.6).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -674,7 +674,8 @@ DicomModel.values_changed(DicomData)
 
 ChannelsModel.tandem_changed(NeedleChannel) ─→ TandemModel.set_tandem_channel
 CylinderModel.values_changed(BrachyCylinder) ─→ TandemModel.update_cylinder
-                                             └─→ CylinderView.action_update_settings
+                                             ├─→ CylinderView.action_update_settings
+                                             └─→ MainWindow.enable_export_view
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
                                                  (connected on_open, disconnected on_close)
@@ -1024,11 +1025,19 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 `top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
 `page_import` … `page_export`.
 
-Styling for the nav buttons is applied as **inline `setStyleSheet` strings** in five
-near-identical `change_color_*` methods in `main_window.py`.
-[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it. This is
-the most obvious refactor target in the UI layer. ([notes/style guide.txt](../../notes/style%20guide.txt)
-is about Python naming, `lower_case` functions and `CapWords` classes, not colours.)
+The Export nav button starts disabled and drawn grey. `MainWindow.enable_export_view` turns it on
+the first time `CylinderModel.values_changed` fires, which happens on an import and on the
+Cylinder tab's *Apply Settings* (§7.6).
+
+Styling for the nav buttons is **two stylesheet strings** in `main_window.py`:
+`NAV_BUTTON_STYLE` for every tab not on screen, with a grey `:disabled` rule, and
+`SELECTED_NAV_BUTTON_STYLE` for the one on screen. Each of the five near-identical
+`change_color_*` methods rewrites all five buttons with them on every tab click, so a style set
+on one button anywhere else is lost on the next click.
+[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it. The five
+methods are still the most obvious refactor target in the UI layer.
+([notes/style guide.txt](../../notes/style%20guide.txt) is about Python naming, `lower_case`
+functions and `CapWords` classes, not colours.)
 
 ### 5.7 The 3D viewport
 
@@ -1352,6 +1361,19 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   checks. *Verified* by four regression cases in `tests/tooling/test_architecture_build.py`,
   watched failing before the fix and again after deliberately reverting discovery.
 
+- **Fixed 2026-10-10: clicking Export before any cylinder existed broke navigation.**
+  `NavigationModel.set_page` records the new page before calling `on_open`, and
+  `Export_View._final_mesh` then raised `AttributeError` on the missing cylinder. The app
+  believed it was on Export while the screen still showed the previous tab, and a second click
+  on Export did nothing. The Export button is now disabled, and drawn grey, until
+  `CylinderModel.values_changed` fires (§5.6). Its highlight no longer waits for a DICOM import,
+  so opening Export after *Apply Settings* alone highlights it too, and the
+  `ImportView.dicom_file_opened` flag that guarded it is gone. *Verified* 2026-10-10 on macOS,
+  headless: before the fix the click left `current_page` at 4 with the Import page showing;
+  after it the button is disabled, and *Apply Settings* or importing Ex1 enables it.
+- **A new way to make a cylinder must go through `CylinderModel`.** The Export tab is enabled
+  by `CylinderModel.values_changed`, which `load_data` and `update_cylinder` emit. Code that
+  assigns `cylindermodel.cylinder` directly leaves Export disabled.
 - **`BrachyCylinder.shape()` returns a stored solid but never stores one.** Only the three
   setters store `self._shape`. A new mutator must clear it and rebuild it, as they do, or the
   viewport and the export keep the old solid (§5.4).
