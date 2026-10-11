@@ -119,8 +119,8 @@ Course scaffolding, and one change to application behaviour.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Tests of application behaviour |
-| Tooling tests and the manually run anti-slop-py linter | CI |
+| This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
+| Tooling tests, the main window tests in `tests/windows/`, and the manually run anti-slop-py linter | CI |
 | macOS setup notes in the project docs | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 
