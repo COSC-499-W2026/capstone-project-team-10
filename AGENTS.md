@@ -416,7 +416,7 @@ Config loading is lenient by design: `load_config_file` keeps any key that is pr
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
 ```
 
-Widget styling is currently applied as inline `setStyleSheet` strings in `main_window.py` (the `change_color_*` methods, one near-duplicate per nav button). [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
+Nav button styling is two stylesheet strings in `main_window.py`, `NAV_BUTTON_STYLE` and `SELECTED_NAV_BUTTON_STYLE`, which the five near-duplicate `change_color_*` methods apply to every nav button on each tab click. A style set on one nav button anywhere else is overwritten by the next click. The Export button stays disabled until `CylinderModel.values_changed` fires. [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
 
 ## Sample data
 
