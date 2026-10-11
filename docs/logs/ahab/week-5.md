@@ -106,7 +106,7 @@ flowchart TB
 ```
 
 - The backend API must serve clients — **N/A**, brachify has no network API.
-- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 display-unit support → `tests/views/test_cylinder_view.py`, stacked test PR linked below**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 display-unit support → `tests/views/test_cylinder_view.py`, test PR #25**.
 - By using a tool to check test coverage — **N/A**, coverage was not measured.
 
 #### Frontend
@@ -117,7 +117,7 @@ flowchart TB
 - The frontend is designed using **PySide6 and generated `.ui` layouts** with design components for **Cylinder controls**. Therefore, changing the design of **`cylinder_view.ui`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **conversion is in `length_field.py`**.
 - The usability evaluation identified major problems — **N/A**, no formal usability evaluation was performed.
 - The frontend adopts accessibility principles — **N/A**, no accessibility evaluation was performed.
-- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 display-unit support → all-four-fields, bounds and Apply integration cases in the stacked test PR**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 display-unit support → all-four-fields, bounds and Apply integration cases in the test PR #25**.
 - By using a tool to check test coverage — **N/A**, coverage was not measured.
 
 #### Review and design
@@ -139,12 +139,12 @@ flowchart TB
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **cm display and Apply in `test_cylinder_view.py` (8 cases passed on the stacked test branch)** passed.
+- The functionality works correctly because the happy path tests involving **cm display and Apply in `test_cylinder_view.py` (8 cases passed on the test PR #25)** passed.
 - I wrote tests to cover abnormal situations involving **config reset before/after a cylinder and repeated unit switches** and they passed.
 - I checked that these negative cases involving **wrong cm factor, wrong Apply conversion and rounded mm cache deliberately introduced during mutation checks** failed as expected.
 - When I reviewed the **`cylinder_window` fixture**, I noticed **shared app signals could retain earlier windows**. Therefore, I did **disconnect navigation and height receivers during teardown**.
 - Among these tests, **none** are unit tests and **all eight real widget/model cases** are integration tests.
-- These tests are included in the directory **`tests/views/` on the stacked test branch**.
+- These tests are included in the directory **`tests/views/` on the test PR #25**.
 - This new test PR did not break anything else in the system because **28 suite cases pass and Ahab supplied a cm GUI screenshot and Ex1 terminal output, recorded in [GUI evidence and terminal excerpt](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6fc7159/docs/logs/ahab/evidence/cylinder-units-gui.md); the image is not archived, Ex2/tandem and Export after the edit remain visually unverified, and the existing `_key_map` bug appeared**.
 
 ---
