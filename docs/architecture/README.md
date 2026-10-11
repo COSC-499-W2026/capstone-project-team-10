@@ -147,8 +147,8 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The existing application's behaviour has not changed, so its four diagram sources did
-not require a redraw. The UML and DFD paths changed to keep existing and proposed
+The existing application's structure and data flow have not changed, since the Channels
+list fix only changes widget state, so its four diagram sources did not require a redraw. The UML and DFD paths changed to keep existing and proposed
 behaviour separate.
 
 ### Projected UML
