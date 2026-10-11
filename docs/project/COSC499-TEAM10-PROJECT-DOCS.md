@@ -1198,7 +1198,7 @@ with the current UI.
 | §1–2: give the Central Axis zero dwell time | Nothing reads the dwell times. Both samples give it 222.8 s (§3.2). *Verified* |
 | §2: give the Oncentra central axis channel number 1 | Neither reader checks the channel number. It is matched by name only (§3.2) |
 | §1–2: ensure no needles intersect | Nothing checks this. `are_colliding()` is never called (§7.4) |
-| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:13-16](../../src/windows/views/channels_view.py#L13-L16)). *Verified* |
+| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:14-17](../../src/windows/views/channels_view.py#L14-L17)). *Verified* |
 | 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab does nothing (§7.8) |
 | 4.4: lists *Dead Space* in the layout, but never explains it | `CONFIG_DEADSPACE` extends each needle tip outward, in the model and in the interstitial lengths (§5.4, §5.8) |
 | 4.3: Collar Thickness "changes the diameter of the collar" | It is the collar's wall thickness. The collar's diameter is the cylinder diameter plus twice the thickness (`outer_radius = radius1 + base_thickness`, [cylinder.py:136](../../src/classes/mesh/cylinder.py#L136)) |
@@ -1366,15 +1366,6 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   view tests in the separate test PR, which fail on the code before each fix. *Not
   verified:* clicking through the viewport pick in the running app.
 
-- **Open, found 2026-10-10: the tandem button reads "Clear Tandem" when no channel is
-  selected and the plan has no tandem.** `ChannelsModel.is_channel_tandem(None)` compares
-  `None == data.tandem_channel`, which is true for a plan with no tandem, such as Ex1. The
-  button is disabled in that state, because `action_update_settings` enables it only while
-  a channel is selected, so it cannot be pressed. Only its label is wrong. *Verified*
-  2026-10-10 on Ex1 on macOS: after leaving the Channels tab and coming back, the disabled
-  button read "Clear Tandem". Not fixed: it predates the list fix above, since leaving the
-  tab already emptied the selection.
-
 - **Fixed 2026-10-04: diagrams in subfolders were skipped by the architecture build.**
   Moving UML and DFD sources into `existing-framework/` left broken viewer links;
   the old non-recursive discovery also missed stale projected diagrams. The build now
@@ -1475,8 +1466,8 @@ first test for `tests/mesh/`. Inspect the result in the Export tab.
 *Reasoned from code, 2026-09-29; not reproduced in the GUI.*
 
 When the selected channel is the tandem, `btn_set_tandem` reads *Clear Tandem*
-([channels_view.py:148](../../src/windows/views/channels_view.py#L148)). Pressing it calls
-`action_set_tandem()` ([channels_view.py:62-97](../../src/windows/views/channels_view.py#L62-L97)),
+([channels_view.py:153](../../src/windows/views/channels_view.py#L153)). Pressing it calls
+`action_set_tandem()` ([channels_view.py:63-98](../../src/windows/views/channels_view.py#L63-L98)),
 whose only call to `ChannelsModel.set_tandem()` runs when the selected channel is **not**
 already the tandem:
 
@@ -1492,6 +1483,14 @@ tandem, stays disabled, and the button keeps its label. The method then only rew
 rotation spin boxes. The Tandem tab's own *Clear Tandem* buttons are separate and are not
 affected. The User Manual does not describe this button's clear action, so what it should do is
 not written down anywhere either (§6.5). Confirm the behaviour in the running app before fixing.
+
+**The same button also reads *Clear Tandem* when no channel is selected and the plan has no
+tandem.** Found 2026-10-10. `ChannelsModel.is_channel_tandem(None)` compares
+`None == data.tandem_channel`, which is true for a plan with no tandem, such as Ex1. The button
+is disabled in that state, because `action_update_settings` enables it only while a channel is
+selected, so only its label is wrong. *Verified* 2026-10-10 on Ex1 on macOS: after leaving the
+Channels tab and coming back, the disabled button read *Clear Tandem*. It predates the
+Channels list fix in §7.6, since leaving the tab already emptied the selection.
 
 ### 7.9 Further bugs found while writing the init guide
 
