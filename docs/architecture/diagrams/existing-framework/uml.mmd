@@ -13,16 +13,6 @@ classDiagram
     shapes by label
   }
   class OrbitCameraViewer3d
-  class CylinderView
-  class LengthField {
-    millimetres
-  }
-  class LengthUnit
-  CylinderView *-- LengthField : four controls
-  LengthField --> LengthUnit : display unit
-  LengthField --> QDoubleSpinBox
-  NavigationModel --> CylinderView
-  CylinderModel ..> CylinderView : values_changed
   class DicomModel
   class CylinderModel
   class ChannelsModel

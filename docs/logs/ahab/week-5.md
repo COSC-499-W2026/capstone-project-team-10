@@ -24,25 +24,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   - We considered alternative solutions such as **saving the unit, rejected because the agreed choice is display only**.
 - The system architecture diagram consists of the following major components: **views, state, domain services, libraries and local storage**. This structure has low coupling because **conversion stays in `LengthField`**. This structure has high cohesion because **each field owns one length control**. This design is scalable because **additional controls can reuse the same conversion seam**.
 
-```mermaid
-%% title: System architecture
-%% alt: System architecture of brachify, a layered desktop application with a presentation layer, application state, domain services, third party libraries and local storage
-flowchart TB
-  ext["<b>External</b><br/>In: DICOM folder, config JSON, tandem STEP file, user settings<br/>Out: STL, STEP, PDF sheet, config JSON"]
-  pres["<b>Presentation layer, PySide6</b><br/>MainWindow with nav buttons and dialogs<br/>Five views: Import, Cylinder, Channels, Tandem, Export<br/>LengthField and LengthUnit, mm-backed Cylinder controls<br/>OrbitCameraViewer3d, the OpenCASCADE canvas"]
-  state["<b>Application state, QObject models</b><br/>RadiotherapyApp with signals and values<br/>DicomModel, CylinderModel, ChannelsModel, TandemModel<br/>NavigationModel, DisplayModel, ShapeModel"]
-  domain["<b>Domain services</b><br/>dicom: fileio, data<br/>mesh: cylinder, channel, tandem, notch, helper, intersections, fileio<br/>pdf: template_reference, canvas<br/>settings: defaults, load, values, reset"]
-  lib["<b>Libraries</b><br/>PySide6, pydicom, pythonocc-core with OpenCASCADE, reportlab, matplotlib, numpy"]
-  disk[("<b>Local storage, ~/brachify</b><br/>app.log, filepaths.json")]
-
-  ext -->|"inputs"| pres
-  pres -->|"outputs"| ext
-  pres -->|"user actions, app signals"| state
-  state -->|"shapes_changed repaints the canvas"| pres
-  state -->|"calls"| domain
-  domain -->|"uses"| lib
-  domain -->|"reads and writes"| disk
-```
+[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/3278fc2/docs/architecture/diagrams/system-architecture.svg)
 
 - The system uses a database — **N/A**, brachify has no database.
 - The system uses **synchronous processing** because **Apply consumes the current controls**. This method is done by **Qt slots**. Benefits for using this approach include **immediate model updates**. Possible risks include **signal-driven rounding**.
@@ -53,57 +35,11 @@ flowchart TB
   - We considered alternative solutions such as **changing live settings on selection, rejected because selection must not Apply**.
 - The Level 0 DFD consists of the following major components: **physicist, TPS, brachify and CAD/printer**. **Cylinder inputs may be mm or cm; config remains mm**.
 
-```mermaid
-%% title: DFD level 0
-%% alt: DFD level 0, brachify as one process
-flowchart LR
-  tps["Treatment planning system"]
-  physicist["Medical physicist"]
-  printer["Printer or CAD"]
-  brachify(("0 brachify"))
-
-  tps -->|"RTPLAN and RTSTRUCT"| brachify
-  physicist -->|"cylinder mm or cm, channels, tandem, config JSON in mm"| brachify
-  brachify -->|"STL or STEP"| printer
-  brachify -->|"PDF sheet and JSON config"| physicist
-```
+[Unchanged DFD level 0](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/3278fc2/docs/architecture/diagrams/existing-framework/dfd-0.svg)
 
 - The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **Cylinder converts cm before model/config updates**. **Out-of-range length input is clamped by the scaled widget before Apply**.
 
-```mermaid
-%% title: DFD level 1
-%% alt: DFD level 1, the five tabs
-flowchart TB
-  tps["Treatment planning system"]
-  physicist["Medical physicist"]
-  printer["Printer or CAD"]
-
-  p1(("1 Import"))
-  p2(("2 Cylinder"))
-  p3(("3 Channels"))
-  p4(("4 Tandem"))
-  p5(("5 Export"))
-  d1[("Plan and settings")]
-  d2[("Shapes")]
-
-  tps -->|"DICOM folder"| p1
-  physicist -->|"config JSON"| p1
-  p1 -->|"needles, Central Axis, settings"| d1
-  physicist -->|"size and collar in mm or cm"| p2
-  d1 --> p2
-  p2 -->|"cylinder solid"| d2
-  physicist -->|"bore, dead space"| p3
-  d1 --> p3
-  p3 -->|"needle solids"| d2
-  physicist -->|"curve or STEP"| p4
-  p3 -->|"tandem channel"| p4
-  p2 -->|"length and diameter in mm"| p4
-  p4 -->|"tandem solid"| d2
-  d2 --> p5
-  d1 -->|"patient and plan"| p5
-  p5 -->|"STL or STEP"| printer
-  p5 -->|"PDF and JSON"| physicist
-```
+[Unchanged DFD level 1](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/3278fc2/docs/architecture/diagrams/existing-framework/dfd-1.svg)
 
 - The backend API must serve clients — **N/A**, brachify has no network API.
 - The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 display-unit support → `tests/views/test_cylinder_view.py`, test PR #25**.

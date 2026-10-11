@@ -149,8 +149,9 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The Cylinder display-unit change redraws the four existing diagram sources; the
-projected diagrams remain proposals. The UML and DFD paths changed to keep existing and proposed
+The Cylinder display-unit change keeps the existing layers, model signals and export
+formats. Its widget conversion is documented in prose; the diagram sources, rendered
+SVGs and viewer remain unchanged. The projected diagrams remain proposals. The UML and DFD paths changed to keep existing and proposed
 behaviour separate.
 
 ### Projected UML

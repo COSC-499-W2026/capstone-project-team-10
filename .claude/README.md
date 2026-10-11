@@ -142,3 +142,6 @@ table above.
 - [pull_request_template.md](../pull_request_template.md) — the PR template, Part A receipts and checklists, that `/make-pr` appends
 - [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md)
   — the source of truth for the project
+
+PR diagram receipts use links rather than embedded diagrams. Follow the current
+`docs/workflows/make-pr.md` for the complete procedure.
