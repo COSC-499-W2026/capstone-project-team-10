@@ -7,6 +7,7 @@ from classes.mesh.cylinder import BrachyCylinder
 from windows.models.shape_model import ShapeTypes
 from windows.ui.cylinder_view_ui import Ui_Cylinder_View
 from windows.views.custom_view import display_action, CustomView
+from windows.length_field import LengthField, LengthUnit
 
 from settings.reset import getCurrentValues
 from OCC.Core.gp import gp_Dir, gp_Ax2, gp_Pnt
@@ -29,12 +30,12 @@ class CylinderView(CustomView):
         model = app.window.cylindermodel
         cylinder = model.cylinder
 
-        diameter = self.ui.spinbox_diameter.value()
-        length = self.ui.spinbox_length.value()
+        diameter = self.diameter_field.millimetres
+        length = self.length_field.millimetres
         add_base = self.ui.cb_add_base.isChecked()
 
-        base_thickness = self.ui.spinbox_base_thickness.value()
-        base_height = self.ui.spinbox_base_height.value()
+        base_thickness = self.base_thickness_field.millimetres
+        base_height = self.base_height_field.millimetres
         
         # update the config_values dict
         app.values.config_values["CONFIG_CYLINDER_DIAMETER"] = diameter
@@ -70,12 +71,22 @@ class CylinderView(CustomView):
         length = model.cylinder.length
         add_base = model.cylinder.expand_base
         
-        self.ui.spinbox_diameter.setValue(diameter)
-        self.ui.spinbox_length.setValue(length)
+        self.set_dimensions_mm(diameter, length)
         self.ui.cb_add_base.setChecked(add_base)
 
-        self.ui.spinbox_base_thickness.setValue(get_app().values.config_values.get("CONFIG_BASE_THICKNESS", 0.0))
-        self.ui.spinbox_base_height.setValue(get_app().values.config_values.get("CONFIG_BASE_HEIGHT", 0.0))
+        self.base_thickness_field.set_millimetres(get_app().values.config_values.get("CONFIG_BASE_THICKNESS", 0.0))
+        self.base_height_field.set_millimetres(get_app().values.config_values.get("CONFIG_BASE_HEIGHT", 0.0))
+
+    def set_dimensions_mm(self, diameter: float, length: float) -> None:
+        """Load model or config dimensions without interpreting them as display units."""
+        self.diameter_field.set_millimetres(diameter)
+        self.length_field.set_millimetres(length)
+
+    def action_change_units(self, unit_name: str) -> None:
+        """Render pending dimensions in the selected unit without applying the design."""
+        unit = LengthUnit(unit_name)
+        for field in self.length_fields:
+            field.set_unit(unit)
 
     @display_action
     def on_open(self):
@@ -88,14 +99,22 @@ class CylinderView(CustomView):
         self.ui = Ui_Cylinder_View()  # the converted python file from the ui file
         self.ui.setupUi(self)
 
+        self.diameter_field = LengthField(self.ui.spinbox_diameter)
+        self.length_field = LengthField(self.ui.spinbox_length)
+        self.base_thickness_field = LengthField(self.ui.spinbox_base_thickness)
+        self.base_height_field = LengthField(self.ui.spinbox_base_height)
+        self.length_fields = (self.diameter_field, self.length_field,
+                              self.base_thickness_field, self.base_height_field)
+
         # Set the spin box values
-        self.ui.spinbox_length.setValue(get_app().values.config_values.get("CONFIG_CYLINDER_LENGTH"))
-        self.ui.spinbox_diameter.setValue(get_app().values.config_values.get("CONFIG_CYLINDER_DIAMETER"))
-        self.ui.spinbox_base_thickness.setValue(get_app().values.config_values.get("CONFIG_BASE_THICKNESS", 0.0))
-        self.ui.spinbox_base_height.setValue(get_app().values.config_values.get("CONFIG_BASE_HEIGHT", 0.0))
+        config = get_app().values.config_values
+        self.set_dimensions_mm(config["CONFIG_CYLINDER_DIAMETER"], config["CONFIG_CYLINDER_LENGTH"])
+        self.base_thickness_field.set_millimetres(config.get("CONFIG_BASE_THICKNESS", 0.0))
+        self.base_height_field.set_millimetres(config.get("CONFIG_BASE_HEIGHT", 0.0))
 
         # signals and slots
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
+        self.ui.combobox_units.currentTextChanged.connect(self.action_change_units)
 
         window = get_app().window
         window.cylindermodel.values_changed.connect(self.action_update_settings)

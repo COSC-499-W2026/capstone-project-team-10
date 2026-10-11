@@ -11,3 +11,6 @@ be filled in, on every PR, with minimal bold answers backed by evidence and neve
 something that did not happen, the same Part A must be written into the student's weekly log in
 `docs/logs/` and kept identical to the PR description, and a box that does not apply is ticked
 with **N/A**, not left blank.
+
+PR diagram receipts use links rather than embedded diagrams. Follow the current
+`docs/workflows/make-pr.md` for the complete procedure.
