@@ -22,6 +22,7 @@ The subfolder name mirrors the `src/` path under test:
 
 | Tests for | Goes in |
 |---|---|
+| `src/windows/main_window.py` | `tests/windows/` |
 | `src/windows/views/` | `tests/views/` |
 | `src/windows/models/` | `tests/models/` |
 | `src/classes/mesh/` | `tests/mesh/` |
@@ -51,10 +52,13 @@ tests/
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-└── views/
+├── views/
+└── windows/               exists: the main window, driven offscreen
+    ├── conftest.py        fresh_window, a new window per test with no plan
+    └── test_main_window.py
 ```
 
-Only `tooling/` exists so far. The rest of the tree shows where tests will go.
+Only `tooling/` and `windows/` exist so far. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -98,8 +102,10 @@ this project imports as though `src/` were the root (`from classes.app import ge
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
 
-Nothing in `src/` has a test yet. The first test of application code starts at the top of the
-list below.
+`windows/` holds the first tests of application code. Its `fresh_window` fixture builds the real
+`MainWindow`, models and five views offscreen, with the 3D canvas never initialised and `HOME`
+pointed at a temporary folder, so a test can click buttons with `QTest` and assert what the
+window shows. The pure functions below still have no tests.
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
 
