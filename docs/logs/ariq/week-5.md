@@ -77,17 +77,21 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   passed), `build.py --check` and `session-start.sh` (exit 0), and [author: on Ex1, after the
   viewport-pick fix, repeat the tab switch and the viewport pick, and attach the screenshots]**.
 
-### For test PR #**20** written to assess functionality in **#19, clearing the Channels list highlight when no channel is selected**
+### For test PR #**20** written to assess functionality in **#19, keeping the Channels list's current item on the selected channel**
 
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving
-  **`test_returning_to_channels_tab_shows_no_channel_selected` (22 passed)** passed.
-- I wrote tests to cover abnormal situations involving **clicking the channel that was
-  current before leaving, which Qt ignores
-  (`test_channel_can_be_selected_again_after_returning_to_channels_tab`)** and they passed.
-- I checked that these negative cases involving **both tests without the #19 fix, and with
-  `clearSelection()` in place of it (2 failed each)** failed as expected.
+  **`test_returning_to_channels_tab_shows_no_channel_selected` and
+  `test_viewport_pick_highlights_only_that_channel_in_list` (24 passed)** passed.
+- I wrote tests to cover abnormal situations involving **clicking a channel Qt still holds as
+  current, after leaving the tab
+  (`test_channel_can_be_selected_again_after_returning_to_channels_tab`) and after a viewport
+  pick (`test_list_click_selects_channel_again_after_picking_another_in_viewport`)** and they
+  passed.
+- I checked that these negative cases involving **the tab-switch tests without the first #19
+  fix, the viewport-pick tests without the second (2 failed each), and a fix that never finds
+  the selected row (3 failed)** failed as expected.
 - When I reviewed the **generated `test_channels_view.py`**, I noticed **it imported
   `classes.app` at the top, fixing `~/brachify` to the real home before the fixture redirected
   `HOME`**. Therefore, I did **move the import into the helper**.
@@ -97,11 +101,11 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - When I reviewed the **generated `channels_window` fixture**, I noticed **the full
   `app.gui()` exits 139 without a display**. Therefore, I did **create the canvas without
   `InitDriver()` and record the trap in §7.6**.
-- Among these tests, **none** are unit tests and **both tests** are integration tests.
+- Among these tests, **none** are unit tests and **all four tests** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (22
+- This new test PR did not break anything else in the system because **`python -m pytest` (24
   passed), `anti_slop review` (no findings), `build.py --check` and `session-start.sh` (exit
-  0)**.
+  0), and [author: attach a screenshot of the `python -m pytest` run]**.
 
 ### For PR #**17**
 
