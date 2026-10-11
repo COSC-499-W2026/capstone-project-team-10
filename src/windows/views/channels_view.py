@@ -1,3 +1,4 @@
+from PySide6.QtCore import QSignalBlocker
 from PySide6.QtWidgets import QWidget, QListWidgetItem, QMessageBox
 
 from classes.app import get_app
@@ -136,18 +137,16 @@ class ChannelsView(CustomView):
         is_disabled = self.channelsmodel.is_channel_disabled(label)
         is_tandem = self.channelsmodel.is_channel_tandem(label)
         lister = self.ui.listwidget_channels
-        if selected_channel is None:
-            # clear the list's highlight and current item so it matches the model,
-            # and so clicking the same channel again emits currentItemChanged
-            lister.blockSignals(True)
-            lister.setCurrentRow(-1)
-            lister.blockSignals(False)
-        for i in range(lister.count()):
-            text = lister.item(i).text()
-            row = i
-            if(text==label):
-                lister.scrollToItem(lister.item(row))
-                lister.item(row).setSelected(True)
+        selected_row = -1
+        for row in range(lister.count()):
+            if lister.item(row).text() == label:
+                selected_row = row
+        # make the model's channel the list's current item, or none, however it was
+        # selected, so clicking any other channel in the list emits currentItemChanged
+        with QSignalBlocker(lister):
+            lister.setCurrentRow(selected_row)
+        if selected_row != -1:
+            lister.scrollToItem(lister.item(selected_row))
         if is_disabled: self.ui.btn_enable.setText("Enable")
         else: self.ui.btn_enable.setText("Disable")
 
