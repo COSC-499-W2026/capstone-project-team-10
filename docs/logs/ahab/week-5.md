@@ -76,3 +76,29 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   ([1](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/32f86a6/docs/logs/ahab/screenshots/pr-22-1-export-grey-before-a-cylinder.png),
   [2](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/32f86a6/docs/logs/ahab/screenshots/pr-22-2-export-enabled-after-apply-settings.png),
   [3](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/32f86a6/docs/logs/ahab/screenshots/pr-22-3-export-open-and-highlighted.png))**.
+
+### For test PR #**23** written to assess functionality in **#22, disabling the Export tab until a cylinder exists**
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_export_tab_opens_once_cylinder_settings_are_applied`,
+  `test_export_button_is_enabled_after_a_plan_is_imported` and
+  `test_export_button_is_highlighted_after_opening_export_with_applied_settings` (25 passed)**
+  passed.
+- I wrote tests to cover abnormal situations involving **clicking Export before a cylinder
+  exists (`test_clicking_export_before_a_cylinder_exists_stays_on_the_import_tab`) and the
+  disabled look surviving a tab click
+  (`test_export_button_looks_disabled_after_visiting_another_tab`)** and they passed.
+- I checked that these negative cases involving **the tests on `main` without #22 (3 failed)
+  and four deliberate breaks of #22, such as dropping the `:disabled` rule (each caught)** failed
+  as expected.
+- When I reviewed the **generated `fresh_window` fixture**, I noticed **the app's signals
+  outlive each window, so a later Apply Settings also rebuilt an earlier window's 13 Ex1
+  channels (26.5 s run became 40.6 s)**. Therefore, I did **disconnect each window's three
+  app-signal slots after its test**.
+- Among these tests, **none** are unit tests and **all five** are integration tests.
+- These tests are included in the directory **`tests/windows/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (25
+  passed), `anti_slop review` (no findings), `build.py --check` and `session-start.sh` (exit
+  0)**.
