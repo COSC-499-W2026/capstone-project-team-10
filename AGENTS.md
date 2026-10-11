@@ -174,7 +174,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, but nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. The only tests so far are the tooling tests in `tests/tooling/`. The first test of application code still has to be written, and no missing fixture or folder is a reason to skip it.
+**The test runner is configured, and almost nothing in `src/` is tested yet.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Apart from the tooling tests in `tests/tooling/`, the only tests are of `DicomData` in `tests/dicom/test_data.py`. Every target listed below is still untested, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -327,7 +327,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Only tooling is tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Only tooling and `DicomData` are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
@@ -396,7 +396,7 @@ The final export is a boolean: channels and tandem are `BRepAlgoAPI_Cut` out of 
 
 `read_dicom_folder` ([dicom/fileio.py](src/classes/dicom/fileio.py)) globs `**/*.dcm`, picks the first RTPLAN and first RTSTRUCT, then branches on `rp_dataset.Manufacturer` into `load_varian_dicom_data` or `load_nucletron_dicom_data`. The two vendors store channel geometry differently and have parallel `load_central_axis_*` / `load_channels_*` implementations — a fix in one usually needs the mirror fix in the other.
 
-Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**. Each import builds a new `DicomData`, so a missing field only leaks after an import that fails partway, but keep the two in sync.
+Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**. Each import builds a new `DicomData`, so a missing field only leaks after an import that fails partway, but keep the two in sync. `tests/dicom/test_data.py` fails, naming the field, if they drift apart.
 
 A channel labelled `"Central Axis"` is mandatory — it defines the cylinder axis and tip direction. The match is looser than that label suggests, and differs by vendor: the Varian reader accepts the first label that *contains* `central axis` or `centralaxis`, ignoring case, while the Nucletron reader needs the whole name to equal one of them. A Varian needle labelled `Central Axis Needle` can therefore be taken as the axis. If no central axis is found, the reader falls back to a structure whose label contains `surface`. Only when both are missing does the import fail through `MainWindow.no_central_axis_or_cylinder_outline()`. A `Tandem` channel is matched as a substring too. Details in §3.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
