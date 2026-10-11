@@ -1736,6 +1736,9 @@ app's settings, not from the DICOM files.
   matters when an import fails partway: then the old form stays in place, and `reset()` is what
   wipes the previous patient's values. A box missing from `reset()` survives only a failed
   import. *Reasoned from code.* `central_axis_flag` is the one box it misses.
+
+  > **Out of date since 2026-10-10.** `reset()` now clears `central_axis_flag` too. See §5.3 of
+  > the [project docs](COSC499-TEAM10-PROJECT-DOCS.md#53-dicom-ingest).
 - **`toString()`** builds a summary that is written to the log file. It includes the patient's
   name, so the name ends up in `~/brachify/app.log` in plain text.
 
