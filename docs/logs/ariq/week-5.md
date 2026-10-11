@@ -6,21 +6,23 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 ### For PR #**19**
 
 - As part of requirement **FR-CN-02 (Milestone 2), edit the selected needle**, the user needs
-  to do **select a channel in the Channels tab, switch tabs, come back, and see the list and the
-  viewport agree that none is selected**.
-- Therefore, I implemented/generated code so that **physicists get a Channels list that drops
-  its highlight when no channel is selected and reselects on the next click, and every agent
-  session reads the repo, code included, before its first reply**.
+  to do **select a channel in the list or the viewport, switch tabs or pick another, and see the
+  list and the viewport agree on which channel, if any, is selected**.
+- Therefore, I implemented/generated code so that **physicists get a Channels list whose
+  current item is always the model's selected channel, or none, so Disable and Set as Tandem
+  act on the highlighted channel, and every agent session reads the repo, code included,
+  before its first reply**.
 
 #### Frontend
 
 - The frontend uses **`ChannelsModel.selected_channels` as the one selection state, mirrored
   into the list by `action_update_settings`** because **the list and the viewport must show the
-  same channel**. Benefits for using this pattern include **one source of truth, so leaving the
-  tab or clicking empty space clears both**. Possible risks include **clearing the list
-  re-entering `action_select_channel` through `currentItemChanged`**.
-  - To mitigate **that re-entry**, we implemented **`blockSignals` around `setCurrentRow(-1)`,
-    as `create_channels_list` already does**.
+  same channel**. Benefits for using this pattern include **one source of truth, so a list
+  click, a viewport pick, leaving the tab or clicking empty space all update both**. Possible
+  risks include **setting the list's row re-entering `action_select_channel` through
+  `currentItemChanged`**.
+  - To mitigate **that re-entry**, we implemented **a `QSignalBlocker` around
+    `setCurrentRow`, which restores the previous blocked state when nested**.
 - The frontend ensures only authorized users can access restricted pages — **N/A**, brachify
   has no logins or restricted pages.
 - The frontend is designed using **PySide6 with Qt Designer `.ui` files** with design
@@ -39,13 +41,15 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Review and design
 
 - When I reviewed the **generated `action_update_settings` change** for this functionality, I
-  did not find any problems with it because **the two tests in test PR #20 fail without it,
-  and with `clearSelection()` alone, and pass with it**.
+  did not find any problems with it because **the four tests in test PR #20 pass with it, and
+  the two viewport-pick tests fail on the code before it**.
+- The review by **Ayyhab** identified **the list keeping its current item through a viewport
+  pick, so Disable and Set as Tandem acted on another channel**. Therefore, I did **set the
+  list's current row to the model's channel, or `-1`, in `action_update_settings`**.
 - The PR does not contain any temporary workaround because **the list mirrors the model in the
   method that already syncs the Channels buttons to it**.
-- The PR only contains small functions that are **35 (`action_update_settings`, 6 lines
-  added)** long.
-- I did **`anti_slop review --base main` (no findings) and a read of the 6-line `src/` diff**
+- The PR only contains small functions that are **34 (`action_update_settings`)** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the 17-line `src/` diff**
   to ensure that my feature contribution does not contain any of the following:
   - hardcoded values
   - duplicate code
@@ -70,8 +74,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, unit and integration tests — **N/A**, the tests are in test PR #20.
 - These tests are included in the directory — **N/A**, the tests are in test PR #20.
 - This new test PR did not break anything else in the system because **`python -m pytest` (20
-  passed), `build.py --check` and `session-start.sh` (exit 0), and [author: run the app on Ex1,
-  repeat the tab switch, and attach a screenshot]**.
+  passed), `build.py --check` and `session-start.sh` (exit 0), and [author: on Ex1, after the
+  viewport-pick fix, repeat the tab switch and the viewport pick, and attach the screenshots]**.
 
 ### For PR #**17**
 
