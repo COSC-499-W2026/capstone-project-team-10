@@ -12,8 +12,10 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 ## Already built
 
-This is the upstream app. Team 10's changes to `src/` are listed under
-[What Team 10 has added](#what-team-10-has-added).
+This is the upstream app plus Team 10's changes to `src/`, listed under
+[What Team 10 has added](#what-team-10-has-added). They are the Cylinder mm/cm display selector,
+where `LengthField` keeps dimensions in mm while the four controls display either unit, and an
+Export tab that stays disabled until a cylinder exists.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -69,7 +71,7 @@ libraries and disk. Two arrows point back up: outputs leave through the Export v
 | Layer | Contents | Source |
 |---|---|---|
 | External | TPS DICOM export, config JSON, tandem STEP file, STL and STEP out, PDF out | outside the repo |
-| Presentation | `MainWindow`, the five views, the OpenCASCADE canvas | `src/windows/` |
+| Presentation | `MainWindow`, the five views, `LengthField` and `LengthUnit`, the OpenCASCADE canvas | `src/windows/` |
 | Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel` and `ShapeModel` | `src/classes/app.py`, `src/windows/models/` |
 | Domain services | DICOM readers, OpenCASCADE geometry, PDF sheet, config load and reset | `src/classes/dicom/`, `mesh/`, `pdf/`, `src/settings/` |
 | Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib | conda environment |
@@ -106,7 +108,7 @@ Five tabs, in this fixed order. The code addresses them by index. Do not reorder
 | Tab | What it does |
 |---|---|
 | Import | Reads the first RTPLAN and RTSTRUCT. Needs a channel named `Central Axis`. Varian is the path the sample data exercises. Nucletron exists in code and has no sample here. |
-| Cylinder | Diameter, length, optional collar. Length changes move needles by an offset. Original DICOM points stay put. |
+| Cylinder | Diameter, length, optional collar displayed in mm or cm; Apply uses mm. Length changes move needles by an offset. Original DICOM points stay put. |
 | Channels | Bore diameter, dead space, threading. A channel can be disabled or marked as the tandem. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
@@ -115,14 +117,18 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Course scaffolding, and one change to application behaviour.
+Course scaffolding, and two changes to application behaviour.
+
+The Cylinder selector is a display preference for this window. It preserves pending
+edits and exact mm values across switches; config files and exports use mm.
+*Verified* 2026-10-10 by offscreen widget and model assertions.
 
 | In the repo | Not in the repo |
 |---|---|
 | This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
-| Tooling tests, the main window tests in `tests/windows/`, and the manually run anti-slop-py linter | CI |
-| macOS setup notes in the project docs | |
-| The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
+| Tooling tests, the main window tests in `tests/windows/`, the Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
+| macOS setup notes and Cylinder display units | Server or database |
+| The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | Shared widget fixture across test scopes |
 
 ## Known gaps in the existing code
 
@@ -148,8 +154,9 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The existing application's behaviour has not changed, so its four diagram sources did
-not require a redraw. The UML and DFD paths changed to keep existing and proposed
+The Cylinder display-unit change keeps the existing layers, model signals and export
+formats. Its widget conversion is documented in prose; the diagram sources, rendered
+SVGs and viewer remain unchanged. The projected diagrams remain proposals. The UML and DFD paths changed to keep existing and proposed
 behaviour separate.
 
 ### Projected UML

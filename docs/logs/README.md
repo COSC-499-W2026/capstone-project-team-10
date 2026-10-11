@@ -57,6 +57,10 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
 
 ## Team log: Part B
 
+Regression artifacts may be stored in `docs/logs/<student>/evidence/` and linked from
+the receipt. If a screenshot is supplied only in chat and its original file is unavailable,
+say so explicitly; a written observation or terminal excerpt is not an archived image.
+
 `team/week-<K>.md` is written once per week by the team, covering everyone's merged work. It
 is not written by `/make-pr`, and it does not go in any PR description. It uses the course's
 Part B template below. Replace each `[...]` with the answer in **bold**, keep one side of each

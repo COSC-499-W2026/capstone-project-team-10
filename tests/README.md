@@ -52,13 +52,15 @@ tests/
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-├── views/
+├── views/                 exists: the Cylinder tab's mm/cm display units
+│   ├── conftest.py        cylinder_window, a new window per test with default settings
+│   └── test_cylinder_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
     └── test_main_window.py
 ```
 
-Only `tooling/` and `windows/` exist so far. The rest of the tree shows where tests will go.
+`tooling/`, `views/` and `windows/` exist. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -102,10 +104,21 @@ this project imports as though `src/` were the root (`from classes.app import ge
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
 
-`windows/` holds the first tests of application code. Its `fresh_window` fixture builds the real
+`windows/` and `views/` hold the first tests of application code. Both fixtures build the real
 `MainWindow`, models and five views offscreen, with the 3D canvas never initialised and `HOME`
-pointed at a temporary folder, so a test can click buttons with `QTest` and assert what the
-window shows. The pure functions below still have no tests.
+and `USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
+started it first, and disconnects application signals in its teardown. No application module is
+mocked. The pure functions below still have no tests.
+
+`windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
+the window shows.
+
+`views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
+widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and
+Ex1 import with needle offsets.
+
+Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
+green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
 
