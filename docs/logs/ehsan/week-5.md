@@ -89,5 +89,5 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   **`data.py` imports nothing**.
 - These tests are included in the directory **`tests/dicom/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`
-  passed 19 of 19 on Windows, skipping `test_build_executable.py` (needs conda). The app was not
-  run and there is no screenshot**.
+  passed 19 of 19 on Windows after merging `main`, skipping `test_build_executable.py` and
+  `tests/views/` (need conda). The app was not run and there is no screenshot**.
