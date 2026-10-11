@@ -38,8 +38,7 @@ tests/
 ├── conftest.py            fixtures shared by everything
 ├── data/                  sample inputs, never beside a test file
 ├── dicom/
-│   ├── conftest.py        fixtures used only by dicom tests
-│   └── test_fileio.py
+│   └── test_structures.py # exists: RTSTRUCT decoding and validation
 ├── mesh/
 │   └── test_helper.py
 ├── models/
@@ -54,7 +53,7 @@ tests/
 └── views/
 ```
 
-Only `tooling/` exists so far. The rest of the tree shows where tests will go.
+`tooling/` and `dicom/` exist. The other entries illustrate where future tests and fixtures go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -98,8 +97,10 @@ this project imports as though `src/` were the root (`from classes.app import ge
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
 
-Nothing in `src/` has a test yet. The first test of application code starts at the top of the
-list below.
+`dicom/test_structures.py` tests the standalone RTSTRUCT reader using real in-memory
+pydicom datasets. It covers ROI joins, all contour slices, metadata defaults, contour
+semantics, input preservation, and malformed input. The older application logic still needs
+the tests listed below.
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
 

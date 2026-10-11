@@ -574,7 +574,9 @@ Essentially all code was written by the upstream authors.
 
 Team 10's contribution as of the last audit consists of README edits, the course folder
 scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. No `src/` code has been
-modified by our team yet.
+modified by our team at that audit. Since then, Team 10 has added the standalone
+RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.3, §8). It is not yet
+connected to the GUI import path.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -744,7 +746,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests only, none for src/ yet (§8)
+├── tests/                     tooling and standalone RTSTRUCT reader tests (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -761,7 +763,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     │   ├── info.py            APP_NAME, paths
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
-    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers)
+    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (standalone ROI reader)
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
     ├── settings/              defaults.py, load.py, values.py, reset.py
@@ -821,6 +823,36 @@ single mutable dict every other module reads), the two most-recent config file p
   of the 19 keys** — see §7.1, this is a live bug.
 
 ### 5.3 DICOM ingest
+
+**[`dicom/structures.py`](../../src/classes/dicom/structures.py)** — standalone
+`read_structures(dataset: pydicom.dataset.Dataset) -> tuple[Structure, ...]`.
+It joins RTSTRUCT definitions, contours and observations by ROI number and preserves every
+contour in immutable `Structure` and `Contour` dataclasses. Names need not be unique.
+Colours are RGB integers in 0..255 (neutral grey when absent). GTV/CTV/PTV map to the
+`TUMOUR` display category, ORGAN to `ORGAN`, and other or absent types to `OTHER`;
+the original interpreted type is retained. Planning target volumes are not all tumour tissue.
+
+The reader retains patient-coordinate millimetres and each ROI's frame-of-reference UID.
+It accepts POINT, OPEN_PLANAR, OPEN_NONPLANAR, CLOSED_PLANAR and CLOSEDPLANAR_XOR,
+retaining their semantics. Geometry-free ROIs have an empty contour tuple. It rejects
+missing required metadata, duplicate identifiers/records, orphan references, invalid RGB,
+point-count mismatches, nonfinite coordinates, and mixed XOR/non-XOR contours through
+`StructureReadError`. A failure returns no partial result and does not mutate the input.
+Multiple observation records for one ROI are currently rejected as ambiguous.
+
+No file discovery, coordinate transformation, frame matching, polygon planarity or
+self-intersection validation, surface reconstruction, display controls or GUI wiring is
+implemented here. The existing vendor readers still operate independently. Example after
+`pydicom.dcmread` has loaded an RTSTRUCT:
+
+```python
+from classes.dicom.structures import read_structures
+structures = read_structures(rs_dataset)
+```
+
+*Verified 2026-10-11 on macOS:* both bundled sample RTSTRUCTs decode into 42 ROIs and
+152 contours each. This is a headless reader check, not a GUI or clinical validation.
+Synthetic tests are in `tests/dicom/test_structures.py`; Nucletron data remains unverified.
 
 **[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of ~20
 fields. There is a comment in the file stating the rule explicitly: **any field added to
@@ -1514,8 +1546,16 @@ fails, and why that matters
 
 ### 8.2 Current state
 
-**There are no tests of `src/` yet.** The only tests, added 2026-09-30, cover repository
-tooling in [tests/tooling/](../../tests/tooling/):
+*Verified 2026-10-11 on macOS:* the full suite passes (44 tests, including 24
+RTSTRUCT reader cases). Reader tests were run red before implementation; deliberate
+mutations dropping later contours and accepting nonfinite coordinates were caught,
+then restored. The anti-slop review reports no findings. No GUI or Windows run was
+performed for this standalone reader change.
+
+**Application tests** in [tests/dicom/test_structures.py](../../tests/dicom/test_structures.py)
+cover the standalone RTSTRUCT reader (§5.3). The older GUI and geometry code remain
+untested. Repository tooling tests, first added 2026-09-30, live in
+[tests/tooling/](../../tests/tooling/):
 
 | Test | Fails when |
 |---|---|

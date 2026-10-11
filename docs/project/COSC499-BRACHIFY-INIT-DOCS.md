@@ -1369,6 +1369,10 @@ attributes added. *Verified*, by making one:
 
 ## 10. classes/dicom
 
+> Baseline note (2026-10-11): the two-file inventory below is out of date. Team 10 added
+> a standalone RTSTRUCT structure reader with tests. See [§5.3 of the current reference](COSC499-TEAM10-PROJECT-DOCS.md#53-dicom-ingest).
+> The inherited import path described here is unchanged; the new reader is not wired into it.
+
 **Summary.** `classes/dicom/` is brachify's front door. A treatment planning program exports a
 plan as two DICOM files: a **plan** file that lists the channels (needles, the Central Axis, the
 tandem) by name and number, and a **structures** file that holds each channel's path as a list of

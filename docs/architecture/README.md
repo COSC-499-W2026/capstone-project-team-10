@@ -12,7 +12,8 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 ## Already built
 
-This is the upstream app. Team 10 has not changed `src/`.
+The running GUI remains the upstream app. Team 10 has added `classes/dicom/structures.py`,
+a standalone RTSTRUCT decoder that is not yet called by the GUI.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -114,13 +115,13 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Course scaffolding only. No application behaviour.
+Course scaffolding and a tested standalone RTSTRUCT decoder. GUI behaviour is unchanged.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Tests of application behaviour |
+| This documentation set, agent rules, commit and PR workflows | Tests of the inherited GUI and geometry |
 | Tooling tests and the manually run anti-slop-py linter | CI |
-| macOS setup notes in the project docs | Changes to `src/` |
+| macOS setup notes and `src/classes/dicom/structures.py` with reader tests | Structure rendering and GUI integration |
 
 ## Known gaps in the existing code
 
