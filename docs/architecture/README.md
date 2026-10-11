@@ -12,7 +12,8 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 ## Already built
 
-This is the upstream app. Team 10 has not changed `src/`.
+This is the upstream app. Team 10's changes to `src/` are listed under
+[What Team 10 has added](#what-team-10-has-added).
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -82,9 +83,9 @@ itself.
 
 ### UML
 
-Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
+Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `CylinderModel.values_changed` also reaches `MainWindow`, which enables the Export tab once a cylinder exists. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
 
-![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
+![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, from CylinderModel to MainWindow, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
 `DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder and channel models.
 
@@ -114,13 +115,14 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Course scaffolding only. No application behaviour.
+Course scaffolding, and one change to application behaviour.
 
 | In the repo | Not in the repo |
 |---|---|
 | This documentation set, agent rules, commit and PR workflows | Tests of application behaviour |
 | Tooling tests and the manually run anti-slop-py linter | CI |
-| macOS setup notes in the project docs | Changes to `src/` |
+| macOS setup notes in the project docs | |
+| The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 
 ## Known gaps in the existing code
 
