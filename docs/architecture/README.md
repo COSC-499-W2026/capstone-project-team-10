@@ -121,7 +121,7 @@ Mostly course scaffolding. The one change to application behaviour is a Channels
 | This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry, DICOM and settings functions |
 | Tooling tests and the manually run anti-slop-py linter | CI |
 | macOS setup notes in the project docs | New features in `src/` |
-| The Channels list selection fix in `channels_view.py`, and its test in `tests/views/` | |
+| The Channels list selection fix in `channels_view.py`, and its tests in `tests/views/` | |
 
 ## Known gaps in the existing code
 
