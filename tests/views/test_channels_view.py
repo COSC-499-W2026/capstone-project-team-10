@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 CYLINDER_TAB = 1
 CHANNELS_TAB = 2
 FIRST_CHANNEL = "Applicator2"
+SECOND_CHANNEL = "Applicator3"
 
 
 def select_first_channel_then_leave_and_return(window: MainWindow) -> None:
@@ -57,6 +58,35 @@ def test_channel_can_be_selected_again_after_returning_to_channels_tab(
     select_first_channel_then_leave_and_return(channels_window)
     channel_list = channels_window.navigationmodel.views[CHANNELS_TAB].ui.listwidget_channels
 
+    channel_list.setCurrentRow(0)
+
+    assert channels_window.channelsmodel.get_selected_channel() == FIRST_CHANNEL
+
+
+def test_list_click_selects_channel_again_after_picking_another_in_viewport(
+    channels_window: MainWindow,
+) -> None:
+    """Check that clicking a channel in the list selects it after another was picked in 3D.
+
+    The user clicks Applicator2 in the list, picks Applicator3 in the viewport, then clicks
+    Applicator2 in the list again. The pick arrives through the canvas's real
+    sig_topods_selected signal, carrying the same cached needle shape the viewport displays.
+    Fails if the model still holds Applicator3 after the second click. That happens when the
+    list keeps Applicator2 as its current item through the viewport pick, so Qt emits no
+    currentItemChanged for the second click. Disable and Set as Tandem act on the model's
+    channel, so the clinician would disable or make a tandem of a channel other than the
+    one highlighted, and that wrong channel is cut into the printed cylinder.
+    """
+    from classes.app import get_app
+
+    signals = get_app().signals
+    signals.viewChanged.emit(CYLINDER_TAB)
+    signals.viewChanged.emit(CHANNELS_TAB)
+    channel_list = channels_window.navigationmodel.views[CHANNELS_TAB].ui.listwidget_channels
+    picked_needle = channels_window.channelsmodel.channels[SECOND_CHANNEL].shape()
+
+    channel_list.setCurrentRow(0)
+    channels_window.canvas.sig_topods_selected.emit([picked_needle])
     channel_list.setCurrentRow(0)
 
     assert channels_window.channelsmodel.get_selected_channel() == FIRST_CHANNEL
