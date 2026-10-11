@@ -1243,11 +1243,26 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   cleared the `QListWidget`, which still showed the channel highlighted and still held it as
   its current item. Because Qt emits `currentItemChanged` only when the current item changes,
   clicking that channel again did nothing until a different one was clicked first.
-  `ChannelsView.action_update_settings` now clears the list's current row when the model has
-  no selected channel, so the list follows the model. That also covers a viewport click on
-  empty space, which empties the selection the same way. *Reasoned from code.* The tests that
-  verify it follow in a separate test PR. *Not verified:* clicking through it in the running
-  app.
+  **Fixed 2026-10-10, the same drift after a viewport pick.** Click Applicator2 in the list,
+  pick Applicator3 in the viewport, then click Applicator2 in the list again.
+  `ChannelsModel.set_selected_shapes` moved the model to Applicator3, and the view highlighted
+  it with `setSelected`, but the list's current item stayed Applicator2. The second click
+  emitted nothing, so the model stayed on Applicator3, and Disable and Set as Tandem acted on
+  a channel other than the one highlighted. `ChannelsView.action_update_settings` now sets
+  the list's current row to the model's selected channel, or to `-1` when there is none,
+  inside a `QSignalBlocker`, so the list follows the model however the selection changed.
+  That also covers a viewport click on empty space. *Reasoned from code*, and checked by the
+  view tests in the separate test PR, which fail on the code before each fix. *Not
+  verified:* clicking through the viewport pick in the running app.
+
+- **Open, found 2026-10-10: the tandem button reads "Clear Tandem" when no channel is
+  selected and the plan has no tandem.** `ChannelsModel.is_channel_tandem(None)` compares
+  `None == data.tandem_channel`, which is true for a plan with no tandem, such as Ex1. The
+  button is disabled in that state, because `action_update_settings` enables it only while
+  a channel is selected, so it cannot be pressed. Only its label is wrong. *Verified*
+  2026-10-10 on Ex1 on macOS: after leaving the Channels tab and coming back, the disabled
+  button read "Clear Tandem". Not fixed: it predates the list fix above, since leaving the
+  tab already emptied the selection.
 
 - **Fixed 2026-10-04: diagrams in subfolders were skipped by the architecture build.**
   Moving UML and DFD sources into `existing-framework/` left broken viewer links;
