@@ -1363,8 +1363,8 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   the list's current row to the model's selected channel, or to `-1` when there is none,
   inside a `QSignalBlocker`, so the list follows the model however the selection changed.
   That also covers a viewport click on empty space. *Reasoned from code*, and checked by the
-  view tests in the separate test PR, which fail on the code before each fix. *Not
-  verified:* clicking through the viewport pick in the running app.
+  view tests in the separate test PR, which fail on the code before each fix. *Verified*
+  2026-10-10 on Ex1 on macOS by clicking through both in the running app.
 
 - **Fixed 2026-10-04: diagrams in subfolders were skipped by the architecture build.**
   Moving UML and DFD sources into `existing-framework/` left broken viewer links;
