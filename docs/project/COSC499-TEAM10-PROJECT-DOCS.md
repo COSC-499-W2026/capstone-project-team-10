@@ -836,8 +836,9 @@ fields. There is a comment in the file stating the rule explicitly: **any field 
 `__init__` must also be added to `reset()`**. Keep the rule, but know how narrow the leak is:
 every import builds a **new** `DicomData`, so a field missing from `reset()` only survives an
 import that fails partway and leaves the old object in place (*Reasoned from code*; see [10.4 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#104-datapy-the-form-brachify-fills-in)).
-(`central_axis_flag` currently violates this — it is set in `__init__`, absent from `reset()`,
-and never read.)
+`central_axis_flag` violated this until 2026-10-10. `reset()` now clears it, and
+[tests/dicom/test_data.py](../../tests/dicom/test_data.py) fails, naming the field, if any
+field in `__init__` is missing from `reset()`.
 
 **[`dicom/fileio.py`](../../src/classes/dicom/fileio.py)** — the vendor readers. `read_dicom_folder()`
 globs `**/*.dcm`, takes the **first** file that parses as RTPLAN and the **first** that parses
@@ -1359,7 +1360,7 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | **Fixed 2026-09-30.** `build_executable.py` hidden imports `pydicom.encoders.gdcm` and `pydicom.encoders.pylibjpeg` | found 2026-09-30. pydicom 3, the version pinned since the lockfile was made, moved both modules to `pydicom.pixels.encoders.*`. PyInstaller logged `ERROR: Hidden import 'pydicom.encoders.gdcm' not found` (and the same for `pylibjpeg`) and built anyway with exit 0 (*Verified* 2026-09-30 by a trial build on macOS). Both now name `pydicom.pixels.encoders.*`, the trial build analyses them with no error, and `tests/tooling/test_build_executable.py` guards the list. Probably harmless before the fix, since the app never decodes pixel data (*Reasoned from code*). *Not verified:* a Windows `.exe` build |
 | `intersections.are_colliding()` | defined, never called — needle collision detection is not performed |
 | `AppSignals.exportFile` | declared, never emitted, never connected |
-| `DicomData.central_axis_flag` | set in `__init__`, missing from `reset()`, never read |
+| `DicomData.central_axis_flag` | set in `__init__`, never read. **Fixed 2026-10-10:** it was missing from `reset()`. `reset()` now clears it, guarded by `tests/dicom/test_data.py`. *Verified*: the test failed naming `central_axis_flag` before the fix |
 | `add_notch(z_offset=...)` | the parameter is computed and passed but the translation is commented out, so the notch is always at `z=0` even with a collar |
 | `generate_cylinder_points` / `get_surface_intersection` / `get_interstitial_length` in `mesh/channel.py` | duplicated (worse) copies of the `template_reference.py` versions; unused |
 | `.vs/brachify/v17/.wsuo`, `src/windows - Shortcut.lnk` | Windows-only artifacts committed by accident |
@@ -1416,6 +1417,7 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - **`@display_action` is mandatory** on any view method that changes geometry (§4.5).
 - **`DicomData.__init__` and `reset()` must stay in sync** (§5.3). A missing field only leaks
   after an import that fails partway, since each import builds a new `DicomData`.
+  `tests/dicom/test_data.py` fails if they drift apart.
 - **Adding a config key touches four places** (§6.2).
 - **`*_ui.py` files are generated** — edit the `.ui` and re-run `pyside6-uic` (§5.6).
 - **Cylinder spin box values are in the selected display unit.** Use the four
@@ -1567,12 +1569,16 @@ fails, and why that matters
 
 ### 8.2 Current state
 
-The first tests of `src/`, added 2026-10-10, cover the main window's Export tab in
+The first tests of `src/`, added 2026-10-10, cover `DicomData` in
+[tests/dicom/](../../tests/dicom/), the main window's Export tab in
 [tests/windows/](../../tests/windows/) and the Cylinder display units in
 [tests/views/](../../tests/views/). The pure functions in §8.3 still have none. The tooling
 tests, added from 2026-09-30, cover repository files in [tests/tooling/](../../tests/tooling/).
 
-**Cylinder display units are tested in `tests/views/`.** The real offscreen window,
+[tests/dicom/test_data.py](../../tests/dicom/test_data.py) checks that a new `DicomData` starts
+empty and that `reset()` clears every field `__init__` declares.
+
+For Cylinder display units, the real offscreen window,
 models and controls exercise startup, all four cm displays, scaled steps and limits,
 pending edits, mm Apply and exported config dimensions, config reset before/after a
 cylinder exists, and Ex1 import with a 10 mm needle offset. The native canvas is never
@@ -1582,10 +1588,11 @@ initialised. The fixture isolates HOME/USERPROFILE and reuses the one QApplicati
 passed afterwards. Three deliberate breaks (cm scale, Apply conversion, rounded mm
 cache) each failed the relevant assertions. No application module is mocked.
 
-Each test file, and what makes it fail:
+Every test file, and what makes it fail:
 
 | Test | Fails when |
 |---|---|
+| `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1622,6 +1629,10 @@ python -m pytest
   environment. Before the two Windows fixes in §7.6, 5 of the drift tests failed here and the
   `npx` test failed with `FileNotFoundError`. `build.py` rendered on Windows and `--check`
   exited 0 for all seven diagrams.
+- *Verified* 2026-10-10 on Windows, outside conda: 19 passed with the same `--ignore`,
+  including the two `DicomData` tests. `data.py` imports nothing, so they need no conda
+  package. The `reset()` test failed naming `central_axis_flag` before the fix, and naming
+  `operator` when that line was removed from `reset()` on purpose.
 - *Verified* 2026-10-10 on macOS: 25 passed, with `windows/test_main_window.py` added. Its five
   tests were written before the fix. Three were red on `main`, and the other two, which
   describe behaviour the fix must keep, went red once Export was disabled and before it was

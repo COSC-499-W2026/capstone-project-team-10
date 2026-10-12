@@ -38,8 +38,9 @@ tests/
 ├── README.md
 ├── conftest.py            fixtures shared by everything
 ├── data/                  sample inputs, never beside a test file
-├── dicom/
+├── dicom/                 exists: DicomData's reset rule
 │   ├── conftest.py        fixtures used only by dicom tests
+│   ├── test_data.py
 │   └── test_fileio.py
 ├── mesh/
 │   └── test_helper.py
@@ -60,7 +61,8 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/` and `windows/` exist. The rest of the tree shows where tests will go.
+`tooling/`, `views/`, `windows/` and `dicom/test_data.py` exist. The rest of the tree shows
+where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -104,14 +106,17 @@ this project imports as though `src/` were the root (`from classes.app import ge
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
 
-`windows/` and `views/` hold the first tests of application code. Both fixtures build the real
-`MainWindow`, models and five views offscreen, with the 3D canvas never initialised and `HOME`
-and `USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
+`windows/` and `views/` hold the widget tests. Both fixtures build the real `MainWindow`,
+models and five views offscreen, with the 3D canvas never initialised and `HOME` and
+`USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
 started it first, and disconnects application signals in its teardown. No application module is
 mocked. The pure functions below still have no tests.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows.
+
+`dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
+field `__init__` declares. It imports no Qt or conda-only package.
 
 `views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
 widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and
