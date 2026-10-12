@@ -22,6 +22,7 @@ The subfolder name mirrors the `src/` path under test:
 
 | Tests for | Goes in |
 |---|---|
+| `src/windows/main_window.py` | `tests/windows/` |
 | `src/windows/views/` | `tests/views/` |
 | `src/windows/models/` | `tests/models/` |
 | `src/classes/mesh/` | `tests/mesh/` |
@@ -52,14 +53,17 @@ tests/
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-└── views/                 exists: the Channels and Cylinder views, against the real window
-    ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
-    ├── test_channels_view.py
-    └── test_cylinder_view.py
+├── views/                 exists: the Channels and Cylinder views, against the real window
+│   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
+│   ├── test_channels_view.py
+│   └── test_cylinder_view.py
+└── windows/               exists: the main window, driven offscreen
+    ├── conftest.py        fresh_window, a new window per test with no plan
+    └── test_main_window.py
 ```
 
-`tooling/`, `views/` and `dicom/test_data.py` exist. The rest of the tree shows where tests
-will go.
+`tooling/`, `views/`, `windows/` and `dicom/test_data.py` exist. The rest of the tree shows
+where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -102,6 +106,15 @@ python -m pytest
 this project imports as though `src/` were the root (`from classes.app import get_app`), and
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
+
+`windows/` and `views/` hold the widget tests. Both fixtures build the real `MainWindow`,
+models and five views offscreen, with the 3D canvas never initialised and `HOME` and
+`USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
+started it first, and disconnects application signals in its teardown. No application module is
+mocked. The pure functions below still have no tests.
+
+`windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
+the window shows.
 
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.

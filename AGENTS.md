@@ -188,7 +188,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides tooling tests in `tests/tooling/`, `tests/dicom/test_data.py` checks that `DicomData.reset()` clears every field `__init__` declares, and [tests/views/](tests/views/) tests the Channels view's list selection against the real window and checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. Its fixtures share one QApplication and never initialise the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
+**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides the tooling tests in `tests/tooling/`, `tests/dicom/test_data.py` checks that `DicomData.reset()` clears every field `__init__` declares, `tests/windows/` tests the main window's Export tab, and [tests/views/](tests/views/) tests the Channels view's list selection against the real window and checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. The `windows/` and `views/` fixtures share one QApplication and never initialise the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -210,7 +210,7 @@ Anything that is a pure function of its inputs. In this codebase that is most of
 
 The OpenCASCADE viewport cannot be tested here: without a display, initialising it segfaults. Full solid booleans are too slow to run per commit.
 
-Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and five views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. `cylinder_window` builds the same window with default settings and no plan, fresh for each test. Both build on `units_app`, the one QApplication for the run, because Qt allows only one per process. Use them when the behaviour is the widgets' own state, such as which list row is highlighted. Building the thirteen Ex1 channels takes several seconds.
+Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and five views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. `cylinder_window` builds the same window with default settings and no plan, fresh for each test. Both build on `units_app`, the one QApplication for the run, because Qt allows only one per process. `fresh_window` in [tests/windows/conftest.py](tests/windows/conftest.py) also builds a window with no plan for each test, on `brachify_app`, which reuses that QApplication when `units_app` started it first. A test clicks buttons with `QTest` or sets widget values, then asserts what the window shows. Use them when the behaviour is the widgets' own state, such as which list row is highlighted. Building the thirteen Ex1 channels takes several seconds.
 
 Do not paper over the rest with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
 
@@ -285,6 +285,7 @@ The subfolder name mirrors the `src/` path it tests:
 
 | Tests for | Goes in |
 |---|---|
+| `src/windows/main_window.py` | `tests/windows/` |
 | `src/windows/views/` | `tests/views/` |
 | `src/windows/models/` | `tests/models/` |
 | `src/classes/mesh/` | `tests/mesh/` |
@@ -350,7 +351,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Tooling, `DicomData`, the Channels view and Cylinder display units are tested, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Tooling, `DicomData`, the main window's Export tab, the Channels view and Cylinder display units are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
@@ -439,7 +440,7 @@ Config loading is lenient by design: `load_config_file` keeps any key that is pr
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
 ```
 
-Widget styling is currently applied as inline `setStyleSheet` strings in `main_window.py` (the `change_color_*` methods, one near-duplicate per nav button). [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
+Nav button styling is two stylesheet strings in `main_window.py`, `NAV_BUTTON_STYLE` and `SELECTED_NAV_BUTTON_STYLE`, which the five near-duplicate `change_color_*` methods apply to every nav button on each tab click. A style set on one nav button anywhere else is overwritten by the next click. The Export button stays disabled until `CylinderModel.values_changed` fires. [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
 
 ## Sample data
 

@@ -12,8 +12,11 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 ## Already built
 
-This is the upstream app with two Team 10 changes to `src/`. A fix to how the Channels list shows its selection changes no diagram.
-The Cylinder mm/cm display selector adds `LengthField`, which keeps dimensions in mm while the four controls display either unit.
+This is the upstream app plus Team 10's changes to `src/`, listed under
+[What Team 10 has added](#what-team-10-has-added). They are a fix to how the Channels list
+shows its selection, which changes no diagram, the Cylinder mm/cm display selector, where
+`LengthField` keeps dimensions in mm while the four controls display either unit, and an
+Export tab that stays disabled until a cylinder exists.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -83,9 +86,9 @@ itself.
 
 ### UML
 
-Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
+Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `CylinderModel.values_changed` also reaches `MainWindow`, which enables the Export tab once a cylinder exists. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
 
-![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
+![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, from CylinderModel to MainWindow, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
 `DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder and channel models.
 
@@ -115,8 +118,8 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Mostly course scaffolding. The changes to application behaviour are a Channels view fix and
-the Cylinder mm/cm display selector.
+Mostly course scaffolding. The changes to application behaviour are a Channels view fix,
+the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
 
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
@@ -124,10 +127,11 @@ edits and exact mm values across switches; config files and exports use mm.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Server or database |
-| Tooling tests and the manually run anti-slop-py linter | CI |
-| macOS setup notes and Cylinder display units | Shared widget fixture across test scopes |
-| The Channels list selection fix in `channels_view.py`, and its tests in `tests/views/` | Tests of the pure geometry and settings functions |
+| This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
+| Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
+| macOS setup notes and Cylinder display units | Server or database |
+| The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
+| The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 
 ## Known gaps in the existing code
 
@@ -155,8 +159,9 @@ The build recursively discovers diagrams in both `existing-framework/` and
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
 The existing application's layers, model signals and export formats have not changed. The
 Channels list fix only changes widget state, and the Cylinder display-unit change keeps
-dimensions in mm. Its widget conversion is documented in prose; the diagram sources, rendered
-SVGs and viewer remain unchanged. The projected diagrams remain proposals. The UML and DFD paths changed to keep existing and proposed
+dimensions in mm, its widget conversion documented in prose, so neither changes a diagram.
+The Export tab fix adds one edge to the existing UML, `CylinderModel ..> MainWindow`, and
+leaves the other diagrams unchanged. The projected diagrams remain proposals. The UML and DFD paths changed to keep existing and proposed
 behaviour separate.
 
 ### Projected UML

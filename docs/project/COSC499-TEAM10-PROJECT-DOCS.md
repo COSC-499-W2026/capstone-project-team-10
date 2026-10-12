@@ -577,8 +577,9 @@ Essentially all code was written by the upstream authors.
 
 Team 10's contribution as of the last audit consists of README edits, the course folder
 scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. The first change to
-`src/` came on 2026-10-08, a fix to the Channels view's list selection (§7.6). Team 10 also
-added the Cylinder tab mm/cm display selector (§5.6). Geometry and configuration remain in mm.
+`src/` came on 2026-10-08, a fix to the Channels view's list selection (§7.6). Later changes,
+on 2026-10-10, keep the Export tab disabled until a cylinder exists (§7.6) and add the
+Cylinder tab's mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -681,7 +682,8 @@ DicomModel.values_changed(DicomData)
 
 ChannelsModel.tandem_changed(NeedleChannel) ─→ TandemModel.set_tandem_channel
 CylinderModel.values_changed(BrachyCylinder) ─→ TandemModel.update_cylinder
-                                             └─→ CylinderView.action_update_settings
+                                             ├─→ CylinderView.action_update_settings
+                                             └─→ MainWindow.enable_export_view
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
                                                  (connected on_open, disconnected on_close)
@@ -751,7 +753,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests, DicomData, the Channels view and Cylinder units (§8)
+├── tests/                     tooling tests, DicomData, main window tests in windows/, Channels and Cylinder units tests in views/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1051,11 +1053,19 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 `top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
 `page_import` … `page_export`.
 
-Styling for the nav buttons is applied as **inline `setStyleSheet` strings** in five
-near-identical `change_color_*` methods in `main_window.py`.
-[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it. This is
-the most obvious refactor target in the UI layer. ([notes/style guide.txt](../../notes/style%20guide.txt)
-is about Python naming, `lower_case` functions and `CapWords` classes, not colours.)
+The Export nav button starts disabled and drawn grey. `MainWindow.enable_export_view` turns it on
+the first time `CylinderModel.values_changed` fires, which happens on an import and on the
+Cylinder tab's *Apply Settings* (§7.6).
+
+Styling for the nav buttons is **two stylesheet strings** in `main_window.py`:
+`NAV_BUTTON_STYLE` for every tab not on screen, with a grey `:disabled` rule, and
+`SELECTED_NAV_BUTTON_STYLE` for the one on screen. Each of the five near-identical
+`change_color_*` methods rewrites all five buttons with them on every tab click, so a style set
+on one button anywhere else is lost on the next click.
+[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it. The five
+methods are still the most obvious refactor target in the UI layer.
+([notes/style guide.txt](../../notes/style%20guide.txt) is about Python naming, `lower_case`
+functions and `CapWords` classes, not colours.)
 
 ### 5.7 The 3D viewport
 
@@ -1413,6 +1423,20 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   checks. *Verified* by four regression cases in `tests/tooling/test_architecture_build.py`,
   watched failing before the fix and again after deliberately reverting discovery.
 
+- **Fixed 2026-10-10: clicking Export before any cylinder existed broke navigation.**
+  `NavigationModel.set_page` records the new page before calling `on_open`, and
+  `Export_View._final_mesh` then raised `AttributeError` on the missing cylinder. The app
+  believed it was on Export while the screen still showed the previous tab, and a second click
+  on Export did nothing. The Export button is now disabled, and drawn grey, until
+  `CylinderModel.values_changed` fires (§5.6). Its highlight no longer waits for a DICOM import,
+  so opening Export after *Apply Settings* alone highlights it too, and the
+  `ImportView.dicom_file_opened` flag that guarded it is gone. *Verified* 2026-10-10 on macOS,
+  headless: before the fix the click left `current_page` at 4 with the Import page showing;
+  after it the button is disabled, and *Apply Settings* or importing Ex1 enables it. Guarded by
+  [tests/windows/test_main_window.py](../../tests/windows/test_main_window.py).
+- **A new way to make a cylinder must go through `CylinderModel`.** The Export tab is enabled
+  by `CylinderModel.values_changed`, which `load_data` and `update_cylinder` emit. Code that
+  assigns `cylindermodel.cylinder` directly leaves Export disabled.
 - **`BrachyCylinder.shape()` returns a stored solid but never stores one.** Only the three
   setters store `self._shape`. A new mutator must clear it and rebuild it, as they do, or the
   viewport and the export keep the old solid (§5.4).
@@ -1550,7 +1574,7 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | MEDIUM | `load_nucletron_dicom_data`, no Central Axis | the `surface` fallback places the cylinder, then loads **no needle**, because `center_index` is never set. The failure is logged with the wrong cause and nothing appears on screen. See [10.6](COSC499-BRACHIFY-INIT-DOCS.md#106-elekta-oncentra-files) | *Reasoned from code*; no Oncentra sample |
 | MEDIUM | `load_nucletron_dicom_data`, needle order | a structure with no points is skipped, which shifts every later needle's points onto the wrong channel by one place. The comment says an empty placeholder is added, but that line is commented out. The reader also assumes the structures are already in plan order and never re-sorts. See [10.6](COSC499-BRACHIFY-INIT-DOCS.md#106-elekta-oncentra-files) | *Reasoned from code*; no Oncentra sample |
 | LOW | both readers, one-point anchors | removing one single-point "anchor" channel is correct; a second one deletes the wrong entries and shifts every later needle's name and number. The code's own comment says it works for one only. Varian warns on the first anchor, Oncentra on the second. See [10.5](COSC499-BRACHIFY-INIT-DOCS.md#105-fileiopy-how-the-form-gets-filled) | *Reasoned from code* |
-| LOW | `getCurrentValues()` | crashes with `'NoneType' object has no attribute 'diameter'` if no cylinder exists yet, so *Export Current Settings as Config* before an import or *Apply* writes nothing. See [13.6](COSC499-BRACHIFY-INIT-DOCS.md#136-resetpy-into-the-boxes-and-back-out) | *Verified* |
+| LOW | `getCurrentValues()` | crashes with `'NoneType' object has no attribute 'diameter'` if no cylinder exists yet, so *Export Current Settings as Config* before an import or *Apply* wrote nothing. Unreachable from the app since 2026-10-10, because the Export tab stays disabled until a cylinder exists (§7.6). See [13.6](COSC499-BRACHIFY-INIT-DOCS.md#136-resetpy-into-the-boxes-and-back-out) | *Verified* |
 | LOW | `OrbitCameraViewer3d.keyPressEvent` | any key press in the 3D view raises `AttributeError: 'OrbitCameraViewer3d' object has no attribute '_key_map'`; Qt prints it and carries on. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Verified* |
 | LOW | `mesh/fileio.py:54` | the write-failure path runs `from src.classes.logger import log`, while every other file imports `classes.logger`. In the `.exe` there is no `src` package, so the handler itself fails and hides the original error. See [11.8](COSC499-BRACHIFY-INIT-DOCS.md#118-helperpy-intersectionspy-and-fileiopy) | *Reasoned from code* |
 | LOW | STL export | writing Ex2's model printed "6 faces have been skipped due to null triangulation" from OpenCASCADE, which can leave gaps in the STL. Which faces, and whether slicers mind, is not checked. See [11.8](COSC499-BRACHIFY-INIT-DOCS.md#118-helperpy-intersectionspy-and-fileiopy) | *Verified* for the message |
@@ -1589,10 +1613,13 @@ fails, and why that matters
 
 ### 8.2 Current state
 
-**`DicomData` is tested in `tests/dicom/`, and the Channels view and Cylinder display units in
-`tests/views/`.** [tests/dicom/test_data.py](../../tests/dicom/test_data.py), added 2026-10-10,
-checks that a new `DicomData` starts empty and that `reset()` clears every field `__init__`
-declares. The first tests of `src/`, added 2026-10-08, test the Channels view's list selection.
+**`DicomData` is tested in `tests/dicom/`, the main window's Export tab in `tests/windows/`,
+and the Channels view and Cylinder display units in `tests/views/`.**
+[tests/dicom/test_data.py](../../tests/dicom/test_data.py), added 2026-10-10, checks that a new
+`DicomData` starts empty and that `reset()` clears every field `__init__` declares. The first
+tests of `src/`, added 2026-10-08, test the Channels view's list selection. The main window
+tests in [tests/windows/](../../tests/windows/) were added 2026-10-10. The pure functions in
+§8.3 still have none.
 
 For Cylinder display units, the real offscreen window,
 models and controls exercise startup, all four cm displays, scaled steps and limits,
@@ -1608,6 +1635,8 @@ Both view test files share the one QApplication from the `units_app` fixture in
 [tests/views/conftest.py](../../tests/views/conftest.py), which isolates HOME/USERPROFILE.
 `channels_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
 per process, so a fixture that constructed its own would fail in whichever file ran second.
+`brachify_app` in [tests/windows/conftest.py](../../tests/windows/conftest.py) follows the same
+rule: whichever of the two session fixtures runs first starts the app, and the other reuses it.
 
 Repository tooling tests, first added 2026-09-30, live in
 [tests/tooling/](../../tests/tooling/). Every test file, and what makes it fail:
@@ -1621,6 +1650,16 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
+| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6) |
+
+The `windows/` tests drive the real `MainWindow`, models and five views offscreen, through the
+`fresh_window` fixture in [tests/windows/conftest.py](../../tests/windows/conftest.py). The 3D
+canvas is created but never initialised, because OpenCASCADE's viewer segfaults without a
+display, and `HOME` points at a temporary folder so `~/brachify` is never touched. Two traps
+shape it. The mesh modules can only be imported after the app exists, because
+`BrachyCylinder.__init__` calls `get_app()` in a default argument. And the app's signals
+outlive every window, so a second window in the same run also drives the first one's
+navigation and models unless the fixture disconnects them, which it does after each test.
 
 Run them from the repository root, in the conda environment:
 
@@ -1659,11 +1698,19 @@ python -m pytest
   including the two `DicomData` tests. `data.py` imports nothing, so they need no conda
   package. The `reset()` test failed naming `central_axis_flag` before the fix, and naming
   `operator` when that line was removed from `reset()` on purpose.
+- *Verified* 2026-10-10 on macOS: 25 passed, with `windows/test_main_window.py` added. Its five
+  tests were written before the fix. Three were red on `main`, and the other two, which
+  describe behaviour the fix must keep, went red once Export was disabled and before it was
+  re-enabled. Four deliberate breaks of the fix were each caught.
 - *Verified* 2026-10-11 on macOS, after merging `main` into the Channels fix branch: 34
   passed. `test_cylinder_view.py` and `test_channels_view.py` also passed, 12 of 12, when run
   in that order. With the two branches' fixtures kept side by side, that order failed all four
   Channels tests with a `RuntimeError` from the QApplication singleton, which is why
   `channels_window` now builds on `units_app`. *Not verified:* Windows.
+- *Verified* 2026-10-11 on macOS, after merging `main` into the Export tab branch: 39 passed.
+  `tests/windows` and `tests/views` also passed, 17 of 17, run in either order, so
+  `brachify_app` and `units_app` share the one QApplication whichever starts it.
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

@@ -1,5 +1,5 @@
 %% title: UML
-%% alt: UML of RadiotherapyApp, the models MainWindow creates, the signals between them, and ShapeModel
+%% alt: UML of RadiotherapyApp, the models MainWindow creates, the signals between them and back to MainWindow, and ShapeModel
 classDiagram
   class RadiotherapyApp {
     signals
@@ -37,6 +37,7 @@ classDiagram
   DicomModel ..> CylinderModel : values_changed
   DicomModel ..> ChannelsModel : values_changed
   CylinderModel ..> TandemModel : values_changed
+  CylinderModel ..> MainWindow : values_changed
   ChannelsModel ..> TandemModel : tandem_changed
   CylinderModel --> ShapeModel
   ChannelsModel --> ShapeModel
