@@ -12,8 +12,8 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 ## Already built
 
-The upstream app now includes Team 10's Cylinder mm/cm display selector.
-`LengthField` keeps dimensions in mm while the four controls display either unit.
+This is the upstream app with two Team 10 changes to `src/`. A fix to how the Channels list shows its selection changes no diagram.
+The Cylinder mm/cm display selector adds `LengthField`, which keeps dimensions in mm while the four controls display either unit.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -115,6 +115,9 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
+Mostly course scaffolding. The changes to application behaviour are a Channels view fix and
+the Cylinder mm/cm display selector.
+
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
 *Verified* 2026-10-10 by offscreen widget and model assertions.
@@ -124,6 +127,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | This documentation set, agent rules, commit and PR workflows | Server or database |
 | Tooling tests and the manually run anti-slop-py linter | CI |
 | macOS setup notes and Cylinder display units | Shared widget fixture across test scopes |
+| The Channels list selection fix in `channels_view.py`, and its tests in `tests/views/` | Tests of the pure geometry and settings functions |
 
 ## Known gaps in the existing code
 
@@ -149,8 +153,9 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The Cylinder display-unit change keeps the existing layers, model signals and export
-formats. Its widget conversion is documented in prose; the diagram sources, rendered
+The existing application's layers, model signals and export formats have not changed. The
+Channels list fix only changes widget state, and the Cylinder display-unit change keeps
+dimensions in mm. Its widget conversion is documented in prose; the diagram sources, rendered
 SVGs and viewer remain unchanged. The projected diagrams remain proposals. The UML and DFD paths changed to keep existing and proposed
 behaviour separate.
 

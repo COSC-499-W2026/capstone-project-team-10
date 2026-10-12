@@ -91,8 +91,9 @@ and Claude Code adds that output to the session's context before the first reply
 session to invoke the superpowers `test-driven-development` skill, and lists every `SKILL.md`
 under `agent-skills/` by reading each one's frontmatter, so a skill added there needs no change
 here. It flags a skill with no row in `agent-skills/README.md` as `UNDOCUMENTED`, and a row
-whose `SKILL.md` is gone as `STALE ROW`, and it reminds the session to keep the documentation
-set in step with the code. It prompts only. A hook cannot invoke a skill itself. The rules it prompts for live in
+whose `SKILL.md` is gone as `STALE ROW`, it reminds the session to keep the documentation
+set in step with the code, and it tells the session to read the repository, code included, and
+to say in its first reply what it read and what it skipped. It prompts only. A hook cannot invoke a skill itself. The rules it prompts for live in
 `AGENTS.md`. Change them there, and change this script only if the steps themselves change.
 
 It is POSIX `sh`, run as `sh "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"`. If it cannot

@@ -341,7 +341,10 @@ failing. AGENTS.md says to ignore that warning. A full run with no `review`
 
 Section "Session start" of [AGENTS.md](../../AGENTS.md#session-start) requires every agent,
 in any tool, to load the superpowers `test-driven-development` skill and read every skill in
-[agent-skills/](../../agent-skills/) before its first reply. What each skill is, and where it
+[agent-skills/](../../agent-skills/) before its first reply. Its step 5 also requires reading
+this document, the rest of the documentation set, and every hand-written file under `src/` and
+`tests/`, and saying in that first reply what was read and what was skipped. That is the §2
+mandate applied to every session. What each skill is, and where it
 came from, and how each is used here, is in [agent-skills/README.md](../../agent-skills/README.md).
 This section deliberately does not list them, so it does not go stale when one is added. The
 folder is the list: agents find skills by searching it for `SKILL.md`, and so does the hook
@@ -573,8 +576,9 @@ This repository is a **fork of `brachify/brachify`**. The `upstream` remote stil
 Essentially all code was written by the upstream authors.
 
 Team 10's contribution as of the last audit consists of README edits, the course folder
-scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. Team 10 also added
-the Cylinder tab mm/cm display selector (§5.6). Geometry and configuration remain in mm.
+scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. The first change to
+`src/` came on 2026-10-08, a fix to the Channels view's list selection (§7.6). Team 10 also
+added the Cylinder tab mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -747,7 +751,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling checks and Cylinder units integration tests (§8)
+├── tests/                     tooling tests, DicomData, the Channels view and Cylinder units (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1219,7 +1223,7 @@ with the current UI.
 | §1–2: give the Central Axis zero dwell time | Nothing reads the dwell times. Both samples give it 222.8 s (§3.2). *Verified* |
 | §2: give the Oncentra central axis channel number 1 | Neither reader checks the channel number. It is matched by name only (§3.2) |
 | §1–2: ensure no needles intersect | Nothing checks this. `are_colliding()` is never called (§7.4) |
-| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:13-16](../../src/windows/views/channels_view.py#L13-L16)). *Verified* |
+| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:14-17](../../src/windows/views/channels_view.py#L14-L17)). *Verified* |
 | 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab does nothing (§7.8) |
 | 4.4: lists *Dead Space* in the layout, but never explains it | `CONFIG_DEADSPACE` extends each needle tip outward, in the model and in the interstitial lengths (§5.4, §5.8) |
 | 4.3: Collar Thickness "changes the diameter of the collar" | It is the collar's wall thickness. The collar's diameter is the cylinder diameter plus twice the thickness (`outer_radius = radius1 + base_thickness`, [cylinder.py:136](../../src/classes/mesh/cylinder.py#L136)) |
@@ -1369,6 +1373,39 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 7.6 Traps that are not bugs — know these before editing
 
+- **Fixed 2026-10-08 in PR #19: the Channels list kept a channel highlighted after leaving
+  the tab.**
+  Select a channel in the Channels tab, go to another tab and come back. `on_close` cleared
+  `ChannelsModel.selected_channels`, so the viewport drew no channel as selected, but nothing
+  cleared the `QListWidget`, which still showed the channel highlighted and still held it as
+  its current item. Because Qt emits `currentItemChanged` only when the current item changes,
+  clicking that channel again did nothing until a different one was clicked first.
+  **Fixed 2026-10-10 in PR #19, the same drift after a viewport pick.** Click Applicator2 in
+  the list, pick Applicator3 in the viewport, then click Applicator2 in the list again.
+  `ChannelsModel.set_selected_shapes` moved the model to Applicator3, and the view highlighted
+  it with `setSelected`, but the list's current item stayed Applicator2. The second click
+  emitted nothing, so the model stayed on Applicator3, and Disable and Set as Tandem acted on
+  a channel other than the one highlighted. `ChannelsView.action_update_settings` now sets
+  the list's current row to the model's selected channel, or to `-1` when there is none,
+  inside a `QSignalBlocker`, so the list follows the model however the selection changed.
+  That also covers a viewport click on empty space (*Reasoned from code*, not tested).
+  *Verified* by the four tests in `tests/views/test_channels_view.py`: the two tab-switch
+  tests failed before the first fix, and the two viewport-pick tests failed on the code before
+  the second. *Verified* 2026-10-10 on Ex1 on macOS by clicking through both in the
+  running app.
+- **Import `classes.mesh.cylinder` only after the `QApplication` exists.**
+  `BrachyCylinder.__init__` takes `diameter=get_app().values.config_values.get(...)` as a
+  default argument, and Python evaluates that once, when the module is imported. Before the
+  app is constructed, `get_app()` returns `None` and the import raises `AttributeError:
+  'NoneType' object has no attribute 'values'`. The app never meets this, because `app.gui()`
+  imports the windows after the app exists, but a test or script that imports the mesh,
+  DICOM or window modules first will. *Verified* 2026-10-08 while writing
+  `tests/views/conftest.py`.
+- **OpenCASCADE's viewer cannot start without a display.** Running the full `app.gui()` with
+  `QT_QPA_PLATFORM=offscreen` exits 139, a segfault, during `MainWindow.initViews()`. A headless
+  test must create `OrbitCameraViewer3d` and never call `InitDriver()` or show it, as
+  `tests/views/conftest.py` does. *Verified* 2026-10-08 on macOS.
+
 - **Fixed 2026-10-04: diagrams in subfolders were skipped by the architecture build.**
   Moving UML and DFD sources into `existing-framework/` left broken viewer links;
   the old non-recursive discovery also missed stale projected diagrams. The build now
@@ -1475,8 +1512,8 @@ first test for `tests/mesh/`. Inspect the result in the Export tab.
 *Reasoned from code, 2026-09-29; not reproduced in the GUI.*
 
 When the selected channel is the tandem, `btn_set_tandem` reads *Clear Tandem*
-([channels_view.py:148](../../src/windows/views/channels_view.py#L148)). Pressing it calls
-`action_set_tandem()` ([channels_view.py:62-97](../../src/windows/views/channels_view.py#L62-L97)),
+([channels_view.py:153](../../src/windows/views/channels_view.py#L153)). Pressing it calls
+`action_set_tandem()` ([channels_view.py:63-98](../../src/windows/views/channels_view.py#L63-L98)),
 whose only call to `ChannelsModel.set_tandem()` runs when the selected channel is **not**
 already the tandem:
 
@@ -1492,6 +1529,14 @@ tandem, stays disabled, and the button keeps its label. The method then only rew
 rotation spin boxes. The Tandem tab's own *Clear Tandem* buttons are separate and are not
 affected. The User Manual does not describe this button's clear action, so what it should do is
 not written down anywhere either (§6.5). Confirm the behaviour in the running app before fixing.
+
+**The same button also reads *Clear Tandem* when no channel is selected and the plan has no
+tandem.** Found 2026-10-10. `ChannelsModel.is_channel_tandem(None)` compares
+`None == data.tandem_channel`, which is true for a plan with no tandem, such as Ex1. The button
+is disabled in that state, because `action_update_settings` enables it only while a channel is
+selected, so only its label is wrong. *Verified* 2026-10-10 on Ex1 on macOS: after leaving the
+Channels tab and coming back, the disabled button read *Clear Tandem*. It predates the
+Channels list fix in §7.6, since leaving the tab already emptied the selection.
 
 ### 7.9 Further bugs found while writing the init guide
 
@@ -1544,19 +1589,25 @@ fails, and why that matters
 
 ### 8.2 Current state
 
-**`DicomData` is tested in `tests/dicom/`, and Cylinder display units in `tests/views/`.**
-[tests/dicom/test_data.py](../../tests/dicom/test_data.py), added 2026-10-10, checks that a new
-`DicomData` starts empty and that `reset()` clears every field `__init__` declares.
+**`DicomData` is tested in `tests/dicom/`, and the Channels view and Cylinder display units in
+`tests/views/`.** [tests/dicom/test_data.py](../../tests/dicom/test_data.py), added 2026-10-10,
+checks that a new `DicomData` starts empty and that `reset()` clears every field `__init__`
+declares. The first tests of `src/`, added 2026-10-08, test the Channels view's list selection.
 
 For Cylinder display units, the real offscreen window,
 models and controls exercise startup, all four cm displays, scaled steps and limits,
 pending edits, mm Apply and exported config dimensions, config reset before/after a
 cylinder exists, and Ex1 import with a 10 mm needle offset. The native canvas is never
-initialised. The fixture isolates HOME/USERPROFILE and reuses the one QApplication.
+initialised.
 
 *Verified* 2026-10-10: all eight new cases failed before implementation; 28 suite cases
 passed afterwards. Three deliberate breaks (cm scale, Apply conversion, rounded mm
 cache) each failed the relevant assertions. No application module is mocked.
+
+Both view test files share the one QApplication from the `units_app` fixture in
+[tests/views/conftest.py](../../tests/views/conftest.py), which isolates HOME/USERPROFILE.
+`channels_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
+per process, so a fixture that constructed its own would fail in whichever file ran second.
 
 Repository tooling tests, first added 2026-09-30, live in
 [tests/tooling/](../../tests/tooling/). Every test file, and what makes it fail:
@@ -1564,6 +1615,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1590,10 +1642,28 @@ python -m pytest
   environment. Before the two Windows fixes in §7.6, 5 of the drift tests failed here and the
   `npx` test failed with `FileNotFoundError`. `build.py` rendered on Windows and `--check`
   exited 0 for all seven diagrams.
+- *Verified* 2026-10-08 on macOS, in an environment made with the §1.2 command: 22
+  passed in about 18 seconds. Both `test_channels_view.py` tests were watched failing before
+  the fix, the second also when run alone, and failing again when the fix was replaced with
+  `clearSelection()` alone. Their `channels_window` fixture in
+  [tests/views/conftest.py](../../tests/views/conftest.py) builds the real window, models and
+  views offscreen with the canvas never initialised (§7.6), points `HOME` at a temporary
+  folder so the developer's `~/brachify` config is not loaded, and imports
+  `SI_C_D30 Brachify_Ex1/`. *Not verified:* Windows.
+- *Verified* 2026-10-10 on macOS: 24 passed, with two viewport-pick tests added to
+  `test_channels_view.py`. They send the pick through the canvas's real `sig_topods_selected`
+  signal. Both were watched failing on the code before the viewport-pick fix, and three of the
+  four view tests failed when the fix was broken on purpose to never find the selected row.
+  *Not verified:* Windows.
 - *Verified* 2026-10-10 on Windows, outside conda: 19 passed with the same `--ignore`,
   including the two `DicomData` tests. `data.py` imports nothing, so they need no conda
   package. The `reset()` test failed naming `central_axis_flag` before the fix, and naming
   `operator` when that line was removed from `reset()` on purpose.
+- *Verified* 2026-10-11 on macOS, after merging `main` into the Channels fix branch: 34
+  passed. `test_cylinder_view.py` and `test_channels_view.py` also passed, 12 of 12, when run
+  in that order. With the two branches' fixtures kept side by side, that order failed all four
+  Channels tests with a `RuntimeError` from the QApplication singleton, which is why
+  `channels_window` now builds on `units_app`. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
