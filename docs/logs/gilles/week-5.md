@@ -108,7 +108,6 @@ flowchart TB
 - The backend API must serve **future local Python callers**. We decided to use **`read_structures(Dataset)`** for all interactions with the backend because **it separates file loading from decoding**. Benefits for using this approach include **real in-memory fixtures**. Possible risks include **mistaking decoded contours for validated solids**.
   - To mitigate **that assumption**, we implemented **explicit module documentation excluding surface reconstruction and geometric validity checks**.
 - The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-SV-01 decoding subset → `test_join_by_identifier_and_keep_all_slices`; FR-SV-03 classification subset → `test_preserve_input_and_unknown_type`; neither full requirement is complete**.
-- By using **[coverage tool and measurement pending]** to check for test coverage, we found that our tests have **[coverage percentage pending]** coverage because **[coverage evidence pending]**.
 
 #### Review and design
 
@@ -135,6 +134,6 @@ flowchart TB
 - When I reviewed the **missing-definition test**, I noticed **its final assertions had been placed in the frame-reference test**. Therefore, I did **move them into `test_reject_wrong_modality_and_missing_definitions` and rerun the suite**.
 - Among these tests, **24 cases in `test_structures.py`** are unit tests and integration tests are not required because **this module accepts datasets directly; separate headless checks decoded each bundled RTSTRUCT into 42 ROIs and 152 contours**.
 - These tests are included in the directory **`tests/dicom/`**.
-- This new test PR did not break anything else in the system because **44 tests pass; the new module has no GUI caller. GUI regression and screenshot remain unverified: [author GUI regression evidence pending]**.
+- This new test PR did not break anything else in the system because **44 tests pass; the new module has no GUI caller. GUI regression and screenshot remain unverified
 
 ---
