@@ -773,7 +773,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
         ├── palettes.py        colour definitions (unused)
         ├── models/            six QObject models
         ├── views/             five views + custom_view.py + viewport.py
-        └── ui/                .ui sources and generated *_ui.py
+        └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
 ```
 
 ---
@@ -971,6 +971,16 @@ Regenerate after editing a `.ui`:
 
 ```bash
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
+```
+
+`arrows_rc.py` is generated the same way, from `arrows.qrc` and the two black 14×14 PNGs in
+`ui/arrows/`, and is never hand-edited either. `ChannelsView` imports it, which registers the
+images as `:/arrows/spin_up.png` and `:/arrows/spin_down.png` for its spin box stylesheet. The
+images are compiled into Python because PyInstaller bundles imported modules but not the
+`resources/` folder (§7.5). After changing an image or the `.qrc`:
+
+```bash
+pyside6-rcc src/windows/ui/arrows.qrc -o src/windows/ui/arrows_rc.py
 ```
 
 The full workflow — Designer → `.ui` → `uic` → hand-written `*_view.py` → register in
@@ -1198,7 +1208,7 @@ with the current UI.
 | §1–2: give the Central Axis zero dwell time | Nothing reads the dwell times. Both samples give it 222.8 s (§3.2). *Verified* |
 | §2: give the Oncentra central axis channel number 1 | Neither reader checks the channel number. It is matched by name only (§3.2) |
 | §1–2: ensure no needles intersect | Nothing checks this. `are_colliding()` is never called (§7.4) |
-| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:14-17](../../src/windows/views/channels_view.py#L14-L17)). *Verified* |
+| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:15-18](../../src/windows/views/channels_view.py#L15-L18)). *Verified* |
 | 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab does nothing (§7.8) |
 | 4.4: lists *Dead Space* in the layout, but never explains it | `CONFIG_DEADSPACE` extends each needle tip outward, in the model and in the interstitial lengths (§5.4, §5.8) |
 | 4.3: Collar Thickness "changes the diameter of the collar" | It is the collar's wall thickness. The collar's diameter is the cylinder diameter plus twice the thickness (`outer_radius = radius1 + base_thickness`, [cylinder.py:136](../../src/classes/mesh/cylinder.py#L136)) |
@@ -1345,6 +1355,15 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - `spec-file.txt` is `win-64` only (§1.2). macOS and Linux install the same dependencies
   from the command in §1.2, but nothing locks their versions, so they can differ from
   Windows (§1.1).
+- **Fixed 2026-10-08 on the Channels tab only: spin box arrows were invisible on macOS in dark
+  mode.** Each spin box's stylesheet paints its field white, but in dark mode macOS still
+  draws the native up and down arrows white, for a dark background, so they vanish.
+  `ChannelsView` now sets a stylesheet that draws its four spin boxes' arrows from black
+  images (§5.6), and leaves the rest of the app, the file dialogs included, in the OS colour
+  scheme. *Verified* 2026-10-08 on macOS in dark mode by rendering the Channels spin box, and
+  by `test_channels_spin_box_arrows_are_black`. *Still open:* the spin boxes on the Cylinder,
+  Tandem and Export tabs have the same invisible arrows in macOS dark mode. *Not verified:*
+  Windows, where the images replace the native arrows too.
 
 ### 7.6 Traps that are not bugs — know these before editing
 
@@ -1481,8 +1500,8 @@ first test for `tests/mesh/`. Inspect the result in the Export tab.
 *Reasoned from code, 2026-09-29; not reproduced in the GUI.*
 
 When the selected channel is the tandem, `btn_set_tandem` reads *Clear Tandem*
-([channels_view.py:153](../../src/windows/views/channels_view.py#L153)). Pressing it calls
-`action_set_tandem()` ([channels_view.py:63-98](../../src/windows/views/channels_view.py#L63-L98)),
+([channels_view.py:161](../../src/windows/views/channels_view.py#L161)). Pressing it calls
+`action_set_tandem()` ([channels_view.py:71-106](../../src/windows/views/channels_view.py#L71-L106)),
 whose only call to `ChannelsModel.set_tandem()` runs when the selected channel is **not**
 already the tandem:
 
@@ -1564,7 +1583,7 @@ The tests added from 2026-09-30 cover repository tooling in
 
 | Test | Fails when |
 |---|---|
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6) Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
@@ -1598,6 +1617,11 @@ python -m pytest
   views offscreen with the canvas never initialised (§7.6), points `HOME` at a temporary
   folder so the developer's `~/brachify` config is not loaded, and imports
   `SI_C_D30 Brachify_Ex1/`. *Not verified:* Windows.
+- *Verified* 2026-10-08 on macOS: 23 passed, with `test_channels_spin_box_arrows_are_black`
+  added. It failed before the fix with the headless Fusion style's grey arrows (darkest
+  pixel 94 of 255), passed on PySide6 6.11.2 and 6.8.1, and failed again (85) when the
+  `arrows_rc` import was removed. The arrows come from the stylesheet's images, so the test
+  sees what every platform draws.
 - *Verified* 2026-10-10 on macOS: 24 passed, with two viewport-pick tests added to
   `test_channels_view.py`. They send the pick through the canvas's real `sig_topods_selected`
   signal. Both were watched failing on the code before the viewport-pick fix, and three of the
