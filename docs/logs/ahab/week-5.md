@@ -200,3 +200,54 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **28 suite cases pass and Ahab supplied a cm GUI screenshot and Ex1 terminal output, recorded in [GUI evidence and terminal excerpt](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6fc7159/docs/logs/ahab/evidence/cylinder-units-gui.md); the image is not archived, Ex2/tandem and Export after the edit remain visually unverified, and the existing `_key_map` bug appeared**.
 
 ---
+
+### For PR #**29**
+
+- As part of requirement **the course's weekly team log (Part B), with the week's DFD and system
+  architecture diagram**, the user needs to do **open `docs/logs/team/week-5.md` and audit each
+  member's merged week 5 work against its PR and the diagrams**.
+- Therefore, I implemented/generated code so that **the instructor and Team 10 get a week 5 Part
+  B covering the 11 merged PRs, with diagrams pinned at `e3cc2ae`**.
+
+#### Review and design
+
+- When I reviewed the **generated claim that every receipt records a test failing before the
+  fix**, I noticed **#24 and #25 record failures under deliberate breaks instead
+  (`docs/logs/ahab/week-5.md` line 182)**. Therefore, I did **reword it to "failing before the
+  fix or with it deliberately broken"**.
+- The PR does not contain any temporary workaround because **it adds only markdown, with no code
+  logic**.
+- The PR only contains small functions — **N/A**, no function changed.
+- I did **a grep of the log for `TODO`, `[...]`, `_or_` and `(If applicable` (0 matches)** to
+  ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- The review by **an independent reviewer agent** identified **#21 counted as on `main`, and
+  the size overrun blamed on stacking**. Therefore, I did **mark #21 not on `main` (`git
+  merge-base --is-ancestor a0fe720 e3cc2ae` exits 1) and give #19, #22 and #24's sizes before
+  their tests (12, 14 and 17 files)**.
+- This work is written in **`docs/logs/team/week-5.md`** because **`docs/logs/README.md` puts
+  one team log per week in `team/`**.
+- This work belongs in a process in the DFD — **N/A**, brachify's data flow is unchanged.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **each table row
+  against `gh pr view` (files, lines and approvers, 11 of 11 match)** passed.
+- I wrote tests to cover abnormal situations involving **stacked PRs, by checking that each
+  merge commit is an ancestor of `main` (6 of 7)** and they passed.
+- I checked that these negative cases involving **#21's merge commit `a0fe720` (not an ancestor
+  of `main`) and #28 (still open)** failed as expected.
+- When I reviewed the generated tests — **N/A**, no tests were generated.
+- Among these tests, unit and integration tests — **N/A**, the checks are shell commands, not
+  tests in `tests/`.
+- These tests are included in the directory — **N/A**, no test file changed.
+- This new test PR did not break anything else in the system because **only markdown changed,
+  and `python -m pytest` (63 passed), `build.py --check` and `session-start.sh` (exit 0) pass**.
+
