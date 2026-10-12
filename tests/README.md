@@ -38,9 +38,10 @@ tests/
 ├── README.md
 ├── conftest.py            fixtures shared by everything
 ├── data/                  sample inputs, never beside a test file
-├── dicom/                 exists: DicomData's reset rule
+├── dicom/                 exists: DicomData reset and RTSTRUCT reader tests
 │   ├── conftest.py        fixtures used only by dicom tests
 │   ├── test_data.py
+│   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
 ├── mesh/
 │   └── test_helper.py
@@ -62,7 +63,7 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/` and `dicom/test_data.py` exist. The rest of the tree shows
+`tooling/`, `views/`, `windows/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
 where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
@@ -106,6 +107,10 @@ python -m pytest
 this project imports as though `src/` were the root (`from classes.app import get_app`), and
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
+
+`dicom/test_structures.py` tests the standalone RTSTRUCT reader using real in-memory
+pydicom datasets. It covers ROI joins, all contour slices, metadata defaults, contour
+semantics, input preservation, and malformed input.
 
 `windows/` and `views/` hold the widget tests. Both fixtures build the real `MainWindow`,
 models and five views offscreen, with the 3D canvas never initialised and `HOME` and
