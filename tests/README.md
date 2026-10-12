@@ -53,8 +53,9 @@ tests/
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-├── views/                 exists: the Cylinder tab's mm/cm display units
-│   ├── conftest.py        cylinder_window, a new window per test with default settings
+├── views/                 exists: the Channels and Cylinder views, against the real window
+│   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
+│   ├── test_channels_view.py
 │   └── test_cylinder_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -117,6 +118,20 @@ the window shows.
 
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
+
+`views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
+run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
+QApplication per process, so the two window fixtures share it rather than each making their
+own. `channels_window` builds the real `MainWindow`, models and five views once per module
+and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
+in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
+builds a fresh window with default settings for each test. Neither calls
+`canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and both
+disconnect their window from the application signals on teardown. No application module is
+mocked.
+
+`views/test_channels_view.py` checks that the Channels list's current item follows the
+selected channel, after leaving and reopening the tab and after a viewport pick.
 
 `views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
 widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and

@@ -21,6 +21,7 @@ docs/logs/
 ├── ahab/screenshots/week-<K>/  images that week's receipts link to, if any
 ├── ahab/evidence/     written regression records a receipt links to, if any
 ├── ariq/week-<K>.md
+├── ariq/screenshots/week-<K>/   images a Part A cites as evidence
 ├── ehsan/week-<K>.md
 ├── gilles/week-<K>.md
 └── team/week-<K>.md   one team log per week
@@ -28,6 +29,11 @@ docs/logs/
 
 `<K>` is the week number in the semester. A new student gets a folder named the same way, in
 lower case.
+
+A screenshot a Part A receipt cites goes in `<student>/screenshots/week-<K>/`, committed on
+the PR's branch. Link it in both the PR description and the log by its
+`raw.githubusercontent.com` URL pinned to the commit that added it, so the two texts stay
+identical and the image renders in both. A relative path would render only in the log.
 
 ## Individual log: Part A
 
