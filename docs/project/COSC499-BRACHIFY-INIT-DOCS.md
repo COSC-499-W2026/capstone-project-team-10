@@ -1736,6 +1736,9 @@ app's settings, not from the DICOM files.
   matters when an import fails partway: then the old form stays in place, and `reset()` is what
   wipes the previous patient's values. A box missing from `reset()` survives only a failed
   import. *Reasoned from code.* `central_axis_flag` is the one box it misses.
+
+  > **Out of date since 2026-10-10.** `reset()` now clears `central_axis_flag` too. See §5.3 of
+  > the [project docs](COSC499-TEAM10-PROJECT-DOCS.md#53-dicom-ingest).
 - **`toString()`** builds a summary that is written to the log file. It includes the patient's
   name, so the name ends up in `~/brachify/app.log` in plain text.
 
@@ -3614,6 +3617,8 @@ its own `config_values` inside it.
 
 ### 13.6 `reset.py`, into the boxes and back out
 
+> **Changed 2026-10-10.** Cylinder config dimensions now pass through `set_dimensions_mm`, respecting the selected mm/cm display unit. See source of truth §5.2 and §5.6.
+
 [`reset.py`](../../src/settings/reset.py) has two functions that move settings in opposite
 directions.
 
@@ -4631,6 +4636,8 @@ into every tab's boxes ([13.6](#136-resetpy-into-the-boxes-and-back-out)).
 
 ### 17.4 `cylinder_view.py`, the Cylinder tab
 
+> **Changed 2026-10-10.** All four dimensions now have a shared mm/cm selector. Apply and model updates use exact mm values retained by `windows/length_field.py`; the choice is not saved. See source of truth §5.6 and §7.6.
+
 | Widget | Label | Allowed values |
 |---|---|---|
 | `spinbox_diameter` | *Cylinder Diameter* | 0 to 99.99 mm |
@@ -4909,6 +4916,8 @@ One button, followed all the way through:
 The object name typed into Qt Designer becomes the Python name every other file uses.
 
 ### 18.3 What each design file contains
+
+> **Changed 2026-10-10.** The Cylinder design adds a Units selector and uses QDoubleSpinBox for length and both collar fields. Precision and limits scale with mm/cm. See source of truth §5.6.
 
 Every widget the code uses, with its label on screen and its allowed values. *Verified*, read
 from the `.ui` files.
