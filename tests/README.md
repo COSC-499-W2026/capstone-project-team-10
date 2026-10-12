@@ -51,10 +51,12 @@ tests/
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-└── views/
+└── views/                 exists: the Channels view, against the real window
+    ├── conftest.py        channels_window, the headless window with Ex1 imported
+    └── test_channels_view.py
 ```
 
-Only `tooling/` exists so far. The rest of the tree shows where tests will go.
+Only `tooling/` and `views/` exist so far. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -98,8 +100,12 @@ this project imports as though `src/` were the root (`from classes.app import ge
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
 
-Nothing in `src/` has a test yet. The first test of application code starts at the top of the
-list below.
+The only tests of `src/` so far are in `views/`. The `channels_window` fixture builds the real
+`MainWindow`, models and five views offscreen and imports `SI_C_D30 Brachify_Ex1/`. It reads
+that folder where it is rather than from a copy in `tests/data/`, because the folder is
+inherited upstream and never edited. The 3D canvas is created but never initialised, since
+OpenCASCADE's viewer segfaults without a display. Building the plan takes most of the run's 18
+seconds. None of the pure functions in the list below is tested yet.
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
 
