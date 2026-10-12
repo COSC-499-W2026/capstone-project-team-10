@@ -3,6 +3,115 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
+### For PR #**19**
+
+- As part of requirement **FR-CN-02 (Milestone 2), edit the selected needle**, the user needs
+  to do **select a channel in the list or the viewport, switch tabs or pick another, and see the
+  list and the viewport agree on which channel, if any, is selected**.
+- Therefore, I implemented/generated code so that **physicists get a Channels list whose
+  current item is always the model's selected channel, or none, so Disable and Set as Tandem
+  act on the highlighted channel, and every agent session reads the repo, code included,
+  before its first reply**.
+
+#### Frontend
+
+- The frontend uses **`ChannelsModel.selected_channels` as the one selection state, mirrored
+  into the list by `action_update_settings`** because **the list and the viewport must show the
+  same channel**. Benefits for using this pattern include **one source of truth, so a list
+  click, a viewport pick, leaving the tab or clicking empty space all update both**. Possible
+  risks include **setting the list's row re-entering `action_select_channel` through
+  `currentItemChanged`**.
+  - To mitigate **that re-entry**, we implemented **a `QSignalBlocker` around
+    `setCurrentRow`, which restores the previous blocked state when nested**.
+- The frontend ensures only authorized users can access restricted pages — **N/A**, brachify
+  has no logins or restricted pages.
+- The frontend is designed using **PySide6 with Qt Designer `.ui` files** with design
+  components for **the five tab views**. Therefore, changing the design of
+  **`listwidget_channels` in `channels_view.ui`** will automatically change the look and feel
+  of all instances of that component throughout the system. Changes to the content will not
+  affect the design because **channel names are added at runtime by `create_channels_list`**.
+- The usability evaluation identified the following major problems — **N/A**, no usability
+  evaluation was run.
+- The frontend adopts accessibility principle — **N/A**, this PR changes selection state only.
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-02 → test PR #20,
+  `tests/views/test_channels_view.py`**
+- By using a test coverage tool — **N/A**, the repo has no coverage tool.
+
+#### Review and design
+
+- When I reviewed the **generated `action_update_settings` change** for this functionality, I
+  did not find any problems with it because **the four tests in test PR #20 pass with it, and
+  the two viewport-pick tests fail on the code before it**.
+- The review by **Ayyhab** identified **the list keeping its current item through a viewport
+  pick, so Disable and Set as Tandem acted on another channel**. Therefore, I did **set the
+  list's current row to the model's channel, or `-1`, in `action_update_settings`**.
+- The PR does not contain any temporary workaround because **the list mirrors the model in the
+  method that already syncs the Channels buttons to it**.
+- The PR only contains small functions that are **34 (`action_update_settings`)** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the 17-line `src/` diff**
+  to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/channels_view.py`** because **the list widget
+  belongs to `ChannelsView`, and `action_update_settings` runs on every `values_changed`**.
+- This work belongs in **Channels, DFD level 1** because **it changes how that tab shows the
+  selected channel**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests — **N/A**, the tests are in
+  test PR #20.
+- I wrote tests to cover abnormal situations — **N/A**, the tests are in test PR #20.
+- I checked that these negative cases — **N/A**, the tests are in test PR #20.
+- When I reviewed the generated tests — **N/A**, the tests are in test PR #20.
+- Among these tests, unit and integration tests — **N/A**, the tests are in test PR #20.
+- These tests are included in the directory — **N/A**, the tests are in test PR #20.
+- This new test PR did not break anything else in the system because **`python -m pytest` (34
+  passed after merging `main`), `build.py --check` and `session-start.sh` (exit 0), and a run
+  on Ex1 on macOS before that merge: Applicator2 selected (1), nothing selected after leaving Channels and returning (2), and
+  Applicator2 selected again after picking another needle in the viewport (3)**.
+
+  ![1, Applicator2 selected in the list and drawn blue](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b72a1952fb60ebaf97ad634ebfd0583b24513bcf/docs/logs/ariq/screenshots/week-5/pr-19-1-applicator2-selected.png)
+  ![2, after leaving Channels and returning, nothing selected](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b72a1952fb60ebaf97ad634ebfd0583b24513bcf/docs/logs/ariq/screenshots/week-5/pr-19-2-after-tab-switch.png)
+  ![3, after a viewport pick, Applicator2 clicked in the list and selected again](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b72a1952fb60ebaf97ad634ebfd0583b24513bcf/docs/logs/ariq/screenshots/week-5/pr-19-3-after-viewport-pick.png)
+
+### For test PR #**20** written to assess functionality in **#19, keeping the Channels list's current item on the selected channel**
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_returning_to_channels_tab_shows_no_channel_selected` and
+  `test_viewport_pick_highlights_only_that_channel_in_list` (24 passed)** passed.
+- I wrote tests to cover abnormal situations involving **clicking a channel Qt still holds as
+  current, after leaving the tab
+  (`test_channel_can_be_selected_again_after_returning_to_channels_tab`) and after a viewport
+  pick (`test_list_click_selects_channel_again_after_picking_another_in_viewport`)** and they
+  passed.
+- I checked that these negative cases involving **the tab-switch tests without the first #19
+  fix, the viewport-pick tests without the second (2 failed each), and a fix that never finds
+  the selected row (3 failed)** failed as expected.
+- When I reviewed the **generated `test_channels_view.py`**, I noticed **it imported
+  `classes.app` at the top, fixing `~/brachify` to the real home before the fixture redirected
+  `HOME`**. Therefore, I did **move the import into the helper**.
+- When I reviewed the **generated `channels_window` fixture**, I noticed **it imported the
+  mesh modules before the app existed (`AttributeError` from `BrachyCylinder`'s default
+  argument)**. Therefore, I did **create the app first and record the trap in §7.6**.
+- When I reviewed the **generated `channels_window` fixture**, I noticed **the full
+  `app.gui()` exits 139 without a display**. Therefore, I did **create the canvas without
+  `InitDriver()` and record the trap in §7.6**.
+- Among these tests, **none** are unit tests and **all four tests** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (24
+  passed), `anti_slop review` (no findings), `build.py --check` and `session-start.sh` (exit
+  0), and [author: attach a screenshot of the `python -m pytest` run]**.
+
 ### For PR #**17**
 
 - As part of requirement **the course's weekly individual log, where week 4 took a mark from

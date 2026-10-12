@@ -120,11 +120,6 @@ class ImportView(CustomView):
             return
 
         # Add patient and plan info to window
-        
-        #if dicom file has been opened then the export tap can open and the button will change color
-        #else the button will not change color, see main (not related to not being able to go to the
-        #export tab before importing a file, only for button color)
-        self.dicom_file_opened = True
 
         #this must be imported here rather than at the top with the other imports or the import will be called prior to method_found being determined and the wrong value will be used
         from classes.dicom.fileio import method_found
@@ -186,7 +181,6 @@ class ImportView(CustomView):
 
     def __init__(self):
         self.folder_name = ""
-        self.dicom_file_opened = False
         super().__init__()
         self.ui = Ui_Import_View()
         self.ui.setupUi(self)

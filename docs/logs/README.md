@@ -18,7 +18,10 @@ disagree, Canvas is right, and this README is updated to match.
 docs/logs/
 ├── README.md          this file
 ├── ahab/week-<K>.md   one individual log per student per week
+├── ahab/screenshots/week-<K>/  images that week's receipts link to, if any
+├── ahab/evidence/     written regression records a receipt links to, if any
 ├── ariq/week-<K>.md
+├── ariq/screenshots/week-<K>/   images a Part A cites as evidence
 ├── ehsan/week-<K>.md
 ├── gilles/week-<K>.md
 └── team/week-<K>.md   one team log per week
@@ -26,6 +29,11 @@ docs/logs/
 
 `<K>` is the week number in the semester. A new student gets a folder named the same way, in
 lower case.
+
+A screenshot a Part A receipt cites goes in `<student>/screenshots/week-<K>/`, committed on
+the PR's branch. Link it in both the PR description and the log by its
+`raw.githubusercontent.com` URL pinned to the commit that added it, so the two texts stay
+identical and the image renders in both. A relative path would render only in the log.
 
 ## Individual log: Part A
 
@@ -46,6 +54,17 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
   [Keep Part A minimal](../workflows/make-pr.md#keep-part-a-minimal).
 - **Every PR is logged.** A documentation or process PR still has a full Part A, so it gets a
   section like any other.
+- **Screenshots live beside the log.** A receipt that cites a screenshot links to an image
+  committed on the PR's branch in `docs/logs/<student>/screenshots/week-<K>/`, the same week as
+  the log that links it, and named `pr-<n>-<step>-<what>.png`. The link is a
+  `raw.githubusercontent.com` URL pinned to the commit that added the image, as `team/week-4.md`
+  does for its diagrams, so the PR description and the log carry the same text and the link
+  survives the merge. Rebasing that commit or moving the image changes the commit to pin, so
+  update the link in both places if you do either.
+- **Other regression records go in `evidence/`.** A written observation or terminal excerpt
+  may be stored in `docs/logs/<student>/evidence/` and linked from the receipt. If a screenshot
+  is supplied only in chat and its original file is unavailable, say so explicitly; a written
+  observation or terminal excerpt is not an archived image.
 
 ## Team log: Part B
 

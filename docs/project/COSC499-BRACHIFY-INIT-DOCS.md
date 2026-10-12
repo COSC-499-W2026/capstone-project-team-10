@@ -1740,6 +1740,9 @@ app's settings, not from the DICOM files.
   matters when an import fails partway: then the old form stays in place, and `reset()` is what
   wipes the previous patient's values. A box missing from `reset()` survives only a failed
   import. *Reasoned from code.* `central_axis_flag` is the one box it misses.
+
+  > **Out of date since 2026-10-10.** `reset()` now clears `central_axis_flag` too. See §5.3 of
+  > the [project docs](COSC499-TEAM10-PROJECT-DOCS.md#53-dicom-ingest).
 - **`toString()`** builds a summary that is written to the log file. It includes the patient's
   name, so the name ends up in `~/brachify/app.log` in plain text.
 
@@ -3618,6 +3621,8 @@ its own `config_values` inside it.
 
 ### 13.6 `reset.py`, into the boxes and back out
 
+> **Changed 2026-10-10.** Cylinder config dimensions now pass through `set_dimensions_mm`, respecting the selected mm/cm display unit. See source of truth §5.2 and §5.6.
+
 [`reset.py`](../../src/settings/reset.py) has two functions that move settings in opposite
 directions.
 
@@ -3653,6 +3658,10 @@ stand-in window supplying the values:
 - **It crashes if there is no cylinder yet**, with `'NoneType' object has no attribute
   'diameter'`, because it reads the diameter from the cylinder object. So pressing *Export
   Current Settings as Config* before importing a plan or pressing *Apply Settings* fails.
+
+> **Changed 2026-10-10.** The Export tab now stays disabled until a cylinder exists, so this
+> button can no longer be pressed before one. `getCurrentValues()` itself still crashes without
+> a cylinder. See [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
 
 #### Why the collar can never be saved or loaded
 
@@ -3742,7 +3751,8 @@ file again on every start until another one is imported.
   built-in default too.
 - **That the collar survives.** It is missing from the export, ignored by the import, and dropped
   by *Generate Tandem*.
-- **That a cylinder exists before export.** Exporting settings first crashes.
+- **That a cylinder exists before export.** Exporting settings first crashes. *(Changed
+  2026-10-10: the Export tab now stays disabled until a cylinder exists, [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).)*
 - **That the remembered file still works.** A broken settings file is retried on every start.
 - **Existing copy that breaks the project's writing rule.** The Import tab message uses colons,
   such as "Config file currently loaded:", which AGENTS.md's UI copy rule forbids in new text.
@@ -3887,6 +3897,11 @@ other four light. *Verified*, by calling them on the real window:
 leaves the old button highlighted. After a successful import, the Import tab calls
 `change_color_export()` itself, because it switches you to the Export tab.
 
+> **Changed 2026-10-10.** The Export button now starts disabled and drawn grey, and is enabled
+> when the first cylinder is made, by an import or by *Apply Settings*. `change_color_export` no
+> longer waits for an import, and the five functions share two stylesheet strings. See
+> [§5.6](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer) and [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
+
 The five functions are near-copies of each other, about 23 lines each, differing only in which
 button turns dark. One function taking the button as a value would replace all five (§5.6 of the
 source of truth calls this the most obvious tidy-up in the window code).
@@ -3907,6 +3922,10 @@ source of truth calls this the most obvious tidy-up in the window code).
    └─ app.signals.height_changed ─┬──▶ channelsmodel.update_height_offset   cylinder length changed
                                   └──▶ tandemmodel.update_height_offset
 ```
+
+> **Changed 2026-10-10.** `initModels` also connects `cylindermodel.values_changed` to
+> `MainWindow.enable_export_view`, which enables the Export tab. See
+> [§4.4 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#44-signal-graph).
 
 A sixth model, `NavigationModel`, which owns the five tabs, is made in step 3.
 
@@ -4097,6 +4116,10 @@ All the connections, as `MainWindow.initModels` and `TandemModel.__init__` set t
  CylinderModel, ChannelsModel, TandemModel ── add_shape / add_shapes ─▶ DisplayModel
  the current tab's @display_action ─▶ DisplayModel.update() ─▶ shapes_changed ─▶ the 3D view redraws
 ```
+
+> **Changed 2026-10-10.** `CylinderModel.values_changed` also reaches
+> `MainWindow.enable_export_view`, which enables the Export tab. See
+> [§4.4 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#44-signal-graph).
 
 The tandem model connects itself to the other two when it is created, which is why
 `initModels` creates it last.
@@ -4635,6 +4658,8 @@ into every tab's boxes ([13.6](#136-resetpy-into-the-boxes-and-back-out)).
 
 ### 17.4 `cylinder_view.py`, the Cylinder tab
 
+> **Changed 2026-10-10.** All four dimensions now have a shared mm/cm selector. Apply and model updates use exact mm values retained by `windows/length_field.py`; the choice is not saved. See source of truth §5.6 and §7.6.
+
 | Widget | Label | Allowed values |
 |---|---|---|
 | `spinbox_diameter` | *Cylinder Diameter* | 0 to 99.99 mm |
@@ -4783,6 +4808,10 @@ of 98,960.8 mm³, and *Show Tandem* was greyed out because no tandem had been ge
 The solid is **rebuilt every time** the tab is opened, which on Ex2 means cutting 12 needles out
 again. The collet boxes save themselves into the live settings every time their value changes.
 
+> **Changed 2026-10-10.** The Export tab can no longer be opened before a cylinder exists, because
+> its button stays disabled until one does. Opening it then used to raise `AttributeError` while
+> building the solid, after the tabs had already recorded the switch. See [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
+
 ### 17.8 `viewport.py`, the 3D view
 
 `OrbitCameraViewer3d` is the 3D view on the right of the window: an OpenCASCADE viewer placed
@@ -4913,6 +4942,8 @@ One button, followed all the way through:
 The object name typed into Qt Designer becomes the Python name every other file uses.
 
 ### 18.3 What each design file contains
+
+> **Changed 2026-10-10.** The Cylinder design adds a Units selector and uses QDoubleSpinBox for length and both collar fields. Precision and limits scale with mm/cm. See source of truth §5.6.
 
 Every widget the code uses, with its label on screen and its allowed values. *Verified*, read
 from the `.ui` files.

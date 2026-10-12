@@ -18,8 +18,7 @@ def resetAllValues(values_dict: dict):
     # Cylinder View values
     cylinder_diameter = values_dict.get("CONFIG_CYLINDER_DIAMETER")
     cylinder_length = values_dict.get("CONFIG_CYLINDER_LENGTH")
-    app.window.navigationmodel.views[1].ui.spinbox_diameter.setValue(cylinder_diameter)
-    app.window.navigationmodel.views[1].ui.spinbox_length.setValue(cylinder_length)
+    app.window.navigationmodel.views[1].set_dimensions_mm(cylinder_diameter, cylinder_length)
     # if a DICOM file has already been imported, then apply the settings to update the views and models.
     if app.window.cylindermodel.cylinder is not None:
         app.window.navigationmodel.views[1].action_apply_settings() # apply the above settings

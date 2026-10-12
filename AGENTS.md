@@ -16,10 +16,15 @@ These steps bind **every agent**, whatever tool runs it: Claude Code, Codex, Cur
    Compare what you found with the table, both ways. A `SKILL.md` with **no row** is undocumented: someone added the skill without recording how it is used here. Do not follow its procedure. Tell the user, ask how this repository should use it, and add the row as [Adding a skill](agent-skills/README.md#adding-a-skill) describes, in the current change. A row whose `SKILL.md` **no longer exists** is stale: tell the user and remove it as [Updating or removing a skill](agent-skills/README.md#updating-or-removing-a-skill) describes. In Claude Code the session-start hook flags both, marked `UNDOCUMENTED` and `STALE ROW`, and `sh .claude/hooks/session-start.sh` runs the same check by hand on macOS, Linux or Git Bash. In Windows PowerShell, run it through Git for Windows' `sh.exe`, as §1.10 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) shows.
 3. **Apply [Anti-slop](#anti-slop).** It is in force for the whole session and rejects low-evidence, low-signal implementation.
 4. **Keep the documentation set in step with the code as you work.** The code is the source of truth. Whatever your change makes stale in the [documentation set](#you-must-update-the-documentation-set) is updated in the same pull request, and before any pull request you check every file in the set against the branch diff. Never edit an [inherited upstream file](#what-is-ours-and-what-is-inherited).
+5. **Read the repository, the code included, and say honestly what you read.** The team's instruction, verbatim:
 
-Then read the project-doc sections named under [Read this before doing anything else](#read-this-before-doing-anything-else). Session start does not replace that reading.
+   > Please understand this repo and read everything in detail, not just the md, but also the code, which is obviously the source of truth. Please be honest about this and actually do it.
 
-In Claude Code, all four steps are prompted automatically. [.claude/settings.json](.claude/settings.json) registers a `SessionStart` hook, [.claude/hooks/session-start.sh](.claude/hooks/session-start.sh), which lists every `SKILL.md` under `agent-skills/` and tells the session to do the steps above. It fires on startup, resume, `/clear` and compaction. The hook only prompts. It cannot invoke a skill itself, so the steps still bind you if the hook did not run. [.claude/skills/install-anti-slop-py/](.claude/skills/install-anti-slop-py/SKILL.md) puts the vendored skill in Claude Code's skill list. Claude Code loads it whenever someone talks about adding anti-slop or banning `Any`, so its body tells the agent not to install and to use the vendored linter instead.
+   In practice: read [docs/project/COSC499-TEAM10-PROJECT-DOCS.md](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) and the rest of the [documentation set](#you-must-update-the-documentation-set), then every hand-written source file under `src/` end to end, and `tests/`. Do not describe a module you have not opened, and do not infer what it does from its name. The markdown describes intent, and where it disagrees with the code, the code is right. In your first reply, say which files you read in full and which you skipped or skimmed, and why. "I did not read it" is an acceptable answer. Claiming to have read something you did not is not. The same rule governs the project docs, as their §2 standing mandate.
+
+Step 5 includes the project-doc sections named under [Read this before doing anything else](#read-this-before-doing-anything-else). Those stay the place to start.
+
+In Claude Code, all five steps are prompted automatically. [.claude/settings.json](.claude/settings.json) registers a `SessionStart` hook, [.claude/hooks/session-start.sh](.claude/hooks/session-start.sh), which lists every `SKILL.md` under `agent-skills/` and tells the session to do the steps above. It fires on startup, resume, `/clear` and compaction. The hook only prompts. It cannot invoke a skill itself, so the steps still bind you if the hook did not run. [.claude/skills/install-anti-slop-py/](.claude/skills/install-anti-slop-py/SKILL.md) puts the vendored skill in Claude Code's skill list. Claude Code loads it whenever someone talks about adding anti-slop or banning `Any`, so its body tells the agent not to install and to use the vendored linter instead.
 
 **Adding a skill.** Follow [Adding a skill](agent-skills/README.md#adding-a-skill) in `agent-skills/README.md`. Session start needs no change: step 2 and the Claude Code hook both find a new skill by searching the folder. What does need changing, in the same PR, is the table in `agent-skills/README.md`, which is in the [documentation set](#you-must-update-the-documentation-set). If the new skill must be loaded by every session regardless of the task, the way test-driven development is, it also needs its own step here and a box in the **Agent skills** section of the [pull request template](pull_request_template.md).
 
@@ -152,6 +157,15 @@ ticked with **N/A** rather than left blank, `git commit` commits
 the whole index rather than only the paths you just added, and neither commits nor PR
 descriptions may carry AI attribution.
 
+When the user invokes `/make-pr`, read and execute `docs/workflows/make-pr.md` on the
+current branch. This routing applies in every assistant, including one without native
+slash commands; do not substitute a remembered procedure.
+
+The user prefers agents to perform GUI regression runs and capture screenshots themselves.
+Use an available desktop session and isolate test configuration. If desktop access or
+screen capture is unavailable, report the observed limitation and ask only for the evidence
+that cannot be collected. Never claim a viewport run from offscreen widget tests.
+
 Claude Code users get `/commit` and `/make-pr`, which are thin pointers in
 [`.claude/commands/`](.claude/commands/). If your assistant has its own command format, point it
 at the file in `docs/workflows/` rather than copying the content, so there stays one source of
@@ -174,7 +188,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Tooling tests live in `tests/tooling/`; `tests/dicom/test_structures.py` tests the standalone RTSTRUCT reader. The existing GUI and geometry code remain untested, and no missing fixture or folder is a reason to skip a test.
+**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides the tooling tests in `tests/tooling/`, `tests/dicom/test_structures.py` tests the standalone RTSTRUCT reader, `tests/dicom/test_data.py` checks that `DicomData.reset()` clears every field `__init__` declares, `tests/windows/` tests the main window's Export tab, and [tests/views/](tests/views/) tests the Channels view's list selection against the real window and checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. The `windows/` and `views/` fixtures share one QApplication and never initialise the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -194,9 +208,11 @@ Anything that is a pure function of its inputs. In this codebase that is most of
 
 ### What tests cannot reach here
 
-Qt widgets and the OpenCASCADE viewport cannot be meaningfully unit tested in this setup, and full solid booleans are too slow to run per commit.
+The OpenCASCADE viewport cannot be tested here: without a display, initialising it segfaults. Full solid booleans are too slow to run per commit.
 
-Do not paper over that with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
+Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and five views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. `cylinder_window` builds the same window with default settings and no plan, fresh for each test. Both build on `units_app`, the one QApplication for the run, because Qt allows only one per process. `fresh_window` in [tests/windows/conftest.py](tests/windows/conftest.py) also builds a window with no plan for each test, on `brachify_app`, which reuses that QApplication when `units_app` started it first. A test clicks buttons with `QTest` or sets widget values, then asserts what the window shows. Use them when the behaviour is the widgets' own state, such as which list row is highlighted. Building the thirteen Ex1 channels takes several seconds.
+
+Do not paper over the rest with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
 
 - **Move logic out of views and models into pure functions and test it there.** A view method should read spin boxes, call a tested function, and hand the result to a model.
 - **Cover the remaining behaviour by running the app**, with `SI_C_D30 Brachify_Ex1/` (and `Ex2/` for the tandem path, since only `Ex2` has a `Tandem` channel), and visually inspecting the Export tab. Record the run in the regression receipt of the PR's Part A. It is not a formality: the output is a physical device used on a patient.
@@ -222,6 +238,13 @@ written the way it is. [tests/tooling/](tests/tooling/) shows the form.
 - **Mocking so deeply that only the mock runs.** Mock at the boundary (the filesystem, `pydicom.dcmread`) and nothing below it.
 
 §8 of [the project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) carries the same target list and must be updated when you add tests.
+
+## Cylinder display units
+
+The Cylinder tab alone displays mm or cm. Its four `LengthField` instances retain exact
+mm values; Apply reads those values. Config and model updates use
+`CylinderView.set_dimensions_mm`, never direct mm writes to the displayed spin boxes.
+The selector starts in mm and is not saved. See §5.6 and §7.6 of the source of truth.
 
 ## UI copy
 
@@ -262,6 +285,7 @@ The subfolder name mirrors the `src/` path it tests:
 
 | Tests for | Goes in |
 |---|---|
+| `src/windows/main_window.py` | `tests/windows/` |
 | `src/windows/views/` | `tests/views/` |
 | `src/windows/models/` | `tests/models/` |
 | `src/classes/mesh/` | `tests/mesh/` |
@@ -327,7 +351,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Tooling and the standalone RTSTRUCT reader are tested, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Tooling, the standalone RTSTRUCT reader, `DicomData`, the main window's Export tab, the Channels view and Cylinder display units are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
@@ -396,7 +420,7 @@ The final export is a boolean: channels and tandem are `BRepAlgoAPI_Cut` out of 
 
 `read_dicom_folder` ([dicom/fileio.py](src/classes/dicom/fileio.py)) globs `**/*.dcm`, picks the first RTPLAN and first RTSTRUCT, then branches on `rp_dataset.Manufacturer` into `load_varian_dicom_data` or `load_nucletron_dicom_data`. The two vendors store channel geometry differently and have parallel `load_central_axis_*` / `load_channels_*` implementations — a fix in one usually needs the mirror fix in the other.
 
-Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**. Each import builds a new `DicomData`, so a missing field only leaks after an import that fails partway, but keep the two in sync.
+Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**. Each import builds a new `DicomData`, so a missing field only leaks after an import that fails partway, but keep the two in sync. `tests/dicom/test_data.py` fails, naming the field, if they drift apart.
 
 A channel labelled `"Central Axis"` is mandatory — it defines the cylinder axis and tip direction. The match is looser than that label suggests, and differs by vendor: the Varian reader accepts the first label that *contains* `central axis` or `centralaxis`, ignoring case, while the Nucletron reader needs the whole name to equal one of them. A Varian needle labelled `Central Axis Needle` can therefore be taken as the axis. If no central axis is found, the reader falls back to a structure whose label contains `surface`. Only when both are missing does the import fail through `MainWindow.no_central_axis_or_cylinder_outline()`. A `Tandem` channel is matched as a substring too. Details in §3.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
@@ -416,7 +440,7 @@ Config loading is lenient by design: `load_config_file` keeps any key that is pr
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
 ```
 
-Widget styling is currently applied as inline `setStyleSheet` strings in `main_window.py` (the `change_color_*` methods, one near-duplicate per nav button). [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
+Nav button styling is two stylesheet strings in `main_window.py`, `NAV_BUTTON_STYLE` and `SELECTED_NAV_BUTTON_STYLE`, which the five near-duplicate `change_color_*` methods apply to every nav button on each tab click. A style set on one nav button anywhere else is overwritten by the next click. The Export button stays disabled until `CylinderModel.values_changed` fires. [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
 
 ## Sample data
 
