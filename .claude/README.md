@@ -42,7 +42,8 @@ Slash commands, invoked in Claude Code by typing the name prefixed with `/`.
 
 Groups changed files into logical commits and makes them one at a time. The procedure covers
 reading `git status` and `git diff` before staging, never using `git add .`, maximising the
-number of commits while keeping each coherent and the `type: description` message format,
+number of commits while keeping each coherent, the `type: description` message format, and
+naming a new branch `<type>/<what-it-is-about>`.
 
 ### /make-pr
 
