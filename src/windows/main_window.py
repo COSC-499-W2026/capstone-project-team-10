@@ -15,6 +15,32 @@ from PySide6.QtGui import QIcon
 from classes.info import USER_PATH
 import json
 
+# Every nav button except the one for the tab on screen. Only the Export button is ever
+# disabled, while there is no cylinder to export, and it is drawn grey then.
+NAV_BUTTON_STYLE = (u"QPushButton {\n"
+                    "	color: rgb(0, 0, 0);\n"
+                    "	background-color: rgb(199, 219, 237);\n"
+                    "	border: 0px solid;\n"
+                    "}\n"
+                    "QPushButton:hover {\n"
+                    "	color: rgb(250,250,250);\n"
+                    "	background-color: rgb(48, 88, 162);\n"
+                    "}\n"
+                    "QPushButton:pressed {\n"
+                    "	color: rgb(250,250,250);\n"
+                    "	background-color: rgb(28, 44, 81);\n"
+                    "}\n"
+                    "QPushButton:disabled {\n"
+                    "	color: rgb(150, 150, 150);\n"
+                    "	background-color: rgb(199, 219, 237);\n"
+                    "}")
+
+SELECTED_NAV_BUTTON_STYLE = (u"QPushButton {\n"
+                             "	color: rgb(250, 250, 250);\n"
+                             "	background-color: rgb(28, 44, 81);\n"
+                             "	border: 0px solid;\n"
+                             "}")
+
 class MainWindow(QMainWindow):
 
     def __init__(self, *args):
@@ -50,126 +76,47 @@ class MainWindow(QMainWindow):
         self.ui.btn_tandem_view.pressed.connect(self.change_color_tandem)
         self.ui.btn_export_view.pressed.connect(self.change_color_export)
 
+        # Export cuts the channels out of the cylinder, so it stays off until a cylinder exists
+        self.ui.btn_export_view.setStyleSheet(NAV_BUTTON_STYLE)
+        self.ui.btn_export_view.setEnabled(False)
+
         #app.signals.viewChanged.connect(self.ui.viewswidget.setCurrentIndex)
 
     def change_color_import(self):
         views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
         for v in views:
             if(v != self.ui.btn_import_view):
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(0, 0, 0);\n"
-                "	background-color: rgb(199, 219, 237);\n"
-                "	border: 0px solid;\n"
-                "}\n"
-                "QPushButton:hover {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(48, 88, 162);\n"
-                "}\n"
-                "QPushButton:pressed {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "}")
+                v.setStyleSheet(NAV_BUTTON_STYLE)
             else:
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(250, 250, 250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "	border: 0px solid;\n"
-                "}")
+                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
     def change_color_cylinder(self):
         views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
         for v in views:
             if(v != self.ui.btn_cylinder_view):
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(0, 0, 0);\n"
-                "	background-color: rgb(199, 219, 237);\n"
-                "	border: 0px solid;\n"
-                "}\n"
-                "QPushButton:hover {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(48, 88, 162);\n"
-                "}\n"
-                "QPushButton:pressed {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "}")
+                v.setStyleSheet(NAV_BUTTON_STYLE)
             else:
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(250, 250, 250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "	border: 0px solid;\n"
-                "}")
+                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
     def change_color_channels(self):
         views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
         for v in views:
             if(v != self.ui.btn_channels_view):
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(0, 0, 0);\n"
-                "	background-color: rgb(199, 219, 237);\n"
-                "	border: 0px solid;\n"
-                "}\n"
-                "QPushButton:hover {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(48, 88, 162);\n"
-                "}\n"
-                "QPushButton:pressed {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "}")
+                v.setStyleSheet(NAV_BUTTON_STYLE)
             else:
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(250, 250, 250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "	border: 0px solid;\n"
-                "}")
+                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
     def change_color_tandem(self):
         views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
         for v in views:
             if(v != self.ui.btn_tandem_view):
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(0, 0, 0);\n"
-                "	background-color: rgb(199, 219, 237);\n"
-                "	border: 0px solid;\n"
-                "}\n"
-                "QPushButton:hover {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(48, 88, 162);\n"
-                "}\n"
-                "QPushButton:pressed {\n"
-                "	color: rgb(250,250,250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "}")
+                v.setStyleSheet(NAV_BUTTON_STYLE)
             else:
-                v.setStyleSheet(u"QPushButton {\n"
-                "	color: rgb(250, 250, 250);\n"
-                "	background-color: rgb(28, 44, 81);\n"
-                "	border: 0px solid;\n"
-                "}")
+                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
     def change_color_export(self):
-        app = get_app()
-        dicom_file_opened = app.window.navigationmodel.views[0].dicom_file_opened
-        if(dicom_file_opened):
-            views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
-            for v in views:
-                if(v != self.ui.btn_export_view):
-                    v.setStyleSheet(u"QPushButton {\n"
-                    "	color: rgb(0, 0, 0);\n"
-                    "	background-color: rgb(199, 219, 237);\n"
-                    "	border: 0px solid;\n"
-                    "}\n"
-                    "QPushButton:hover {\n"
-                    "	color: rgb(250,250,250);\n"
-                    "	background-color: rgb(48, 88, 162);\n"
-                    "}\n"
-                    "QPushButton:pressed {\n"
-                    "	color: rgb(250,250,250);\n"
-                    "	background-color: rgb(28, 44, 81);\n"
-                    "}")
-                else:
-                    v.setStyleSheet(u"QPushButton {\n"
-                    "	color: rgb(250, 250, 250);\n"
-                    "	background-color: rgb(28, 44, 81);\n"
-                    "	border: 0px solid;\n"
-                    "}")
+        views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
+        for v in views:
+            if(v != self.ui.btn_export_view):
+                v.setStyleSheet(NAV_BUTTON_STYLE)
+            else:
+                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
         
         
     def initModels(self):
@@ -183,6 +130,8 @@ class MainWindow(QMainWindow):
         # TODO connect models to signals
         self.dicommodel.values_changed.connect(self.cylindermodel.load_data)
         self.dicommodel.values_changed.connect(self.channelsmodel.load_data)
+        # fires on an import and on the Cylinder tab's Apply Settings, the two ways to get a cylinder
+        self.cylindermodel.values_changed.connect(self.enable_export_view)
 
         app = get_app()
         app.signals.height_changed.connect(self.channelsmodel.update_height_offset)
@@ -208,6 +157,9 @@ class MainWindow(QMainWindow):
         self.initialized = True
 
         log.info("main window initialization complete")
+
+    def enable_export_view(self):
+        self.ui.btn_export_view.setEnabled(True)
 
     def showWithCanvas(self):
         # for the canvas widget to properly fit, we need to shrink the window slightly and then 

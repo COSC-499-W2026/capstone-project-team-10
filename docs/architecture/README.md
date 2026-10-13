@@ -12,7 +12,12 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 
 ## Already built
 
-This is the upstream app. Team 10's changes to `src/` so far are two Channels tab fixes, to the list selection and to the spin box arrows, and neither changes a diagram.
+This is the upstream app plus Team 10's changes to `src/`, listed under
+[What Team 10 has added](#what-team-10-has-added). They are two Channels tab fixes, to how
+the list shows its selection and to the spin box arrows, neither of which changes a diagram,
+the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
+controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
+`classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder not yet called by the GUI.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -68,7 +73,7 @@ libraries and disk. Two arrows point back up: outputs leave through the Export v
 | Layer | Contents | Source |
 |---|---|---|
 | External | TPS DICOM export, config JSON, tandem STEP file, STL and STEP out, PDF out | outside the repo |
-| Presentation | `MainWindow`, the five views, the OpenCASCADE canvas | `src/windows/` |
+| Presentation | `MainWindow`, the five views, `LengthField` and `LengthUnit`, the OpenCASCADE canvas | `src/windows/` |
 | Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel` and `ShapeModel` | `src/classes/app.py`, `src/windows/models/` |
 | Domain services | DICOM readers, OpenCASCADE geometry, PDF sheet, config load and reset | `src/classes/dicom/`, `mesh/`, `pdf/`, `src/settings/` |
 | Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib | conda environment |
@@ -82,9 +87,9 @@ itself.
 
 ### UML
 
-Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
+Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `CylinderModel.values_changed` also reaches `MainWindow`, which enables the Export tab once a cylinder exists. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
 
-![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
+![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, from CylinderModel to MainWindow, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
 `DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder and channel models.
 
@@ -105,7 +110,7 @@ Five tabs, in this fixed order. The code addresses them by index. Do not reorder
 | Tab | What it does |
 |---|---|
 | Import | Reads the first RTPLAN and RTSTRUCT. Needs a channel named `Central Axis`. Varian is the path the sample data exercises. Nucletron exists in code and has no sample here. |
-| Cylinder | Diameter, length, optional collar. Length changes move needles by an offset. Original DICOM points stay put. |
+| Cylinder | Diameter, length, optional collar displayed in mm or cm; Apply uses mm. Length changes move needles by an offset. Original DICOM points stay put. |
 | Channels | Bore diameter, dead space, threading. A channel can be disabled or marked as the tandem. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
@@ -114,15 +119,23 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Mostly course scaffolding. The changes to application behaviour are two Channels view fixes.
+Mostly course scaffolding. The changes to application behaviour are two Channels view fixes,
+the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
+A standalone RTSTRUCT reader decodes anatomy for future visualization.
+
+The Cylinder selector is a display preference for this window. It preserves pending
+edits and exact mm values across switches; config files and exports use mm.
+*Verified* 2026-10-10 by offscreen widget and model assertions.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry, DICOM and settings functions |
-| Tooling tests and the manually run anti-slop-py linter | CI |
-| macOS setup notes in the project docs | New features in `src/` |
-| The Channels list selection fix in `channels_view.py`, and its tests in `tests/views/` | |
+| This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
+| Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
+| macOS setup notes and Cylinder display units | Server or database |
+| `DicomData` reset tests and the standalone RTSTRUCT reader with tests in `tests/dicom/` | Structure rendering and GUI integration |
+| The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
+| The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 
 ## Known gaps in the existing code
 
@@ -148,8 +161,12 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The existing application's structure and data flow have not changed, since the Channels
-list fix only changes widget state, so its four diagram sources did not require a redraw. The UML and DFD paths changed to keep existing and proposed
+The standalone RTSTRUCT reader is listed in the system architecture diagram; it is not
+yet connected to the GUI. The
+Channels list fix only changes widget state, and the Cylinder display-unit change keeps
+dimensions in mm, its widget conversion documented in prose, so neither changes a diagram.
+The Export tab fix adds one edge to the existing UML, `CylinderModel ..> MainWindow`, and
+leaves the other diagrams unchanged. The projected diagrams remain proposals. The UML and DFD paths changed to keep existing and proposed
 behaviour separate.
 
 ### Projected UML

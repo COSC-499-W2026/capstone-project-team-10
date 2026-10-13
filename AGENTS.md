@@ -157,6 +157,15 @@ ticked with **N/A** rather than left blank, `git commit` commits
 the whole index rather than only the paths you just added, and neither commits nor PR
 descriptions may carry AI attribution.
 
+When the user invokes `/make-pr`, read and execute `docs/workflows/make-pr.md` on the
+current branch. This routing applies in every assistant, including one without native
+slash commands; do not substitute a remembered procedure.
+
+The user prefers agents to perform GUI regression runs and capture screenshots themselves.
+Use an available desktop session and isolate test configuration. If desktop access or
+screen capture is unavailable, report the observed limitation and ask only for the evidence
+that cannot be collected. Never claim a viewport run from offscreen widget tests.
+
 Claude Code users get `/commit` and `/make-pr`, which are thin pointers in
 [`.claude/commands/`](.claude/commands/). If your assistant has its own command format, point it
 at the file in `docs/workflows/` rather than copying the content, so there stays one source of
@@ -179,7 +188,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides the tooling tests in `tests/tooling/`, [tests/views/](tests/views/) tests the Channels view against the real window. None of the pure functions listed below is tested yet, and no missing fixture or folder is a reason to skip one.
+**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides the tooling tests in `tests/tooling/`, `tests/dicom/test_structures.py` tests the standalone RTSTRUCT reader, `tests/dicom/test_data.py` checks that `DicomData.reset()` clears every field `__init__` declares, `tests/windows/` tests the main window's Export tab, and [tests/views/](tests/views/) tests the Channels view's list selection against the real window and checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. The `windows/` and `views/` fixtures share one QApplication and never initialise the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -201,7 +210,7 @@ Anything that is a pure function of its inputs. In this codebase that is most of
 
 The OpenCASCADE viewport cannot be tested here: without a display, initialising it segfaults. Full solid booleans are too slow to run per commit.
 
-Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and five views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. Use it when the behaviour is the widgets' own state, such as which list row is highlighted. It takes about 18 seconds per run, mostly building the thirteen channels.
+Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and five views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. `cylinder_window` builds the same window with default settings and no plan, fresh for each test. Both build on `units_app`, the one QApplication for the run, because Qt allows only one per process. `fresh_window` in [tests/windows/conftest.py](tests/windows/conftest.py) also builds a window with no plan for each test, on `brachify_app`, which reuses that QApplication when `units_app` started it first. A test clicks buttons with `QTest` or sets widget values, then asserts what the window shows. Use them when the behaviour is the widgets' own state, such as which list row is highlighted. Building the thirteen Ex1 channels takes several seconds.
 
 Do not paper over the rest with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
 
@@ -229,6 +238,13 @@ written the way it is. [tests/tooling/](tests/tooling/) shows the form.
 - **Mocking so deeply that only the mock runs.** Mock at the boundary (the filesystem, `pydicom.dcmread`) and nothing below it.
 
 §8 of [the project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) carries the same target list and must be updated when you add tests.
+
+## Cylinder display units
+
+The Cylinder tab alone displays mm or cm. Its four `LengthField` instances retain exact
+mm values; Apply reads those values. Config and model updates use
+`CylinderView.set_dimensions_mm`, never direct mm writes to the displayed spin boxes.
+The selector starts in mm and is not saved. See §5.6 and §7.6 of the source of truth.
 
 ## UI copy
 
@@ -269,6 +285,7 @@ The subfolder name mirrors the `src/` path it tests:
 
 | Tests for | Goes in |
 |---|---|
+| `src/windows/main_window.py` | `tests/windows/` |
 | `src/windows/views/` | `tests/views/` |
 | `src/windows/models/` | `tests/models/` |
 | `src/classes/mesh/` | `tests/mesh/` |
@@ -334,7 +351,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Tooling and the Channels view are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. Tooling, the standalone RTSTRUCT reader, `DicomData`, the main window's Export tab, the Channels view and Cylinder display units are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
@@ -403,7 +420,7 @@ The final export is a boolean: channels and tandem are `BRepAlgoAPI_Cut` out of 
 
 `read_dicom_folder` ([dicom/fileio.py](src/classes/dicom/fileio.py)) globs `**/*.dcm`, picks the first RTPLAN and first RTSTRUCT, then branches on `rp_dataset.Manufacturer` into `load_varian_dicom_data` or `load_nucletron_dicom_data`. The two vendors store channel geometry differently and have parallel `load_central_axis_*` / `load_channels_*` implementations — a fix in one usually needs the mirror fix in the other.
 
-Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**. Each import builds a new `DicomData`, so a missing field only leaks after an import that fails partway, but keep the two in sync.
+Everything is flattened into a single `DicomData` bag ([dicom/data.py](src/classes/dicom/data.py)), which has no `__slots__`: **any field added to `__init__` must also be added to `reset()`**. Each import builds a new `DicomData`, so a missing field only leaks after an import that fails partway, but keep the two in sync. `tests/dicom/test_data.py` fails, naming the field, if they drift apart.
 
 A channel labelled `"Central Axis"` is mandatory — it defines the cylinder axis and tip direction. The match is looser than that label suggests, and differs by vendor: the Varian reader accepts the first label that *contains* `central axis` or `centralaxis`, ignoring case, while the Nucletron reader needs the whole name to equal one of them. A Varian needle labelled `Central Axis Needle` can therefore be taken as the axis. If no central axis is found, the reader falls back to a structure whose label contains `surface`. Only when both are missing does the import fail through `MainWindow.no_central_axis_or_cylinder_outline()`. A `Tandem` channel is matched as a substring too. Details in §3.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md).
 
@@ -423,7 +440,7 @@ Config loading is lenient by design: `load_config_file` keeps any key that is pr
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
 ```
 
-Widget styling is currently applied as inline `setStyleSheet` strings in `main_window.py` (the `change_color_*` methods, one near-duplicate per nav button). [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
+Nav button styling is two stylesheet strings in `main_window.py`, `NAV_BUTTON_STYLE` and `SELECTED_NAV_BUTTON_STYLE`, which the five near-duplicate `change_color_*` methods apply to every nav button on each tab click. A style set on one nav button anywhere else is overwritten by the next click. The Export button stays disabled until `CylinderModel.values_changed` fires. [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
 
 ## Sample data
 

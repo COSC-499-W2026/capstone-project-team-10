@@ -21,7 +21,7 @@ def select_first_channel_then_leave_and_return(window: MainWindow) -> None:
     click on the list emits, so the view and model react exactly as they do to a click.
     """
     # Imported here, not at the top: importing classes at collection time would fix
-    # ~/brachify to the real home folder before the channels_window fixture redirects HOME.
+    # ~/brachify to the real home folder before the units_app fixture redirects HOME.
     from classes.app import get_app
 
     signals = get_app().signals

@@ -22,6 +22,7 @@ The subfolder name mirrors the `src/` path under test:
 
 | Tests for | Goes in |
 |---|---|
+| `src/windows/main_window.py` | `tests/windows/` |
 | `src/windows/views/` | `tests/views/` |
 | `src/windows/models/` | `tests/models/` |
 | `src/classes/mesh/` | `tests/mesh/` |
@@ -37,8 +38,10 @@ tests/
 ├── README.md
 ├── conftest.py            fixtures shared by everything
 ├── data/                  sample inputs, never beside a test file
-├── dicom/
+├── dicom/                 exists: DicomData reset and RTSTRUCT reader tests
 │   ├── conftest.py        fixtures used only by dicom tests
+│   ├── test_data.py
+│   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
 ├── mesh/
 │   └── test_helper.py
@@ -51,12 +54,17 @@ tests/
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-└── views/                 exists: the Channels view, against the real window
-    ├── conftest.py        channels_window, the headless window with Ex1 imported
-    └── test_channels_view.py
+├── views/                 exists: the Channels and Cylinder views, against the real window
+│   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
+│   ├── test_channels_view.py
+│   └── test_cylinder_view.py
+└── windows/               exists: the main window, driven offscreen
+    ├── conftest.py        fresh_window, a new window per test with no plan
+    └── test_main_window.py
 ```
 
-Only `tooling/` and `views/` exist so far. The rest of the tree shows where tests will go.
+`tooling/`, `views/`, `windows/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
+where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -100,12 +108,42 @@ this project imports as though `src/` were the root (`from classes.app import ge
 the root is on the path for tests of root-level files such as `build_executable.py`.
 [`.vscode/settings.json`](../.vscode/settings.json) points VS Code's test runner at `tests`.
 
-The only tests of `src/` so far are in `views/`. The `channels_window` fixture builds the real
-`MainWindow`, models and five views offscreen and imports `SI_C_D30 Brachify_Ex1/`. It reads
-that folder where it is rather than from a copy in `tests/data/`, because the folder is
-inherited upstream and never edited. The 3D canvas is created but never initialised, since
-OpenCASCADE's viewer segfaults without a display. Building the plan takes most of the run's 18
-seconds. None of the pure functions in the list below is tested yet.
+`dicom/test_structures.py` tests the standalone RTSTRUCT reader using real in-memory
+pydicom datasets. It covers ROI joins, all contour slices, metadata defaults, contour
+semantics, input preservation, and malformed input.
+
+`windows/` and `views/` hold the widget tests. Both fixtures build the real `MainWindow`,
+models and five views offscreen, with the 3D canvas never initialised and `HOME` and
+`USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
+started it first, and disconnects application signals in its teardown. No application module is
+mocked. The pure functions below still have no tests.
+
+`windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
+the window shows.
+
+`dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
+field `__init__` declares. It imports no Qt or conda-only package.
+
+`views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
+run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
+QApplication per process, so the two window fixtures share it rather than each making their
+own. `channels_window` builds the real `MainWindow`, models and five views once per module
+and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
+in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
+builds a fresh window with default settings for each test. Neither calls
+`canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and both
+disconnect their window from the application signals on teardown. No application module is
+mocked.
+
+`views/test_channels_view.py` checks that the Channels list's current item follows the
+selected channel, after leaving and reopening the tab and after a viewport pick.
+
+`views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
+widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and
+Ex1 import with needle offsets.
+
+Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
+green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
 
