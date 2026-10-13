@@ -16,6 +16,11 @@ exactly.
 
 ## Read the branch first
 
+- Check that the branch name follows `<type>/<what-it-is-about>`, as
+  [Branch names](commit.md#branch-names) describes. If it does not, ask the user before renaming
+  it. Before a PR exists, renaming is `git branch -m` and a push of the new name. Once a PR is
+  open, GitHub cannot change its branch, so renaming means closing that PR, opening a new one,
+  and moving its Part A to the new number in the PR body and the weekly log.
 - Run `git log main..HEAD --oneline` to see all commits on this branch.
 - Run `git diff main...HEAD` to read the full diff and truly understand what was implemented.
   Do not summarize from memory.
