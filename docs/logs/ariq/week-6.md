@@ -28,5 +28,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **this Part A, written under the new rules (two Not applicable lines, no `— N/A` receipt)** passed.
-- This new test PR did not break anything else in the system because **only markdown changed (`git diff --name-only main...HEAD`), `python -m pytest` (63 passed), `session-start.sh` and `build.py --check` (exit 0), and [author: attach a screenshot of the `python -m pytest` run]**.
+- This new test PR did not break anything else in the system because **only markdown changed (`git diff --name-only main...HEAD`), `python -m pytest` (63 passed), `session-start.sh` and `build.py --check` (exit 0), and the `python -m pytest` run below**.
+
+  ![1, python -m pytest on docs/make-pr-log-rules, 63 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/66c4f0c246e272a7d913ff53f3be0df55c5eeebf/docs/logs/ariq/screenshots/week-6/pr-31-1-pytest-run.png)
+
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
