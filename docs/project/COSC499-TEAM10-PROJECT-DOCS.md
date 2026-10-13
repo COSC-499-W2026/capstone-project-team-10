@@ -1428,7 +1428,11 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   `ChannelsView` now sets a stylesheet that draws its four spin boxes' arrows from black
   images (§5.6), and leaves the rest of the app, the file dialogs included, in the OS colour
   scheme. *Verified* 2026-10-08 on macOS in dark mode by rendering the Channels spin box, and
-  by `test_channels_spin_box_arrows_are_black`. *Still open:* the spin boxes on the Cylinder,
+  by `test_channels_spin_box_arrows_are_black`. *Verified* again 2026-10-13 after merging
+  `main`, in the app itself on macOS in dark mode (the native `cocoa` platform): with Ex1
+  imported through *Import Dicom* and the Channels tab open, `QWidget.grab()` of all four
+  spin boxes gave a darkest pixel of 39 in the up arrow and 1 in the down arrow. The 3D
+  viewport was not captured. *Still open:* the spin boxes on the Cylinder,
   Tandem and Export tabs have the same invisible arrows in macOS dark mode. *Not verified:*
   Windows, where the images replace the native arrows too.
 
@@ -1758,7 +1762,9 @@ python -m pytest
   added. It failed before the fix with the headless Fusion style's grey arrows (darkest
   pixel 94 of 255), passed on PySide6 6.11.2 and 6.8.1, and failed again (85) when the
   `arrows_rc` import was removed. The arrows come from the stylesheet's images, so the test
-  sees what every platform draws.
+  sees what every platform draws. *Verified* again 2026-10-13 after merging `main`: 64
+  passed, the five Channels view tests also passed on PySide6 6.8.1, and the arrows test
+  still failed with no stylesheet (94) and with no `arrows_rc` import (85).
 - *Verified* 2026-10-10 on macOS: 24 passed, with two viewport-pick tests added to
   `test_channels_view.py`. They send the pick through the canvas's real `sig_topods_selected`
   signal. Both were watched failing on the code before the viewport-pick fix, and three of the
