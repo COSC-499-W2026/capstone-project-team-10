@@ -26,6 +26,48 @@ exactly.
 - Run `python -m pytest` from the repository root, in the conda environment. Every test must
   pass before you open the PR. There is no CI, so nothing else runs the suite. A failure you
   did not cause still goes in the PR description by name.
+- Check the PR size limits now, as [Check the PR size limits](#check-the-pr-size-limits)
+  describes, before any documentation or log work adds to the diff.
+
+## Check the PR size limits
+
+The course counts a PR that breaks these limits as **unmerged**:
+
+| Limit | Must hold for |
+|---|---|
+| fewer than 10 files changed | 99% of PRs |
+| fewer than 3 files changed | 50 to 75% of PRs |
+| fewer than 500 lines changed | 99% of PRs |
+| fewer than 200 lines changed | 50 to 75% of PRs |
+| every merged file under 500 lines of code | 99% of PRs |
+
+This workflow checks the four file and line limits. It does not check the 500-line file limit:
+files already longer than that on `main`, such as the source of truth, are accepted as they are.
+
+Check twice: once after [Read the branch first](#read-the-branch-first), and again just before
+`gh pr create`, once the documentation updates, the log section and any screenshots are on the
+branch.
+
+1. **Count everything in the diff**, code, tests, documentation, the weekly log and images.
+   `git diff --shortstat main...HEAD` gives the files changed, and lines changed are its
+   insertions plus deletions. `git diff --numstat main...HEAD` gives the same per file. On the
+   first check, also estimate what this workflow will still add: the weekly log file, each
+   documentation file the change makes stale, and each screenshot.
+2. **Show the user the counts** against the four limits, and which ones hold.
+3. **If every limit holds**, say so and continue.
+4. **If a limit is broken, or will be once the log and documentation are in, stop and discuss
+   it with the user. Do not decide for them.** Do not split the branch, revert, move commits,
+   drop documentation or trim content on your own. Tell them which limit, by how much, and
+   which files drive it. Offer two or three ways to get under it, with what each costs, such as
+   splitting by concern into separate PRs, moving the tests into a test PR (see
+   [Tests in this PR or another](#tests-in-this-pr-or-another)), moving an unrelated change to
+   its own branch, or going ahead because only a 50 to 75% limit is broken. Answer their
+   questions and go back and forth until they choose. Then do only what they chose, and count
+   again.
+
+Two rules of this repository add files to every PR: the documentation set is updated in the
+same PR, and the Part A log section is committed on the PR's branch. When one of them is what
+breaks a limit, say so, so that the user can weigh it.
 
 ## Bring the documentation set up to date
 
@@ -64,7 +106,9 @@ This repo is a fork of `brachify/brachify`, and `gh pr create` **defaults to the
 repository**. Opening a PR against upstream by accident would send the team's coursework to the
 original author's project.
 
-Always pass the target explicitly:
+Before you run it, repeat the size check in
+[Check the PR size limits](#check-the-pr-size-limits) on the final diff. Then always pass the
+target explicitly:
 
 ```bash
 gh pr create \
@@ -125,8 +169,10 @@ author.
 
 **Always fill Part A in, whatever the PR changes.** It is the author's graded weekly
 submission, so a PR with an empty or one-line Part A costs the author marks. Fill in every
-receipt, minimally, as [Keep Part A minimal](#keep-part-a-minimal) describes. Mark **N/A** only
-the individual receipt that genuinely cannot apply, with a reason, and never the whole section.
+receipt that applies, minimally, as [Keep Part A minimal](#keep-part-a-minimal) describes, in
+the template's own words. Name the receipts that do not apply in one line per subsection, as
+[The Not applicable line](#the-not-applicable-line) describes, rather than writing each one out
+as N/A.
 
 **Part B, the team log, does not go in a PR.** It covers the whole team's week and belongs in
 `docs/logs/team/week-<K>.md`. See [docs/logs/README.md](../logs/README.md).
@@ -136,13 +182,16 @@ the individual receipt that genuinely cannot apply, with a reason, and never the
 The grader checks that each claim has evidence, and also how quickly that evidence can be
 audited. In week 4, two individual logs lost a mark for being "excessively long, which makes
 the evidence less minimal and quick to audit". The log that got full marks gave one short answer
-per receipt. Part A is the same text in the PR description and in the log, so keep it short in
-both.
+per receipt. In week 5, a log lost marks because it "contains excessive documentation checklists
+and repeated sections marked N/A": every receipt was written out for documentation PRs, and each
+receipt that did not apply took its own `— N/A` line. Part A is the same text in the PR
+description and in the log, so keep it short in both.
 
 - **Write only the template's sentences.** Replace the bold placeholders and write nothing
   before, after or between them. A receipt ends where the template's sentence ends. Do not add
   a follow-up sentence such as "`python -m pytest` reports 3 passed." after the closing `**`.
-  Put that fact inside the fill-in, or leave it out.
+  Put that fact inside the fill-in, or leave it out. The one line that is not the template's
+  is [the Not applicable line](#the-not-applicable-line).
 - **One claim and one piece of evidence per fill-in.** Answer the placeholder with the shortest
   phrase a grader can check: a file, a test name, or a command and its result. Do not explain
   how you got there, list everything you considered, or restate what another receipt says.
@@ -150,7 +199,8 @@ both.
   ...)_, write one bullet for each problem whose fix is in this diff, the most significant
   first. Leave out routine fixes such as rewrapping a line, stripping a commit trailer or
   resolving a merge conflict. One to three bullets is usually enough.
-- **An N/A reason is one clause.** `— **N/A**, the PR adds no functions.` and nothing after it.
+- **No receipt is written out as N/A.** A receipt that does not apply is named in its
+  subsection's Not applicable line, with a reason of a few words, and nowhere else.
 - **Reread before you open the PR.** Delete every sentence outside a fill-in, and every clause
   inside one that a grader would not check. For scale, the full-marks week 4 section,
   [PR #13 in Gilles's log](../logs/gilles/week-4.md), is about 650 words for a PR with code and
@@ -217,13 +267,78 @@ need more than one.
 | Backend | logic with no widgets: [src/classes/](../../src/classes/) (mesh, dicom, pdf, app, signals), [src/windows/models/](../../src/windows/models/), [src/settings/](../../src/settings/) |
 | Frontend | what the clinician sees: [src/windows/views/](../../src/windows/views/), the `.ui` files in [src/windows/ui/](../../src/windows/ui/), [main_window.py](../../src/windows/main_window.py), [palettes.py](../../src/windows/palettes.py) |
 
-**Keep every receipt**, in the main list and inside an included subsection. Much of the course
-template assumes a web app with a database, a network API and logins, and brachify has none of
-those. For a receipt that does not apply, cut it down to its opening words, then add
-`— **N/A**, <reason>`:
+Inside an included subsection, and in **Review and design** and **Testing receipts**, fill in
+every receipt that applies and name the rest in
+[the Not applicable line](#the-not-applicable-line).
 
-> - The system uses **[type of database]** database — **N/A**, brachify has no database. The
->   only persisted state is `app.log` and `filepaths.json` in `~/brachify/`.
+### The Not applicable line
+
+Much of the course template assumes a web app with a database, a network API and logins, and
+brachify has none of those. A receipt that does not apply is **not** written out with
+`— N/A`. Delete it, and name it in one bullet at the end of its subsection, so the grader can
+still see which parts of the template were checked and did not apply:
+
+```markdown
+- Not applicable: **<receipt> (<reason>), <receipt> (<reason>)**.
+```
+
+- **One line per subsection**, as its last bullet, and none when everything in it applies.
+  A subsection deleted under [Which scoped subsections to include](#which-scoped-subsections-to-include)
+  gets no line, because it is out of scope rather than checked.
+- **Name each receipt** by the name in the table below, so it is clear which template receipt
+  it stands for. A reason is a few words in brackets. Receipts that share a reason can share
+  the brackets: `happy path, abnormal cases, negative cases (all in test PR #20)`.
+- **Same text in the PR and the log**, like the rest of Part A.
+
+| Subsection | Template receipt, by its opening words | Name in the line |
+|---|---|---|
+| Data Modeling and Integrity | This data ... is modeled as | data model |
+| | This data ... uses the input validation | input validation |
+| | This data ... may be vulnerable to **[security issue]** | security sanitization |
+| | This data ... may be vulnerable to **[privacy issue]** | privacy sanitization |
+| | This data ... stores sensitive information | encryption |
+| | The data ... has access controls | access controls |
+| Backend | The system uses **[architectural pattern]** | architectural pattern |
+| | The system architecture diagram consists of | architecture diagram |
+| | The system uses **[type of database]** database | database |
+| | The system uses **[synchronous or asynchronous data processing]** | data processing |
+| | The system adopts a **[stateful or stateless]** approach | state management |
+| | The Level 0 DFD consists of | Level 0 DFD |
+| | The Level 1 DFD consists of | Level 1 DFD |
+| | The backend API must serve | backend API |
+| Frontend | The frontend uses **[approach to store, sync, and cache data]** | data caching |
+| | The frontend ensures only authorized users | restricted pages |
+| | The frontend is designed using | design components |
+| | The usability evaluation identified | usability evaluation |
+| | The frontend adopts accessibility principle | accessibility |
+| Backend, Frontend | The following traceability matrix | traceability matrix |
+| | By using **[name of tool]** to check for test coverage | test coverage |
+| Review and design | When I reviewed the ... for this functionality | code review |
+| | The PR does not contain any temporary workaround | temporary workaround |
+| | The PR only contains small functions | function length |
+| | I did ... to ensure that my feature contribution does not contain | code quality checklist |
+| | This work is written in | file location |
+| | This work belongs in ... in the DFD | DFD process |
+| Testing receipts | ... the happy path tests involving | happy path |
+| | I wrote tests to cover abnormal situations | abnormal cases |
+| | I checked that these negative cases | negative cases |
+| | When I reviewed the **[method name of generated test]** | generated-test review |
+| | Among these tests | unit and integration tests |
+| | These tests are included in the directory | test directory |
+| | This new test PR did not break anything else | regression |
+
+Instead of:
+
+> - The frontend ensures only authorized users can access restricted pages — **N/A**, brachify
+>   has no logins or restricted pages.
+> - The usability evaluation identified the following major problems — **N/A**, no usability
+>   evaluation was run.
+> - By using a test coverage tool — **N/A**, the repo has no coverage tool.
+
+Write, as the last bullet of **Frontend**:
+
+> - Not applicable: **restricted pages (no logins), usability evaluation (none run), test
+>   coverage (no coverage tool)**.
 
 Fill diagram receipts with links to the matching version-controlled diagrams in
 [docs/architecture/](../architecture/README.md). Do not embed Mermaid blocks or full
@@ -238,21 +353,29 @@ responsibilities and export formats stay the same.
 
 - **Tests in the same PR**, the normal case: the testing receipts stay under the same
   `For PR #` heading.
+- **Functionality whose tests are in a separate test PR**: keep the regression receipt, and name
+  the other testing receipts in one Not applicable line, such as `happy path, abnormal cases,
+  negative cases, generated-test review, unit and integration tests, test directory (all in
+  test PR #20)`.
 - **A test PR for functionality merged earlier**: replace the heading with
   `For test PR #**<n>** written to assess functionality in **#<m>, <brief description>**`, and
   delete every receipt above **Testing receipts**.
 - **A PR with no code in `src/` or `tests/`**, such as a documentation or process change:
-  still fill in every receipt, about what the PR does change.
-  - The requirement is the one the change serves. That may be a course requirement, such as
-    the weekly receipts, rather than an `FR-` ID.
-  - The review receipts cover the generated documents and how you checked them.
-  - The testing receipts cite the checks you ran instead of tests. For example, the
-    session-start hook, `python docs/architecture/build.py --check`, a script, or a grep that
-    confirms stale wording is gone.
-  - Mark **N/A** only what cannot exist, such as function lengths when no function changed, or
-    the DFD process when nothing in brachify moved.
-  - Say once, in the unit-and-integration receipt, that the checks are scripts and not tests
-    in `tests/`. Do not repeat it in the other testing receipts.
+  keep only the receipts below, about what the PR does change, and put everything else in the
+  Not applicable lines. Data Modeling and Integrity, Backend and Frontend are out of scope, so
+  they are deleted.
+  - The requirement and the _Therefore_ receipt. The requirement is the one the change serves.
+    That may be a course requirement, such as the weekly receipts, rather than an `FR-` ID.
+  - In **Review and design**: the code review receipt, covering the generated documents and
+    how you checked them, the code quality checklist, citing the check you ran (such as a grep
+    or a link check), and the file location. The (If applicable) teammate review, if one
+    happened. Then the line
+    `Not applicable: **temporary workaround, function length, DFD process (no code changed)**.`
+  - In **Testing receipts**: the happy path, citing the check that shows the change works, such
+    as the session-start hook, `python docs/architecture/build.py --check`, a script, or a grep
+    that confirms stale wording is gone, and the regression receipt. Then the line
+    `Not applicable: **abnormal cases, negative cases, generated-test review, unit and
+    integration tests, test directory (no code, the checks are shell commands)**.`
 
 ### Every receipt needs evidence
 
@@ -266,6 +389,11 @@ command output you ran, or a function length you counted. Say whether you observ
   teammate's review, a regression run of the app, a usability evaluation and a coverage figure.
   If a receipt needs something only the author can supply, leave its placeholder bold and
   unfilled, and list it in your final message so the author fills it in before review.
+- **A screenshot you could not take yourself** is written inside the bold fill-in as
+  `[author: attach a screenshot of <what it must show>]`, and handled as
+  [Screenshots the author must supply](#screenshots-the-author-must-supply) describes. Take it
+  yourself first when a desktop session is available, as [AGENTS.md](../../AGENTS.md#workflows)
+  asks.
 
 ### Fill the checkboxes honestly
 
@@ -309,6 +437,34 @@ The layout and rules are in [docs/logs/README.md](../logs/README.md).
    identical.
 
 Every PR is logged, documentation and process PRs included, because Part A is always filled in.
+A documentation or process PR's section is short, because its Part A keeps only the receipts
+[Tests in this PR or another](#tests-in-this-pr-or-another) lists.
+
+### Screenshots the author must supply
+
+An `[author: attach a screenshot ...]` placeholder left in Part A is a receipt without its
+evidence, in the PR and in the graded log. Make sure the author knows, and fix it with them.
+
+1. **Tell the author plainly, at the top of your final message**, under a heading such as
+   **Action needed: screenshots for the log**, before the PR URL. For each placeholder, give
+   the PR number, the receipt it is in, and exactly what the screenshot must show. Say that the
+   PR and the log are not ready for grading while a placeholder is left.
+2. **Ask them to send each image**, as a file path or an attachment. If they cannot provide
+   one, ask whether to rewrite that receipt around the evidence that does exist. Never remove a
+   placeholder without asking, and never write that a screenshot exists when it does not.
+3. **Save each image they send** to
+   `docs/logs/<student>/screenshots/week-<K>/pr-<n>-<step>-<what>.png`, the same student and
+   week as the log section, as [docs/logs/README.md](../logs/README.md) describes. Commit it on
+   the PR's branch following [commit.md](commit.md), and push.
+4. **Replace the placeholder in the log and in the PR body together.** Inside the bold, say
+   what the screenshot shows, and put the image on its own indented line under the bullet,
+   linked by its `raw.githubusercontent.com` URL pinned to the commit that added it:
+   `![<step>, <what it shows>](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/<commit>/docs/logs/<student>/screenshots/week-<K>/<file>)`.
+   PR #19 in [ariq/week-5.md](../logs/ariq/week-5.md) shows the form. Commit the log, push,
+   and `gh pr edit` the body in the same step.
+5. **Confirm none is left.** `grep -n "\[author:"` on the log file and on the PR body must find
+   nothing, and the two Part A texts must still be identical. Each image is a changed file, so
+   count the size limits again.
 
 ### Keep the PR and the log in sync
 
@@ -332,8 +488,11 @@ explicit decision and it wins. Do not ask, and do not add it "just this once".
 
 Return:
 
+- first, if any `[author: attach a screenshot ...]` placeholder is left, the **Action needed**
+  notice from [Screenshots the author must supply](#screenshots-the-author-must-supply)
 - the PR URL
+- the counts from the last size check, against the four limits
 - the log file the Part A was written to, and confirmation that it matches the PR description
-- every Part A placeholder left for the author to fill in
+- every other Part A placeholder left for the author to fill in
 - a reminder that the PR description and the log file hold the same Part A. An edit to either
   one must be copied to the other, and the agent can resync them on request.
