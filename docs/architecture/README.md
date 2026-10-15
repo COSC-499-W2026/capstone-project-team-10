@@ -15,7 +15,8 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 This is the upstream app plus Team 10's changes to `src/`, listed under
 [What Team 10 has added](#what-team-10-has-added). They are three Channels tab fixes, to how
 the list shows its selection, to the spin box arrows, and so that a newly imported plan starts
-with every channel enabled, none of which changes a diagram,
+with every channel enabled, none of which changes a diagram, `ChannelsModel` keeping a channel's
+own diameter through Apply, not yet reachable from the Channels tab,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder not yet called by the GUI.
@@ -136,6 +137,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | `DicomData` reset tests and the standalone RTSTRUCT reader with tests in `tests/dicom/` | Structure rendering and GUI integration |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
+| A channel's own diameter, kept by `ChannelsModel` through the Channels tab's Apply, not yet reachable from the GUI. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 
