@@ -10,7 +10,9 @@ contents of `pull_request_template.md` must be appended to the body by hand, Par
 be filled in, on every PR, with minimal bold answers backed by evidence and never with a claim about
 something that did not happen, the same Part A must be written into the student's weekly log in
 `docs/logs/` and kept identical to the PR description, and a box that does not apply is ticked
-with **N/A**, not left blank.
+with **N/A**, not left blank. It also has the agent discuss the PR size limits with the user
+rather than decide how to meet them, and tell the user plainly about any screenshot they must
+supply.
 
 PR diagram receipts use links rather than embedded diagrams. Follow the current
 `docs/workflows/make-pr.md` for the complete procedure.
