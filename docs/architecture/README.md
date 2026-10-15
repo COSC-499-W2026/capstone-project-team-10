@@ -20,7 +20,7 @@ Channels tab's Selected Channel group and kept through Apply,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder not yet called by the GUI, and
-`settings/needle_templates.py`, a tested needle template library not yet called by the GUI.
+`settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -114,7 +114,7 @@ Five tabs, in this fixed order. The code addresses them by index. Do not reorder
 |---|---|
 | Import | Reads the first RTPLAN and RTSTRUCT. Needs a channel named `Central Axis`. Varian is the path the sample data exercises. Nucletron exists in code and has no sample here. |
 | Cylinder | Diameter, length, optional collar displayed in mm or cm; Apply uses mm. Length changes move needles by an offset. Original DICOM points stay put. |
-| Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter. |
+| Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter, directly or from a saved needle template. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
 
@@ -138,7 +138,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | `DicomData` reset tests and the standalone RTSTRUCT reader with tests in `tests/dicom/` | Structure rendering and GUI integration |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
-| A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, not yet called from the GUI. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
+| A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, saved and applied on the Channels tab. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
 | A channel's own diameter, set in the Channels tab's Selected Channel group and kept by `ChannelsModel` through Apply. The tab scrolls when the window is short. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
