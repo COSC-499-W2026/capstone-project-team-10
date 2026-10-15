@@ -43,8 +43,9 @@ tests/
 │   ├── test_data.py
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
-├── mesh/
-│   └── test_helper.py
+├── mesh/                  exists: the notch, through OpenCASCADE
+│   ├── conftest.py        mesh_app, the one QApplication, and default_settings
+│   └── test_notch.py
 ├── models/
 ├── pdf/
 ├── settings/
@@ -64,7 +65,7 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
+`tooling/`, `views/`, `windows/`, `mesh/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
 where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
@@ -121,6 +122,10 @@ mocked. The pure functions below still have no tests.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows.
+
+`mesh/test_notch.py` builds real notch solids and compares their bounding boxes with
+hand-worked literals. No window is built. The literals for the default notch were measured on
+`main` before the notch settings existed, so the default is proven unchanged.
 
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
