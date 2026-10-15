@@ -3693,6 +3693,8 @@ the rest:
 
 ### 13.7 The two files on disk
 
+> **Changed 2026-10-15.** brachify also writes `~/brachify/needle_templates.json` when a needle template is saved on the Channels tab. See source of truth §6.3.
+
 **A settings file**, as *Export Current Settings as Config* writes it. *Verified*, the start of a
 real export:
 
