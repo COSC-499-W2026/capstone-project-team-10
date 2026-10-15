@@ -814,7 +814,7 @@ a stderr stream handler. Creates `~/brachify/` at import time if missing.
 ### 5.2 Settings and configuration
 
 **[`settings/defaults.py`](../../src/settings/defaults.py)** — `DEFAULT_CONFIG_VALUES`, the
-schema: a flat `CONFIG_*` → number dict, 24 keys. Full table in §6.2.
+schema: a flat `CONFIG_*` → number dict, 25 keys. Full table in §6.2.
 
 **[`settings/load.py`](../../src/settings/load.py)** — `load_config_file()` is lenient by
 design. It keeps any key present in the user's JSON whose value is `int` or `float`, falls back
@@ -835,7 +835,7 @@ single mutable dict every other module reads), the two most-recent config file p
   generated tandem must be regenerated while an imported one must not be touched. Since
   2026-10-15 it also fills the two collar boxes (§7.1).
 - `getCurrentValues()` reads the current state **back out** into a dict. Since 2026-10-15 it
-  returns every key, 24 since the notch settings. The collar's two come from the live settings,
+  returns every key, 25 since the notch and tip settings. The collar's two come from the live settings,
   which *Apply Settings* writes (§7.1), and the notch's five from the cylinder's
   `notch_settings`.
 
@@ -915,10 +915,13 @@ the top of each loader so that importing two folders in a row behaves correctly.
 
 All under [`src/classes/mesh/`](../../src/classes/mesh/), one concern per module.
 
-**`cylinder.py`** — `BrachyCylinder`. `shape()` builds a `BRepPrimAPI_MakeCylinder`, finds the
-highest planar face by walking a `TopExp_Explorer`, fillets that top edge into a dome, then
-optionally fuses a base collar (`add_base`) and always fuses the orientation notch
-(`add_notch`). **`shape()` reads a cache but never writes one.** It returns `self._shape` when
+**`cylinder.py`** — `BrachyCylinder`. `shape()` builds a `BRepPrimAPI_MakeCylinder`, then for
+a dome tip calls `add_dome()`, which finds the highest planar face by walking a
+`TopExp_Explorer` and fillets that top edge into a half-sphere. A flat tip skips `add_dome()`.
+It then optionally fuses a base collar (`add_base`) and fuses the orientation notch
+(`add_notch`) unless the notch is off. Since 2026-10-15 the tip is `TipShape.DOME` or
+`TipShape.FLAT`, read once in `__init__` by `tip_shape_from_config()` from
+`CONFIG_CYLINDER_FLAT_TIP` (§6.2). The defaults still build the dome. **`shape()` reads a cache but never writes one.** It returns `self._shape` when
 one is stored, and otherwise rebuilds the solid without storing it. Only the three setters,
 `setDiameter`, `setLength` and `enableBase`, clear `_shape`, rebuild and store the result
 (*Verified* for the init guide: after calling `shape()` on a new cylinder, `_shape` was still
@@ -1225,13 +1228,14 @@ Plan authoring requirements (from the User Manual, both vendors):
 
 ### 6.2 Configuration keys
 
-`DEFAULT_CONFIG_VALUES` — 24 keys, all numeric, all millimetres unless noted.
+`DEFAULT_CONFIG_VALUES` — 25 keys, all numeric, all millimetres unless noted.
 The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 
 | Key | Default | Meaning | Round-trips? |
 |---|---|---|---|
 | `CONFIG_CYLINDER_DIAMETER` | 30.0 | cylinder outer diameter | yes |
 | `CONFIG_CYLINDER_LENGTH` | 160.0 | cylinder length | yes |
+| `CONFIG_CYLINDER_FLAT_TIP` | 0 | 1 for a flat tip, 0 for the half-sphere dome (§5.4) | exported, and read on the next build. No Cylinder tab control yet |
 | `CONFIG_CHANNELS_DIAMETER` | 2.7 | needle channel diameter (all channels) | yes |
 | `CONFIG_DEADSPACE` | 6.0 | needle dead space at the tip | yes |
 | `CONFIG_CHANNELS_THREADING_DEPTH` | 5.0 | channel threading depth; 0 disables | yes |
@@ -1683,6 +1687,18 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | LOW | the 3D view | every redraw zooms to fit, so after *Apply* or a selection any zoom the user set is lost. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
 | LOW | spin box limits | **Changed 2026-10-10:** Cylinder length and collar now use `QDoubleSpinBox`, with whole mm or tenths of cm displayed. `LengthField` retains exact mm settings through display rounding (§5.6); finer user editing remains limited by display precision. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
 
+### 7.10 HIGH, temporary — a flat tip is not yet followed by the PDF maths or the tandem
+
+*Reasoned from code, 2026-10-15.* `CONFIG_CYLINDER_FLAT_TIP` builds a flat-topped cylinder
+(§5.4), but two other parts still assume the dome. The reference sheet's interstitial lengths
+are measured against a dome point cloud in `get_all_interstitial_lengths`
+([template_reference.py](../../src/classes/pdf/template_reference.py)), so a needle leaving
+through a flat top gets a wrong length. The generated tandem's cut-out is trimmed by a dome
+outline 10 mm larger than the cylinder, centred 1 mm below the dome's centre. A flat top's corners leave it once
+√(R² + (R + 1)²) > R + 10, a diameter above about 45 mm, which could leave the tandem hole closed. Only a config file can set a
+flat tip until the Cylinder tab gains the control. The two fixes are the next changes in the
+same stack of pull requests.
+
 ---
 
 ## 8. Testing
@@ -1757,7 +1773,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
-| `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap (§5.4) |
+| `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1841,6 +1857,10 @@ python -m pytest
   conversion's sign and always fusing the notch were each caught. `mesh_app` in
   [tests/mesh/conftest.py](../../tests/mesh/conftest.py) reuses the one QApplication, like the
   other fixtures. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 84 passed, with the flat-tip test added to
+  `mesh/test_cylinder.py`. Its literal, π × 15² × 160 = 113,097.336 mm³, was worked by hand. It
+  failed at 109,563.044 before the tip setting existed, and again when the dome was always
+  built. *Not verified:* Windows.
 - *Verified* 2026-10-15 on macOS: 83 passed, with four notch-control tests added to
   `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
   and removing the notch line from `resetAllValues()` failed the config import test.
