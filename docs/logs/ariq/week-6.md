@@ -87,7 +87,10 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving
-  **`test_channels_spin_box_arrows_are_black` (64 passed)** passed.
+  **`test_channels_spin_box_arrows_are_black` (64 passed, screenshot 3 below)** passed.
+
+  ![3, python -m pytest at 8e12632, 64 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7ae1827c92662101ab620b5478303fe0cbdb570b/docs/logs/ariq/screenshots/week-6/pr-32-3-pytest-64-passed.png)
+
 - I wrote tests to cover abnormal situations involving **PySide6 6.8.1, the Windows lockfile's
   Qt, loading the resource compiled by 6.11.2 (5 passed)** and they passed.
 - I checked that these negative cases involving **no arrow stylesheet (darkest pixel 94) and no
@@ -101,4 +104,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`python -m pytest` (64
   passed), `build.py --check` and `session-start.sh` (exit 0), and the app run on macOS in dark
   mode with Ex1 imported (darkest arrow pixel 39 up, 1 down, on all four Channels spin
-  boxes)**.
+  boxes; screenshots 1 and 2 below, from `main` and this branch)**.
+
+  ![1, Channels spin boxes magnified, main above with arrows invisible, this PR below with black arrows](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7ae1827c92662101ab620b5478303fe0cbdb570b/docs/logs/ariq/screenshots/week-6/pr-32-1-channels-arrows-before-after.png)
+
+  ![2, brachify Channels tab on this branch in dark mode with Ex1 imported](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7ae1827c92662101ab620b5478303fe0cbdb570b/docs/logs/ariq/screenshots/week-6/pr-32-2-channels-tab-dark-mode.png)
