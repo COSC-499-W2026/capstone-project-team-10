@@ -957,10 +957,16 @@ Both work in 2D (`gp_Pnt2d`, `Geom2d_*`), find bend/exit points by curve interse
 `get_app()` supplying hardcoded fallback values, so the module can be run standalone
 (`python src/classes/mesh/tandem.py`) to visualise a tandem without launching brachify.
 
-**`notch.py`** — `CylinderNotch`, a small box fused to the cylinder wall at `Z=0`, rotated
-270°, marking orientation for the person inserting the applicator. The docstring still
-describes an 'L' shape from two fused boxes; that code is commented out and it is now a single
-box.
+**`notch.py`** — `CylinderNotch`, a small box standing out of the cylinder wall from `Z=0`,
+marking orientation for the person inserting the applicator. Since 2026-10-15 its size and
+position come from `NotchSettings`, a frozen dataclass of `enabled`, `angle`, `width`, `depth`
+and `height`. `notch_settings_from_config()` reads them from five `CONFIG_NOTCH_*` keys and
+raises `KeyError` on a missing one. `angle` is in degrees clockwise from Anterior as the
+reference sheet draws it, so the model rotation is `(angle − 90) mod 360`, and the default 0
+gives the 270° every cylinder had before. The box starts 0.2 mm inside the wall (`WALL_OVERLAP`)
+so it fuses, so its radial size is `depth + 0.2`. `BrachyCylinder` passes the default
+`NotchSettings()`, so every cylinder still gets the same 2 mm wide, 1.8 mm deep, 10 mm tall notch
+(*Verified* by `tests/mesh/test_notch.py`); nothing reads the config keys yet.
 
 **`helper.py`** — shared utilities: `face_is_plane`, `geom_plane_from_face`, face sorting by Z,
 `get_vector` / `get_direction` / `get_magnitude`, `extend_bottom_face` (prisms the lowest face
@@ -1730,6 +1736,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1) |
+| `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1807,6 +1814,12 @@ python -m pytest
   `test_cylinder_view.py` and `test_tandem_view.py` added. All four failed before the fix
   (§7.1): two missing collar keys, collar boxes left at 0, and the extra setting dropped.
   *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 74 passed, with `tests/mesh/test_notch.py` added. The
+  default notch's extents, x −1 to 1, y −16.8 to −14.8, z 0 to 10 mm, were measured on `main`
+  first. The new-behaviour tests failed first (`NotchSettings` did not exist), and flipping the
+  angle conversion's sign failed five of them. `mesh_app` in
+  [tests/mesh/conftest.py](../../tests/mesh/conftest.py) reuses the one QApplication, like the
+  other fixtures. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
