@@ -1,9 +1,12 @@
+from math import isfinite
+
 from PySide6.QtCore import QObject, Signal
 
 from classes.app import get_app
 from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
+from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from windows.models.shape_model import ShapeModel, ShapeTypes
 
 CHANNELS_LABEL = "applicator_"
@@ -45,6 +48,7 @@ class ChannelsModel(QObject):
         self.selected_channels = []
         self.channels = {}
         self.disabled_channels = []
+        self.own_diameters = {}
         log.debug("### Importing RP Data ###")
 
         for i in range(len(data.channels_rois)):
@@ -73,10 +77,25 @@ class ChannelsModel(QObject):
     def set_diameter(self, diameter: float):
         self.diameter = diameter
 
-        for channel in self.channels.keys():
-            # set diameter and calculate shape
-            self.channels[channel].set_diameter(self.diameter)
+        # every channel is rebuilt so new threading reaches it, keeping a channel's own diameter
+        for label, channel in self.channels.items():
+            channel.set_diameter(self.own_diameters.get(label, diameter))
         self.update()
+
+    def set_channel_diameter(self, label: str, diameter: float) -> None:
+        if not isfinite(diameter) or diameter < MINIMUM_CHANNEL_DIAMETER_MM:
+            raise ValueError(f"{label} needs a diameter of at least {MINIMUM_CHANNEL_DIAMETER_MM} mm, not {diameter}")
+        self.own_diameters[label] = diameter
+        self.channels[label].set_diameter(diameter)
+        self.update()
+
+    def clear_channel_diameter(self, label: str) -> None:
+        self.own_diameters.pop(label, None)
+        self.channels[label].set_diameter(self.diameter)
+        self.update()
+
+    def has_own_diameter(self, label: str) -> bool:
+        return label in self.own_diameters
 
     def set_selected_channels(self, *args):
         log.debug(f"setting selected channels")
@@ -184,6 +203,7 @@ class ChannelsModel(QObject):
         self.diameter = NeedleChannel.default_diameter()
         self.selected_channels = []
         self.disabled_channels = []
+        self.own_diameters: dict[str, float] = {}  # label: diameter that Apply on the Channels tab keeps
         config_values = get_app().values.config_values
         self.threading_depth = config_values.get("CONFIG_CHANNELS_THREADING_DEPTH")
         self.threading_diamenter = config_values.get("CONFIG_CHANNELS_THREADING_DIAMETER")

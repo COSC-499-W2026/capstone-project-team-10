@@ -20,3 +20,6 @@ DEFAULT_CONFIG_VALUES = {
     "CONFIG_TANDEM_COLLET_OUTER_DIAMETER_OUTER": 8.0,
     "CONFIG_NEEDLE_COLLET_OUTER_DIAMETER": 5.0,
 }
+
+# The narrowest channel brachify builds, the same minimum as the Channels Diameter box.
+MINIMUM_CHANNEL_DIAMETER_MM = 0.3
