@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+  <qresource prefix="/arrows">
+    <file alias="spin_up.png">arrows/spin_up.png</file>
+    <file alias="spin_down.png">arrows/spin_down.png</file>
+  </qresource>
+</RCC>
