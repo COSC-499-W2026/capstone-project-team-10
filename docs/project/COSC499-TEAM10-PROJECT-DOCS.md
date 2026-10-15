@@ -952,7 +952,10 @@ changing any value.
 **`tandem.py`** — `Tandem`. Two distinct shape methods, easily confused:
 - `generate_shape()` — the **cut-out** subtracted from the cylinder. Built by intersecting a
   swept tandem profile with a cylinder-shaped envelope (`BRepAlgoAPI_Common`), so the tandem
-  channel stops at the cylinder surface.
+  channel stops at the cylinder surface. The envelope reaches `height_offset` past a dome,
+  10 mm. Since 2026-10-15 `height_offset` is a property: for a flat tip
+  (`CONFIG_CYLINDER_FLAT_TIP`, read in `__init__`) it grows to `√(R² + (R + 1)²) − R + 1` when
+  that exceeds 10, so the envelope still contains the flat top's corners (§7.10).
 - `tandem_shape()` — the **visual preview** of the physical tandem tool, shown in the Export
   tab when *Show Tandem* is ticked. Not exported.
 
@@ -1689,7 +1692,15 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | LOW | the 3D view | every redraw zooms to fit, so after *Apply* or a selection any zoom the user set is lost. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
 | LOW | spin box limits | **Changed 2026-10-10:** Cylinder length and collar now use `QDoubleSpinBox`, with whole mm or tenths of cm displayed. `LengthField` retains exact mm settings through display rounding (§5.6); finer user editing remains limited by display precision. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
 
-### 7.10 HIGH, temporary — a flat tip is not yet followed by the tandem
+### 7.10 HIGH — a flat tip was not followed by the PDF maths or the tandem
+
+**Fixed 2026-10-15, both halves.** The tandem half: `Tandem.height_offset` grows for a flat tip
+(§5.4). *Verified*: with a flat-tipped 90 mm cylinder, an 80° bend and Tandem Height 100, the
+dome-sized envelope trimmed away 133.4 mm³ of cut-out inside the cylinder, and after the fix
+none. A probe of 48 builds (diameters 30, 45, 60 and 90 mm, bends of 30°, 60° and 80°, Tandem
+Height 100 and 130, bend radius 15 and 35, each with a dome and a flat tip) found cut-out
+trimmed away only from flat tips at 60 and 90 mm before the fix, up to 133.4 mm³, and none
+after. The text below is the bug as it was.
 
 *Reasoned from code, 2026-10-15.* `CONFIG_CYLINDER_FLAT_TIP` builds a flat-topped cylinder
 (§5.4). **The reference sheet's half is fixed, 2026-10-15:** interstitial lengths used to be
@@ -1775,6 +1786,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
+| `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.10) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length (§5.8) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
@@ -1860,6 +1872,9 @@ python -m pytest
   `tests/mesh/conftest.py` reuses the one QApplication, like the other fixtures. It moved the
   same day to [tests/conftest.py](../../tests/conftest.py) as `geometry_app`, when
   `tests/pdf/` needed it too. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 89 passed, with `mesh/test_tandem.py` added. The dome
+  cut-out's literal, 3,875.268 mm³, was measured before the fix. The flat-tip test failed at
+  133.387 mm³ before it, and again when the outline was kept at 10 mm. *Not verified:* Windows.
 - *Verified* 2026-10-15 on macOS: 87 passed, with `tests/pdf/test_template_reference.py`
   added. A needle 10 mm off the axis, tip at z 180, measures 23.82 mm past the dome
   (145 + √(15² − 10²) = 156.18) and 20 mm past a flat top. The flat-top test failed at 23.81
