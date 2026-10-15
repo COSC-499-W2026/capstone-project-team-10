@@ -15,10 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDoubleSpinBox, QFrame, QGridLayout,
-    QGroupBox, QLabel, QLayout, QListWidget,
-    QListWidgetItem, QPushButton, QScrollArea, QSizePolicy,
-    QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QFrame,
+    QGridLayout, QGroupBox, QLabel, QLayout,
+    QLineEdit, QListWidget, QListWidgetItem, QPushButton,
+    QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
 class Ui_Channels_View(object):
     def setupUi(self, Channels_View):
@@ -262,7 +262,7 @@ class Ui_Channels_View(object):
         self.group_selected_channel.setStyleSheet(u"QGroupBox, QLabel {\n"
 "	color: rgb(0, 0, 0);\n"
 "}\n"
-"QDoubleSpinBox {\n"
+"QDoubleSpinBox, QLineEdit, QComboBox {\n"
 "	background-color: rgb(255, 255, 255);\n"
 "	color: rgb(0, 0, 0);\n"
 "}\n"
@@ -306,6 +306,32 @@ class Ui_Channels_View(object):
 
         self.gridLayout_selected_channel.addWidget(self.btn_clear_channel_diameter, 2, 0, 1, 2)
 
+        self.le_template_name = QLineEdit(self.group_selected_channel)
+        self.le_template_name.setObjectName(u"le_template_name")
+
+        self.gridLayout_selected_channel.addWidget(self.le_template_name, 3, 0, 1, 1)
+
+        self.btn_save_template = QPushButton(self.group_selected_channel)
+        self.btn_save_template.setObjectName(u"btn_save_template")
+
+        self.gridLayout_selected_channel.addWidget(self.btn_save_template, 3, 1, 1, 1)
+
+        self.cb_needle_templates = QComboBox(self.group_selected_channel)
+        self.cb_needle_templates.setObjectName(u"cb_needle_templates")
+
+        self.gridLayout_selected_channel.addWidget(self.cb_needle_templates, 4, 0, 1, 1)
+
+        self.btn_apply_template = QPushButton(self.group_selected_channel)
+        self.btn_apply_template.setObjectName(u"btn_apply_template")
+
+        self.gridLayout_selected_channel.addWidget(self.btn_apply_template, 4, 1, 1, 1)
+
+        self.label_template_status = QLabel(self.group_selected_channel)
+        self.label_template_status.setObjectName(u"label_template_status")
+        self.label_template_status.setWordWrap(True)
+
+        self.gridLayout_selected_channel.addWidget(self.label_template_status, 5, 0, 1, 2)
+
 
         self.verticalLayout.addWidget(self.group_selected_channel)
 
@@ -338,5 +364,8 @@ class Ui_Channels_View(object):
         self.sb_channel_diameter.setSuffix(QCoreApplication.translate("Channels_View", u" mm", None))
         self.btn_apply_channel_diameter.setText(QCoreApplication.translate("Channels_View", u"Apply to Channel", None))
         self.btn_clear_channel_diameter.setText(QCoreApplication.translate("Channels_View", u"Use Channels Diameter", None))
+        self.le_template_name.setPlaceholderText(QCoreApplication.translate("Channels_View", u"Template name", None))
+        self.btn_save_template.setText(QCoreApplication.translate("Channels_View", u"Save as Template", None))
+        self.btn_apply_template.setText(QCoreApplication.translate("Channels_View", u"Apply Template", None))
     # retranslateUi
 
