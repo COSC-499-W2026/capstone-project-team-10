@@ -664,7 +664,7 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 **Reordering this list breaks call sites scattered across `settings/reset.py`, every view, and
 `main_window.py`.** There is no symbolic lookup. Treat the order as frozen.
 
-The Cylinder view's Units selector changes the four dimension controls between mm and cm
+The Cylinder view's Units selector changes its seven length controls between mm and cm
 (§5.6). It does not apply the design. *Verified* by the offscreen unit-switch case.
 
 ### 4.4 Signal graph
@@ -969,8 +969,8 @@ so it fuses, so its radial size is `depth + 0.2`. `BrachyCylinder.__init__` read
 from the live config once, `shape()` builds the notch only when `enabled`, and with a collar the
 notch sits on the collar's outer wall and its height is capped at the collar height. The
 defaults reproduce the old notch and cylinder exactly (*Verified* by `tests/mesh/`). The
-Cylinder tab has no notch controls yet: the settings come from defaults or a config file. The
-reference sheet still draws the notch at the top whatever its angle.
+Cylinder tab's notch controls set them (§5.6). The reference sheet still draws the notch at
+the top whatever its angle.
 
 **`helper.py`** — shared utilities: `face_is_plane`, `geom_plane_from_face`, face sorting by Z,
 `get_vector` / `get_direction` / `get_magnitude`, `extend_bottom_face` (prisms the lowest face
@@ -1058,18 +1058,29 @@ Complete control inventory, extracted from the `.ui` sources:
 | `spinbox_base_thickness` | Collar Thickness | 0–99 mm or 0–9.9 cm |
 | `spinbox_base_height` | Collar Height | 0–99 mm or 0–9.9 cm |
 | `cb_add_base` | Add Collar | checkbox |
+| `cb_add_notch` | Add Notch | checkbox, on by default. Unticked, it greys out the four notch fields |
+| `spinbox_notch_angle` | Notch Angle | 0–359.9°, wraps, clockwise from Anterior on the sheet |
+| `spinbox_notch_width` | Notch Width | 0.5–10 mm or 0.05–1 cm |
+| `spinbox_notch_depth` | Notch Depth | 0.5–5 mm or 0.05–0.5 cm |
+| `spinbox_notch_height` | Notch Height | 1–60 mm or 0.1–6 cm |
 | `btn_apply_settings` | Apply Settings | |
+
+The notch ranges are Team 10's choice, added 2026-10-15. No clinical document sets them.
 
 **[`windows/length_field.py`](../../src/windows/length_field.py)** — `LengthUnit` names mm
 and cm; each `LengthField` owns one `QDoubleSpinBox` and an exact mm value. User edits
 convert to mm. Programmatic updates and unit switches block widget signals, preserving
 precision even when the displayed value rounds. Diameter has 2 decimal places in mm and
-3 in cm; length and collar have 0 in mm and 1 in cm. Steps remain 1 mm or 0.1 cm.
+3 in cm; length, collar and notch height have 0 in mm and 1 in cm, and notch width and depth
+1 in mm and 2 in cm. Steps are 1 mm or 0.1 cm, and 0.1 mm or 0.01 cm for notch width and
+depth.
 
 `CylinderView.set_dimensions_mm` receives model and config dimensions; Apply reads the
 four fields' mm values, including the length offset sent to Channels and Tandem. Changing
 the selector preserves pending edits and does not apply geometry or change live settings.
-The selector affects only these four controls. *Verified* 2026-10-10 by eight offscreen
+The selector affects only these controls, seven since the notch fields were added
+(2026-10-15). `set_notch_settings` fills the notch controls from the model or a config, the way
+`set_dimensions_mm` fills the dimensions. *Verified* 2026-10-10 by eight offscreen
 integration cases, watched failing before implementation. Ahab supplied a GUI screenshot
 showing 3.125, 17.3, 0.3 and 1.2 cm with Add Collar selected, and terminal output
 showing Ex1 import and a 13 mm height offset on Apply. The original image was not saved;
@@ -1238,7 +1249,7 @@ The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 | `CONFIG_TANDEM_COLLET_OUTER_DIAMETER_OUTER` | 8.0 | tandem collet outer ring (PDF only) | yes |
 | `CONFIG_BASE_HEIGHT` | 0.0 | collar height; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
 | `CONFIG_BASE_THICKNESS` | 0.0 | collar wall thickness; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
-| `CONFIG_NOTCH_ENABLED` | 1 | 1 adds the orientation notch, 0 leaves it off (§5.4) | exported, and read on the next build. No Cylinder tab control yet |
+| `CONFIG_NOTCH_ENABLED` | 1 | 1 adds the orientation notch, 0 leaves it off (§5.4) | yes. Apply writes it, a config import fills the Cylinder tab's control |
 | `CONFIG_NOTCH_ANGLE` | 0.0 | notch position, degrees clockwise from Anterior as the sheet draws it | as above |
 | `CONFIG_NOTCH_WIDTH` | 2.0 | notch width | as above |
 | `CONFIG_NOTCH_DEPTH` | 1.8 | how far the notch stands out of the wall | as above |
@@ -1541,8 +1552,8 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   `tests/dicom/test_data.py` fails if they drift apart.
 - **Adding a config key touches four places** (§6.2).
 - **`*_ui.py` files are generated** — edit the `.ui` and re-run `pyside6-uic` (§5.6).
-- **Cylinder spin box values are in the selected display unit.** Use the four
-  `LengthField.millimetres` values for Apply and `set_dimensions_mm` for model/config
+- **Cylinder spin box values are in the selected display unit.** Use the seven
+  `LengthField.millimetres` values for Apply, and `set_dimensions_mm` and `set_notch_settings` for model/config
   updates. Writing mm directly to a widget while cm is selected scales the device by ten.
   Reading a rounded display on a unit switch loses precision. *Verified* by the offscreen
   configuration and repeated-switch cases (§5.6).
