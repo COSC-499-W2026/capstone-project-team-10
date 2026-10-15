@@ -116,3 +116,17 @@ def test_a_notch_shorter_than_the_collar_keeps_its_own_height(
     default_settings["CONFIG_BASE_HEIGHT"] = 20.0
     probe = BRepPrimAPI_MakeBox(gp_Pnt(-5.0, -25.0, 8.5), gp_Pnt(5.0, -18.5, 19.0)).Shape()
     assert volume(BRepAlgoAPI_Common(build_cylinder(collar=True), probe).Shape()) == 0.0
+
+
+def test_a_flat_tip_builds_a_plain_cylinder_with_a_flat_top(default_settings: dict[str, float]) -> None:
+    """Check a flat-tipped 30 mm by 160 mm cylinder, notch off, is exactly pi * 15^2 * 160 mm^3.
+
+    The dome removes material from the top, so any rounding left on the tip lowers the
+    volume below 113,097.336. Fails if the flat-tip setting is ignored and the dome is still
+    built, so the printed tip would not be the shape the clinician chose.
+    """
+    default_settings["CONFIG_CYLINDER_FLAT_TIP"] = 1
+    default_settings["CONFIG_NOTCH_ENABLED"] = 0
+    solid = build_cylinder()
+    assert volume(solid) == 113097.336
+    assert extents(solid) == [-15.0, -15.0, 0.0, 15.0, 15.0, 160.0]
