@@ -137,3 +137,29 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   ![1, python -m pytest at 24957d2, 24 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e74d4ce4147b7443e419ca3a2bf13a93b2bcdb5d/docs/logs/ariq/screenshots/week-6/pr-33-1-pytest-24-passed.png)
 - This new test PR did not break anything else in the system because **only this log and a PNG changed (`git diff --name-only main...HEAD`), and `python -m pytest` (64 passed), `session-start.sh` and `build.py --check` (exit 0)**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
+
+### For PR #**42**
+
+- As part of requirement **the course's regression receipt, which asks for a "screenshot as proof" and was missing from PR #32 ("screenshots missing" in its review)**, the user needs to do **open #32 or my week 6 log and see the Channels spin box arrows before and after the fix, and `python -m pytest` at #32's head**.
+- Therefore, I implemented/generated code so that **the grader gets three screenshots in `docs/logs/ariq/screenshots/week-6/`, linked from #32, which stays under 10 files**.
+
+#### Review and design
+
+- When I reviewed the **generated full-window screenshot** for this functionality, I noticed **the arrows are 7 points wide, too small to judge at GitHub's page width**. Therefore, I did **add a 2× crop of the four spin boxes, `main` above and #32 below**.
+- I did **a check that the three pinned image links return HTTP 200 and that `git diff --name-only main...HEAD` lists only this log and the three images** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`docs/logs/ariq/screenshots/week-6/`** because **it holds this week's screenshots, beside the log that links them**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **brachify run on macOS in dark mode with Ex1 imported, from `main` (`b652641`, arrows invisible) and #32 (`8e12632`, arrows black), and `python -m pytest` at `8e12632` (64 passed), shown in #32's Part A** passed.
+- This new test PR did not break anything else in the system because **only this log and three PNGs changed (`git diff --name-only main...HEAD`), and `python -m pytest` (64 passed), `session-start.sh` and `build.py --check` (exit 0)**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
