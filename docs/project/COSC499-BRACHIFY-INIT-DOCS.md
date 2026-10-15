@@ -3473,6 +3473,8 @@ is ticked, and the *Height Offset* of an imported tandem.
 
 ### 13.3 `defaults.py`, the built-in values
 
+> **Changed 2026-10-15.** `defaults.py` also holds `MINIMUM_CHANNEL_DIAMETER_MM`. See source of truth §5.2.
+
 [`defaults.py`](../../src/settings/defaults.py) holds one dictionary, `DEFAULT_CONFIG_VALUES`, with
 the 19 settings in the table above. It has no functions. It is the **list of which settings
 exist**: `load.py` goes through its keys to decide what to look for in a settings file.
@@ -4242,6 +4244,8 @@ cylinder then failed with an error from OpenCASCADE.
 | `disabled_channels` | the labels of the switched-off needles | `["Tandem"]` |
 | `diameter` | every needle's hole width | 2.7 |
 | `threading_depth`, `threading_diamenter` | the threaded hole's depth and width. The second name is misspelled, and every use matches it | 5.0, 3.17 |
+
+> **Changed 2026-10-15.** `diameter` is no longer every needle's width. A needle can keep its own diameter (`own_diameters`), which Apply keeps. See source of truth §5.5.
 
 #### Loading the plan
 
