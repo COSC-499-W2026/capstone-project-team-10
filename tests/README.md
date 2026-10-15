@@ -36,7 +36,7 @@ Create the subfolder if it does not exist yet. Add a row above when you create a
 ```
 tests/
 ├── README.md
-├── conftest.py            fixtures shared by everything
+├── conftest.py            geometry_app, the one QApplication, and default_settings, for mesh/ and pdf/
 ├── data/                  sample inputs, never beside a test file
 ├── dicom/                 exists: DicomData reset and RTSTRUCT reader tests
 │   ├── conftest.py        fixtures used only by dicom tests
@@ -44,11 +44,11 @@ tests/
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch and the solid cylinder, through OpenCASCADE
-│   ├── conftest.py        mesh_app, the one QApplication, and default_settings
 │   ├── test_cylinder.py
 │   └── test_notch.py
 ├── models/
-├── pdf/
+├── pdf/                   exists: the reference sheet's interstitial lengths
+│   └── test_template_reference.py
 ├── settings/
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
@@ -66,7 +66,7 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `mesh/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
+`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
 where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
@@ -128,6 +128,11 @@ the window shows.
 boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
 test a fresh copy of the defaults as the live settings. The literals for the default cylinder
 were measured on `main` before the notch settings existed, so the defaults are proven unchanged.
+`geometry_app` and `default_settings` live in the root `tests/conftest.py`, because `pdf/` needs
+them too.
+
+`pdf/test_template_reference.py` checks the reference sheet's interstitial lengths against
+hand-worked distances, for a dome tip, a flat tip, and a flat-tipped cylinder's wall.
 
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
