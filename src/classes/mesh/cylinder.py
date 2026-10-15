@@ -17,7 +17,7 @@ from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeTorus
 from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.helper import face_is_plane, geom_plane_from_face
-from classes.mesh.notch import CylinderNotch
+from classes.mesh.notch import CylinderNotch, NotchSettings
 
 from classes.app import get_app
 
@@ -77,7 +77,7 @@ class BrachyCylinder:
             z_notch_offset = base_height
         notch_diameter = self.diameter + (2.0 * base_thickness) if self.expand_base and base_height > 0 and base_thickness > 0 else self.diameter
         notch_length = min(10, base_height) if self.expand_base and base_height > 0 and base_thickness > 0 else 10
-        self.notch = CylinderNotch(notch_diameter, notch_length)
+        self.notch = CylinderNotch(notch_diameter, NotchSettings(), notch_length)
         cylinder = add_notch(cylinder, self.notch, z_offset=z_notch_offset)
 
         return cylinder
@@ -103,7 +103,7 @@ class BrachyCylinder:
         self.diameter = diameter
         self.expand_base = expand_base
         self._shape = None
-        self.notch = CylinderNotch(diameter)
+        self.notch = CylinderNotch(diameter, NotchSettings(), NotchSettings().height)
 
 
 def get_brachy_cylinder(data: DicomData) -> BrachyCylinder:
