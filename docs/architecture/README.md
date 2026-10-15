@@ -15,8 +15,8 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 This is the upstream app plus Team 10's changes to `src/`, listed under
 [What Team 10 has added](#what-team-10-has-added). They are three Channels tab fixes, to how
 the list shows its selection, to the spin box arrows, and so that a newly imported plan starts
-with every channel enabled, none of which changes a diagram, `ChannelsModel` keeping a channel's
-own diameter through Apply, not yet reachable from the Channels tab,
+with every channel enabled, none of which changes a diagram, a channel's own diameter, set in the
+Channels tab's Selected Channel group and kept through Apply,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
@@ -115,7 +115,7 @@ Five tabs, in this fixed order. The code addresses them by index. Do not reorder
 |---|---|
 | Import | Reads the first RTPLAN and RTSTRUCT. Needs a channel named `Central Axis`. Varian is the path the sample data exercises. Nucletron exists in code and has no sample here. |
 | Cylinder | Diameter, length, optional collar displayed in mm or cm; Apply uses mm. Length changes move needles by an offset. Original DICOM points stay put. |
-| Channels | Bore diameter, dead space, threading. A channel can be disabled or marked as the tandem. |
+| Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
 
@@ -140,7 +140,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | `DicomData` reset tests, RTSTRUCT decode at import, and the Import structure list with tests in `tests/dicom/` and `tests/views/` | Structure 3D rendering, hide/show and opacity |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
-| A channel's own diameter, kept by `ChannelsModel` through the Channels tab's Apply, not yet reachable from the GUI. No diagram changes, for the same reason | |
+| A channel's own diameter, set in the Channels tab's Selected Channel group and kept by `ChannelsModel` through Apply. The tab scrolls when the window is short. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 | The collar round-trips through config files, and *Generate Tandem* merges its settings snapshot instead of replacing the live settings (§7.1). No diagram changes, because the same files are read and written | |
