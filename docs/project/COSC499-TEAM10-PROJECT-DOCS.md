@@ -1167,8 +1167,11 @@ Mouse bindings, which are non-standard and worth knowing:
 [`pdf/template_reference.py`](../../src/classes/pdf/template_reference.py) (806 lines) and
 [`pdf/canvas.py`](../../src/classes/pdf/canvas.py).
 
-`generate_pdf()` produces a one-page reportlab document: header, patient/plan identifiers, a
-table of channels, and a matplotlib cross-section diagram.
+`generate_pdf()` produces a reportlab document: header, patient/plan identifiers, since
+2026-10-15 a two-column cylinder table built by `cylinder_rows()` (diameter, length, tip,
+notch, collar, in mm, with no colons), a table of channels, and a matplotlib cross-section
+diagram. It is not always one page: with Ex1's 12 channels the diagram moves to page 2, on
+`main` before the cylinder table as well as after (*Verified* 2026-10-15 by rendering both).
 
 The substantive computation is **interstitial length** — how far each needle protrudes beyond
 the cylinder surface:
@@ -1190,6 +1193,14 @@ number, the tandem marked `<n>T`, a dashed line showing tandem rotation (generat
 only), the orientation notch as a rectangle, `Anterior`/`Posterior` labels, and — if *Show
 Collet Spacings* is ticked — dashed collet rings coloured **green** when clear and **red** when
 they overlap another collet. It writes `basemap.png` **next to the PDF**, as a side effect.
+
+Since 2026-10-15 the notch is drawn by `notch_outline()`, the part standing out of the circle,
+`width` wide and `depth` deep, turned clockwise from the top by the notch angle, and not at all
+when the notch is off. It is drawn on the cylinder's circle even when a collar puts the real
+notch on the collar's wall, because the diagram does not draw the collar. `label_distance()`
+places *Anterior* and *Posterior* 1.5 beyond the notch's depth, so the rectangle no longer
+covers *Anterior*, as it did before. *Verified* 2026-10-15 by rendering Ex1's sheet with the
+default notch and with a 4 mm notch at 90°, and by `tests/pdf/`.
 
 `FooterCanvas` in `canvas.py` subclasses `reportlab.pdfgen.canvas.Canvas` to stamp "Page x of
 y" and an export timestamp on every page.
@@ -1298,7 +1309,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 |---|---|---|
 | Export Mesh | `.stl` (binary) or `.step`/`.stp` | `_final_mesh()` — booleans cut out of the cylinder |
 | Export Shape(s) | `.step`/`.stp` | `_final_shape()` — a `TopoDS_Compound` keeping parts separate |
-| Export Reference Sheet | `.pdf` (+ `basemap.png` alongside) | `template_reference.generate_pdf` |
+| Export Reference Sheet | `.pdf` (+ `basemap.png` alongside), with the cylinder table since 2026-10-15 | `template_reference.generate_pdf` |
 | Export Current Settings as Config | `.json` | `getCurrentValues()`, every key since 2026-10-15 (§7.1) |
 
 ### 6.5 The User Manual against the code
@@ -1790,7 +1801,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.10) |
-| `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length (§5.8) |
+| `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1875,6 +1886,10 @@ python -m pytest
   `tests/mesh/conftest.py` reuses the one QApplication, like the other fixtures. It moved the
   same day to [tests/conftest.py](../../tests/conftest.py) as `geometry_app`, when
   `tests/pdf/` needed it too. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 97 passed, with six reference-sheet tests added to
+  `pdf/test_template_reference.py`. All six failed before `notch_outline`, `label_distance` and
+  `cylinder_rows` existed, and turning the notch counterclockwise failed the 90° test.
+  *Not verified:* Windows.
 - *Verified* 2026-10-15 on macOS: 91 passed, with two *Tip Shape* tests added to
   `test_cylinder_view.py`. Both failed before the control existed, and removing the tip line
   from `resetAllValues()` failed the config import test. *Not verified:* Windows.
