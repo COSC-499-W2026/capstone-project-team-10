@@ -30,3 +30,12 @@ local-Z reference above solids. Both are disabled when their reference is unavai
 Toggling preserves the camera; preferences survive redraws but are not saved to config.
 Neither overlay is selectable or exported. Details and native-run limitations are in
 [§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+
+The Channels tab has a Selected Channel group below the list. It is enabled only while a
+channel is selected, shows that channel's diameter, and gives it its own diameter with
+*Apply to Channel*. *Use Channels Diameter* returns it to the tab's Channels Diameter, and
+Apply on the tab keeps any own diameter. The whole tab now scrolls: at the default 770 × 472
+window the group is below the fold and the list shows about four rows, where without the
+scroll area the spin boxes above were squeezed unreadable. *Verified* by offscreen widget tests
+and a render of the shown window. No screenshot is in the repository, because the PR was at
+the file limit.
