@@ -16,7 +16,8 @@ This is the upstream app plus Team 10's changes to `src/`, listed under
 [What Team 10 has added](#what-team-10-has-added). They are three Channels tab fixes, to how
 the list shows its selection, to the spin box arrows, and so that a newly imported plan starts
 with every channel enabled, none of which changes a diagram, a channel's own diameter, set in the
-Channels tab's Selected Channel group and kept through Apply,
+Channels tab's Selected Channel group and kept through Apply, each channel's status shown in
+colour in the Channels list,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder not yet called by the GUI.
@@ -113,7 +114,7 @@ Five tabs, in this fixed order. The code addresses them by index. Do not reorder
 |---|---|
 | Import | Reads the first RTPLAN and RTSTRUCT. Needs a channel named `Central Axis`. Varian is the path the sample data exercises. Nucletron exists in code and has no sample here. |
 | Cylinder | Diameter, length, optional collar displayed in mm or cm; Apply uses mm. Length changes move needles by an offset. Original DICOM points stay put. |
-| Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter. |
+| Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter. The list shows each channel's status. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
 
@@ -137,6 +138,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | `DicomData` reset tests and the standalone RTSTRUCT reader with tests in `tests/dicom/` | Structure rendering and GUI integration |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
+| Each channel's status, from `ChannelsModel.channel_status`, shown in colour in the Channels list. No diagram changes, because the status is computed from state the model already holds and nothing reaches the display path | |
 | A channel's own diameter, set in the Channels tab's Selected Channel group and kept by `ChannelsModel` through Apply. The tab scrolls when the window is short. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
