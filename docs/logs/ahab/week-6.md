@@ -65,6 +65,5 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   is an integration test.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (65
-  passed), `build.py --check` and `session-start.sh` (exit 0), and [author: run the app, disable
-  Applicator4 in Ex1, import Ex2, and confirm Applicator4 is drawn and cut in Export]**.
+  passed), `build.py --check` and `session-start.sh` (exit 0)**.
 - Not applicable: **abnormal cases (one path), generated-test review (no problem found)**.
