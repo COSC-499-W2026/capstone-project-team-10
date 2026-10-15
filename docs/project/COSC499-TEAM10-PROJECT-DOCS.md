@@ -582,7 +582,9 @@ on 2026-10-10, keep the Export tab disabled until a cylinder exists (§7.6) and 
 Cylinder tab's mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.3, §8)
 were added on 2026-10-11. It is not yet connected to the GUI import path. On 2026-10-15,
-importing a plan stopped keeping channels disabled in the previous plan (§7.10).
+importing a plan stopped keeping channels disabled in the previous plan (§7.10), and
+`ChannelsModel` began keeping a channel's own diameter through the Channels tab's Apply
+(FR-CN-08, §5.5). It is not yet reachable from the GUI.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -813,7 +815,10 @@ a stderr stream handler. Creates `~/brachify/` at import time if missing.
 ### 5.2 Settings and configuration
 
 **[`settings/defaults.py`](../../src/settings/defaults.py)** — `DEFAULT_CONFIG_VALUES`, the
-schema: a flat `CONFIG_*` → number dict, 19 keys. Full table in §6.2.
+schema: a flat `CONFIG_*` → number dict, 19 keys. Full table in §6.2. It also holds
+`MINIMUM_CHANNEL_DIAMETER_MM` (0.3), the narrowest channel `ChannelsModel` accepts as a
+channel's own diameter, the same value as the Channels Diameter box's minimum in
+`channels_view.ui`. It is not a `CONFIG_*` key.
 
 **[`settings/load.py`](../../src/settings/load.py)** — `load_config_file()` is lenient by
 design. It keeps any key present in the user's JSON whose value is `int` or `float`, falls back
@@ -980,7 +985,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test) |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1550,6 +1555,11 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   module read `src\classes\mesh\...` on Windows and `src/classes/mesh/...` elsewhere, and 5 of
   the 8 tests in `test_architecture_drift.py` failed on every Windows clone, `main` included.
   Both now print `.as_posix()`. *Verified* on Windows: 5 failed before, all 8 passed after.
+- **A channel's own diameter is not in the PDF or a config file.** `save_points_diagram` draws
+  every channel circle, and its collet rings, at `CONFIG_CHANNELS_DIAMETER`, and
+  `getCurrentValues()` writes only the global diameter. The 3D export is correct, because it
+  cuts `channel.shape()`, so a reference sheet checked against a cylinder printed with own
+  diameters disagrees with it. FR-CN-07 is the follow-up. *Reasoned from code*.
 
 
 ### 7.7 MEDIUM — a tandem channel's rotation is measured from `(1, 0)`, not the axis
@@ -1728,7 +1738,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1806,6 +1816,11 @@ python -m pytest
   `test_loading_a_plan_enables_every_channel_again` added to `test_channels_view.py`. It failed
   with `assert not True` before the fix, and again when the fix line was removed on purpose.
   *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 70 passed, with four own-diameter tests (five cases) added to
+  `test_channels_view.py`. All five failed with `AttributeError` before `set_channel_diameter`
+  existed. Four deliberate breaks were each caught: Apply ignoring an own diameter, a clear that
+  keeps the width, a reload that keeps own diameters, and NaN let through, which crashed the run
+  with exit 139. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
