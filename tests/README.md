@@ -149,7 +149,9 @@ selected channel, after leaving and reopening the tab and after a viewport pick.
 `views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
 and widgets. It covers the mm/cm selector across all four dimensions, precision, limits, Apply,
 configuration reset and Ex1 import with needle offsets, and the settings round trip: every
-default key is in the exported snapshot, and the collar is exported and loaded back.
+default key is in the exported snapshot, and the collar is exported and loaded back. The notch
+controls are applied, grey out when *Add Notch* is unticked, follow the units, and are filled
+by a config import.
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.
