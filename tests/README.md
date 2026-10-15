@@ -48,7 +48,7 @@ tests/
 │   ├── test_notch.py
 │   └── test_tandem.py
 ├── models/
-├── pdf/                   exists: the reference sheet's interstitial lengths
+├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
 ├── settings/
 │   └── test_load.py
@@ -133,7 +133,8 @@ were measured on `main` before the notch settings existed, so the defaults are p
 them too.
 
 `pdf/test_template_reference.py` checks the reference sheet's interstitial lengths against
-hand-worked distances, for a dome tip, a flat tip, and a flat-tipped cylinder's wall.
+hand-worked distances, for a dome tip, a flat tip, and a flat-tipped cylinder's wall, and the
+notch drawing, the label placement and the cylinder table against literals.
 
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
