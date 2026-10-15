@@ -232,3 +232,77 @@ def test_config_import_fills_the_collar_boxes(cylinder_window: MainWindow) -> No
     assert view.ui.spinbox_base_height.value() == 12.0
     assert view.base_thickness_field.millimetres == 4.0
     assert view.base_height_field.millimetres == 12.0
+
+
+def test_apply_builds_the_notch_typed_on_the_cylinder_tab(cylinder_window: MainWindow) -> None:
+    """Type a notch at 90 degrees, 3 by 2.5 by 12 mm, press Apply, and check the cylinder has it.
+
+    Fails if a notch control is not read, or not written to the live settings the cylinder is
+    built from, so the printed orientation mark would differ from what the clinician typed.
+    """
+    from classes.app import get_app
+    from classes.mesh.notch import NotchSettings
+
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.spinbox_notch_angle.setValue(90.0)
+    view.ui.spinbox_notch_width.setValue(3.0)
+    view.ui.spinbox_notch_depth.setValue(2.5)
+    view.ui.spinbox_notch_height.setValue(12.0)
+    view.action_apply_settings()
+    assert cylinder_window.cylindermodel.cylinder.notch_settings == NotchSettings(
+        enabled=True, angle=90.0, width=3.0, depth=2.5, height=12.0
+    )
+    assert get_app().values.config_values["CONFIG_NOTCH_ANGLE"] == 90.0
+
+
+def test_unticking_add_notch_greys_out_the_notch_fields_and_drops_the_notch(
+    cylinder_window: MainWindow,
+) -> None:
+    """Untick Add Notch and check the four notch fields are disabled and Apply builds no notch.
+
+    Fails if the fields stay editable, which suggests their values still matter, or if the
+    notch is still enabled on the cylinder, so the clinician would get a mark they turned off.
+    """
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.cb_add_notch.setChecked(False)
+    fields = (view.ui.spinbox_notch_angle, view.ui.spinbox_notch_width,
+              view.ui.spinbox_notch_depth, view.ui.spinbox_notch_height)
+    assert [field.isEnabled() for field in fields] == [False] * 4
+    view.action_apply_settings()
+    assert not cylinder_window.cylindermodel.cylinder.notch_settings.enabled
+
+
+def test_notch_lengths_follow_the_units_selector(cylinder_window: MainWindow) -> None:
+    """Choose cm, check the default notch reads 0.2, 0.18 and 1.0 cm, and that 0.3 cm applies as 3 mm.
+
+    Fails if a notch length ignores the selector, so a value typed in cm would build a notch
+    ten times too small or too large.
+    """
+    view = cylinder_window.navigationmodel.views[1]
+    choose_units(view, "cm")
+    assert view.ui.spinbox_notch_width.value() == 0.2
+    assert view.ui.spinbox_notch_depth.value() == 0.18
+    assert view.ui.spinbox_notch_height.value() == 1.0
+    view.ui.spinbox_notch_width.setValue(0.3)
+    view.action_apply_settings()
+    assert cylinder_window.cylindermodel.cylinder.notch_settings.width == 3.0
+
+
+def test_config_import_fills_the_notch_controls(cylinder_window: MainWindow) -> None:
+    """Load a config with the notch off at 45 degrees, 3 by 2 by 15 mm, and check the controls show it.
+
+    Fails if resetAllValues() leaves a notch control at its old value. The next Apply reads
+    the controls, so a notch loaded from a file would be replaced by what was typed before.
+    """
+    from classes.app import get_app
+    from settings.reset import resetAllValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    config = get_app().values.config_values.copy()
+    config.update({"CONFIG_NOTCH_ENABLED": 0, "CONFIG_NOTCH_ANGLE": 45.0, "CONFIG_NOTCH_WIDTH": 3.0,
+                   "CONFIG_NOTCH_DEPTH": 2.0, "CONFIG_NOTCH_HEIGHT": 15.0})
+    resetAllValues(config)
+    assert not view.ui.cb_add_notch.isChecked()
+    assert view.ui.spinbox_notch_angle.value() == 45.0
+    assert [view.notch_width_field.millimetres, view.notch_depth_field.millimetres,
+            view.notch_height_field.millimetres] == [3.0, 2.0, 15.0]
