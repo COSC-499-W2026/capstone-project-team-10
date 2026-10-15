@@ -814,7 +814,7 @@ a stderr stream handler. Creates `~/brachify/` at import time if missing.
 ### 5.2 Settings and configuration
 
 **[`settings/defaults.py`](../../src/settings/defaults.py)** — `DEFAULT_CONFIG_VALUES`, the
-schema: a flat `CONFIG_*` → number dict, 19 keys. Full table in §6.2.
+schema: a flat `CONFIG_*` → number dict, 24 keys. Full table in §6.2.
 
 **[`settings/load.py`](../../src/settings/load.py)** — `load_config_file()` is lenient by
 design. It keeps any key present in the user's JSON whose value is `int` or `float`, falls back
@@ -835,8 +835,9 @@ single mutable dict every other module reads), the two most-recent config file p
   generated tandem must be regenerated while an imported one must not be touched. Since
   2026-10-15 it also fills the two collar boxes (§7.1).
 - `getCurrentValues()` reads the current state **back out** into a dict. Since 2026-10-15 it
-  returns all 19 keys. The collar's two come from the live settings, which *Apply Settings*
-  writes (§7.1).
+  returns every key, 24 since the notch settings. The collar's two come from the live settings,
+  which *Apply Settings* writes (§7.1), and the notch's five from the cylinder's
+  `notch_settings`.
 
 ### 5.3 DICOM ingest
 
@@ -960,13 +961,16 @@ Both work in 2D (`gp_Pnt2d`, `Geom2d_*`), find bend/exit points by curve interse
 **`notch.py`** — `CylinderNotch`, a small box standing out of the cylinder wall from `Z=0`,
 marking orientation for the person inserting the applicator. Since 2026-10-15 its size and
 position come from `NotchSettings`, a frozen dataclass of `enabled`, `angle`, `width`, `depth`
-and `height`. `notch_settings_from_config()` reads them from five `CONFIG_NOTCH_*` keys and
-raises `KeyError` on a missing one. `angle` is in degrees clockwise from Anterior as the
-reference sheet draws it, so the model rotation is `(angle − 90) mod 360`, and the default 0
+and `height`, which `notch_settings_from_config()` reads from the five `CONFIG_NOTCH_*` keys
+(§6.2) and raises `KeyError` on a missing one. `angle` is in degrees clockwise from Anterior as
+the reference sheet draws it, so the model rotation is `(angle − 90) mod 360`, and the default 0
 gives the 270° every cylinder had before. The box starts 0.2 mm inside the wall (`WALL_OVERLAP`)
-so it fuses, so its radial size is `depth + 0.2`. `BrachyCylinder` passes the default
-`NotchSettings()`, so every cylinder still gets the same 2 mm wide, 1.8 mm deep, 10 mm tall notch
-(*Verified* by `tests/mesh/test_notch.py`); nothing reads the config keys yet.
+so it fuses, so its radial size is `depth + 0.2`. `BrachyCylinder.__init__` reads the settings
+from the live config once, `shape()` builds the notch only when `enabled`, and with a collar the
+notch sits on the collar's outer wall and its height is capped at the collar height. The
+defaults reproduce the old notch and cylinder exactly (*Verified* by `tests/mesh/`). The
+Cylinder tab has no notch controls yet: the settings come from defaults or a config file. The
+reference sheet still draws the notch at the top whatever its angle.
 
 **`helper.py`** — shared utilities: `face_is_plane`, `geom_plane_from_face`, face sorting by Z,
 `get_vector` / `get_direction` / `get_magnitude`, `extend_bottom_face` (prisms the lowest face
@@ -1210,7 +1214,7 @@ Plan authoring requirements (from the User Manual, both vendors):
 
 ### 6.2 Configuration keys
 
-`DEFAULT_CONFIG_VALUES` — 19 keys, all numeric, all millimetres unless noted.
+`DEFAULT_CONFIG_VALUES` — 24 keys, all numeric, all millimetres unless noted.
 The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 
 | Key | Default | Meaning | Round-trips? |
@@ -1234,6 +1238,11 @@ The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 | `CONFIG_TANDEM_COLLET_OUTER_DIAMETER_OUTER` | 8.0 | tandem collet outer ring (PDF only) | yes |
 | `CONFIG_BASE_HEIGHT` | 0.0 | collar height; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
 | `CONFIG_BASE_THICKNESS` | 0.0 | collar wall thickness; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
+| `CONFIG_NOTCH_ENABLED` | 1 | 1 adds the orientation notch, 0 leaves it off (§5.4) | exported, and read on the next build. No Cylinder tab control yet |
+| `CONFIG_NOTCH_ANGLE` | 0.0 | notch position, degrees clockwise from Anterior as the sheet draws it | as above |
+| `CONFIG_NOTCH_WIDTH` | 2.0 | notch width | as above |
+| `CONFIG_NOTCH_DEPTH` | 1.8 | how far the notch stands out of the wall | as above |
+| `CONFIG_NOTCH_HEIGHT` | 10.0 | notch height from the base, capped at the collar height | as above |
 
 **Where the physical defaults come from.** `3D Models and Templates/Values for Cylinders
 (1).docx` lists the physicist's cylinder dimensions, and six of them match the defaults above
@@ -1267,7 +1276,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 | Export Mesh | `.stl` (binary) or `.step`/`.stp` | `_final_mesh()` — booleans cut out of the cylinder |
 | Export Shape(s) | `.step`/`.stp` | `_final_shape()` — a `TopoDS_Compound` keeping parts separate |
 | Export Reference Sheet | `.pdf` (+ `basemap.png` alongside) | `template_reference.generate_pdf` |
-| Export Current Settings as Config | `.json` | `getCurrentValues()`, all 19 keys since 2026-10-15 (§7.1) |
+| Export Current Settings as Config | `.json` | `getCurrentValues()`, every key since 2026-10-15 (§7.1) |
 
 ### 6.5 The User Manual against the code
 
@@ -1737,6 +1746,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
+| `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap (§5.4) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1814,10 +1824,10 @@ python -m pytest
   `test_cylinder_view.py` and `test_tandem_view.py` added. All four failed before the fix
   (§7.1): two missing collar keys, collar boxes left at 0, and the extra setting dropped.
   *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 74 passed, with `tests/mesh/test_notch.py` added. The
-  default notch's extents, x −1 to 1, y −16.8 to −14.8, z 0 to 10 mm, were measured on `main`
-  first. The new-behaviour tests failed first (`NotchSettings` did not exist), and flipping the
-  angle conversion's sign failed five of them. `mesh_app` in
+- *Verified* 2026-10-15 on macOS: 79 passed, with `tests/mesh/` added for the notch settings.
+  The literals in the default tests were measured on `main` first: volume 109,599.266 mm³, the
+  notch from y −16.8 to −14.8 mm. The new-behaviour tests failed first, and flipping the angle
+  conversion's sign and always fusing the notch were each caught. `mesh_app` in
   [tests/mesh/conftest.py](../../tests/mesh/conftest.py) reuses the one QApplication, like the
   other fixtures. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
