@@ -1645,7 +1645,7 @@ was run headless and the result observed; nothing here was seen in the GUI.
 
 ### 7.10 HIGH — a channel disabled in one plan stayed disabled in the next
 
-**Fixed 2026-10-15 in PR #PRNUM.** `ChannelsModel.load_data` reset the selection and the channels
+**Fixed 2026-10-15 in PR #43.** `ChannelsModel.load_data` reset the selection and the channels
 but not `disabled_channels`. A channel disabled in one plan therefore stayed disabled in the next
 plan imported, if that plan had a channel with the same label. Ex1 and Ex2 both label their
 needles `Applicator2` to `Applicator13`. The carried-over channel was not drawn, and was missing
