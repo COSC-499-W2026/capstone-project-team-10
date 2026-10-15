@@ -19,6 +19,18 @@ exactly.
 - Run `git status` first to see all changed and untracked files.
 - Run `git diff` to understand what changed in each file. Do not group from memory.
 - If the current branch is `main`, create a branch first. Never commit directly to `main`.
+  Name it as [Branch names](#branch-names) describes.
+
+## Branch names
+
+A branch is named `<type>/<what-it-is-about>`, such as `fix/channels-list-selection`,
+`feat/cylinder-units` or `docs/make-pr-log-rules`.
+
+- `<type>` is one of the commit types in [Message format](#message-format): `feat`, `fix`,
+  `docs`, `chore`, `refactor`, `test`, `style` or `perf`. Pick the type of the branch's main
+  change.
+- `<what-it-is-about>` is a few lower-case words joined by hyphens, naming the change rather
+  than the person or the week.
 
 ## What may and may not be committed
 

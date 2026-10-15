@@ -7,9 +7,11 @@ _Enter PR description here... what is it supposed to do?_
 _These are the course's receipts for this PR. The same text is copied into the author's
 individual log, `docs/logs/<student>/week-<K>.md`, and the two are kept identical. Replace
 every `[...]` with the real answer in **bold**, keep one side of each "or", and delete the
-italic guidance lines. Fill in every receipt whatever the PR changes, and mark one that cannot
-apply **N/A** with a reason. Keep each answer to the shortest phrase that names its evidence,
-and write nothing outside the template's own sentences. The rules are in
+italic guidance lines. Fill in every receipt that applies, whatever the PR changes, and end
+each subsection with one `Not applicable` line naming the receipts that do not, instead of
+writing each out as N/A. A documentation or process PR keeps only the receipts the workflow
+lists for it. Keep each answer to the shortest phrase that names its evidence, and write nothing
+else outside the template's own sentences. The rules are in
 [docs/workflows/make-pr.md](docs/workflows/make-pr.md#fill-in-part-a)._
 
 ### For PR #**[number]**
@@ -20,8 +22,8 @@ and write nothing outside the template's own sentences. The rules are in
   intended user group]**.
 
 _Include each of the next three subsections only if this PR changes code in its scope, and
-delete it otherwise. Inside an included subsection keep every bullet, and mark one that does
-not apply **N/A** with a reason._
+delete it otherwise. Inside an included subsection fill in every bullet that applies, and name
+the rest in its last bullet, "Not applicable: **receipt (reason), ...**."_
 
 #### Data Modeling and Integrity
 

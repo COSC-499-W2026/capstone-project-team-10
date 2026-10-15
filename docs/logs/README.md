@@ -50,17 +50,24 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
 - **The PR description and the log section stay identical.** An edit to one is copied to the
   other in the same step, whether it came from review, from GitHub's editor or from the file.
 - **Minimal.** One short answer per receipt, with nothing written outside the template's
-  sentences. The grader marks a log down for length that slows the audit. See
+  sentences. Receipts that do not apply are named in one `Not applicable` line per
+  subsection, not written out one by one as N/A. The grader marks a log down for length that
+  slows the audit, and for repeated N/A sections. See
   [Keep Part A minimal](../workflows/make-pr.md#keep-part-a-minimal).
-- **Every PR is logged.** A documentation or process PR still has a full Part A, so it gets a
-  section like any other.
+- **Every PR is logged.** A documentation or process PR gets a short section, keeping only the
+  receipts that apply to it, as
+  [Tests in this PR or another](../workflows/make-pr.md#tests-in-this-pr-or-another) lists.
 - **Screenshots live beside the log.** A receipt that cites a screenshot links to an image
   committed on the PR's branch in `docs/logs/<student>/screenshots/week-<K>/`, the same week as
   the log that links it, and named `pr-<n>-<step>-<what>.png`. The link is a
   `raw.githubusercontent.com` URL pinned to the commit that added the image, as `team/week-4.md`
   does for its diagrams, so the PR description and the log carry the same text and the link
   survives the merge. Rebasing that commit or moving the image changes the commit to pin, so
-  update the link in both places if you do either.
+  update the link in both places if you do either. A screenshot the agent could not take is
+  left as `[author: attach a screenshot of ...]`, and `/make-pr` tells the author and asks for
+  the image, as
+  [Screenshots the author must supply](../workflows/make-pr.md#screenshots-the-author-must-supply)
+  describes.
 - **Other regression records go in `evidence/`.** A written observation or terminal excerpt
   may be stored in `docs/logs/<student>/evidence/` and linked from the receipt. If a screenshot
   is supplied only in chat and its original file is unavailable, say so explicitly; a written
