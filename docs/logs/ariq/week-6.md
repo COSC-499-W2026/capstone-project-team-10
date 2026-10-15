@@ -133,5 +133,5 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **brachify run on macOS in dark mode with Ex1 imported, from `main` (`b652641`, arrows invisible) and #32 (`8e12632`, arrows black), and `python -m pytest` at `8e12632` (64 passed), shown in #32's Part A** passed.
-- This new test PR did not break anything else in the system because **only this log and three PNGs changed (`git diff --name-only main...HEAD`), and `python -m pytest` (63 passed), `session-start.sh` and `build.py --check` (exit 0)**.
+- This new test PR did not break anything else in the system because **only this log and three PNGs changed (`git diff --name-only main...HEAD`), and `python -m pytest` (64 passed), `session-start.sh` and `build.py --check` (exit 0)**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
