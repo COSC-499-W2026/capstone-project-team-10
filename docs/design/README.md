@@ -11,3 +11,12 @@ Apply, DICOM import and config files retain mm internally. The choice is not sav
 provided in chat and was not saved as a repository artifact.
 See [source of truth §5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 for the controls and precision.
+
+The Channels tab has a Selected Channel group below the list. It is enabled only while a
+channel is selected, shows that channel's diameter, and gives it its own diameter with
+*Apply to Channel*. *Use Channels Diameter* returns it to the tab's Channels Diameter, and
+Apply on the tab keeps any own diameter. The whole tab now scrolls: at the default 770 × 472
+window the group is below the fold and the list shows about four rows, where without the
+scroll area the spin boxes above were squeezed unreadable. *Verified* by offscreen widget tests
+and a render of the shown window. No screenshot is in the repository, because the PR was at
+the file limit.
