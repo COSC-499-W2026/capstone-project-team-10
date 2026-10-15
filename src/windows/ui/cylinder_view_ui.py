@@ -265,6 +265,22 @@ class Ui_Cylinder_View(object):
 
         self.gridLayout.addWidget(self.spinbox_notch_height, 10, 1, 1, 1)
 
+        self.label_tip = QLabel(Cylinder_View)
+        self.label_tip.setObjectName(u"label_tip")
+        self.label_tip.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_tip, 11, 0, 1, 1)
+
+        self.combobox_tip = QComboBox(Cylinder_View)
+        self.combobox_tip.addItem("")
+        self.combobox_tip.addItem("")
+        self.combobox_tip.setObjectName(u"combobox_tip")
+        self.combobox_tip.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.combobox_tip, 11, 1, 1, 1)
+
 
         self.verticalLayout.addLayout(self.gridLayout)
 
@@ -304,6 +320,7 @@ class Ui_Cylinder_View(object):
         self.label_notch_width.setBuddy(self.spinbox_notch_width)
         self.label_notch_depth.setBuddy(self.spinbox_notch_depth)
         self.label_notch_height.setBuddy(self.spinbox_notch_height)
+        self.label_tip.setBuddy(self.combobox_tip)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(Cylinder_View)
@@ -337,6 +354,10 @@ class Ui_Cylinder_View(object):
         self.spinbox_notch_depth.setSuffix(QCoreApplication.translate("Cylinder_View", u" mm", None))
         self.label_notch_height.setText(QCoreApplication.translate("Cylinder_View", u"Notch Height", None))
         self.spinbox_notch_height.setSuffix(QCoreApplication.translate("Cylinder_View", u" mm", None))
+        self.label_tip.setText(QCoreApplication.translate("Cylinder_View", u"Tip Shape", None))
+        self.combobox_tip.setItemText(0, QCoreApplication.translate("Cylinder_View", u"Dome", None))
+        self.combobox_tip.setItemText(1, QCoreApplication.translate("Cylinder_View", u"Flat", None))
+
         self.btn_apply_settings.setText(QCoreApplication.translate("Cylinder_View", u"Apply Settings", None))
     # retranslateUi
 

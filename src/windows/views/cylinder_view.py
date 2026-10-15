@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QWidget
 
 from classes.app import get_app
 from classes.logger import log
-from classes.mesh.cylinder import BrachyCylinder
+from classes.mesh.cylinder import BrachyCylinder, TipShape, tip_shape_from_config
 from classes.mesh.notch import NotchSettings, notch_settings_from_config
 
 from windows.models.shape_model import ShapeTypes
@@ -43,6 +43,7 @@ class CylinderView(CustomView):
         app.values.config_values["CONFIG_CYLINDER_LENGTH"] = length
         app.values.config_values["CONFIG_BASE_THICKNESS"] = base_thickness
         app.values.config_values["CONFIG_BASE_HEIGHT"] = base_height
+        app.values.config_values["CONFIG_CYLINDER_FLAT_TIP"] = int(self.selected_tip() is TipShape.FLAT)
         notch = self.notch_settings()
         app.values.config_values["CONFIG_NOTCH_ENABLED"] = int(notch.enabled)
         app.values.config_values["CONFIG_NOTCH_ANGLE"] = notch.angle
@@ -84,11 +85,20 @@ class CylinderView(CustomView):
         self.base_thickness_field.set_millimetres(get_app().values.config_values.get("CONFIG_BASE_THICKNESS", 0.0))
         self.base_height_field.set_millimetres(get_app().values.config_values.get("CONFIG_BASE_HEIGHT", 0.0))
         self.set_notch_settings(model.cylinder.notch_settings)
+        self.set_tip(model.cylinder.tip)
 
     def set_dimensions_mm(self, diameter: float, length: float) -> None:
         """Load model or config dimensions without interpreting them as display units."""
         self.diameter_field.set_millimetres(diameter)
         self.length_field.set_millimetres(length)
+
+    def selected_tip(self) -> TipShape:
+        """Read the Tip Shape choice. Its items are the TipShape values."""
+        return TipShape(self.ui.combobox_tip.currentText())
+
+    def set_tip(self, tip: TipShape) -> None:
+        """Show the given tip without applying it."""
+        self.ui.combobox_tip.setCurrentText(tip.value)
 
     def notch_settings(self) -> NotchSettings:
         """Read the notch controls, lengths in mm."""
@@ -149,6 +159,7 @@ class CylinderView(CustomView):
         self.base_thickness_field.set_millimetres(config.get("CONFIG_BASE_THICKNESS", 0.0))
         self.base_height_field.set_millimetres(config.get("CONFIG_BASE_HEIGHT", 0.0))
         self.set_notch_settings(notch_settings_from_config(config))
+        self.set_tip(tip_shape_from_config(config))
 
         # signals and slots
         self.ui.cb_add_notch.toggled.connect(self.action_enable_notch_fields)
