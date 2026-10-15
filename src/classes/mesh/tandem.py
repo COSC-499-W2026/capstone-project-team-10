@@ -18,7 +18,25 @@ from classes.app import get_app                                         # must b
 # TODO create a step file that shows the points and measurements here to visualize what is being done
 
 
+# how far the cut-out's dome-shaped outline reaches past a domed cylinder
+DOME_OUTLINE_OFFSET = 10.0
+
+
 class Tandem():
+
+    @property
+    def height_offset(self) -> float:
+        """
+        How far the cut-out's dome-shaped outline reaches past the cylinder. A flat top's corners
+        stick out of the dome outline once the diameter passes about 45 mm, and the cut-out there
+        would be trimmed away, so for a flat tip the outline grows to reach past the corners.
+        The outline is centred 1 mm below the top of the straight wall a dome would have.
+        """
+        if not self.flat_tip:
+            return DOME_OUTLINE_OFFSET
+        radius = self.cylinder_diameter / 2
+        corner = math.sqrt(radius ** 2 + (radius + 1) ** 2)
+        return max(DOME_OUTLINE_OFFSET, corner - radius + 1)
 
     def cylinder_offset_shape(self) -> TopoDS_Shape:
         radius = self.cylinder_diameter / 2 + self.height_offset
@@ -398,7 +416,7 @@ class Tandem():
         self.tandem_angle: float = values.get('CONFIG_TANDEM_TIP_ANGLE')
         self.bend_radius: float = values.get('CONFIG_TANDEM_BEND_RADIUS')
         self.tandem_length: float = 8.0
-        self.height_offset = 10.0
+        self.flat_tip = bool(values.get('CONFIG_CYLINDER_FLAT_TIP', 0))
         self.threading_diameter = values.get('CONFIG_TANDEM_THREADING_DIAMETER')
         self.threading_depth = values.get('CONFIG_TANDEM_THREADING_DEPTH')
         #########################################
