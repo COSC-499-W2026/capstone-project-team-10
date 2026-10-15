@@ -30,6 +30,8 @@ class DicomData:
         self.plan_ID = None
 
         self.tandem_channel = None
+
+        self.structures = None
     '''
     def update(self, new_data):
         if new_data.patient_name:
@@ -82,6 +84,8 @@ class DicomData:
         self.plan_ID = None
 
         self.tandem_channel = None #stores the name of the tandem channel
+
+        self.structures = None
 
     def toString(self):
         text = "## DicomData Object:\n"

@@ -3,6 +3,7 @@ from pathlib import Path
 import pydicom
 from classes.logger import log
 from classes.dicom.data import DicomData
+from classes.dicom.load_structures import load_structures
 from classes.mesh.cylinder import BrachyCylinder
 from classes.mesh.channel import NeedleChannel
 import classes.mesh.helper as helper
@@ -397,6 +398,7 @@ def load_varian_dicom_data(rp_file: str, rs_file: str) -> DicomData:
         # We use the RS file to get the Applicator's ROI and contour data
         # We also use it to get the channel ROI data if we have their ROIS
         rs_dataset = pydicom.dcmread(rs_file)
+        load_structures(data, rs_dataset)
 
         # cylinder from contour
         try:
@@ -517,6 +519,7 @@ def load_nucletron_dicom_data(rp_file: str, rs_file: str) -> DicomData:
         # We also use it to get the channel ROI data if we have their ROIS
         rs_dataset = pydicom.dcmread(rs_file) #not using, since elekta stores their channels in the rp file. or do they?
         # explore_rp_rs(rp_dataset, rs_dataset)
+        load_structures(data, rs_dataset)
 
         # cylinder from contour
         try:
