@@ -32,7 +32,11 @@ def units_app(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Radiotherapy
         from PySide6.QtWidgets import QApplication
         from classes.app import RadiotherapyApp
 
-        yield QApplication.instance() or RadiotherapyApp(["units-tests"])
+        app = QApplication.instance()
+        if app is None:
+            app = RadiotherapyApp(["units-tests"])
+            app.window = None
+        yield app
 
 
 @pytest.fixture(scope="module")
@@ -82,6 +86,7 @@ def cylinder_window(units_app: RadiotherapyApp) -> Iterator[MainWindow]:
 
     This fixture fails if the real models or views cannot be built. Each test gets fresh
     settings and disconnected signals afterwards, preventing edits leaking between tests.
+    Restoring the previous app window keeps later shared-window tests on their own models.
     """
     from settings.defaults import DEFAULT_CONFIG_VALUES
     from windows.main_window import MainWindow
@@ -89,6 +94,7 @@ def cylinder_window(units_app: RadiotherapyApp) -> Iterator[MainWindow]:
     from windows.views.viewport import OrbitCameraViewer3d
 
     previous_config = units_app.values.config_values
+    previous_window = units_app.window
     units_app.values.config_values = DEFAULT_CONFIG_VALUES.copy()
     units_app.window = MainWindow()
     units_app.window.initModels()
@@ -100,3 +106,4 @@ def cylinder_window(units_app: RadiotherapyApp) -> Iterator[MainWindow]:
     units_app.signals.height_changed.disconnect(window.channelsmodel.update_height_offset)
     units_app.signals.height_changed.disconnect(window.tandemmodel.update_height_offset)
     units_app.values.config_values = previous_config
+    units_app.window = previous_window
