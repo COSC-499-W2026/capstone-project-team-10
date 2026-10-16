@@ -319,3 +319,48 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`python -m pytest` (79 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
 
   ![1, python -m pytest on this branch, test_cylinder.py and 79 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7fcc64f4ec5c1fc8d4b992feef187c11f1acb254/docs/logs/ariq/screenshots/week-6/pr-51-1-pytest-79-passed.png)
+
+### For PR #**52**
+
+- As part of requirement **FR-CN-14 (Milestone 2), set notch size and angle on the cylinder form**, the user needs to do **open the Cylinder tab, tick or untick Add Notch, type its angle, width, depth and height in mm or cm, and press Apply Settings**.
+- Therefore, I implemented/generated code so that **physicists set the notch on the Cylinder tab and see it in the viewport, with no DICOM needed**.
+
+#### Backend
+
+- The system uses **Qt models and views, the view reading its controls into a `NotchSettings`** because **the notch must be set where the cylinder is**. Benefits for using this pattern include **the geometry never reads a widget**. Possible risks include **a control the config import misses**.
+  - To mitigate **a missed control**, we implemented **`set_notch_settings`, used by both the model update and `resetAllValues`**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **the view hands the geometry a `NotchSettings`, never a widget**. This structure has high cohesion because **`CylinderView` owns every Cylinder control**. This design is scalable because **another notch field is one row and one `LengthField`**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-14 (notch): four tests in test PR #53**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6 and Qt Designer `.ui` files** with design components for **the Cylinder tab's label and spin box rows**. Therefore, changing the design of **a row's stylesheet** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **values come from the model through `set_notch_settings`**.
+- The frontend adopts accessibility principle **labels named by the control they describe, without abbreviation, per the repository's UI copy rule**. The aspects that demonstrate this principle in the system include **Notch Angle, Width, Depth and Height, each a label buddy of its field (screenshot 1)**.
+- Not applicable: **data caching (no new data store), traceability matrix (in Backend), restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated notch rows and `CylinderView` methods** for this functionality, I did not find any problems with it because **the app run showed a 4 mm notch at 90 degrees on the +x side (screenshot 1), and #53's four tests pass**.
+- The PR does not contain any temporary workaround because **lengths go through `LengthField`, like the existing four**.
+- The PR only contains small functions that are **5 to 8 lines (`notch_settings`, `set_notch_settings`, `action_enable_notch_fields`); `action_apply_settings` (43), `__init__` (33) and `resetAllValues` (107) were long already and gain 6, 9 and 1 lines**.
+- I did **`anti_slop review` against #51's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/cylinder_view.py` and `src/windows/ui/cylinder_view.ui`** because **the Cylinder view owns its controls, and the `.ui` is regenerated, not hand-edited**.
+- This work belongs in **Cylinder** in the DFD because **it is the Cylinder tab's input**.
+
+#### Testing receipts
+
+- This new test PR did not break anything else in the system because **`python -m pytest` (79 passed on this branch, 83 with #53's tests), `build.py --check` and `session-start.sh` (exit 0), and the app run on macOS with Ex1 imported and a 4 mm notch at 90 degrees applied (screenshot 1)**.
+
+  ![1, brachify on this branch with Ex1 imported, Cylinder tab, a 4 mm notch at 90 degrees applied and drawn on the +x side](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/29b2bf4c630209683686f54d393c48db08cccf87/docs/logs/ariq/screenshots/week-6/pr-52-1-cylinder-tab-notch-90.png)
+- Not applicable: **happy path, abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (all in test PR #53)**.

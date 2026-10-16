@@ -1,5 +1,6 @@
 
 from classes.app import get_app
+from classes.mesh.notch import notch_settings_from_config
 
 
 def resetAllValues(values_dict: dict):
@@ -22,6 +23,7 @@ def resetAllValues(values_dict: dict):
     cylinder_view.set_dimensions_mm(cylinder_diameter, cylinder_length)
     cylinder_view.base_thickness_field.set_millimetres(values_dict.get("CONFIG_BASE_THICKNESS"))
     cylinder_view.base_height_field.set_millimetres(values_dict.get("CONFIG_BASE_HEIGHT"))
+    cylinder_view.set_notch_settings(notch_settings_from_config(values_dict))
     # if a DICOM file has already been imported, then apply the settings to update the views and models.
     if app.window.cylindermodel.cylinder is not None:
         app.window.navigationmodel.views[1].action_apply_settings() # apply the above settings
