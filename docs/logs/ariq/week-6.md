@@ -277,7 +277,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Data Modeling and Integrity
 
-- This data **the five notch keys** is modeled as **numbers in the flat config, `CONFIG_NOTCH_ENABLED` as 1 or 0** because **`load_config_file` accepts only numbers**. We considered alternative models such as **a JSON boolean, rejected because the loader reads `true` as 1 anyway and other keys are numbers**.
+- This data **the five notch keys** is modeled as **numbers in the flat config, `CONFIG_NOTCH_ENABLED` as 1 or 0** because **`load_config_file` accepts only numbers**. We considered alternative models such as **a JSON boolean, rejected because the loader accepts only numbers and, since #28, rejects `true` and `false`**.
 - This data **the notch keys** uses the input validation to ensure it adheres to **numeric values, as `checkValuesExist` enforces**.
 - Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
 
