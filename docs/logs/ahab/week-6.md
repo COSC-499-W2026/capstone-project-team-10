@@ -233,3 +233,97 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   0**. The documentation set was reviewed; **§8.2 and this receipt changed**, and the diagrams
   still describe the same system. **Native viewport and Windows were not rerun**; the two
   screenshots remain the original receipts.
+
+### For PR #**62**
+
+- As part of requirement **FR-CN-03 and FR-CN-16 (interface), show each needle's status,
+  disabled included**, the user needs to do **see on the Channels tab which needles have their own
+  diameter, are disabled or are the tandem**.
+- Therefore, I implemented/generated code so that **physicists see each needle's status as a colour,
+  a font cue and a tooltip**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **External, Presentation, Application state, Domain services, Libraries and Local storage**. This
+  structure has low coupling because **the view only draws `channel_status`**. This structure has
+  high cohesion because **the status order lives in the model**. This design is scalable because
+  **a new status is one enum member and one style**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **medical physicist, treatment
+  planning system, brachify and printer or CAD**. **Statuses stay inside brachify**
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **A disabled
+  needle's row reads disabled, and Export leaves it out**. **A status is never stored, so it
+  cannot go stale**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-03 (interface) → `test_channel_with_its_own_diameter_is_bold_on_amber_in_the_list`;
+  FR-CN-16 (interface) → `test_a_disabled_channel_reads_disabled_and_stays_in_the_list`**
+- Not applicable: **architectural pattern (unchanged), database (none), data processing
+  (unchanged), state management (computed, not stored), backend API (none), test coverage (no
+  coverage tool)**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6 and Qt Designer** with design components for **one
+  `ChannelRowStyle` per status**. Therefore, changing the design of **one status's style** will
+  automatically change the look and feel of all instances of that component throughout the system.
+  Changes to the content will not affect the design because **row text stays the channel label**.
+- The frontend adopts accessibility principle **WCAG 2.1 SC 1.4.1 Use of Color**. The aspects that
+  demonstrate this principle in the system include **a bold or italic cue for each colour, a
+  legend and a tooltip (screenshot 2)**.
+
+  ![2, Ex2 in brachify, Applicator4 bold on amber, Applicator7 italic on grey, Tandem bold italic on blue, with the legend](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-62-2-status-colours.png)
+
+- Not applicable: **data caching (no new data), restricted pages (no logins), usability
+  evaluation (none run), traceability matrix (under Backend), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **first plan for this issue**, I noticed **disabled needles, which are not
+  cut, still looked enabled**. Therefore, I did **add disabled and tandem statuses**.
+- The PR does not contain any temporary workaround because **3D colour is left for FR-CN-04, as
+  #46 records**.
+- The PR only contains small functions that are **5, 5 and 12, and at most 20 in the tests** long.
+- I did **`anti_slop review --base main` (no findings)** to ensure that my feature contribution does
+  not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`channels_model.py` and `channels_view.py`** because **the model
+  decides the status and the view draws it**.
+- This work belongs in **3 Channels** in the DFD because **the statuses come from that tab's
+  state**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **an own diameter
+  marked and a cleared one unmarked (80 passed)** passed.
+- I wrote tests to cover abnormal situations involving **a disabled channel with its own diameter,
+  and the tandem** and they passed.
+- I checked that these negative cases involving **four deliberate breaks** failed as expected.
+- When I reviewed the **generated `test_clearing_a_channels_own_diameter_removes_its_mark`**, I
+  noticed **it passed with no restyling at all**. Therefore, I did **assert the mark before the
+  clear**.
+- Among these tests, **none** are unit tests and **all four** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (80
+  passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/channel-status-colours at 85e4f99, 80 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-62-1-pytest-80-passed.png)
+
+- Review follow-up for **Ariq's #62 comments**: **the cleared row tooltip matches an
+  untouched channel, and the tandem test uses a fresh window so shared tandem and disabled
+  state cannot leak**. The corrected tooltip comparison **failed before #59's model fix**.
+  **83 tests pass on macOS offscreen; anti-slop reports no findings; architecture and
+  session-start checks exit 0**. The documentation set was reviewed; **§8.2 and this receipt
+  changed**, and the diagrams still describe the same system. **Native viewport and Windows
+  were not rerun**; screenshot 1 remains the original 80-test receipt.
