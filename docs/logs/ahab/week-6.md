@@ -282,3 +282,78 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - These tests are included in the directory **`tests/settings/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (91
   passed), `build.py --check` and `session-start.sh` (exit 0)**.
+
+### For PR #**63**
+
+- As part of requirement **FR-CN-05 (interface), a template library to save, browse and apply
+  templates**, the user needs to do **select a needle, type a name, press Save as Template, then
+  select another needle, choose the template and press Apply Template**.
+- Therefore, I implemented/generated code so that **physicists save a needle's diameter as a named
+  template, see it after a restart, and apply it to any needle, with errors beside the controls**.
+
+#### Data Modeling and Integrity
+
+- This data **`needle_templates.json`** uses the input validation to ensure it adheres to **a
+  trimmed, non-blank name and a finite diameter of at least 0.3 mm, checked by `make_template`
+  before anything is written**.
+- Not applicable: **data model, security sanitization (unchanged since #61), privacy
+  sanitization (no patient data), encryption (nothing sensitive), access controls (one local
+  user)**.
+
+#### Frontend
+
+- The frontend uses **a tuple of `NeedleTemplate` in `ChannelsView.templates`, replaced on every
+  load and save** because **the list's rows must index the templates Apply Template uses**.
+  Benefits for using this pattern include **the file is read once at startup, not on every
+  click**. Possible risks include **a row pointing at the wrong template**.
+  - To mitigate **that**, we implemented **`show_templates` replacing the tuple and the list
+    together**.
+- The frontend is designed using **PySide6 and Qt Designer** with design components for **the
+  Selected Channel group, whose stylesheet now also styles `QLineEdit` and `QComboBox`**.
+  Therefore, changing the design of **that stylesheet** will automatically change the look and
+  feel of all instances of that component throughout the system. Changes to the content will not
+  affect the design because **the list text comes from `NeedleTemplate` values**.
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-05 (interface) → `test_a_saved_template_is_listed_and_written_to_the_library`,
+  `test_applying_a_template_gives_the_selected_channel_its_diameter`; FR-CN-06 →
+  `test_an_unreadable_library_is_reported_and_leaves_the_tab_usable`**
+- Not applicable: **restricted pages (no logins), usability evaluation (none run), accessibility
+  (no new principle), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated template list**, I noticed **it showed two decimals where the
+  Channel Diameter box shows three, so 2.045 mm would read 2.05**. Therefore, I did **show three
+  decimals**.
+- The PR does not contain any temporary workaround because **errors go to the status line by
+  design, as the design README records**.
+- The PR only contains small functions that are **6, 5, 7 and 3 (`action_load_templates`,
+  `show_templates`, `action_save_template`, `action_apply_template`), 31 (`__init__`, 4 lines
+  added), and at most 21 in the tests** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my
+  feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`channels_view.py` and `channels_view.ui`** because **the controls
+  belong to the Selected Channel group**.
+- This work belongs in **3 Channels** in the DFD because **a template sets a needle's bore
+  there**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **saving and applying
+  a template (95 passed)** passed.
+- I wrote tests to cover abnormal situations involving **an unreadable library at startup** and
+  they passed.
+- I checked that these negative cases involving **a blank name** failed as expected.
+- Among these tests, **none** are unit tests and **all four** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (95
+  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+- Not applicable: **generated-test review (no problem found)**.
