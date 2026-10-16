@@ -1857,7 +1857,7 @@ python -m pytest
   test red: the window stays 770 × 472, and the four spin boxes were squeezed to 9 px. The
   height test was written for that, red at 9 px, and both went green with the scroll area. Five
   deliberate breaks of the wiring were each caught. *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 85 passed, with `tests/settings/test_needle_templates.py` added.
+- *Verified* 2026-10-15 on macOS: 91 passed, with `tests/settings/test_needle_templates.py` added.
   It failed to import before the module existed. Six deliberate breaks were each caught: no
   trimming, no duplicate check, no replace on save, a decode error returning an empty library,
   NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
