@@ -816,7 +816,8 @@ a stderr stream handler. Creates `~/brachify/` at import time if missing.
 schema: a flat `CONFIG_*` → number dict, 19 keys. Full table in §6.2.
 
 **[`settings/load.py`](../../src/settings/load.py)** — `load_config_file()` is lenient by
-design. It keeps any key present in the user's JSON whose value is `int` or `float`, falls back
+design. It keeps any key present in the user's JSON whose value is `int` or `float` and not
+`true` or `false` (checked by `is_config_number()`), falls back
 to defaults (or the previous values, on a mid-session import) for the rest, and returns a
 two-list `config_keys_loaded` of `[loaded, missing]` so the UI can tell the user exactly what
 was and was not applied. Unknown keys in a user's JSON are preserved but never used.
@@ -1642,6 +1643,7 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | LOW | `main_window.ui` | six colours are written `rgba(240, 245, 250)`, with no alpha, so Qt prints `Specified color with alpha value but no alpha given` on every start. It also asks for an icon from a Qt resource file that is not in the repository. See [18.6](COSC499-BRACHIFY-INIT-DOCS.md#186-colours-and-other-text-in-the-design-files) | *Verified* for the warning |
 | LOW | the 3D view | every redraw zooms to fit, so after *Apply* or a selection any zoom the user set is lost. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
 | LOW | spin box limits | **Changed 2026-10-10:** Cylinder length and collar now use `QDoubleSpinBox`, with whole mm or tenths of cm displayed. `LengthField` retains exact mm settings through display rounding (§5.6); finer user editing remains limited by display precision. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
+| MEDIUM | `checkValuesExist`, a JSON `true` or `false` | **Fixed 2026-10-11.** A setting written as `true` was reported loaded and used as 1, because Python treats `True` as the int 1, so a cylinder diameter of `true` became 1 mm with no warning. `is_config_number()` now rejects `bool`, so the default is used and the key is reported missing, guarded by `tests/settings/test_load.py`. Negative and zero values still load. See [13.5](COSC499-BRACHIFY-INIT-DOCS.md#135-loadpy-reading-a-settings-file) | *Verified*: the test failed with `assert True == 30.0` before the fix |
 
 ### 7.10 HIGH — a channel disabled in one plan stayed disabled in the next
 
@@ -1715,6 +1717,10 @@ initialised.
 passed afterwards. Three deliberate breaks (cm scale, Apply conversion, rounded mm
 cache) each failed the relevant assertions. No application module is mocked.
 
+**Config loading is tested in `tests/settings/`.** `test_load.py`, added 2026-10-11, loads real
+JSON files from a temporary folder: a file with one key, a file that is not valid JSON, and a
+`true` dimension.
+
 Both view test files share the one QApplication from the `units_app` fixture in
 [tests/views/conftest.py](../../tests/views/conftest.py), which isolates HOME/USERPROFILE.
 `channels_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
@@ -1730,6 +1736,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
+| `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
@@ -1802,6 +1809,10 @@ python -m pytest
   `tests/windows` and `tests/views` also passed, 17 of 17, run in either order, so
   `brachify_app` and `units_app` share the one QApplication whichever starts it.
   *Not verified:* Windows.
+- *Verified* 2026-10-11 on Windows, outside conda: 20 passed with `test_build_executable.py`
+  and `tests/views/` ignored, since `tests/views/` needs PySide6. The `true` test failed with
+  `assert True == 30.0` before the fix and again when the `bool` check was removed on purpose.
+  The partial-file test failed with `assert 0 == 1` when a file needed two keys to count.
 - *Verified* 2026-10-15 on macOS: 65 passed, with
   `test_loading_a_plan_enables_every_channel_again` added to `test_channels_view.py`. It failed
   with `assert not True` before the fix, and again when the fix line was removed on purpose.
