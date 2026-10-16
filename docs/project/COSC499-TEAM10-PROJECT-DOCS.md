@@ -582,9 +582,10 @@ on 2026-10-10, keep the Export tab disabled until a cylinder exists (§7.6) and 
 Cylinder tab's mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.3, §8)
 were added on 2026-10-11. It is not yet connected to the GUI import path. On 2026-10-15,
-importing a plan stopped keeping channels disabled in the previous plan (§7.10), and
-`ChannelsModel` began keeping a channel's own diameter through the Channels tab's Apply
-(FR-CN-08, §5.5). It is not yet reachable from the GUI.
+importing a plan stopped keeping channels disabled in the previous plan (§7.10), the collar
+settings began to round-trip through config files, and *Generate Tandem* stopped dropping
+settings (§7.1). `ChannelsModel` began keeping a channel's own
+diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is not yet reachable from the GUI.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -837,9 +838,11 @@ single mutable dict every other module reads), the two most-recent config file p
   writes cylinder dimensions through `CylinderView.set_dimensions_mm`, so the current
   display unit does not change the meaning of an imported mm value. It
   handles the three tandem states explicitly (absent / generated / imported), because a
-  generated tandem must be regenerated while an imported one must not be touched.
-- `getCurrentValues()` reads the current state **back out** into a dict. **It returns only 17
-  of the 19 keys** — see §7.1, this is a live bug.
+  generated tandem must be regenerated while an imported one must not be touched. Since
+  2026-10-15 it also fills the two collar boxes (§7.1).
+- `getCurrentValues()` reads the current state **back out** into a dict. Since 2026-10-15 it
+  returns all 19 keys. The collar's two come from the live settings, which *Apply Settings*
+  writes (§7.1).
 
 ### 5.3 DICOM ingest
 
@@ -1229,8 +1232,8 @@ The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 | `CONFIG_NEEDLE_COLLET_OUTER_DIAMETER` | 5.0 | needle collet tolerance ring (PDF only) | yes |
 | `CONFIG_TANDEM_COLLET_OUTER_DIAMETER_INNER` | 5.0 | tandem collet inner ring (PDF only) | yes |
 | `CONFIG_TANDEM_COLLET_OUTER_DIAMETER_OUTER` | 8.0 | tandem collet outer ring (PDF only) | yes |
-| `CONFIG_BASE_HEIGHT` | 0.0 | collar height; 0 disables the collar | **NO — §7.1** |
-| `CONFIG_BASE_THICKNESS` | 0.0 | collar wall thickness; 0 disables the collar | **NO — §7.1** |
+| `CONFIG_BASE_HEIGHT` | 0.0 | collar height; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
+| `CONFIG_BASE_THICKNESS` | 0.0 | collar wall thickness; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
 
 **Where the physical defaults come from.** `3D Models and Templates/Values for Cylinders
 (1).docx` lists the physicist's cylinder dimensions, and six of them match the defaults above
@@ -1264,7 +1267,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 | Export Mesh | `.stl` (binary) or `.step`/`.stp` | `_final_mesh()` — booleans cut out of the cylinder |
 | Export Shape(s) | `.step`/`.stp` | `_final_shape()` — a `TopoDS_Compound` keeping parts separate |
 | Export Reference Sheet | `.pdf` (+ `basemap.png` alongside) | `template_reference.generate_pdf` |
-| Export Current Settings as Config | `.json` | `getCurrentValues()` — **loses 2 keys, §7.1** |
+| Export Current Settings as Config | `.json` | `getCurrentValues()`, all 19 keys since 2026-10-15 (§7.1) |
 
 ### 6.5 The User Manual against the code
 
@@ -1316,6 +1319,17 @@ section numbers, which other files cite, stay stable. An entry that has since be
 **Fixed** with the date and stays listed. Severity is our judgement, not upstream's.
 
 ### 7.1 HIGH — the collar is never saved to, or loaded from, a settings file
+
+**Fixed 2026-10-15.** `getCurrentValues()` now returns both collar keys, read from the live
+settings that *Apply Settings* writes, and `resetAllValues()` fills the two collar boxes before
+it applies. `TandemView.action_set_tandem()` now merges the snapshot into the live settings
+with `config_values.update(getCurrentValues())` instead of replacing them, so *Generate Tandem*
+cannot drop a key the snapshot leaves out. *Verified* 2026-10-15 on macOS by four tests in
+`tests/views/`, each watched failing before the fix: every default key is in the snapshot, an
+applied 3 mm × 10 mm collar is exported, a 4 mm × 12 mm collar loaded from a config fills the
+boxes, and a setting the snapshot does not list survives *Generate Tandem*. Not changed: the
+*Add Collar* tick box is not a setting, so a config file still cannot turn the collar on or
+off (*Reasoned from code*). The text below is the bug as it was.
 
 *Corrected 2026-10-02.* The 2026-09-21 audit described this as the collar disappearing after
 *Generate Tandem*. Running the real tabs headless on `SI_C_D30 Brachify_Ex2/` for the init guide
@@ -1751,7 +1765,8 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
-| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
+| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1) |
+| `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1844,6 +1859,10 @@ python -m pytest
   Both regressions failed before the fix and under deliberate reversions. The shared Apply
   test restores the global model width as well as config, and fresh windows restore the
   previous app window on teardown. Native viewport and Windows were not rerun.
+- *Verified* 2026-10-15 on macOS: 68 passed, with three collar round-trip tests added to
+  `test_cylinder_view.py` and `test_tandem_view.py` added. All four failed before the fix
+  (§7.1): two missing collar keys, collar boxes left at 0, and the extra setting dropped.
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

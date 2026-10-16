@@ -140,6 +140,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | A channel's own diameter, kept by `ChannelsModel` through the Channels tab's Apply, not yet reachable from the GUI. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
+| The collar round-trips through config files, and *Generate Tandem* merges its settings snapshot instead of replacing the live settings (§7.1). No diagram changes, because the same files are read and written | |
 
 ## Known gaps in the existing code
 
@@ -148,7 +149,6 @@ which is the proposed framework below.
 
 | Gap | Why it matters |
 |---|---|
-| Collar height and thickness are never written to an exported config, nor loaded back from one. Generating a tandem also drops them from the live settings, though the built cylinder keeps its collar | A collar saved in a config file is lost when the file is reopened. Recorded in §7.1. |
 | A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
 | No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
 | Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
