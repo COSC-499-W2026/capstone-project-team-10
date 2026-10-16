@@ -262,7 +262,10 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   Changes to the content will not affect the design because **row text stays the channel label**.
 - The frontend adopts accessibility principle **WCAG 2.1 SC 1.4.1 Use of Color**. The aspects that
   demonstrate this principle in the system include **a bold or italic cue for each colour, a
-  legend and a tooltip**.
+  legend and a tooltip (screenshot 2)**.
+
+  ![2, Ex2 in brachify, Applicator4 bold on amber, Applicator7 italic on grey, Tandem bold italic on blue, with the legend](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-62-2-status-colours.png)
+
 - Not applicable: **data caching (no new data), restricted pages (no logins), usability
   evaluation (none run), traceability matrix (under Backend), test coverage (no coverage tool)**.
 
@@ -301,4 +304,6 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **all four** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (80
-  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+  passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/channel-status-colours at 85e4f99, 80 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-62-1-pytest-80-passed.png)
