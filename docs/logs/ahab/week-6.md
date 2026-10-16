@@ -65,17 +65,17 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving
-  **`test_loading_a_plan_enables_every_channel_again` (65 passed)** passed.
+  **`test_loading_a_plan_enables_every_channel_again` (68 passed)** passed.
 - I checked that these negative cases involving **the test on `main` and with the fix removed
   (`assert not True`)** failed as expected.
 - Among these tests, **none** are unit tests and **`test_loading_a_plan_enables_every_channel_again`**
   is an integration test.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (65
+- This new test PR did not break anything else in the system because **`python -m pytest` (68
   passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and brachify run on
   macOS through its buttons, Ex2 imported after Ex1 (screenshot 2)**.
 
-  ![1, python -m pytest on fix/disabled-channels-on-import at 5949174, 65 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dd20968af6ad7fb912bf42d8157cd1ac164c980b/docs/logs/ahab/screenshots/week-6/pr-43-1-pytest-65-passed.png)
+  ![1, python -m pytest on fix/disabled-channels-on-import at 3db7981, 68 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c949d87ca07efff9cc1782c9d7f3956ef015de5c/docs/logs/ahab/screenshots/week-6/pr-43-1-pytest-68-passed.png)
 
   ![2, Ex2 in brachify after Applicator4 was disabled in Ex1, Applicator4 enabled and drawn](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dd20968af6ad7fb912bf42d8157cd1ac164c980b/docs/logs/ahab/screenshots/week-6/pr-43-2-ex2-applicator4-enabled.png)
 
@@ -125,8 +125,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   a NaN case**.
 - The PR does not contain any temporary workaround because **the PDF and config gaps are recorded
   in §7.6 for FR-CN-07**.
-- The PR only contains small functions that are **7, 6, 4 and 2 (the four model methods), and at
-  most 28 in the tests** long.
+- The PR only contains small functions that are **7, 7, 4 and 2 (the four model methods), and at
+  most 29 in the tests** long.
 - I did **`anti_slop review --base main` (no findings)** to ensure that my feature contribution does
   not contain any of the following:
   - hardcoded values
@@ -137,6 +137,10 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   - deep nesting
   - high cyclomatic complexity
   - classes/modules/functions with many unrelated responsibilities
+- The review by **Ariq** identified **that clearing an own diameter fell back to the startup
+  width, not the live config default, and that an unknown label could leave a phantom
+  override**. Therefore, I did **clear to `NeedleChannel.default_diameter()`, look the channel
+  up before storing, and add a test for each**.
 - This work is written in **`channels_model.py`, with the minimum in `settings/defaults.py`**
   because **the model owns channel state, and the template library shares the minimum**.
 - This work belongs in **3 Channels** in the DFD because **it sets each needle solid's width**.
@@ -144,19 +148,19 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **Apply keeping an
-  own diameter, and clearing it (70 passed)** passed.
-- I wrote tests to cover abnormal situations involving **a new plan loaded over own diameters**
-  and they passed.
+  own diameter, and clearing it (80 passed)** passed.
+- I wrote tests to cover abnormal situations involving **a new plan loaded over own diameters,
+  a config import before clearing, and an unknown or unselected label** and they passed.
 - I checked that these negative cases involving **0.2 mm and NaN** failed as expected.
 - When I reviewed the **generated `test_channel_keeps_its_own_diameter_when_channels_diameter_is_applied`**,
   I noticed **it used `monkeypatch.setattr`, which anti-slop warns on**. Therefore, I did **restore
   the live settings in `finally` instead**.
-- Among these tests, **none** are unit tests and **all four** are integration tests.
+- Among these tests, **none** are unit tests and **all six** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (70
+- This new test PR did not break anything else in the system because **`python -m pytest` (80
   passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
-  ![1, python -m pytest on feat/channel-own-diameter at 632b389, 70 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5f297c8dafd3c13319dc0683b835927fd7eaefc2/docs/logs/ahab/screenshots/week-6/pr-59-1-pytest-70-passed.png)
+  ![1, python -m pytest on feat/channel-own-diameter at 9fd84a9, 80 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/144974714611352ba317c6659ea0bf11161f0b2d/docs/logs/ahab/screenshots/week-6/pr-59-1-pytest-80-passed.png)
 
 ### For PR #**60**
 
@@ -221,6 +225,14 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   ![1, python -m pytest on feat/channel-diameter-controls at 67be752, 76 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-60-1-pytest-76-passed.png)
 
   ![2, Ex1 in brachify, Applicator4 given 3.5 mm by Apply to Channel and kept after Channels Diameter 2.0](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-60-2-selected-channel-group.png)
+
+- Review follow-up for **Ariq's #60 comment**: **Use Channels Diameter now compares the
+  cleared width with an untouched channel, and inherits #59's model fix and config-import
+  regression**. The corrected comparison **failed before the model fix**. **79 tests pass on
+  macOS offscreen; anti-slop reports no findings; architecture and session-start checks exit
+  0**. The documentation set was reviewed; **§8.2 and this receipt changed**, and the diagrams
+  still describe the same system. **Native viewport and Windows were not rerun**; the two
+  screenshots remain the original receipts.
 
 ### For PR #**62**
 
@@ -307,6 +319,14 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
   ![1, python -m pytest on feat/channel-status-colours at 85e4f99, 80 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-62-1-pytest-80-passed.png)
+
+- Review follow-up for **Ariq's #62 comments**: **the cleared row tooltip matches an
+  untouched channel, and the tandem test uses a fresh window so shared tandem and disabled
+  state cannot leak**. The corrected tooltip comparison **failed before #59's model fix**.
+  **83 tests pass on macOS offscreen; anti-slop reports no findings; architecture and
+  session-start checks exit 0**. The documentation set was reviewed; **§8.2 and this receipt
+  changed**, and the diagrams still describe the same system. **Native viewport and Windows
+  were not rerun**; screenshot 1 remains the original 80-test receipt.
 
 ### For PR #**61**
 
