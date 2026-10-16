@@ -85,13 +85,14 @@ class ChannelsModel(QObject):
     def set_channel_diameter(self, label: str, diameter: float) -> None:
         if not isfinite(diameter) or diameter < MINIMUM_CHANNEL_DIAMETER_MM:
             raise ValueError(f"{label} needs a diameter of at least {MINIMUM_CHANNEL_DIAMETER_MM} mm, not {diameter}")
+        channel = self.channels[label]
         self.own_diameters[label] = diameter
-        self.channels[label].set_diameter(diameter)
+        channel.set_diameter(diameter)
         self.update()
 
     def clear_channel_diameter(self, label: str) -> None:
         self.own_diameters.pop(label, None)
-        self.channels[label].set_diameter(self.diameter)
+        self.channels[label].set_diameter(NeedleChannel.default_diameter())
         self.update()
 
     def has_own_diameter(self, label: str) -> bool:

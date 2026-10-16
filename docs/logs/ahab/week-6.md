@@ -157,3 +157,12 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
   ![1, python -m pytest on feat/channel-own-diameter at 632b389, 70 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5f297c8dafd3c13319dc0683b835927fd7eaefc2/docs/logs/ahab/screenshots/week-6/pr-59-1-pytest-70-passed.png)
+
+- Review follow-up for **Ariq's #59 comments**: **clearing uses the live config default,
+  unknown or unselected labels cannot leave phantom overrides, and shared test state is
+  restored**. The new config-import and invalid-label cases **failed before the fix and
+  under deliberate reversions**. **73 tests pass on macOS offscreen; anti-slop reports no
+  findings; architecture and session-start checks exit 0**. The documentation set was reviewed;
+  the project reference, init-guide note and test-fixture documentation changed. The four
+  diagrams still describe the same ownership, signals and files. **Native viewport and Windows
+  were not rerun**; screenshot 1 remains the original 70-test receipt.

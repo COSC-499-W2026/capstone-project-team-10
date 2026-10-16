@@ -4245,7 +4245,7 @@ cylinder then failed with an error from OpenCASCADE.
 | `diameter` | every needle's hole width | 2.7 |
 | `threading_depth`, `threading_diamenter` | the threaded hole's depth and width. The second name is misspelled, and every use matches it | 5.0, 3.17 |
 
-> **Changed 2026-10-15.** `diameter` is no longer every needle's width. A needle can keep its own diameter (`own_diameters`), which Apply keeps. See source of truth §5.5.
+> **Changed 2026-10-15.** `diameter` is no longer every needle's width. A needle can keep its own diameter (`own_diameters`), which Apply keeps. Clearing uses the live config default, matching newly imported channels even when the model cache is stale. See source of truth §5.5 and §7.6.
 
 #### Loading the plan
 
