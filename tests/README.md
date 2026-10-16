@@ -43,9 +43,10 @@ tests/
 │   ├── test_data.py
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
-├── mesh/                  exists: the notch and the solid cylinder, through OpenCASCADE
+├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
 │   ├── test_cylinder.py
-│   └── test_notch.py
+│   ├── test_notch.py
+│   └── test_tandem.py
 ├── models/
 ├── pdf/                   exists: the reference sheet's interstitial lengths
 │   └── test_template_reference.py
