@@ -478,3 +478,47 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`python -m pytest` (87 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
 
   ![1, python -m pytest on this branch, the three length tests and 87 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b8cb81bfb64c0cfd1351dd1ebd6f8fea95ccc438/docs/logs/ariq/screenshots/week-6/pr-55-1-pytest-87-passed.png)
+
+### For PR #**56**
+
+- As part of requirement **FR-CN-07, include custom cylinders in the 3D export**, the user needs to do **generate a tandem in a flat-tipped cylinder and export a model whose tandem channel is open the whole way**.
+- Therefore, I implemented/generated code so that **the tandem channel is cut fully through a flat-tipped cylinder of any diameter**.
+
+#### Backend
+
+- The system uses **a `Tandem` that derives its outline from the cylinder's tip** because **the outline must contain the whole cylinder**. Benefits for using this pattern include **dome cylinders unchanged**. Possible risks include **an outline still too small**.
+  - To mitigate **a small outline**, we implemented **√(R² + (R + 1)²) − R + 1, and a 48-build probe found nothing trimmed**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **the tandem reads only the tip and the cylinder size**. This structure has high cohesion because **`tandem.py` owns the cut-out**. This design is scalable because **the outline follows any diameter**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-07 (tandem): `tests/mesh/test_tandem.py`, two tests**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated probe**, I noticed **counting the cut solid's shells could not see a blocked channel, because the tandem always opens at the base**. Therefore, I did **measure the cut-out trimmed inside the cylinder directly**.
+- The PR does not contain any temporary workaround because **the outline is computed from the cylinder, not a fixed larger number**.
+- The PR only contains small functions that are **12 lines (`height_offset`) and 7 to 22 (tests); `Tandem.__init__` (40) was long already and changes 1 line**.
+- I did **`anti_slop review` against #55's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/mesh/tandem.py`** because **the outline belongs to the tandem cut-out**.
+- This work belongs in **Tandem** in the DFD because **it shapes the tandem cut-out**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_flat_tip_keeps_all_of_the_tandem_cut_out_inside_the_cylinder` (89 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **the default dome cut-out kept at 3,875.268 mm³** and they passed.
+- I checked that these negative cases involving **the 10 mm outline kept for a flat tip (133.387 mm³ trimmed, failed)** failed as expected.
+- Among these tests, **both** are unit tests and integration tests are not required because **the cut-out builds without a window**.
+- These tests are included in the directory **`tests/mesh/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (89 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, test_tandem.py and 89 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7bfe2768bf89c5b4cc187b569baeec6620b961d0/docs/logs/ariq/screenshots/week-6/pr-56-1-pytest-89-passed.png)
+- Not applicable: **generated-test review (no problem found)**.
