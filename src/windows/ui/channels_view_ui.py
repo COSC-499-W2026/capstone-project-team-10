@@ -205,6 +205,13 @@ class Ui_Channels_View(object):
 
         self.verticalLayout.addWidget(self.listwidget_channels)
 
+        self.label_channel_status_legend = QLabel(self.scroll_channels_contents)
+        self.label_channel_status_legend.setObjectName(u"label_channel_status_legend")
+        self.label_channel_status_legend.setStyleSheet(u"color: rgb(0, 0, 0);")
+        self.label_channel_status_legend.setWordWrap(True)
+
+        self.verticalLayout.addWidget(self.label_channel_status_legend)
+
         self.verticalLayout_4 = QVBoxLayout()
         self.verticalLayout_4.setSpacing(0)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
@@ -357,6 +364,7 @@ class Ui_Channels_View(object):
         self.sb_threading_diameter.setSuffix(QCoreApplication.translate("Channels_View", u" mm", None))
         self.btn_apply_settings.setText(QCoreApplication.translate("Channels_View", u"Apply", None))
         self.label_5.setText(QCoreApplication.translate("Channels_View", u"Channels", None))
+        self.label_channel_status_legend.setText(QCoreApplication.translate("Channels_View", u"Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem.", None))
         self.btn_set_tandem.setText(QCoreApplication.translate("Channels_View", u"Set as Tandem", None))
         self.btn_enable.setText(QCoreApplication.translate("Channels_View", u"Disable", None))
         self.group_selected_channel.setTitle(QCoreApplication.translate("Channels_View", u"Selected Channel", None))

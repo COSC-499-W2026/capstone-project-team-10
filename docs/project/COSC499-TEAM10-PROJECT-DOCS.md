@@ -584,8 +584,9 @@ The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.
 were added on 2026-10-11. It is not yet connected to the GUI import path. On 2026-10-15,
 importing a plan stopped keeping channels disabled in the previous plan (§7.10), and
 `ChannelsModel` began keeping a channel's own diameter through the Channels tab's Apply
-(FR-CN-08, §5.5), set in the Channels tab's Selected Channel group (§5.6). That group also
-saves a channel's diameter as a named needle template and applies one (§5.2, §6.3).
+(FR-CN-08, §5.5), set in the Channels tab's Selected Channel group (§5.6). The Channels list
+shows each channel's status in colour (§5.6). That group also saves a channel's diameter as a
+named needle template and applies one (§5.2, §6.3).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -998,7 +999,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test) |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1095,6 +1096,7 @@ Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cas
 | `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
 | `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
 | `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
+| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours |
 | `le_template_name` | Template name (placeholder) | the name to save the Channel Diameter under |
 | `btn_save_template` | Save as Template | writes `~/brachify/needle_templates.json` |
 | `cb_needle_templates` | | every saved template, as `name  2.000 mm` |
@@ -1106,6 +1108,13 @@ squeezing its spin boxes when the window is too short for it. At the default 770
 the Selected Channel group is below the fold and the list shows about four rows. Without the
 scroll area, the group squeezed the four spin boxes above it to 9 px. *Verified* 2026-10-15
 offscreen, by a test and a render of the shown window.
+
+Each row of `listwidget_channels` shows its channel's `ChannelStatus`: own diameter is bold on
+amber, disabled is italic on grey, the tandem is bold italic on blue, and the rest are plain.
+Its tooltip names the status and the diameter it is cut at. `mark_channel_statuses` restyles
+every row on each `ChannelsModel.values_changed` and after `create_channels_list`, looking rows
+up by label. The selected row's highlight hides its colour but not its font. *Verified* by
+offscreen tests and a render.
 
 **Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
 
@@ -1768,7 +1777,7 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6). Or Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6). Or a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6). Or Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -1857,12 +1866,16 @@ python -m pytest
   test red: the window stays 770 × 472, and the four spin boxes were squeezed to 9 px. The
   height test was written for that, red at 9 px, and both went green with the scroll area. Five
   deliberate breaks of the wiring were each caught. *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 91 passed, with `tests/settings/test_needle_templates.py` added.
+- *Verified* 2026-10-15 on macOS: 80 passed, with four channel status tests added to
+  `test_channels_view.py`. All four failed before `ChannelStatus` existed. Four deliberate breaks
+  were each caught: own diameter ranked above disabled, no restyle on a model change, no italic,
+  and a two-decimal tooltip. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 95 passed, with `tests/settings/test_needle_templates.py` added.
   It failed to import before the module existed. Six deliberate breaks were each caught: no
   trimming, no duplicate check, no replace on save, a decode error returning an empty library,
   NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
   diagram named the module. *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 95 passed, with four needle template tests added to
+- *Verified* 2026-10-15 on macOS: 99 passed, with four needle template tests added to
   `test_channels_view.py`. All four failed before the view was wired. Four deliberate breaks were
   each caught: a template listed but not written, applied to the wrong channel, and a save or a
   load error escaping. *Not verified:* Windows.

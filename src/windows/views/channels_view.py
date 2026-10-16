@@ -1,9 +1,13 @@
-from PySide6.QtCore import QSignalBlocker
+from dataclasses import dataclass
+
+from PySide6.QtCore import QSignalBlocker, Qt
+from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import QWidget, QListWidgetItem, QMessageBox
 
 from classes.app import get_app
 from classes.info import USER_PATH
 from classes.logger import log
+from windows.models.channels_model import ChannelStatus
 from windows.models.shape_model import ShapeTypes
 from windows.ui import arrows_rc  # registers the :/arrows/ images used below
 from windows.ui.channels_view_ui import Ui_Channels_View
@@ -29,6 +33,30 @@ spin_box_arrows = """
 QDoubleSpinBox::up-arrow { image: url(:/arrows/spin_up.png); width: 7px; height: 7px; }
 QDoubleSpinBox::down-arrow { image: url(:/arrows/spin_down.png); width: 7px; height: 7px; }
 """
+
+
+@dataclass(frozen=True)
+class ChannelRowStyle:
+    """How a channel's list row shows its status. Each colour has its own bold and italic
+    pair, so colour is never the only cue."""
+    background: QBrush
+    bold: bool
+    italic: bool
+
+
+STATUS_ROW_STYLES = {
+    ChannelStatus.STANDARD: ChannelRowStyle(QBrush(), bold=False, italic=False),
+    ChannelStatus.OWN_DIAMETER: ChannelRowStyle(QBrush(QColor(255, 214, 153)), bold=True, italic=False),
+    ChannelStatus.DISABLED: ChannelRowStyle(QBrush(QColor(220, 220, 220)), bold=False, italic=True),
+    ChannelStatus.TANDEM: ChannelRowStyle(QBrush(QColor(204, 224, 255)), bold=True, italic=True),
+}
+
+
+def channel_status_text(status: ChannelStatus, diameter: float) -> str:
+    if status is ChannelStatus.TANDEM: return "Tandem channel, not cut as a needle"
+    if status is ChannelStatus.DISABLED: return "Disabled, not cut into the cylinder"
+    if status is ChannelStatus.OWN_DIAMETER: return f"Own diameter {diameter:.3f} mm"
+    return f"Channels diameter {diameter:.3f} mm"
 
 
 class ChannelsView(CustomView):
@@ -167,6 +195,20 @@ class ChannelsView(CustomView):
                selected_channel == channel.label:
                 self.ui.listwidget_channels.setCurrentRow(row)
         self.ui.listwidget_channels.blockSignals(False)
+        self.mark_channel_statuses()
+
+    def mark_channel_statuses(self) -> None:
+        lister = self.ui.listwidget_channels
+        for label, channel in self.channelsmodel.channels.items():
+            status = self.channelsmodel.channel_status(label)
+            style = STATUS_ROW_STYLES[status]
+            for item in lister.findItems(label, Qt.MatchFlag.MatchExactly):
+                font = item.font()
+                font.setBold(style.bold)
+                font.setItalic(style.italic)
+                item.setFont(font)
+                item.setBackground(style.background)
+                item.setToolTip(channel_status_text(status, channel.get_diameter()))
     
     def action_update_settings(self):
         log.debug(f"updating channels view")
@@ -206,6 +248,7 @@ class ChannelsView(CustomView):
 
         if is_tandem: self.ui.btn_set_tandem.setText("Clear Tandem")
         else: self.ui.btn_set_tandem.setText("Set as Tandem")
+        self.mark_channel_statuses()
 
     def on_close(self):
         log.debug(f"on close")
