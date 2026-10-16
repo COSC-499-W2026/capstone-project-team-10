@@ -18,8 +18,7 @@ the list shows its selection, to the spin box arrows, and so that a newly import
 with every channel enabled, none of which changes a diagram,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
-`classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
-`DicomData` at import by `load_structures` (still no structure list or 3D display).
+`classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto `DicomData` at import by `load_structures`, and a read-only Import-tab structure list from `structure_list` (still no hide/show, opacity, or 3D display).
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
