@@ -16,6 +16,7 @@ from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
 from classes.mesh.cylinder import BrachyCylinder, TipShape
+from classes.mesh.notch import NotchSettings
 from classes.mesh.tandem import Tandem
 from classes.app import get_app
 
@@ -386,6 +387,48 @@ def process_lengths_and_create_data(is_lengths, protrusion_lengths, label_list, 
     return needle_data
 
 
+def notch_outline(settings: NotchSettings, circle_radius: float) -> list[tuple[float, float]]:
+    """
+    The corners of the notch where it stands out of the circle, in the diagram's coordinates,
+    with Anterior at the top. Empty when the notch is off.
+    """
+    if not settings.enabled:
+        return []
+    half_width = settings.width / 2
+    outer = circle_radius + settings.depth
+    # turn clockwise from Anterior, the way the angle is measured on the sheet
+    angle = np.radians(settings.angle)
+    cos, sin = np.cos(angle), np.sin(angle)
+    return [(float(x * cos + y * sin), float(-x * sin + y * cos))
+            for x, y in ((-half_width, circle_radius), (half_width, circle_radius),
+                         (half_width, outer), (-half_width, outer))]
+
+
+def label_distance(circle_radius: float, settings: NotchSettings) -> float:
+    """How far from the centre Anterior and Posterior are written, so a notch never covers them."""
+    notch_room = settings.depth + 1.5 if settings.enabled else 0.0
+    return circle_radius + max(circle_radius / 10, notch_room)
+
+
+def cylinder_rows(cylinder: BrachyCylinder) -> list[list[str]]:
+    """The cylinder's settings for the reference sheet, label then value, in mm."""
+    notch = cylinder.notch_settings
+    notch_text = (f"At {notch.angle:.1f}°, {notch.width:.1f} mm wide, {notch.depth:.1f} mm deep, "
+                  f"{cylinder.notch.length:.1f} mm high") if notch.enabled else "Off"
+    config = get_app().values.config_values
+    thickness = float(config["CONFIG_BASE_THICKNESS"])
+    height = float(config["CONFIG_BASE_HEIGHT"])
+    has_collar = cylinder.expand_base and thickness > 0 and height > 0
+    collar_text = f"{thickness:.1f} mm thick, {height:.1f} mm high" if has_collar else "None"
+    return [
+        ["Diameter", f"{cylinder.diameter:.1f} mm"],
+        ["Length", f"{cylinder.length:.1f} mm"],
+        ["Tip", cylinder.tip.value],
+        ["Notch", notch_text],
+        ["Collar", collar_text],
+    ]
+
+
 def save_points_diagram(points: list,
                         number_list: list, 
                         circle_radius: float, 
@@ -414,7 +457,9 @@ def save_points_diagram(points: list,
     #area
     #limit refers to the 5cm distance around the perimater of the cylinder where needles are allowed
     limit = 50+circle_radius
-    plots_limit = circle_radius+2
+    notch_settings = app.window.cylindermodel.cylinder.notch_settings
+    # room for the labels outside the circle
+    plots_limit = max(circle_radius+2, label_distance(circle_radius, notch_settings)+1)
     min_x = 0
     min_y = 0
     max_x = 0
@@ -550,15 +595,10 @@ def save_points_diagram(points: list,
     # -------------------------------------------------------------------------------
 
 
-    # Add a filled grey rectangle at the top center of the big circle
-    notch = app.window.cylindermodel.cylinder.notch
-    tick_width = notch.width
-    tick_height = notch.height
-    tick_color = 'black'
-    # add the notch
-    rect = plt.Rectangle((-tick_width / 2, circle_radius-0.05), # location of bottom left corner
-                          tick_width, tick_height, color=tick_color, fill=False)
-    ax.add_artist(rect)
+    # add the notch where it stands out of the circle, if the cylinder has one
+    outline = notch_outline(notch_settings, circle_radius)
+    if outline:
+        ax.add_artist(plt.Polygon(outline, closed=True, color='black', fill=False))
 
     # Remove axis markers and numbering
     ax.set_xticks([])
@@ -568,12 +608,12 @@ def save_points_diagram(points: list,
 
     # add the words "Anterior" and "Posterior".
     # Anterior is the -y-axis, Posterior is the +y-axis.
-    # Position the words so that they are just outside the circle.
-    ax.text(0, +circle_radius + (circle_radius / 10), 
+    # Position the words just outside the circle, clear of the notch.
+    ax.text(0, +label_distance(circle_radius, notch_settings), 
         "Anterior", color='black', ha='center', va='center', 
         fontsize=14, weight='bold')  # Adjust fontsize and weight
 
-    ax.text(0, -circle_radius - (circle_radius / 10), 
+    ax.text(0, -label_distance(circle_radius, notch_settings), 
             "Posterior", color='black', ha='center', va='center', 
             fontsize=14, weight='bold')  # Adjust fontsize and weight
   
@@ -713,7 +753,13 @@ def generate_pdf(
     content.append(Paragraph(f"Patient ID: {patient_id}", left_style))
     content.append(
         Paragraph(f"Plan Label: {plan_label} <br/> <br/>", left_style))
-    content.append(Paragraph("<br/>", centered_style))
+    cylinder_table = Table(cylinder_rows(cylinder))
+    cylinder_table.setStyle(TableStyle([
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+    ]))
+    content.append(cylinder_table)
+    content.append(Spacer(1, 0.25*inch))
 
     # Add table with needle data
     # use only the channels that are inside the cylinder
