@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QDoubleSpinBox, QStyle
+    from PySide6.QtWidgets import QDoubleSpinBox, QPushButton, QStyle
 
     from windows.main_window import MainWindow
 
@@ -101,7 +103,7 @@ def test_channels_spin_box_arrows_are_black(channels_window: MainWindow) -> None
 
     ui = channels_window.navigationmodel.views[CHANNELS_TAB].ui
     spin_boxes = (ui.spinbox_diameter, ui.sb_needle_length, ui.sb_threading_dept,
-                  ui.sb_threading_diameter)
+                  ui.sb_threading_diameter, ui.sb_channel_diameter)
 
     arrows = (("up", QStyle.SubControl.SC_SpinBoxUp), ("down", QStyle.SubControl.SC_SpinBoxDown))
 
@@ -279,3 +281,155 @@ def test_loading_a_plan_clears_every_own_diameter(channels_window: MainWindow) -
 
     assert not model.has_own_diameter(REIMPORTED_CHANNEL)
     assert model.channels[REIMPORTED_CHANNEL].get_diameter() == get_app().values.config_values["CONFIG_CHANNELS_DIAMETER"]
+
+
+APPLIED_CHANNEL = "Applicator6"
+RESET_CHANNEL = "Applicator8"
+SHOWN_CHANNEL = "Applicator9"
+OTHER_SHOWN_CHANNEL = "Applicator10"
+
+
+def click(button: QPushButton) -> None:
+    """Click a button with the left mouse button, the way a clinician does.
+
+    A helper, not a test. QTest sends a real press and release, so the pressed signal and
+    every slot connected to it run. A disabled button ignores the click, so a test that clicks
+    a control the view left disabled fails on its assertions.
+    """
+    QTest.mouseClick(button, Qt.MouseButton.LeftButton)
+
+
+def select_channel(window: MainWindow, label: str) -> None:
+    """Make one channel the Channels list's current row, as clicking it would.
+
+    A helper, not a test. setCurrentRow emits currentItemChanged, the signal a mouse click
+    emits, so the view selects the channel in ChannelsModel. Fails with IndexError if the list
+    has no row with that label.
+    """
+    channel_list = window.navigationmodel.views[CHANNELS_TAB].ui.listwidget_channels
+    channel_list.setCurrentRow(channel_list.row(channel_list.findItems(label, Qt.MatchFlag.MatchExactly)[0]))
+
+
+def open_channels_tab_and_select(window: MainWindow, label: str) -> None:
+    """Open the Channels tab fresh, then select one channel in its list.
+
+    A helper, not a test. Leaving for the Cylinder tab first runs on_close and on_open, as a
+    clinician arriving at the tab would, so no earlier selection carries over.
+    """
+    from classes.app import get_app
+
+    get_app().signals.viewChanged.emit(CYLINDER_TAB)
+    get_app().signals.viewChanged.emit(CHANNELS_TAB)
+    select_channel(window, label)
+
+
+def test_apply_to_channel_changes_only_the_selected_channel(channels_window: MainWindow) -> None:
+    """Check that Apply to Channel gives the selected channel, and only it, the typed diameter.
+
+    Fails if Applicator6 is not rebuilt at 3.3 mm, or if Applicator13's diameter changes. A
+    clinician widening one needle's channel must not resize every other channel in the
+    cylinder. Applicator13 is compared with its own value from before the click, not with the
+    global diameter, because an earlier test in this module reloads the plan.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    untouched_before = model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter()
+    open_channels_tab_and_select(channels_window, APPLIED_CHANNEL)
+
+    view.ui.sb_channel_diameter.setValue(3.3)
+    click(view.ui.btn_apply_channel_diameter)
+
+    assert model.channels[APPLIED_CHANNEL].get_diameter() == 3.3
+    assert model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter() == untouched_before
+
+
+def test_selected_channel_controls_are_disabled_with_no_channel_selected(
+    channels_window: MainWindow,
+) -> None:
+    """Check that the Selected Channel group cannot be used until a channel is selected.
+
+    Arriving at the Channels tab selects nothing. Fails if the group is enabled then. With no
+    channel selected, Apply to Channel would have no channel to change, and the clinician could
+    not tell which needle the box refers to. This is FR-CN-02's interface test case.
+    """
+    from classes.app import get_app
+
+    get_app().signals.viewChanged.emit(CYLINDER_TAB)
+    get_app().signals.viewChanged.emit(CHANNELS_TAB)
+
+    assert not channels_window.navigationmodel.views[CHANNELS_TAB].ui.group_selected_channel.isEnabled()
+
+
+def test_use_channels_diameter_returns_the_selected_channel_to_the_global_diameter(
+    channels_window: MainWindow,
+) -> None:
+    """Check that Use Channels Diameter undoes a channel's own diameter, then disables itself.
+
+    Fails if Applicator8 keeps 3.4 mm, still reports an own diameter, or the button stays
+    enabled when there is nothing left to undo. This is the clinician's only way back to the
+    plan-wide width without re-importing the plan.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    open_channels_tab_and_select(channels_window, RESET_CHANNEL)
+    view.ui.sb_channel_diameter.setValue(3.4)
+    click(view.ui.btn_apply_channel_diameter)
+
+    click(view.ui.btn_clear_channel_diameter)
+
+    assert model.channels[RESET_CHANNEL].get_diameter() == model.diameter
+    assert not model.has_own_diameter(RESET_CHANNEL)
+    assert not view.ui.btn_clear_channel_diameter.isEnabled()
+
+
+def test_channel_diameter_box_stops_at_the_minimum(channels_window: MainWindow) -> None:
+    """Check that the Channel Diameter box will not hold less than 0.3 mm.
+
+    Fails if typing 0.1 mm leaves 0.1 in the box. The model rejects anything narrower, and a
+    narrower channel prints as a hole no needle passes through, so the box must stop the value
+    before Apply to Channel is pressed.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+
+    view.ui.sb_channel_diameter.setValue(0.1)
+
+    assert view.ui.sb_channel_diameter.value() == 0.3
+
+
+def test_selecting_a_channel_shows_its_current_diameter(channels_window: MainWindow) -> None:
+    """Check that the Channel Diameter box shows the diameter of whichever channel is selected.
+
+    Applicator9 is given 3.1 mm. Applicator10 is selected, 1.0 is typed into the box and never
+    applied, then Applicator9 is selected. Fails if the box did not first show Applicator10's
+    diameter, or does not then read 3.1. A box that kept a typed value across selections would
+    make the clinician think a channel had a width it does not have.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    model.set_channel_diameter(SHOWN_CHANNEL, 3.1)
+    open_channels_tab_and_select(channels_window, OTHER_SHOWN_CHANNEL)
+    shown_for_other = view.ui.sb_channel_diameter.value()
+    view.ui.sb_channel_diameter.setValue(1.0)
+
+    select_channel(channels_window, SHOWN_CHANNEL)
+
+    assert shown_for_other == model.channels[OTHER_SHOWN_CHANNEL].get_diameter()
+    assert view.ui.sb_channel_diameter.value() == 3.1
+
+
+def test_channels_settings_keep_their_height_in_the_default_window(channels_window: MainWindow) -> None:
+    """Check that the Channels spin boxes keep their full height in brachify's default window.
+
+    channels_window is 770 by 472, the size main_window.ui opens at. The Channels tab is opened
+    fresh and a channel selected. Fails if any of the four Channels spin boxes is shorter than
+    20 px, the least that still shows its value. They are 21 px when the tab fits. Each control
+    added under the list makes the tab taller, and once it no longer fits, Qt squeezes the spin
+    boxes to 9 px, so the clinician cannot read or set the channel diameter, dead space or
+    threading.
+    """
+    ui = channels_window.navigationmodel.views[CHANNELS_TAB].ui
+    open_channels_tab_and_select(channels_window, APPLIED_CHANNEL)
+
+    for spin_box in (ui.spinbox_diameter, ui.sb_needle_length, ui.sb_threading_dept, ui.sb_threading_diameter):
+        spin_box.grab()
+        assert spin_box.height() >= 20, spin_box.objectName()
