@@ -325,6 +325,122 @@ color: rgb(0, 0, 0);</string>
        </property>
       </widget>
      </item>
+     <item row="6" column="0">
+      <widget class="QLabel" name="label_add_notch">
+       <property name="styleSheet"><string notr="true">background-color: rgb(240, 245, 250);
+color: rgb(0, 0, 0);</string></property>
+       <property name="text"><string>Add Notch</string></property>
+       <property name="buddy"><cstring>cb_add_notch</cstring></property>
+      </widget>
+     </item>
+     <item row="6" column="1">
+      <widget class="QCheckBox" name="cb_add_notch">
+       <property name="layoutDirection"><enum>Qt::RightToLeft</enum></property>
+       <property name="styleSheet"><string notr="true">QCheckBox {
+    background-color: rgb(240, 245, 250);
+}
+</string></property>
+       <property name="text"><string/></property>
+       <property name="checked"><bool>true</bool></property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="label_notch_angle">
+       <property name="styleSheet"><string notr="true">background-color: rgb(240, 245, 250);
+color: rgb(0, 0, 0);</string></property>
+       <property name="text"><string>Notch Angle</string></property>
+       <property name="buddy"><cstring>spinbox_notch_angle</cstring></property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QDoubleSpinBox" name="spinbox_notch_angle">
+       <property name="styleSheet"><string notr="true">background-color: rgb(255, 255, 255);
+color: rgb(0, 0, 0);</string></property>
+       <property name="decimals"><number>1</number></property>
+       <property name="minimum"><double>0.0</double></property>
+       <property name="maximum"><double>359.9</double></property>
+       <property name="singleStep"><double>1.0</double></property>
+       <property name="value"><double>0.0</double></property>
+       <property name="suffix"><string>°</string></property>
+       <property name="wrapping"><bool>true</bool></property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QLabel" name="label_notch_width">
+       <property name="styleSheet"><string notr="true">background-color: rgb(240, 245, 250);
+color: rgb(0, 0, 0);</string></property>
+       <property name="text"><string>Notch Width</string></property>
+       <property name="buddy"><cstring>spinbox_notch_width</cstring></property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QDoubleSpinBox" name="spinbox_notch_width">
+       <property name="styleSheet"><string notr="true">background-color: rgb(255, 255, 255);
+color: rgb(0, 0, 0);</string></property>
+       <property name="decimals"><number>1</number></property>
+       <property name="minimum"><double>0.5</double></property>
+       <property name="maximum"><double>10.0</double></property>
+       <property name="singleStep"><double>0.1</double></property>
+       <property name="value"><double>2.0</double></property>
+       <property name="suffix"><string> mm</string></property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QLabel" name="label_notch_depth">
+       <property name="styleSheet"><string notr="true">background-color: rgb(240, 245, 250);
+color: rgb(0, 0, 0);</string></property>
+       <property name="text"><string>Notch Depth</string></property>
+       <property name="buddy"><cstring>spinbox_notch_depth</cstring></property>
+      </widget>
+     </item>
+     <item row="9" column="1">
+      <widget class="QDoubleSpinBox" name="spinbox_notch_depth">
+       <property name="styleSheet"><string notr="true">background-color: rgb(255, 255, 255);
+color: rgb(0, 0, 0);</string></property>
+       <property name="decimals"><number>1</number></property>
+       <property name="minimum"><double>0.5</double></property>
+       <property name="maximum"><double>5.0</double></property>
+       <property name="singleStep"><double>0.1</double></property>
+       <property name="value"><double>1.8</double></property>
+       <property name="suffix"><string> mm</string></property>
+      </widget>
+     </item>
+     <item row="10" column="0">
+      <widget class="QLabel" name="label_notch_height">
+       <property name="styleSheet"><string notr="true">background-color: rgb(240, 245, 250);
+color: rgb(0, 0, 0);</string></property>
+       <property name="text"><string>Notch Height</string></property>
+       <property name="buddy"><cstring>spinbox_notch_height</cstring></property>
+      </widget>
+     </item>
+     <item row="10" column="1">
+      <widget class="QDoubleSpinBox" name="spinbox_notch_height">
+       <property name="styleSheet"><string notr="true">background-color: rgb(255, 255, 255);
+color: rgb(0, 0, 0);</string></property>
+       <property name="decimals"><number>0</number></property>
+       <property name="minimum"><double>1.0</double></property>
+       <property name="maximum"><double>60.0</double></property>
+       <property name="singleStep"><double>1.0</double></property>
+       <property name="value"><double>10.0</double></property>
+       <property name="suffix"><string> mm</string></property>
+      </widget>
+     </item>
+     <item row="11" column="0">
+      <widget class="QLabel" name="label_tip">
+       <property name="styleSheet"><string notr="true">background-color: rgb(240, 245, 250);
+color: rgb(0, 0, 0);</string></property>
+       <property name="text"><string>Tip Shape</string></property>
+       <property name="buddy"><cstring>combobox_tip</cstring></property>
+      </widget>
+     </item>
+     <item row="11" column="1">
+      <widget class="QComboBox" name="combobox_tip">
+       <property name="styleSheet"><string notr="true">background-color: rgb(255, 255, 255);
+color: rgb(0, 0, 0);</string></property>
+       <item><property name="text"><string>Dome</string></property></item>
+       <item><property name="text"><string>Flat</string></property></item>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
