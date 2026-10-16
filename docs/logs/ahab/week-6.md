@@ -65,7 +65,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving
-  **`test_loading_a_plan_enables_every_channel_again` (65 passed)** passed.
+  **`test_loading_a_plan_enables_every_channel_again` (68 passed)** passed.
 - I checked that these negative cases involving **the test on `main` and with the fix removed
   (`assert not True`)** failed as expected.
 - Among these tests, **none** are unit tests and **`test_loading_a_plan_enables_every_channel_again`**
