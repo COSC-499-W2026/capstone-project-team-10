@@ -120,6 +120,7 @@ def getCurrentValues():
     # the collar is read from the live settings, which Apply Settings writes
     base_thickness = app.values.config_values.get("CONFIG_BASE_THICKNESS")
     base_height = app.values.config_values.get("CONFIG_BASE_HEIGHT")
+    notch = app.window.cylindermodel.cylinder.notch_settings
     # 2. channels data
     default_diameter = app.window.channelsmodel.diameter
     threading_depth = app.window.channelsmodel.threading_depth
@@ -150,6 +151,11 @@ def getCurrentValues():
         "CONFIG_CYLINDER_LENGTH": default_length,
         "CONFIG_BASE_THICKNESS": base_thickness,
         "CONFIG_BASE_HEIGHT": base_height,
+        "CONFIG_NOTCH_ENABLED": int(notch.enabled),
+        "CONFIG_NOTCH_ANGLE": notch.angle,
+        "CONFIG_NOTCH_WIDTH": notch.width,
+        "CONFIG_NOTCH_DEPTH": notch.depth,
+        "CONFIG_NOTCH_HEIGHT": notch.height,
         "CONFIG_CHANNELS_DIAMETER": default_diameter,
         "CONFIG_DEADSPACE": default_needle_length,
         "CONFIG_TANDEM_TIP_HEIGHT": tandem_length, # tandem_length may not actually be Tandem_Tip_Height_Default
