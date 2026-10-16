@@ -4,6 +4,7 @@ For loading default settings.
 
 from classes.info import USER_PATH
 import json
+from typing import TypeGuard
 from classes.logger import log
 import settings.defaults
 
@@ -60,11 +61,18 @@ def load_config_file(file_name: str, alternate_dict: dict, num_configs_loaded_su
 
 
 
+JsonValue = bool | int | float | str | list | dict | None
+
+
+def is_config_number(value: JsonValue) -> TypeGuard[int | float]:
+    # bool is excluded because Python treats True as the int 1.
+    return not isinstance(value, bool) and isinstance(value, (int, float))
+
+
 def checkValuesExist(config_values: dict, config_keys_loaded: list, alternate_dict: dict):
     # record which keys exist in the config file and which don't.
     for key in DEFAULT_CONFIG_VALUES:
-        if (key in config_values) and \
-              (isinstance(config_values.get(key), int) or isinstance(config_values.get(key), float)):
+        if (key in config_values) and is_config_number(config_values.get(key)):
             # if the desired key is found in the pre-existing dict, then save that key name in a list.
             # also checks that the value is an int or float (ie a valid format).
             config_keys_loaded[0].append(key)
