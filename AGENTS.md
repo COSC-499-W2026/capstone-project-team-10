@@ -430,7 +430,7 @@ A channel labelled `"Central Axis"` is mandatory — it defines the cylinder axi
 
 `DEFAULT_CONFIG_VALUES` ([settings/defaults.py](src/settings/defaults.py)) is the schema: a flat `CONFIG_*` → number dict. Adding a setting touches four places — `defaults.py`, `settings/reset.py` (`resetAllValues` to push it into a spin box, `getCurrentValues` to read it back), and the owning view's `__init__`.
 
-Config loading is lenient by design: `load_config_file` keeps any key that is present and numeric, falls back to defaults/previous values for the rest, and reports both lists through `config_keys_loaded` so `createConfigMessageText` can tell the user exactly what was and was not loaded. Unknown keys in a user's JSON are preserved but ignored.
+Config loading is lenient by design: `load_config_file` keeps any key that is present and numeric (`true` and `false` are rejected, since Python treats `True` as 1), falls back to defaults/previous values for the rest, and reports both lists through `config_keys_loaded` so `createConfigMessageText` can tell the user exactly what was and was not loaded. Unknown keys in a user's JSON are preserved but ignored.
 
 ### Qt UI files
 
