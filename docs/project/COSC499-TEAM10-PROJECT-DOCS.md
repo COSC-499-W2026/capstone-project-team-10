@@ -775,7 +775,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     │   ├── info.py            APP_NAME, paths
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
-    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (standalone ROI reader)
+    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
     ├── settings/              defaults.py, load.py, values.py, reset.py
@@ -859,10 +859,12 @@ point-count mismatches, nonfinite coordinates, and mixed XOR/non-XOR contours th
 `StructureReadError`. A failure returns no partial result and does not mutate the input.
 Multiple observation records for one ROI are currently rejected as ambiguous.
 
-No file discovery, coordinate transformation, frame matching, polygon planarity or
-self-intersection validation, surface reconstruction, display controls or GUI wiring is
-implemented here. The existing vendor readers still operate independently. Example after
-`pydicom.dcmread` has loaded an RTSTRUCT:
+No coordinate transformation, frame matching, polygon planarity or self-intersection
+validation, surface reconstruction, display controls or structure-list GUI is implemented
+here. As of 2026-10-15, both vendor readers call
+[`load_structures`](../../src/classes/dicom/load_structures.py) after reading the RTSTRUCT, so
+`DicomData.structures` holds the decode result (or `None` on `StructureReadError`). Example
+after `pydicom.dcmread` has loaded an RTSTRUCT:
 
 ```python
 from classes.dicom.structures import read_structures
@@ -873,8 +875,9 @@ structures = read_structures(rs_dataset)
 152 contours each. This is a headless reader check, not a GUI or clinical validation.
 Synthetic tests are in `tests/dicom/test_structures.py`; Nucletron data remains unverified.
 
-**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of ~20
-fields. There is a comment in the file stating the rule explicitly: **any field added to
+**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of ~21
+fields, including `structures` (a `tuple[Structure, ...]` from `read_structures`, or `None`).
+There is a comment in the file stating the rule explicitly: **any field added to
 `__init__` must also be added to `reset()`**. Keep the rule, but know how narrow the leak is:
 every import builds a **new** `DicomData`, so a field missing from `reset()` only survives an
 import that fails partway and leaves the old object in place (*Reasoned from code*; see [10.4 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#104-datapy-the-form-brachify-fills-in)).
@@ -884,7 +887,11 @@ field in `__init__` is missing from `reset()`.
 
 **[`dicom/fileio.py`](../../src/classes/dicom/fileio.py)** — the vendor readers. `read_dicom_folder()`
 globs `**/*.dcm`, takes the **first** file that parses as RTPLAN and the **first** that parses
-as RTSTRUCT, then branches on `rp_dataset.Manufacturer`:
+as RTSTRUCT, then branches on `rp_dataset.Manufacturer`. After each branch reads the RTSTRUCT,
+it calls [`load_structures`](../../src/classes/dicom/load_structures.py), which fills
+`data.structures` via `read_structures`, or sets it to `None` on `StructureReadError` without
+aborting needle or cylinder loading (*Reasoned from code*; guarded by
+[tests/dicom/test_load_structures.py](../../tests/dicom/test_load_structures.py)):
 
 | Manufacturer string | Reader |
 |---|---|
@@ -1817,6 +1824,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
+| `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
@@ -1884,6 +1892,11 @@ python -m pytest
   including the two `DicomData` tests. `data.py` imports nothing, so they need no conda
   package. The `reset()` test failed naming `central_axis_flag` before the fix, and naming
   `operator` when that line was removed from `reset()` on purpose.
+- *Verified* 2026-10-15 on Windows, with only `pydicom` in a throwaway venv (not the conda
+  app env): `tests/dicom/test_data.py` and `test_load_structures.py` passed 4 of 4. Both
+  `load_structures` cases failed when the attach was broken on purpose (empty tuple, and
+  leaving a previous value on `StructureReadError`). Loading Ex1's RTSTRUCT through
+  `load_structures` produced 42 structures, matching §5.3.
 - *Verified* 2026-10-10 on macOS: 25 passed, with `windows/test_main_window.py` added. Its five
   tests were written before the fix. Three were red on `main`, and the other two, which
   describe behaviour the fix must keep, went red once Export was disabled and before it was
