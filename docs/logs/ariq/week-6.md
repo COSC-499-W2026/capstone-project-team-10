@@ -522,3 +522,53 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, python -m pytest on this branch, test_tandem.py and 89 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7bfe2768bf89c5b4cc187b569baeec6620b961d0/docs/logs/ariq/screenshots/week-6/pr-56-1-pytest-89-passed.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**57**
+
+- As part of requirement **FR-CN-14 (Milestone 2), set tip shape on the cylinder form**, the user needs to do **choose Dome or Flat under Tip Shape on the Cylinder tab and press Apply Settings**.
+- Therefore, I implemented/generated code so that **physicists choose the tip on the Cylinder tab and see it in the viewport**.
+
+#### Backend
+
+- The system uses **the view decoding its dropdown into a `TipShape`** because **the geometry takes a named tip, not text**. Benefits for using this pattern include **the dropdown's items are the enum's values**. Possible risks include **a renamed item**.
+  - To mitigate **a renamed item**, we implemented **`TipShape(currentText())`, which raises on an unknown name**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **the view hands the cylinder a `TipShape`**. This structure has high cohesion because **`CylinderView` owns every Cylinder control**. This design is scalable because **another tip is one enum value and one dropdown item**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-14 (tip): two tests in `test_cylinder_view.py`**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6 and Qt Designer `.ui` files** with design components for **the Cylinder tab's label and control rows**. Therefore, changing the design of **a row's stylesheet** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the selection comes from the model through `set_tip`**.
+- The frontend adopts accessibility principle **labels named by the control they describe, per the repository's UI copy rule**. The aspects that demonstrate this principle in the system include **Tip Shape, a label buddy of its dropdown (screenshot 1)**.
+- Not applicable: **data caching (no new data store), traceability matrix (in Backend), restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated view methods** for this functionality, I noticed **`tip_shape()` and `set_tip_shape()` drew anti-slop's naming warning**. Therefore, I did **rename them `selected_tip` and `set_tip`**.
+- The PR does not contain any temporary workaround because **the tip goes through the same Apply and config path as the notch**.
+- The PR only contains small functions that are **3 lines (`selected_tip`, `set_tip`) and 14 to 15 (tests); `action_apply_settings` (44), `__init__` (34) and `resetAllValues` (110) were long already and gain 1, 1 and 3 lines**.
+- I did **`anti_slop review` against #56's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/cylinder_view.py` and `src/windows/ui/cylinder_view.ui`** because **the Cylinder view owns its controls**.
+- This work belongs in **Cylinder** in the DFD because **it is the Cylinder tab's input**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_apply_builds_the_tip_chosen_on_the_cylinder_tab` (91 passed), and the app on macOS with Ex1 and Flat applied (screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a config with a flat tip loaded while Dome is shown (`test_config_import_selects_the_tip`)** and they passed.
+- I checked that these negative cases involving **the code before the control (2 failed, `AttributeError`) and the tip line removed from `resetAllValues` (1 failed)** failed as expected.
+- Among these tests, **none** are unit tests and **both** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (91 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, brachify on this branch with Ex1 imported, Cylinder tab, Tip Shape Flat applied and the flat top in the viewport](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/4461c309fffd9fe252bd28ec69013788cf87d1ba/docs/logs/ariq/screenshots/week-6/pr-57-1-cylinder-tab-flat-tip.png)
+- Not applicable: **generated-test review (no problem found)**.

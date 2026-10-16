@@ -306,3 +306,36 @@ def test_config_import_fills_the_notch_controls(cylinder_window: MainWindow) -> 
     assert view.ui.spinbox_notch_angle.value() == 45.0
     assert [view.notch_width_field.millimetres, view.notch_depth_field.millimetres,
             view.notch_height_field.millimetres] == [3.0, 2.0, 15.0]
+
+
+def test_apply_builds_the_tip_chosen_on_the_cylinder_tab(cylinder_window: MainWindow) -> None:
+    """Choose Flat under Tip Shape, press Apply, and check the cylinder and the live settings are flat.
+
+    Fails if the choice is not read or not written to the setting the cylinder is built from,
+    so the printed tip would be a dome when the clinician chose flat.
+    """
+    from classes.app import get_app
+    from classes.mesh.cylinder import TipShape
+
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.combobox_tip.setCurrentText("Flat")
+    view.action_apply_settings()
+    assert cylinder_window.cylindermodel.cylinder.tip is TipShape.FLAT
+    assert get_app().values.config_values["CONFIG_CYLINDER_FLAT_TIP"] == 1
+
+
+def test_config_import_selects_the_tip(cylinder_window: MainWindow) -> None:
+    """Load a config with a flat tip and check Tip Shape shows Flat, starting from Dome.
+
+    Fails if resetAllValues() leaves Tip Shape alone. The next Apply reads it, so a flat tip
+    loaded from a file would be built as a dome.
+    """
+    from classes.app import get_app
+    from settings.reset import resetAllValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    assert view.ui.combobox_tip.currentText() == "Dome"
+    config = get_app().values.config_values.copy()
+    config["CONFIG_CYLINDER_FLAT_TIP"] = 1
+    resetAllValues(config)
+    assert view.ui.combobox_tip.currentText() == "Flat"

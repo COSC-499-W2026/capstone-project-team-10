@@ -10,7 +10,8 @@ suffixes, steps and limits.
 
 Since 2026-10-15 the tab also has *Add Notch*, which greys out the notch fields when unticked,
 and *Notch Angle* in degrees clockwise from Anterior as the reference sheet draws it. The
-labels follow the UI copy rule, with no colon or dash. The notch controls sit below Units.
+labels follow the UI copy rule, with no colon or dash. The notch controls sit below Units, and
+*Tip Shape*, a Dome or Flat dropdown that Units does not affect, sits below them.
 *Verified* by offscreen widget tests; no mock was drawn for them.
 Apply, DICOM import and config files retain mm internally. The choice is not saved.
 *Verified* by offscreen widget tests and Ahab's supplied cm screenshot. The image was

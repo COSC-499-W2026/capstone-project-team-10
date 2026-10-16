@@ -1071,9 +1071,12 @@ Complete control inventory, extracted from the `.ui` sources:
 | `spinbox_notch_width` | Notch Width | 0.5–10 mm or 0.05–1 cm |
 | `spinbox_notch_depth` | Notch Depth | 0.5–5 mm or 0.05–0.5 cm |
 | `spinbox_notch_height` | Notch Height | 1–60 mm or 0.1–6 cm |
+| `combobox_tip` | Tip Shape | Dome or Flat, the `TipShape` values. Not affected by Units |
 | `btn_apply_settings` | Apply Settings | |
 
 The notch ranges are Team 10's choice, added 2026-10-15. No clinical document sets them.
+*Tip Shape* was added the same day, below the notch rows. `set_tip` fills it from the model or a
+config, and Apply writes `CONFIG_CYLINDER_FLAT_TIP`.
 
 **[`windows/length_field.py`](../../src/windows/length_field.py)** — `LengthUnit` names mm
 and cm; each `LengthField` owns one `QDoubleSpinBox` and an exact mm value. User edits
@@ -1242,7 +1245,7 @@ The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 |---|---|---|---|
 | `CONFIG_CYLINDER_DIAMETER` | 30.0 | cylinder outer diameter | yes |
 | `CONFIG_CYLINDER_LENGTH` | 160.0 | cylinder length | yes |
-| `CONFIG_CYLINDER_FLAT_TIP` | 0 | 1 for a flat tip, 0 for the half-sphere dome (§5.4) | exported, and read on the next build. No Cylinder tab control yet |
+| `CONFIG_CYLINDER_FLAT_TIP` | 0 | 1 for a flat tip, 0 for the half-sphere dome (§5.4) | yes. Apply writes it, a config import fills *Tip Shape* |
 | `CONFIG_CHANNELS_DIAMETER` | 2.7 | needle channel diameter (all channels) | yes |
 | `CONFIG_DEADSPACE` | 6.0 | needle dead space at the tip | yes |
 | `CONFIG_CHANNELS_THREADING_DEPTH` | 5.0 | channel threading depth; 0 disables | yes |
@@ -1804,7 +1807,7 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
-| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import (§5.6) |
+| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
@@ -1902,6 +1905,9 @@ python -m pytest
   `tests/mesh/conftest.py` reuses the one QApplication, like the other fixtures. It moved the
   same day to [tests/conftest.py](../../tests/conftest.py) as `geometry_app`, when
   `tests/pdf/` needed it too. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 91 passed, with two *Tip Shape* tests added to
+  `test_cylinder_view.py`. Both failed before the control existed, and removing the tip line
+  from `resetAllValues()` failed the config import test. *Not verified:* Windows.
 - *Verified* 2026-10-15 on macOS: 89 passed, with `mesh/test_tandem.py` added. The dome
   cut-out's literal, 3,875.268 mm³, was measured before the fix. The flat-tip test failed at
   133.387 mm³ before it, and again when the outline was kept at 10 mm. *Not verified:* Windows.

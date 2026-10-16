@@ -24,6 +24,9 @@ def resetAllValues(values_dict: dict):
     cylinder_view.base_thickness_field.set_millimetres(values_dict.get("CONFIG_BASE_THICKNESS"))
     cylinder_view.base_height_field.set_millimetres(values_dict.get("CONFIG_BASE_HEIGHT"))
     cylinder_view.set_notch_settings(notch_settings_from_config(values_dict))
+    # imported here because classes.mesh.cylinder reads get_app() when it is imported
+    from classes.mesh.cylinder import tip_shape_from_config
+    cylinder_view.set_tip(tip_shape_from_config(values_dict))
     # if a DICOM file has already been imported, then apply the settings to update the views and models.
     if app.window.cylindermodel.cylinder is not None:
         app.window.navigationmodel.views[1].action_apply_settings() # apply the above settings
