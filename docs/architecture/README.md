@@ -13,8 +13,9 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 ## Already built
 
 This is the upstream app plus Team 10's changes to `src/`, listed under
-[What Team 10 has added](#what-team-10-has-added). They are two Channels tab fixes, to how
-the list shows its selection and to the spin box arrows, neither of which changes a diagram,
+[What Team 10 has added](#what-team-10-has-added). They are three Channels tab fixes, to how
+the list shows its selection, to the spin box arrows, and so that a newly imported plan starts
+with every channel enabled, none of which changes a diagram,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder not yet called by the GUI.
@@ -119,7 +120,7 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Mostly course scaffolding. The changes to application behaviour are two Channels view fixes,
+Mostly course scaffolding. The changes to application behaviour are three Channels view fixes,
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
 A standalone RTSTRUCT reader decodes anatomy for future visualization.
 
@@ -135,6 +136,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | `DicomData` reset tests and the standalone RTSTRUCT reader with tests in `tests/dicom/` | Structure rendering and GUI integration |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
+| A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 
 ## Known gaps in the existing code

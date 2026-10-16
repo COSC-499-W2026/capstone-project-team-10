@@ -44,6 +44,7 @@ class ChannelsModel(QObject):
     def load_data(self, data: DicomData):
         self.selected_channels = []
         self.channels = {}
+        self.disabled_channels = []
         log.debug("### Importing RP Data ###")
 
         for i in range(len(data.channels_rois)):

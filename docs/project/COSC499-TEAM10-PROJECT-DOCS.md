@@ -581,7 +581,8 @@ scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. The first
 on 2026-10-10, keep the Export tab disabled until a cylinder exists (§7.6) and add the
 Cylinder tab's mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.3, §8)
-were added on 2026-10-11. It is not yet connected to the GUI import path.
+were added on 2026-10-11. It is not yet connected to the GUI import path. On 2026-10-15,
+importing a plan stopped keeping channels disabled in the previous plan (§7.10).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -980,7 +981,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set | the tandem channel is auto-disabled when set |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1644,6 +1645,20 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | LOW | spin box limits | **Changed 2026-10-10:** Cylinder length and collar now use `QDoubleSpinBox`, with whole mm or tenths of cm displayed. `LengthField` retains exact mm settings through display rounding (§5.6); finer user editing remains limited by display precision. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
 | MEDIUM | `checkValuesExist`, a JSON `true` or `false` | **Fixed 2026-10-11.** A setting written as `true` was reported loaded and used as 1, because Python treats `True` as the int 1, so a cylinder diameter of `true` became 1 mm with no warning. `is_config_number()` now rejects `bool`, so the default is used and the key is reported missing, guarded by `tests/settings/test_load.py`. Negative and zero values still load. See [13.5](COSC499-BRACHIFY-INIT-DOCS.md#135-loadpy-reading-a-settings-file) | *Verified*: the test failed with `assert True == 30.0` before the fix |
 
+### 7.10 HIGH — a channel disabled in one plan stayed disabled in the next
+
+**Fixed 2026-10-15 in PR #43.** `ChannelsModel.load_data` reset the selection and the channels
+but not `disabled_channels`. A channel disabled in one plan therefore stayed disabled in the next
+plan imported, if that plan had a channel with the same label. Ex1 and Ex2 both label their
+needles `Applicator2` to `Applicator13`. The carried-over channel was not drawn, and was missing
+from `get_visible_channels()`, which the Export cut and the PDF both use, so the printed cylinder
+had no hole for a needle the plan contains, and nothing on screen said so. *Verified* 2026-10-15
+offscreen on macOS: with Applicator4 disabled in Ex1, importing Ex2 through the calls
+`ImportView` makes left Ex2's Applicator4 disabled, out of `get_visible_channels()` and out of
+`DisplayModel.shapes`. `load_data` now empties `disabled_channels` before building the channels,
+so only a plan's tandem channel starts disabled. `test_loading_a_plan_enables_every_channel_again`
+in `tests/views/test_channels_view.py` covers it.
+
 ---
 
 ## 8. Testing
@@ -1719,7 +1734,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
@@ -1798,6 +1813,10 @@ python -m pytest
   and `tests/views/` ignored, since `tests/views/` needs PySide6. The `true` test failed with
   `assert True == 30.0` before the fix and again when the `bool` check was removed on purpose.
   The partial-file test failed with `assert 0 == 1` when a file needed two keys to count.
+- *Verified* 2026-10-15 on macOS: 65 passed, with
+  `test_loading_a_plan_enables_every_channel_again` added to `test_channels_view.py`. It failed
+  with `assert not True` before the fix, and again when the fix line was removed on purpose.
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

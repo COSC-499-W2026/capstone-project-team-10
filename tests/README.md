@@ -138,8 +138,8 @@ builds a fresh window with default settings for each test. Neither calls
 disconnect their window from the application signals on teardown. No application module is
 mocked.
 
-`views/test_channels_view.py` checks that the Channels list's current item follows the
-selected channel, after leaving and reopening the tab and after a viewport pick.
+`views/test_channels_view.py` drives the Channels tab through the real window and models. §8.2
+of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes it fail.
 
 `views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
 widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and
