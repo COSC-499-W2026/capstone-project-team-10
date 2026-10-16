@@ -154,4 +154,6 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **all four** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (70
-  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+  passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/channel-own-diameter at 632b389, 70 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5f297c8dafd3c13319dc0683b835927fd7eaefc2/docs/logs/ahab/screenshots/week-6/pr-59-1-pytest-70-passed.png)
