@@ -1,3 +1,6 @@
+from collections.abc import Mapping
+from enum import Enum
+
 import numpy as np
 
 from OCC.Core.gp import gp_Pnt, gp_Dir, gp_Ax2
@@ -17,9 +20,20 @@ from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeCylinder, BRepPrimAPI_MakeTorus
 from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.helper import face_is_plane, geom_plane_from_face
-from classes.mesh.notch import CylinderNotch
+from classes.mesh.notch import CylinderNotch, notch_settings_from_config
 
 from classes.app import get_app
+
+
+class TipShape(Enum):
+    """The end of the cylinder that goes into the patient first. The value is the name the clinician sees."""
+    DOME = "Dome"
+    FLAT = "Flat"
+
+
+def tip_shape_from_config(config: Mapping[str, float]) -> TipShape:
+    """Read the tip from CONFIG_CYLINDER_FLAT_TIP, 1 for flat and 0 for a dome. A missing key raises KeyError."""
+    return TipShape.FLAT if config["CONFIG_CYLINDER_FLAT_TIP"] else TipShape.DOME
 
 
 class BrachyCylinder:
@@ -35,32 +49,9 @@ class BrachyCylinder:
         # cylinder references
         cylinder_axis = gp_Dir(0, 0, 1)
         cylinder_vector = gp_Ax2(gp_Pnt(0, 0, 0), cylinder_axis)
-        cylinder = BRepPrimAPI_MakeCylinder(cylinder_vector, self.diameter / 2, self.length)
-
-        # Our goal is to find the highest Z face and remove it
-        z_max = -300.0
-
-        # We have to work our way through all the faces to find the highest Z face so we can remove it for the shell
-        face_explorer = TopExp_Explorer(cylinder.Shape(), TopAbs_FACE)
-        while face_explorer.More():
-            face = topods.Face(face_explorer.Current())
-            if face_is_plane(face):
-                a_plane = geom_plane_from_face(face)
-
-                # We want the highest Z face, so compare this to the previous faces
-                a_pnt_loc = a_plane.Location()
-                z = a_pnt_loc.Z()
-                if z > z_max:
-                    z_max = z
-                    top_face = face
-            face_explorer.Next()
-
-        # applying fillet to whole cylinder
-        fillet = BRepFilletAPI_MakeFillet(cylinder.Shape())
-        for e in TopologyExplorer(top_face).edges():
-            fillet.Add(self.diameter / 2, e)
-        fillet.Build()
-        cylinder = fillet.Shape()
+        cylinder = BRepPrimAPI_MakeCylinder(cylinder_vector, self.diameter / 2, self.length).Shape()
+        if self.tip is TipShape.DOME:
+            cylinder = add_dome(cylinder, self.diameter / 2)
 
         base_height = float(get_app().values.config_values.get("CONFIG_BASE_HEIGHT", 0.0))
         base_thickness = float(get_app().values.config_values.get("CONFIG_BASE_THICKNESS", 0.0))
@@ -76,9 +67,10 @@ class BrachyCylinder:
             # notch should sit on top of the collar
             z_notch_offset = base_height
         notch_diameter = self.diameter + (2.0 * base_thickness) if self.expand_base and base_height > 0 and base_thickness > 0 else self.diameter
-        notch_length = min(10, base_height) if self.expand_base and base_height > 0 and base_thickness > 0 else 10
-        self.notch = CylinderNotch(notch_diameter, notch_length)
-        cylinder = add_notch(cylinder, self.notch, z_offset=z_notch_offset)
+        notch_length = min(self.notch_settings.height, base_height) if self.expand_base and base_height > 0 and base_thickness > 0 else self.notch_settings.height
+        self.notch = CylinderNotch(notch_diameter, self.notch_settings, notch_length)
+        if self.notch_settings.enabled:
+            cylinder = add_notch(cylinder, self.notch, z_offset=z_notch_offset)
 
         return cylinder
 
@@ -103,7 +95,9 @@ class BrachyCylinder:
         self.diameter = diameter
         self.expand_base = expand_base
         self._shape = None
-        self.notch = CylinderNotch(diameter)
+        self.notch_settings = notch_settings_from_config(get_app().values.config_values)
+        self.tip = tip_shape_from_config(get_app().values.config_values)
+        self.notch = CylinderNotch(diameter, self.notch_settings, self.notch_settings.height)
 
 
 def get_brachy_cylinder(data: DicomData) -> BrachyCylinder:
@@ -123,6 +117,33 @@ def get_brachy_cylinder(data: DicomData) -> BrachyCylinder:
         log.debug(f"No Cylinder surface contour, or error reading:\nDiameter set to default:"+str(diameter))
 
     return BrachyCylinder(diameter=diameter)
+
+def add_dome(solid: TopoDS_Shape, radius: float) -> TopoDS_Shape:
+    """Round the cylinder's top edge with the cylinder's own radius, which makes a half-sphere tip."""
+    # Our goal is to find the highest Z face and remove it
+    z_max = -300.0
+
+    # We have to work our way through all the faces to find the highest Z face so we can remove it for the shell
+    face_explorer = TopExp_Explorer(solid, TopAbs_FACE)
+    while face_explorer.More():
+        face = topods.Face(face_explorer.Current())
+        if face_is_plane(face):
+            a_plane = geom_plane_from_face(face)
+
+            # We want the highest Z face, so compare this to the previous faces
+            a_pnt_loc = a_plane.Location()
+            z = a_pnt_loc.Z()
+            if z > z_max:
+                z_max = z
+                top_face = face
+        face_explorer.Next()
+
+    # applying fillet to whole cylinder
+    fillet = BRepFilletAPI_MakeFillet(solid)
+    for e in TopologyExplorer(top_face).edges():
+        fillet.Add(radius, e)
+    fillet.Build()
+    return fillet.Shape()
 
 def add_base(shape: TopoDS_Solid, radius1: float, base_thickness: float, base_height: float):
     base_thickness = float(base_thickness)
