@@ -387,4 +387,6 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   **the module has no Qt or app dependency**.
 - These tests are included in the directory **`tests/settings/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (95
-  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+  passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/needle-template-library at 1f4c430, 95 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-61-1-pytest-95-passed.png)
