@@ -163,3 +163,109 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - The functionality works correctly because the happy path tests involving **brachify run on macOS in dark mode with Ex1 imported, from `main` (`b652641`, arrows invisible) and #32 (`8e12632`, arrows black), and `python -m pytest` at `8e12632` (64 passed), shown in #32's Part A** passed.
 - This new test PR did not break anything else in the system because **only this log and three PNGs changed (`git diff --name-only main...HEAD`), and `python -m pytest` (64 passed), `session-start.sh` and `build.py --check` (exit 0)**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
+
+### For PR #**49**
+
+- As part of requirement **FR-CN-13, save and restore all cylinder settings, collar included, through config files**, the user needs to do **set a collar and Apply, Export Current Settings as Config, later Import Config File, and see the collar boxes and the cylinder keep it, also after Generate Tandem**.
+- Therefore, I implemented/generated code so that **physicists get the collar exported and imported, and Generate Tandem keeps every live setting, in `reset.py` and `tandem_view.py`**.
+
+#### Data Modeling and Integrity
+
+- This data **the config snapshot** is modeled as **a flat `CONFIG_*` to number dict with all 19 default keys** because **`load_config_file` already accepts any numeric key**. We considered alternative models such as **a nested collar object, rejected because saved config files are flat**.
+- This data **the collar keys** uses the input validation to ensure it adheres to **the existing `checkValuesExist` rule: present and numeric, else the current value is kept**.
+- Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **Qt models and views, with `settings/reset.py` copying between the live settings and the tabs** because **config files and widgets must agree**. Benefits for using this pattern include **one place to add a setting**. Possible risks include **a key missed in one direction**.
+  - To mitigate **a missed key**, we implemented **`test_exported_config_names_every_setting`, which fails for any default key missing from the snapshot**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **the tabs reach settings only through `reset.py`**. This structure has high cohesion because **`reset.py` owns both directions of the round trip**. This design is scalable because **a new key needs one line per direction, and the guard test names a forgotten one**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-13: three tests in `test_cylinder_view.py`, one in `test_tandem_view.py`**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Frontend
+
+- The frontend uses **the shared live settings dict, merged rather than replaced on Generate Tandem** received from the backend because **a partial snapshot dropped the collar**. Benefits for using this pattern include **no tab can erase another tab's setting**. Possible risks include **a stale key surviving**.
+  - To mitigate **a stale key**, we implemented **a snapshot that names every default key, so merging overwrites each one**.
+- Not applicable: **restricted pages (no logins), design components, accessibility (no visible change), usability evaluation (none run), traceability matrix (in Backend), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated `getCurrentValues()` and `resetAllValues()` collar lines** for this functionality, I did not find any problems with it because **they read the live settings Apply writes, not unapplied box edits, and the three collar tests failed before them**.
+- The PR does not contain any temporary workaround because **it is §7.1's suggested fix: both keys in both directions, and a merge in place of the replace**.
+- The PR only contains small functions that are **13 to 19 lines (the four tests); `getCurrentValues` (60) and `resetAllValues` (106) were long already and gain 6 and 3 lines**.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/settings/reset.py`** because **it owns the config round trip**.
+- This work belongs in **Import and Export** in the DFD because **config files are read on Import and written on Export**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_exported_config_keeps_the_applied_collar`, `test_config_import_fills_the_collar_boxes` (68 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a setting the snapshot does not list surviving Generate Tandem (`test_generating_a_tandem_keeps_settings_the_snapshot_omits`)** and they passed.
+- I checked that these negative cases involving **the code before the fix: `KeyError: 'CONFIG_BASE_THICKNESS'`, collar boxes left at 0, the extra setting dropped (4 failed)** failed as expected.
+- Among these tests, **none** are unit tests and **all four** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (68 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, the four new tests and 68 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5c92a09d7318905f61b4b62f27dc8bc2617bf711/docs/logs/ariq/screenshots/week-6/pr-49-1-pytest-68-passed.png)
+- Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**50**
+
+- As part of requirement **FR-CN-15, set the notch's size and angle in addition to diameter, length and collar**, the user needs to do **choose where the orientation notch sits, clockwise from Anterior as the reference sheet shows it, and how wide, deep and tall it is**.
+- Therefore, I implemented/generated code so that **the geometry can build a notch of any size and angle from `NotchSettings`, with the defaults building today's notch exactly**.
+
+#### Data Modeling and Integrity
+
+- This data **the notch settings** is modeled as **`NotchSettings`, a frozen dataclass in mm and degrees** because **AGENTS.md asks to decode config into a named value at the boundary**. We considered alternative models such as **reading the config dict inside `CylinderNotch`, rejected as a bare dict passed inward**.
+- This data **the notch config keys** uses the input validation to ensure it adheres to **all five keys present, `KeyError` otherwise, never a guessed value**.
+- Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **a geometry module per concern under `classes/mesh/`** because **the notch is built independently of the cylinder**. Benefits for using this pattern include **testing the notch without a cylinder or window**. Possible risks include **the sheet and the geometry disagreeing on the angle**.
+  - To mitigate **an angle mismatch**, we implemented **one convention, clockwise from Anterior as the sheet draws it, converted once in `CylinderNotch`**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **`notch.py` imports only OpenCASCADE**. This structure has high cohesion because **`notch.py` only builds the notch**. This design is scalable because **a new notch setting is one dataclass field**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-15 (notch): `tests/mesh/test_notch.py`, six tests**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated notch rotation** for this functionality, I did not find any problems with it because **sheet angle 90 lands on +x in `test_a_quarter_turn_clockwise_on_the_sheet_moves_the_notch_to_plus_x`, and turning it the other way fails five tests**.
+- The PR does not contain any temporary workaround because **the defaults are measured to reproduce today's notch**.
+- The PR only contains small functions that are **7 to 9 lines (`notch.py`) and 9 to 19 lines (tests); `BrachyCylinder.shape` (53) was long already and changes 1 line**.
+- I did **`anti_slop review` against #49's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/mesh/notch.py`** because **it is the notch's module**.
+- This work belongs in **Cylinder** in the DFD because **the notch is part of the cylinder solid**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_default_settings_build_the_notch_brachify_always_made`, `test_a_quarter_turn_clockwise_on_the_sheet_moves_the_notch_to_plus_x` (74 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a config missing a notch key (`test_a_config_without_a_notch_key_is_rejected`)** and they passed.
+- I checked that these negative cases involving **the angle turned the wrong way (5 failed)** failed as expected.
+- Among these tests, **all six in `test_notch.py`** are unit tests and integration tests are not required because **the notch builds without the cylinder or a window**.
+- These tests are included in the directory **`tests/mesh/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (74 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, test_notch.py and 74 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ae3aff970db3dc3abea9eab23ec0e2351c37058e/docs/logs/ariq/screenshots/week-6/pr-50-1-pytest-74-passed.png)
+- Not applicable: **generated-test review (no problem found)**.
