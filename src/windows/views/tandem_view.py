@@ -56,7 +56,8 @@ class TandemView(CustomView):
         self.ui.tandem_rotation.setValue(rotation)
         self.ui.tandem_rotation_2.setValue(rotation)
         # update the config_values dict
-        get_app().values.config_values = getCurrentValues()
+        # merge, so a setting the snapshot does not list keeps its value
+        get_app().values.config_values.update(getCurrentValues())
 
 
     @display_action
