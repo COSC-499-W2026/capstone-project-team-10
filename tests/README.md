@@ -43,8 +43,10 @@ tests/
 │   ├── test_data.py
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
-├── mesh/
-│   └── test_helper.py
+├── mesh/                  exists: the notch and the solid cylinder, through OpenCASCADE
+│   ├── conftest.py        mesh_app, the one QApplication, and default_settings
+│   ├── test_cylinder.py
+│   └── test_notch.py
 ├── models/
 ├── pdf/
 ├── settings/              exists: config file loading
@@ -64,7 +66,7 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `settings/`, `dicom/test_data.py` and
+`tooling/`, `views/`, `windows/`, `mesh/`, `settings/`, `dicom/test_data.py` and
 `dicom/test_structures.py` exist. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
@@ -122,6 +124,11 @@ mocked. The pure functions below still have no tests.
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows.
 
+`mesh/test_notch.py` and `mesh/test_cylinder.py` build real solids and compare their bounding
+boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
+test a fresh copy of the defaults as the live settings. The literals for the default cylinder
+were measured on `main` before the notch settings existed, so the defaults are proven unchanged.
+
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
 
@@ -145,7 +152,9 @@ of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what 
 `views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
 and widgets. It covers the mm/cm selector across all four dimensions, precision, limits, Apply,
 configuration reset and Ex1 import with needle offsets, and the settings round trip: every
-default key is in the exported snapshot, and the collar is exported and loaded back.
+default key is in the exported snapshot, and the collar is exported and loaded back. The notch
+controls are applied, grey out when *Add Notch* is unticked, follow the units, and are filled
+by a config import.
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.

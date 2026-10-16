@@ -1,5 +1,6 @@
 
 from classes.app import get_app
+from classes.mesh.notch import notch_settings_from_config
 
 
 def resetAllValues(values_dict: dict):
@@ -22,6 +23,7 @@ def resetAllValues(values_dict: dict):
     cylinder_view.set_dimensions_mm(cylinder_diameter, cylinder_length)
     cylinder_view.base_thickness_field.set_millimetres(values_dict.get("CONFIG_BASE_THICKNESS"))
     cylinder_view.base_height_field.set_millimetres(values_dict.get("CONFIG_BASE_HEIGHT"))
+    cylinder_view.set_notch_settings(notch_settings_from_config(values_dict))
     # if a DICOM file has already been imported, then apply the settings to update the views and models.
     if app.window.cylindermodel.cylinder is not None:
         app.window.navigationmodel.views[1].action_apply_settings() # apply the above settings
@@ -120,6 +122,10 @@ def getCurrentValues():
     # the collar is read from the live settings, which Apply Settings writes
     base_thickness = app.values.config_values.get("CONFIG_BASE_THICKNESS")
     base_height = app.values.config_values.get("CONFIG_BASE_HEIGHT")
+    # imported here because classes.mesh.cylinder reads get_app() when it is imported
+    from classes.mesh.cylinder import TipShape
+    notch = app.window.cylindermodel.cylinder.notch_settings
+    flat_tip = int(app.window.cylindermodel.cylinder.tip is TipShape.FLAT)
     # 2. channels data
     default_diameter = app.window.channelsmodel.diameter
     threading_depth = app.window.channelsmodel.threading_depth
@@ -150,6 +156,12 @@ def getCurrentValues():
         "CONFIG_CYLINDER_LENGTH": default_length,
         "CONFIG_BASE_THICKNESS": base_thickness,
         "CONFIG_BASE_HEIGHT": base_height,
+        "CONFIG_CYLINDER_FLAT_TIP": flat_tip,
+        "CONFIG_NOTCH_ENABLED": int(notch.enabled),
+        "CONFIG_NOTCH_ANGLE": notch.angle,
+        "CONFIG_NOTCH_WIDTH": notch.width,
+        "CONFIG_NOTCH_DEPTH": notch.depth,
+        "CONFIG_NOTCH_HEIGHT": notch.height,
         "CONFIG_CHANNELS_DIAMETER": default_diameter,
         "CONFIG_DEADSPACE": default_needle_length,
         "CONFIG_TANDEM_TIP_HEIGHT": tandem_length, # tandem_length may not actually be Tandem_Tip_Height_Default
