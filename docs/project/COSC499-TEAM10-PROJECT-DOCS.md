@@ -586,7 +586,8 @@ importing a plan stopped keeping channels disabled in the previous plan (§7.10)
 settings began to round-trip through config files, and *Generate Tandem* stopped dropping
 settings (§7.1). `ChannelsModel` began keeping a channel's own
 diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is set in the Channels tab's Selected Channel group (§5.6). The Channels list
-shows each channel's status in colour (§5.6).
+shows each channel's status in colour (§5.6). That group also saves a channel's diameter as a
+named needle template and applies one (§5.2, §6.3).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -847,7 +848,8 @@ single mutable dict every other module reads), the two most-recent config file p
   `notch_settings`.
 
 **[`settings/needle_templates.py`](../../src/settings/needle_templates.py)** — the needle template
-library, not yet called from the GUI. A `NeedleTemplate` is a frozen dataclass of `name` and
+library. The Channels tab reads it when the window is built and writes it from *Save as Template*
+(§5.6). A `NeedleTemplate` is a frozen dataclass of `name` and
 `diameter_mm`. `make_template` trims the name and refuses an empty one, and refuses a diameter
 that is not finite or is below `MINIMUM_CHANNEL_DIAMETER_MM`. `load_templates(path)` decodes the
 JSON file into `NeedleTemplate` values at the boundary and returns all of them or none: a missing
@@ -1129,6 +1131,11 @@ Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cas
 | `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
 | `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
 | `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours |
+| `le_template_name` | Template name (placeholder) | the name to save the Channel Diameter under |
+| `btn_save_template` | Save as Template | writes `~/brachify/needle_templates.json` |
+| `cb_needle_templates` | | every saved template, as `name  2.000 mm` |
+| `btn_apply_template` | Apply Template | gives the selected channel the template's diameter. Disabled while no template is saved |
+| `label_template_status` | | why a save or load failed, or which template was saved |
 
 Every Channels control sits in a scroll area, `scroll_channels`, so the tab scrolls rather than
 squeezing its spin boxes when the window is too short for it. At the default 770 × 472 window
@@ -1336,7 +1343,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 |---|---|---|
 | `app.log` | `logger.py` | rotating, 25 MB × 3 backups |
 | `filepaths.json` | `MainWindow.closeEvent` | `most_recently_opened_config_file`, `most_recently_saved_config_file` |
-| `needle_templates.json` | `settings.needle_templates.save_template`, not yet called from the GUI | a JSON list of `{"name", "diameter_mm"}` objects |
+| `needle_templates.json` | `settings.needle_templates.save_template`, from the Channels tab's *Save as Template* | a JSON list of `{"name", "diameter_mm"}` objects |
 
 `most_recently_saved_config_file` is stored but never read — it is reserved for future use.
 
@@ -1864,7 +1871,7 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6). Or a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6). Or a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6). Or Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
@@ -2025,6 +2032,10 @@ python -m pytest
   trimming, no duplicate check, no replace on save, a decode error returning an empty library,
   NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
   diagram named the module. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 99 passed, with four needle template tests added to
+  `test_channels_view.py`. All four failed before the view was wired. Four deliberate breaks were
+  each caught: a template listed but not written, applied to the wrong channel, and a save or a
+  load error escaping. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
