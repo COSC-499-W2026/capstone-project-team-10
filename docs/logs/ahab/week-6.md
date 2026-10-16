@@ -457,5 +457,11 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **all four** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (99
-  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+  passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and brachify run on
+  macOS through its buttons, with Ex1 (screenshot 2)**.
+
+  ![1, python -m pytest on feat/needle-templates-on-channels-tab at 497d3d3, 99 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-63-1-pytest-99-passed.png)
+
+  ![2, Ex1 in brachify, Plastic 6F saved at 2.2 mm and applied to Applicator7](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-63-2-needle-templates.png)
+
 - Not applicable: **generated-test review (no problem found)**.
