@@ -1869,6 +1869,11 @@ python -m pytest
   `test_channels_view.py`. All four failed before `ChannelStatus` existed. Four deliberate breaks
   were each caught: own diameter ranked above disabled, no restyle on a model change, no italic,
   and a two-decimal tooltip. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS after Ariq's PR #62 review: 83 passed. A cleared channel
+  tooltip is compared with an untouched channel's tooltip, which failed before the #59 fix
+  was integrated. The tandem status test imports Ex1 into a fresh window, leaving the shared
+  fixture's tandem and disabled state untouched. Anti-slop, architecture and session-start
+  checks passed. Native viewport and Windows were not rerun.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

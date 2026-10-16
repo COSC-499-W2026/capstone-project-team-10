@@ -324,3 +324,11 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
   ![1, python -m pytest on feat/channel-status-colours at 85e4f99, 80 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-62-1-pytest-80-passed.png)
+
+- Review follow-up for **Ariq's #62 comments**: **the cleared row tooltip matches an
+  untouched channel, and the tandem test uses a fresh window so shared tandem and disabled
+  state cannot leak**. The corrected tooltip comparison **failed before #59's model fix**.
+  **83 tests pass on macOS offscreen; anti-slop reports no findings; architecture and
+  session-start checks exit 0**. The documentation set was reviewed; **§8.2 and this receipt
+  changed**, and the diagrams still describe the same system. **Native viewport and Windows
+  were not rerun**; screenshot 1 remains the original 80-test receipt.
