@@ -377,7 +377,7 @@ def test_use_channels_diameter_returns_the_selected_channel_to_the_global_diamet
 
     click(view.ui.btn_clear_channel_diameter)
 
-    assert model.channels[RESET_CHANNEL].get_diameter() == model.diameter
+    assert model.channels[RESET_CHANNEL].get_diameter() == model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter()
     assert not model.has_own_diameter(RESET_CHANNEL)
     assert not view.ui.btn_clear_channel_diameter.isEnabled()
 
@@ -491,7 +491,7 @@ def test_clearing_a_channels_own_diameter_removes_its_mark(channels_window: Main
 
     assert not cleared.font().bold()
     assert cleared.background() == reference.background()
-    assert cleared.toolTip() == f"Channels diameter {model.diameter:.3f} mm"
+    assert cleared.toolTip() == reference.toolTip()
 
 
 def test_a_disabled_channel_reads_disabled_and_stays_in_the_list(channels_window: MainWindow) -> None:
@@ -515,18 +515,25 @@ def test_a_disabled_channel_reads_disabled_and_stays_in_the_list(channels_window
     assert disabled.background() != channel_item(channels_window, MARKED_CHANNEL).background()
 
 
-def test_the_tandem_channel_reads_tandem_in_the_list(channels_window: MainWindow) -> None:
+def test_the_tandem_channel_reads_tandem_in_the_list(cylinder_window: MainWindow) -> None:
     """Check that the tandem channel reads as the tandem, not as merely disabled.
 
     Applicator12 is set as the tandem, which also disables it. Fails if its status is not
     TANDEM, or its row is not bold italic with the tandem tooltip. The tandem channel is not
     cut as a needle, but the clinician must be able to tell it from a needle they switched off.
+    A fresh window keeps tandem and disabled state out of the shared channel fixture.
     """
+    from pathlib import Path
+
+    from classes.dicom.fileio import read_dicom_folder
     from windows.models.channels_model import ChannelStatus
 
-    model = channels_window.channelsmodel
+    plan = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
+    cylinder_window.dicommodel.update(read_dicom_folder(str(plan)))
+    cylinder_window.navigationmodel.views[CHANNELS_TAB].create_channels_list()
+    model = cylinder_window.channelsmodel
     model.set_tandem(TANDEM_CHANNEL)
-    tandem = channel_item(channels_window, TANDEM_CHANNEL)
+    tandem = channel_item(cylinder_window, TANDEM_CHANNEL)
 
     assert model.channel_status(TANDEM_CHANNEL) is ChannelStatus.TANDEM
     assert tandem.toolTip() == "Tandem channel, not cut as a needle"
