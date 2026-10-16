@@ -219,3 +219,53 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, python -m pytest on this branch, the four new tests and 68 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5c92a09d7318905f61b4b62f27dc8bc2617bf711/docs/logs/ariq/screenshots/week-6/pr-49-1-pytest-68-passed.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**50**
+
+- As part of requirement **FR-CN-15, set the notch's size and angle in addition to diameter, length and collar**, the user needs to do **choose where the orientation notch sits, clockwise from Anterior as the reference sheet shows it, and how wide, deep and tall it is**.
+- Therefore, I implemented/generated code so that **the geometry can build a notch of any size and angle from `NotchSettings`, with the defaults building today's notch exactly**.
+
+#### Data Modeling and Integrity
+
+- This data **the notch settings** is modeled as **`NotchSettings`, a frozen dataclass in mm and degrees** because **AGENTS.md asks to decode config into a named value at the boundary**. We considered alternative models such as **reading the config dict inside `CylinderNotch`, rejected as a bare dict passed inward**.
+- This data **the notch config keys** uses the input validation to ensure it adheres to **all five keys present, `KeyError` otherwise, never a guessed value**.
+- Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **a geometry module per concern under `classes/mesh/`** because **the notch is built independently of the cylinder**. Benefits for using this pattern include **testing the notch without a cylinder or window**. Possible risks include **the sheet and the geometry disagreeing on the angle**.
+  - To mitigate **an angle mismatch**, we implemented **one convention, clockwise from Anterior as the sheet draws it, converted once in `CylinderNotch`**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **`notch.py` imports only OpenCASCADE**. This structure has high cohesion because **`notch.py` only builds the notch**. This design is scalable because **a new notch setting is one dataclass field**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-15 (notch): `tests/mesh/test_notch.py`, six tests**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated notch rotation** for this functionality, I did not find any problems with it because **sheet angle 90 lands on +x in `test_a_quarter_turn_clockwise_on_the_sheet_moves_the_notch_to_plus_x`, and turning it the other way fails five tests**.
+- The PR does not contain any temporary workaround because **the defaults are measured to reproduce today's notch**.
+- The PR only contains small functions that are **7 to 9 lines (`notch.py`) and 9 to 19 lines (tests); `BrachyCylinder.shape` (53) was long already and changes 1 line**.
+- I did **`anti_slop review` against #49's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/mesh/notch.py`** because **it is the notch's module**.
+- This work belongs in **Cylinder** in the DFD because **the notch is part of the cylinder solid**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_default_settings_build_the_notch_brachify_always_made`, `test_a_quarter_turn_clockwise_on_the_sheet_moves_the_notch_to_plus_x` (74 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a config missing a notch key (`test_a_config_without_a_notch_key_is_rejected`)** and they passed.
+- I checked that these negative cases involving **the angle turned the wrong way (5 failed)** failed as expected.
+- Among these tests, **all six in `test_notch.py`** are unit tests and integration tests are not required because **the notch builds without the cylinder or a window**.
+- These tests are included in the directory **`tests/mesh/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (74 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, test_notch.py and 74 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ae3aff970db3dc3abea9eab23ec0e2351c37058e/docs/logs/ariq/screenshots/week-6/pr-50-1-pytest-74-passed.png)
+- Not applicable: **generated-test review (no problem found)**.
