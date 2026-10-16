@@ -148,7 +148,8 @@ QApplication per process, so the two window fixtures share it rather than each m
 own. `channels_window` builds the real `MainWindow`, models and five views once per module
 and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
 in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
-builds a fresh window with default settings for each test. Neither calls
+builds a fresh window with default settings for each test and restores the previous app
+window afterwards, so later tests still reach their own models. Neither calls
 `canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and both
 disconnect their window from the application signals on teardown. No application module is
 mocked.

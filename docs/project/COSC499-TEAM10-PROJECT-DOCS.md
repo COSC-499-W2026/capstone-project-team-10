@@ -584,7 +584,8 @@ The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.
 were added on 2026-10-11. It is not yet connected to the GUI import path. On 2026-10-15,
 importing a plan stopped keeping channels disabled in the previous plan (§7.10), the collar
 settings began to round-trip through config files, and *Generate Tandem* stopped dropping
-settings (§7.1).
+settings (§7.1). `ChannelsModel` began keeping a channel's own
+diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is not yet reachable from the GUI.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -815,7 +816,10 @@ a stderr stream handler. Creates `~/brachify/` at import time if missing.
 ### 5.2 Settings and configuration
 
 **[`settings/defaults.py`](../../src/settings/defaults.py)** — `DEFAULT_CONFIG_VALUES`, the
-schema: a flat `CONFIG_*` → number dict, 25 keys. Full table in §6.2.
+schema: a flat `CONFIG_*` → number dict, 25 keys. Full table in §6.2. It also holds
+`MINIMUM_CHANNEL_DIAMETER_MM` (0.3), the narrowest channel `ChannelsModel` accepts as a
+channel's own diameter, the same value as the Channels Diameter box's minimum in
+`channels_view.ui`. It is not a `CONFIG_*` key.
 
 **[`settings/load.py`](../../src/settings/load.py)** — `load_config_file()` is lenient by
 design. It keeps any key present in the user's JSON whose value is `int` or `float` and not
@@ -1001,7 +1005,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test) |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1615,6 +1619,17 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   module read `src\classes\mesh\...` on Windows and `src/classes/mesh/...` elsewhere, and 5 of
   the 8 tests in `test_architecture_drift.py` failed on every Windows clone, `main` included.
   Both now print `.as_posix()`. *Verified* on Windows: 5 failed before, all 8 passed after.
+- **Config import can leave `ChannelsModel.diameter` stale.** Import replaces the config before
+  Apply compares it with the spin box, so the model can retain its startup diameter while new
+  channels use the imported setting. Clearing an own diameter now uses
+  `NeedleChannel.default_diameter()`, matching newly imported channels. The wider config-import
+  synchronization issue remains: `getCurrentValues()` still reads the cached model diameter.
+  *Reasoned from code*; the regression loads 3 mm, imports Ex1 and clears a 4 mm override.
+- **A channel's own diameter is not in the PDF or a config file.** `save_points_diagram` draws
+  every channel circle, and its collet rings, at `CONFIG_CHANNELS_DIAMETER`, and
+  `getCurrentValues()` writes only the global diameter. The 3D export is correct, because it
+  cuts `channel.shape()`, so a reference sheet checked against a cylinder printed with own
+  diameters disagrees with it. FR-CN-07 is the follow-up. *Reasoned from code*.
 
 
 ### 7.7 MEDIUM — a tandem channel's rotation is measured from `(1, 0)`, not the axis
@@ -1817,7 +1832,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
@@ -1905,6 +1920,17 @@ python -m pytest
   `test_loading_a_plan_enables_every_channel_again` added to `test_channels_view.py`. It failed
   with `assert not True` before the fix, and again when the fix line was removed on purpose.
   *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 70 passed, with four own-diameter tests (five cases) added to
+  `test_channels_view.py`. All five failed with `AttributeError` before `set_channel_diameter`
+  existed. Four deliberate breaks were each caught: Apply ignoring an own diameter, a clear that
+  keeps the width, a reload that keeps own diameters, and NaN let through, which crashed the run
+  with exit 139. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS after Ariq's PR #59 review: 73 passed. A real 3 mm config
+  load followed by Ex1 import and clearing a 4 mm override now returns to 3 mm; the old code
+  returned 2.7 mm. Unknown and unselected labels raise `KeyError` without changing overrides.
+  Both regressions failed before the fix and under deliberate reversions. The shared Apply
+  test restores the global model width as well as config, and fresh windows restore the
+  previous app window on teardown. Native viewport and Windows were not rerun.
 - *Verified* 2026-10-15 on macOS: 68 passed, with three collar round-trip tests added to
   `test_cylinder_view.py` and `test_tandem_view.py` added. All four failed before the fix
   (§7.1): two missing collar keys, collar boxes left at 0, and the extra setting dropped.
