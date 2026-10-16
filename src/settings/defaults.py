@@ -2,6 +2,7 @@
 DEFAULT_CONFIG_VALUES = {
     "CONFIG_CYLINDER_DIAMETER": 30.0, 
     "CONFIG_CYLINDER_LENGTH": 160.0, # cylinder length
+    "CONFIG_CYLINDER_FLAT_TIP": 0, # 1 for a flat tip, 0 for the half-sphere dome
     "CONFIG_CHANNELS_DIAMETER": 2.7, # channels diameter
     "CONFIG_DEADSPACE": 6.0,
     "CONFIG_TANDEM_TIP_HEIGHT": 170.0, 

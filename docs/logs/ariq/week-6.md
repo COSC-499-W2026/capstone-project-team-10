@@ -378,3 +378,53 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, python -m pytest on this branch, the four notch control tests and 83 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/1a394e886d1db6c9a58fc33e8efd9f4e43c05eb1/docs/logs/ariq/screenshots/week-6/pr-53-1-pytest-83-passed.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**54**
+
+- As part of requirement **FR-CN-15, set a cylinder's tip shape, dome or flat**, the user needs to do **choose a flat tip instead of the dome and get a flat-topped cylinder**.
+- Therefore, I implemented/generated code so that **the cylinder is built with a dome or a flat top from `CONFIG_CYLINDER_FLAT_TIP`**.
+
+#### Data Modeling and Integrity
+
+- This data **the tip** is modeled as **`TipShape`, an enum of DOME and FLAT, from a 0 or 1 config key** because **the config holds numbers and the code needs a name**. We considered alternative models such as **a tip radius, rejected when the dome-or-flat choice was agreed**.
+- This data **the tip key** uses the input validation to ensure it adheres to **a number, as `checkValuesExist` enforces, read as flat when non-zero**.
+- Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **settings read once when a `BrachyCylinder` is built** because **the solid must match the applied settings**. Benefits for using this pattern include **the PDF can ask the cylinder for its tip**. Possible risks include **other code still assuming a dome**.
+  - To mitigate **dome assumptions**, we implemented **§7.11, naming the two places and the PRs that fix them**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **`add_dome` is a separate function `shape()` calls only for a dome**. This structure has high cohesion because **`cylinder.py` owns the solid's shape**. This design is scalable because **a third tip is one enum value and one branch**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-15 (tip): `test_a_flat_tip_builds_a_plain_cylinder_with_a_flat_top`**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated tip change**, I noticed **the reference sheet's interstitial maths and the tandem cut-out also assume a dome**. Therefore, I did **record it as §7.11 and fix it in #55 and #56**.
+- The PR does not contain any temporary workaround because **the flat tip is a real branch in the build; only a config file can set it until #57**.
+- The PR only contains small functions that are **3 lines (`tip_shape_from_config`), 26 (`add_dome`, moved out of `shape`), 31 (`shape`, down from 54) and 12 (the test)**.
+- I did **`anti_slop review` against #53's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/mesh/cylinder.py`** because **it builds the solid**.
+- This work belongs in **Cylinder** in the DFD because **it changes the cylinder solid**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_flat_tip_builds_a_plain_cylinder_with_a_flat_top`, pi x 15² x 160 = 113,097.336 mm³ (84 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **the default dome kept at 109,599.266 mm³ (`test_default_settings_build_the_cylinder_brachify_always_made`)** and they passed.
+- I checked that these negative cases involving **the dome always built (109,563.044, failed)** failed as expected.
+- Among these tests, **the flat-tip test** are unit tests and integration tests are not required because **the cylinder builds without a window**.
+- These tests are included in the directory **`tests/mesh/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (84 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, the flat-tip test and 84 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/86976b0a4874fa3c27f8a7c9b79eed616420791d/docs/logs/ariq/screenshots/week-6/pr-54-1-pytest-84-passed.png)
+- Not applicable: **generated-test review (no problem found)**.
