@@ -18,7 +18,10 @@ def resetAllValues(values_dict: dict):
     # Cylinder View values
     cylinder_diameter = values_dict.get("CONFIG_CYLINDER_DIAMETER")
     cylinder_length = values_dict.get("CONFIG_CYLINDER_LENGTH")
-    app.window.navigationmodel.views[1].set_dimensions_mm(cylinder_diameter, cylinder_length)
+    cylinder_view = app.window.navigationmodel.views[1]
+    cylinder_view.set_dimensions_mm(cylinder_diameter, cylinder_length)
+    cylinder_view.base_thickness_field.set_millimetres(values_dict.get("CONFIG_BASE_THICKNESS"))
+    cylinder_view.base_height_field.set_millimetres(values_dict.get("CONFIG_BASE_HEIGHT"))
     # if a DICOM file has already been imported, then apply the settings to update the views and models.
     if app.window.cylindermodel.cylinder is not None:
         app.window.navigationmodel.views[1].action_apply_settings() # apply the above settings
@@ -114,6 +117,9 @@ def getCurrentValues():
     # 1. cylinder data
     default_cylinder_diameter = app.window.cylindermodel.cylinder.diameter
     default_length = app.window.cylindermodel.cylinder.length
+    # the collar is read from the live settings, which Apply Settings writes
+    base_thickness = app.values.config_values.get("CONFIG_BASE_THICKNESS")
+    base_height = app.values.config_values.get("CONFIG_BASE_HEIGHT")
     # 2. channels data
     default_diameter = app.window.channelsmodel.diameter
     threading_depth = app.window.channelsmodel.threading_depth
@@ -142,6 +148,8 @@ def getCurrentValues():
     current_values = {
         "CONFIG_CYLINDER_DIAMETER": default_cylinder_diameter,
         "CONFIG_CYLINDER_LENGTH": default_length,
+        "CONFIG_BASE_THICKNESS": base_thickness,
+        "CONFIG_BASE_HEIGHT": base_height,
         "CONFIG_CHANNELS_DIAMETER": default_diameter,
         "CONFIG_DEADSPACE": default_needle_length,
         "CONFIG_TANDEM_TIP_HEIGHT": tandem_length, # tandem_length may not actually be Tandem_Tip_Height_Default

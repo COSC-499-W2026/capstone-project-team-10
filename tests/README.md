@@ -47,24 +47,25 @@ tests/
 │   └── test_helper.py
 ├── models/
 ├── pdf/
-├── settings/
+├── settings/              exists: config file loading
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
 │   ├── test_architecture_build.py
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-├── views/                 exists: the Channels and Cylinder views, against the real window
+├── views/                 exists: the Channels, Cylinder and Tandem views, against the real window
 │   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
 │   ├── test_channels_view.py
-│   └── test_cylinder_view.py
+│   ├── test_cylinder_view.py
+│   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
-where tests will go.
+`tooling/`, `views/`, `windows/`, `settings/`, `dicom/test_data.py` and
+`dicom/test_structures.py` exist. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -124,6 +125,9 @@ the window shows.
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
 
+`settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
+imports no Qt or conda-only package.
+
 `views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
 QApplication per process, so the two window fixtures share it rather than each making their
@@ -139,9 +143,13 @@ mocked.
 `views/test_channels_view.py` drives the Channels tab through the real window and models. §8.2
 of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes it fail.
 
-`views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
-widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and
-Ex1 import with needle offsets.
+`views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
+and widgets. It covers the mm/cm selector across all four dimensions, precision, limits, Apply,
+configuration reset and Ex1 import with needle offsets, and the settings round trip: every
+default key is in the exported snapshot, and the collar is exported and loaded back.
+
+`views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
+snapshot does not list.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
