@@ -1850,6 +1850,11 @@ python -m pytest
   test red: the window stays 770 × 472, and the four spin boxes were squeezed to 9 px. The
   height test was written for that, red at 9 px, and both went green with the scroll area. Five
   deliberate breaks of the wiring were each caught. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS after Ariq's PR #60 review: 79 passed, including the
+  inherited config-import regression. Use Channels Diameter is checked against an untouched
+  channel's actual width instead of the cached model value. That comparison failed before
+  the #59 fix was integrated. Anti-slop, architecture and session-start checks passed.
+  Native viewport and Windows were not rerun.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

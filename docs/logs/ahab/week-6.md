@@ -230,3 +230,11 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   ![1, python -m pytest on feat/channel-diameter-controls at 67be752, 76 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-60-1-pytest-76-passed.png)
 
   ![2, Ex1 in brachify, Applicator4 given 3.5 mm by Apply to Channel and kept after Channels Diameter 2.0](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-60-2-selected-channel-group.png)
+
+- Review follow-up for **Ariq's #60 comment**: **Use Channels Diameter now compares the
+  cleared width with an untouched channel, and inherits #59's model fix and config-import
+  regression**. The corrected comparison **failed before the model fix**. **79 tests pass on
+  macOS offscreen; anti-slop reports no findings; architecture and session-start checks exit
+  0**. The documentation set was reviewed; **§8.2 and this receipt changed**, and the diagrams
+  still describe the same system. **Native viewport and Windows were not rerun**; the two
+  screenshots remain the original receipts.
