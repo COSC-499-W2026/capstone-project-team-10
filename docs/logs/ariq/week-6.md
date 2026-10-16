@@ -572,3 +572,54 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, brachify on this branch with Ex1 imported, Cylinder tab, Tip Shape Flat applied and the flat top in the viewport](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/4461c309fffd9fe252bd28ec69013788cf87d1ba/docs/logs/ariq/screenshots/week-6/pr-57-1-cylinder-tab-flat-tip.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**58**
+
+- As part of requirement **FR-CN-07, include custom cylinders in the PDF reference sheet**, the user needs to do **export the reference sheet and see the notch where the cylinder has it, and the cylinder's tip, notch and collar in a table**.
+- Therefore, I implemented/generated code so that **QA can check a printed cylinder's tip, notch and collar against the sheet**.
+
+#### Data Modeling and Integrity
+
+- This data **the cylinder table** is modeled as **rows of two strings, label then value in mm** because **reportlab's `Table` takes rows**. We considered alternative models such as **a `Label: value` paragraph per setting, rejected by the UI copy rule**.
+- This data **the notch outline** uses the input validation to ensure it adheres to **no outline when the notch is off**.
+- Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **pure functions for the sheet's geometry and text, called by the drawing code** because **matplotlib drawing cannot be asserted directly**. Benefits for using this pattern include **literal tests for each value**. Possible risks include **the drawing ignoring a function**.
+  - To mitigate **an unused function**, we implemented **a rendered Ex1 sheet with a 4 mm notch at 90 degrees, checked by eye (screenshot 1)**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **the sheet reads the cylinder's `notch_settings` and `tip`**. This structure has high cohesion because **`template_reference.py` owns the sheet**. This design is scalable because **another setting is one table row**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-07 (sheet): six tests in `tests/pdf/test_template_reference.py`**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **rendered sheet**, I noticed **the cylinder table touched the channel table**. Therefore, I did **add a quarter-inch spacer**.
+- When I reviewed the **rendered Ex1 sheet**, I noticed **its diagram was on page 2**. Therefore, I did **render `main` too, which is also 2 pages, and corrected §5.8's "one-page"**.
+- The PR does not contain any temporary workaround because **the drawing comes from the same `NotchSettings` as the geometry**.
+- The PR only contains small functions that are **4 to 17 lines (`label_distance`, `notch_outline`, `cylinder_rows`) and 9 to 22 (tests); `save_points_diagram` (206) and `generate_pdf` (168) were long already and change 12 and 7 lines**.
+- I did **`anti_slop review` against #57's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/pdf/template_reference.py`** because **it builds the reference sheet**.
+- This work belongs in **Export** in the DFD because **it is part of writing the PDF**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_the_default_notch_is_drawn_standing_out_of_the_circle_at_anterior`, `test_the_cylinder_table_lists_the_default_cylinder` (97 passed)** passed.
+- I wrote tests to cover abnormal situations involving **a notch at 90 degrees, a notch turned off, and a flat tip with a collar** and they passed.
+- I checked that these negative cases involving **the code before the functions (6 failed) and the notch turned counterclockwise (1 failed)** failed as expected.
+- When I reviewed the **generated corner assertions**, I noticed **`pytest.approx` cannot compare a list of tuples, so 9e-16 failed**. Therefore, I did **compare each corner with its own `approx`**.
+- Among these tests, **the four drawing tests** are unit tests and **the two table tests, with a real cylinder,** are integration tests.
+- These tests are included in the directory **`tests/pdf/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (97 passed), `build.py --check` and `session-start.sh` (exit 0), and the app on macOS: Ex1's sheet rendered and Ex2 with a 60 mm flat tip and a tandem on the Export tab (screenshot 1)**.
+
+  ![1, on this branch: Ex1 reference sheet page 1 cropped with the cylinder table, its diagram with the notch at 90 degrees, and the Export tab for Ex2 with a 60 mm flat tip and a tandem](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a5f896f692fb052b599eb392329e4df3393dd474/docs/logs/ariq/screenshots/week-6/pr-58-1-sheet-and-export.png)
