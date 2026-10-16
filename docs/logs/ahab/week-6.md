@@ -199,3 +199,76 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (76
   passed), `build.py --check` and `session-start.sh` (exit 0)**.
+
+### For PR #**62**
+
+- As part of requirement **FR-CN-03 (interface), show each needle's status, and FR-CN-16
+  (interface), a disabled needle reads disabled and stays in the list**, the user needs to do
+  **open the Channels tab and see, without selecting anything, which needles have their own
+  diameter, which are disabled and which is the tandem**.
+- Therefore, I implemented/generated code so that **physicists see each needle's status as a
+  colour with its own font cue, a legend and a tooltip naming the status and diameter**.
+
+#### Backend
+
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-03 (interface) → `test_channel_with_its_own_diameter_is_bold_on_amber_in_the_list`;
+  FR-CN-16 (interface) → `test_a_disabled_channel_reads_disabled_and_stays_in_the_list`**
+- Not applicable: **architectural pattern (unchanged), architecture diagram, Level 0 DFD, Level 1
+  DFD (unchanged, `build.py --check` exit 0), database (none), data processing (unchanged), state
+  management (status is computed, not stored), backend API (none), test coverage (no coverage
+  tool)**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6 and Qt Designer** with design components for **one
+  `ChannelRowStyle` per status in `STATUS_ROW_STYLES`**. Therefore, changing the design of **one
+  status's style** will automatically change the look and feel of all instances of that component
+  throughout the system. Changes to the content will not affect the design because **row text
+  stays the channel label, and the status comes from `channel_status`**.
+- The frontend adopts accessibility principle **WCAG 2.1 SC 1.4.1 Use of Color, colour is not the
+  only visual means of conveying information**. The aspects that demonstrate this principle in the
+  system include **a bold or italic cue for each colour, the legend, and a tooltip naming the
+  status**.
+- Not applicable: **data caching (no new data), restricted pages (no logins), usability
+  evaluation (none run), traceability matrix (under Backend), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **first plan for this issue**, I noticed **it only coloured own diameters,
+  while disabled needles, which are not cut, still looked enabled**. Therefore, I did **add
+  `ChannelStatus` with disabled and tandem, and test the order**.
+- The PR does not contain any temporary workaround because **3D colour is left for FR-CN-04, as
+  #46 records**.
+- The PR only contains small functions that are **5, 5 and 12 (`channel_status`,
+  `channel_status_text`, `mark_channel_statuses`), and at most 20 in the tests** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my
+  feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`channels_model.py` for the status and `channels_view.py` for its
+  look** because **the model decides and the view draws**.
+- This work belongs in **3 Channels** in the DFD because **the statuses come from that tab's
+  state**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **an own diameter
+  marked and a cleared one unmarked (80 passed)** passed.
+- I wrote tests to cover abnormal situations involving **a disabled channel with its own diameter,
+  and the tandem, which is also disabled** and they passed.
+- I checked that these negative cases involving **own diameter ranked above disabled, no restyle,
+  no italic and a two-decimal tooltip (four deliberate breaks)** failed as expected.
+- When I reviewed the **generated `test_clearing_a_channels_own_diameter_removes_its_mark`**, I
+  noticed **it passed with no restyling at all**. Therefore, I did **assert the row is bold before
+  the clear**.
+- Among these tests, **none** are unit tests and **all four** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (80
+  passed), `build.py --check` and `session-start.sh` (exit 0)**.
