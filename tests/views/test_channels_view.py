@@ -428,7 +428,7 @@ def test_use_channels_diameter_returns_the_selected_channel_to_the_global_diamet
 
     click(view.ui.btn_clear_channel_diameter)
 
-    assert model.channels[RESET_CHANNEL].get_diameter() == model.diameter
+    assert model.channels[RESET_CHANNEL].get_diameter() == model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter()
     assert not model.has_own_diameter(RESET_CHANNEL)
     assert not view.ui.btn_clear_channel_diameter.isEnabled()
 
