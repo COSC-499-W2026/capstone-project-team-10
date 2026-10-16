@@ -269,3 +269,53 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, python -m pytest on this branch, test_notch.py and 74 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ae3aff970db3dc3abea9eab23ec0e2351c37058e/docs/logs/ariq/screenshots/week-6/pr-50-1-pytest-74-passed.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**51**
+
+- As part of requirement **FR-CN-15, set the notch's size and angle in addition to diameter, length and collar**, the user needs to do **set the notch through a config file and get a cylinder whose notch matches it, or no notch**.
+- Therefore, I implemented/generated code so that **the cylinder is built from the five `CONFIG_NOTCH_*` keys, and they are saved in exported configs**.
+
+#### Data Modeling and Integrity
+
+- This data **the five notch keys** is modeled as **numbers in the flat config, `CONFIG_NOTCH_ENABLED` as 1 or 0** because **`load_config_file` accepts only numbers**. We considered alternative models such as **a JSON boolean, rejected because the loader reads `true` as 1 anyway and other keys are numbers**.
+- This data **the notch keys** uses the input validation to ensure it adheres to **numeric values, as `checkValuesExist` enforces**.
+- Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **settings read once when a `BrachyCylinder` is built**, as its length already is, because **the solid must match the settings it was applied with**. Benefits for using this pattern include **a stable notch until the next Apply**. Possible risks include **a setting changed without Apply**.
+  - To mitigate **a stale notch**, we implemented **Apply writing the keys before it builds the cylinder**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **the geometry reads settings through `notch_settings_from_config`**. This structure has high cohesion because **the cylinder module owns how the notch joins the wall**. This design is scalable because **a new setting is a key and a dataclass field**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-15 (notch): `tests/mesh/test_cylinder.py`, five tests**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated collar cap test** for this functionality, I noticed **it passed on `main`, whose fixed 10 mm notch was already capped**. Therefore, I did **add `test_a_notch_shorter_than_the_collar_keeps_its_own_height`, which failed first**.
+- When I reviewed the **generated snapshot**, I noticed **#49's guard test failed on the five new keys**. Therefore, I did **export them in `getCurrentValues()`**.
+- The PR does not contain any temporary workaround because **the defaults keep the measured volume, 109,599.266 mm³**.
+- The PR only contains small functions that are **7 lines (`__init__`) and 8 to 14 lines (tests); `shape` (54) and `getCurrentValues` (66) were long already and change 3 and 6 lines**.
+- I did **`anti_slop review` against #50's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/mesh/cylinder.py`** because **`BrachyCylinder` decides how the notch joins the wall and collar**.
+- This work belongs in **Cylinder** in the DFD because **it changes the cylinder solid**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_default_settings_build_the_cylinder_brachify_always_made`, `test_the_notch_angle_setting_moves_the_notch` (79 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a 20 mm notch on a 5 mm collar, and an 8 mm notch on a 20 mm collar** and they passed.
+- I checked that these negative cases involving **always fusing the notch (`test_a_disabled_notch_leaves_a_plain_cylinder` failed)** failed as expected.
+- Among these tests, **all five** are unit tests and integration tests are not required because **the cylinder builds without a window**.
+- These tests are included in the directory **`tests/mesh/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (79 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, test_cylinder.py and 79 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7fcc64f4ec5c1fc8d4b992feef187c11f1acb254/docs/logs/ariq/screenshots/week-6/pr-51-1-pytest-79-passed.png)
