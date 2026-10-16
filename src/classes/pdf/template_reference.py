@@ -15,7 +15,7 @@ from classes.pdf.canvas import FooterCanvas
 from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
-from classes.mesh.cylinder import BrachyCylinder
+from classes.mesh.cylinder import BrachyCylinder, TipShape
 from classes.mesh.tandem import Tandem
 from classes.app import get_app
 
@@ -141,6 +141,19 @@ def extract_points_from_channels2(channels: list):
     return channels_down_to_z0
 
 
+def flat_top_points(radius: float, length: float, spacing: float, rim: np.ndarray) -> np.ndarray:
+    """
+    Points covering a flat tip at z = length: a grid spacing apart inside the radius, plus the rim
+    ring so a needle leaving at the edge still meets a point.
+    """
+    coords = np.arange(-radius, radius + spacing / 2, spacing)
+    xs, ys = np.meshgrid(coords, coords)
+    inside = xs ** 2 + ys ** 2 <= radius ** 2
+    grid = np.column_stack([xs[inside], ys[inside], np.full(np.count_nonzero(inside), length)])
+    ring = np.column_stack([rim[:, 0], rim[:, 1], np.full(len(rim), length)])
+    return np.vstack([grid, ring])
+
+
 def get_all_interstitial_lengths(cylinder: BrachyCylinder, needles: list, spacing: float = 0.1) -> list[float]:
     """
     Example usage:
@@ -158,7 +171,8 @@ def get_all_interstitial_lengths(cylinder: BrachyCylinder, needles: list, spacin
         vec = np.array(tip-base)
         vec_normalized = vec / \
             np.sqrt(vec[0] ** 2 + vec[1] ** 2 + vec[2] ** 2)
-        len_straight = length-radius
+        # a flat tip has wall all the way up, a dome starts one radius below the top
+        len_straight = length if cylinder.tip is TipShape.FLAT else length-radius
         NumStepsStraight = int(np.ceil(len_straight / spacing))
         end_straight_section = base + vec_normalized * len_straight
         CenterLineStraight = np.linspace(
@@ -173,6 +187,10 @@ def get_all_interstitial_lengths(cylinder: BrachyCylinder, needles: list, spacin
         CylinderStraight = np.ones((NumStepsStraight, num_thetas, 3))
         CylinderStraight[:] = CylinderRing
         CylinderStraight[:, :, 2] = CylinderStraight[:, :, 2]*CenterLineStraight[:, 2, np.newaxis]
+
+        if cylinder.tip is TipShape.FLAT:
+            return np.vstack([np.reshape(CylinderStraight, (-1, 3)),
+                              flat_top_points(radius, length, spacing, CylinderRing)])
 
         # Step 3: Generate the Dome
         num_phis = int(np.ceil(np.pi/2*radius/spacing))

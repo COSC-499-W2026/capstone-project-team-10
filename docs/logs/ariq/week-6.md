@@ -428,3 +428,53 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, python -m pytest on this branch, the flat-tip test and 84 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/86976b0a4874fa3c27f8a7c9b79eed616420791d/docs/logs/ariq/screenshots/week-6/pr-54-1-pytest-84-passed.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**55**
+
+- As part of requirement **FR-CN-07, include custom cylinders in the 3D export and the PDF reference sheet**, the user needs to do **export the reference sheet for a flat-tipped cylinder and read each needle's interstitial length**.
+- Therefore, I implemented/generated code so that **the sheet's interstitial lengths match the flat top a clinician prints**.
+
+#### Data Modeling and Integrity
+
+- This data **the cylinder surface for the length maths** is modeled as **a point cloud, 0.1 mm apart, now a flat disc and rim ring for a flat tip** because **the existing method measures needles against points**. We considered alternative models such as **an exact ray and plane intersection, rejected to keep one method for both tips**.
+- This data **the interstitial lengths** uses the input validation to ensure it adheres to **the existing 0.25 mm match tolerance**.
+- Not applicable: **security sanitization, privacy sanitization (settings hold no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **the existing point-cloud measurement, with a surface per tip** because **the sheet's numbers must follow the cylinder**. Benefits for using this pattern include **dome lengths untouched**. Possible risks include **a gap where the wall meets the top**.
+  - To mitigate **a gap**, we implemented **the rim ring and `test_a_flat_tip_keeps_its_wall_up_to_the_top`**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **the maths reads only `cylinder.tip`, `length` and `diameter`**. This structure has high cohesion because **`template_reference.py` owns the sheet's numbers**. This design is scalable because **another tip adds one surface function**.
+
+  **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-07 (lengths): three tests in `tests/pdf/test_template_reference.py`**
+- Not applicable: **database (none), data processing, state management (unchanged by this PR), Level 0 DFD, Level 1 DFD (no new process or data flow), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated wall test** for this functionality, I noticed **a needle leaving at z 100 passed even if the flat-tip wall stopped where a dome begins**. Therefore, I did **move it to z 155, where the two differ (5 vs 8.82 mm)**.
+- When I reviewed the **geometry fixtures**, I noticed **`tests/pdf/` needed `tests/mesh/conftest.py`'s app**. Therefore, I did **move it to `tests/conftest.py` rather than copy it**.
+- The PR does not contain any temporary workaround because **the flat surface is built from the same spacing as the dome**.
+- The PR only contains small functions that are **11 lines (`flat_top_points`) and 9 to 11 (tests); `get_all_interstitial_lengths` (170) was long already and gains 4 lines**.
+- I did **`anti_slop review` against #54's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/pdf/template_reference.py`** because **it computes the sheet's lengths**.
+- This work belongs in **Export** in the DFD because **it is part of writing the PDF**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_needle_leaving_a_flat_tip_is_measured_from_the_flat_top`, 20 mm (87 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a dome needle 10 mm off axis (23.82 mm) and a sideways needle high on a flat tip's wall (5 mm)** and they passed.
+- I checked that these negative cases involving **the dome measured for a flat tip (23.81, failed) and the wall stopped at 145 mm (failed)** failed as expected.
+- Among these tests, **all three** are unit tests and integration tests are not required because **the lengths need a cylinder object, not a window**.
+- These tests are included in the directory **`tests/pdf/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (87 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, the three length tests and 87 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b8cb81bfb64c0cfd1351dd1ebd6f8fea95ccc438/docs/logs/ariq/screenshots/week-6/pr-55-1-pytest-87-passed.png)

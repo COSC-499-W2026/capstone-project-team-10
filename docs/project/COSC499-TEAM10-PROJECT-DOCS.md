@@ -1177,7 +1177,9 @@ the cylinder surface:
 3. `add_deadspace()` extends a **copy** of each needle tip outward by `CONFIG_DEADSPACE`.
 4. `get_all_interstitial_lengths()` builds a dense point cloud of the cylinder surface
    (straight wall + hemispherical dome, 0.1 mm spacing) and finds where each needle's first
-   segment crosses it, within a 0.25 mm tolerance.
+   segment crosses it, within a 0.25 mm tolerance. Since 2026-10-15, for a flat tip
+   (`TipShape.FLAT`, §5.4) the wall runs the full length and `flat_top_points()` covers the
+   top at `z = length` with a 0.1 mm grid and the rim ring, instead of the dome.
 
 `save_points_diagram()` draws the cross-section: one circle per channel with its channel
 number, the tandem marked `<n>T`, a dashed line showing tandem rotation (generated tandems
@@ -1704,16 +1706,15 @@ offscreen on macOS: with Applicator4 disabled in Ex1, importing Ex2 through the 
 so only a plan's tandem channel starts disabled. `test_loading_a_plan_enables_every_channel_again`
 in `tests/views/test_channels_view.py` covers it.
 
-### 7.11 HIGH, temporary — a flat tip is not yet followed by the PDF maths or the tandem
+### 7.11 HIGH, temporary — a flat tip is not yet followed by the tandem
 
 *Reasoned from code, 2026-10-15.* `CONFIG_CYLINDER_FLAT_TIP` builds a flat-topped cylinder
-(§5.4), but two other parts still assume the dome. The reference sheet's interstitial lengths
-are measured against a dome point cloud in `get_all_interstitial_lengths`
-([template_reference.py](../../src/classes/pdf/template_reference.py)), so a needle leaving
-through a flat top gets a wrong length. The generated tandem's cut-out is trimmed by a dome
+(§5.4). **The reference sheet's half is fixed, 2026-10-15:** interstitial lengths used to be
+measured against a dome point cloud whatever the tip, and now follow it (§5.8, *Verified* by
+`tests/pdf/`). Still open: the generated tandem's cut-out is trimmed by a dome
 outline 10 mm larger than the cylinder, centred 1 mm below the dome's centre. A flat top's corners leave it once
 √(R² + (R + 1)²) > R + 10, a diameter above about 45 mm, which could leave the tandem hole closed. Only a config file can set a
-flat tip until the Cylinder tab gains the control. The two fixes are the next changes in the
+flat tip until the Cylinder tab gains the control. The tandem fix is the next change in the
 same stack of pull requests.
 
 ---
@@ -1795,6 +1796,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
+| `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length (§5.8) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
@@ -1885,8 +1887,14 @@ python -m pytest
   The literals in the default tests were measured on `main` first: volume 109,599.266 mm³, the
   notch from y −16.8 to −14.8 mm. The new-behaviour tests failed first, and flipping the angle
   conversion's sign and always fusing the notch were each caught. `mesh_app` in
-  [tests/mesh/conftest.py](../../tests/mesh/conftest.py) reuses the one QApplication, like the
-  other fixtures. *Not verified:* Windows.
+  `tests/mesh/conftest.py` reuses the one QApplication, like the other fixtures. It moved the
+  same day to [tests/conftest.py](../../tests/conftest.py) as `geometry_app`, when
+  `tests/pdf/` needed it too. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 87 passed, with `tests/pdf/test_template_reference.py`
+  added. A needle 10 mm off the axis, tip at z 180, measures 23.82 mm past the dome
+  (145 + √(15² − 10²) = 156.18) and 20 mm past a flat top. The flat-top test failed at 23.81
+  before the fix, and stopping the flat-tip wall where a dome begins failed the wall test.
+  *Not verified:* Windows.
 - *Verified* 2026-10-15 on macOS: 84 passed, with the flat-tip test added to
   `mesh/test_cylinder.py`. Its literal, π × 15² × 160 = 113,097.336 mm³, was worked by hand. It
   failed at 109,563.044 before the tip setting existed, and again when the dome was always
