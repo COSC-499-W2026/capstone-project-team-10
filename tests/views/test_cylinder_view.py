@@ -177,3 +177,58 @@ def test_a_new_window_starts_in_mm(cylinder_window: MainWindow) -> None:
     assert selector.currentText() == "mm"
     assert view.ui.spinbox_diameter.value() == 30.0
     assert view.ui.spinbox_length.value() == 160.0
+
+
+def test_exported_config_names_every_setting(cylinder_window: MainWindow) -> None:
+    """Check that the settings snapshot written to a config file holds every default key.
+
+    Fails, listing the keys, when getCurrentValues() leaves a setting out. Export Current
+    Settings as Config writes that snapshot, so a missing key is never saved, and Generate
+    Tandem replaces the live settings with it, so the setting silently falls back to its
+    default. The collar was lost this way (section 7.1 of the project docs).
+    """
+    from settings.defaults import DEFAULT_CONFIG_VALUES
+    from settings.reset import getCurrentValues
+
+    cylinder_window.navigationmodel.views[1].action_apply_settings()
+    assert sorted(set(DEFAULT_CONFIG_VALUES) - set(getCurrentValues())) == []
+
+
+def test_exported_config_keeps_the_applied_collar(cylinder_window: MainWindow) -> None:
+    """Apply a 3 mm by 10 mm collar and check the config snapshot carries both values.
+
+    Fails with KeyError or a wrong number when the collar is left out of getCurrentValues().
+    A clinician who saves a design with a collar and reopens it would otherwise get a
+    cylinder with no collar, a different physical device.
+    """
+    from settings.reset import getCurrentValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.spinbox_base_thickness.setValue(3)
+    view.ui.spinbox_base_height.setValue(10)
+    view.ui.cb_add_base.setChecked(True)
+    view.action_apply_settings()
+    snapshot = getCurrentValues()
+    assert snapshot["CONFIG_BASE_THICKNESS"] == 3.0
+    assert snapshot["CONFIG_BASE_HEIGHT"] == 10.0
+
+
+def test_config_import_fills_the_collar_boxes(cylinder_window: MainWindow) -> None:
+    """Load a config holding a 4 mm by 12 mm collar and check the Cylinder tab shows it.
+
+    Fails when resetAllValues() leaves the collar boxes at their old values. The next Apply
+    reads those boxes, so a collar loaded from a file would be replaced by whatever was
+    typed before, and the printed collar would not match the saved design.
+    """
+    from classes.app import get_app
+    from settings.reset import resetAllValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    config = get_app().values.config_values.copy()
+    config["CONFIG_BASE_THICKNESS"] = 4.0
+    config["CONFIG_BASE_HEIGHT"] = 12.0
+    resetAllValues(config)
+    assert view.ui.spinbox_base_thickness.value() == 4.0
+    assert view.ui.spinbox_base_height.value() == 12.0
+    assert view.base_thickness_field.millimetres == 4.0
+    assert view.base_height_field.millimetres == 12.0
