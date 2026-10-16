@@ -393,7 +393,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Backend
 
 - The system uses **settings read once when a `BrachyCylinder` is built** because **the solid must match the applied settings**. Benefits for using this pattern include **the PDF can ask the cylinder for its tip**. Possible risks include **other code still assuming a dome**.
-  - To mitigate **dome assumptions**, we implemented **§7.10, naming the two places and the PRs that fix them**.
+  - To mitigate **dome assumptions**, we implemented **§7.11, naming the two places and the PRs that fix them**.
 - The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **`add_dome` is a separate function `shape()` calls only for a dome**. This structure has high cohesion because **`cylinder.py` owns the solid's shape**. This design is scalable because **a third tip is one enum value and one branch**.
 
   **[Unchanged system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587/docs/architecture/diagrams/system-architecture.svg)**
@@ -402,7 +402,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Review and design
 
-- When I reviewed the **generated tip change**, I noticed **the reference sheet's interstitial maths and the tandem cut-out also assume a dome**. Therefore, I did **record it as §7.10 and fix it in #55 and #56**.
+- When I reviewed the **generated tip change**, I noticed **the reference sheet's interstitial maths and the tandem cut-out also assume a dome**. Therefore, I did **record it as §7.11 and fix it in #55 and #56**.
 - The PR does not contain any temporary workaround because **the flat tip is a real branch in the build; only a config file can set it until #57**.
 - The PR only contains small functions that are **3 lines (`tip_shape_from_config`), 26 (`add_dome`, moved out of `shape`), 31 (`shape`, down from 54) and 12 (the test)**.
 - I did **`anti_slop review` against #53's branch (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
