@@ -364,3 +364,17 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, brachify on this branch with Ex1 imported, Cylinder tab, a 4 mm notch at 90 degrees applied and drawn on the +x side](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/29b2bf4c630209683686f54d393c48db08cccf87/docs/logs/ariq/screenshots/week-6/pr-52-1-cylinder-tab-notch-90.png)
 - Not applicable: **happy path, abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (all in test PR #53)**.
+
+### For test PR #**53** written to assess functionality in **#52, the Cylinder tab's notch controls**
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_apply_builds_the_notch_typed_on_the_cylinder_tab`, `test_config_import_fills_the_notch_controls` (83 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **Add Notch unticked, and notch lengths typed in cm** and they passed.
+- I checked that these negative cases involving **the code before #52 (4 failed with `AttributeError`) and the notch line removed from `resetAllValues` (1 failed)** failed as expected.
+- Among these tests, **none** are unit tests and **all four** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (83 passed), `build.py --check` and `session-start.sh` (exit 0), screenshot 1**.
+
+  ![1, python -m pytest on this branch, the four notch control tests and 83 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/1a394e886d1db6c9a58fc33e8efd9f4e43c05eb1/docs/logs/ariq/screenshots/week-6/pr-53-1-pytest-83-passed.png)
+- Not applicable: **generated-test review (no problem found)**.
