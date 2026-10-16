@@ -72,5 +72,11 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   is an integration test.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (65
-  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+  passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and brachify run on
+  macOS through its buttons, Ex2 imported after Ex1 (screenshot 2)**.
+
+  ![1, python -m pytest on fix/disabled-channels-on-import at 5949174, 65 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dd20968af6ad7fb912bf42d8157cd1ac164c980b/docs/logs/ahab/screenshots/week-6/pr-43-1-pytest-65-passed.png)
+
+  ![2, Ex2 in brachify after Applicator4 was disabled in Ex1, Applicator4 enabled and drawn](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dd20968af6ad7fb912bf42d8157cd1ac164c980b/docs/logs/ahab/screenshots/week-6/pr-43-2-ex2-applicator4-enabled.png)
+
 - Not applicable: **abnormal cases (one path), generated-test review (no problem found)**.
