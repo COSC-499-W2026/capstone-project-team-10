@@ -49,7 +49,7 @@ tests/
 ├── models/
 ├── pdf/                   exists: the reference sheet's interstitial lengths
 │   └── test_template_reference.py
-├── settings/
+├── settings/              exists: config file loading
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
 │   ├── test_architecture_build.py
@@ -66,8 +66,8 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
-where tests will go.
+`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `dicom/test_data.py` and
+`dicom/test_structures.py` exist. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -136,6 +136,9 @@ hand-worked distances, for a dome tip, a flat tip, and a flat-tipped cylinder's 
 
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
+
+`settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
+imports no Qt or conda-only package.
 
 `views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
