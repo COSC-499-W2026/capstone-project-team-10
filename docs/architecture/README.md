@@ -185,7 +185,3 @@ and anatomy checks. FR-CN-01–20 maps to design editing, templates, history, va
 and exports. Milestone 2 describes the corresponding review and editing controls.
 Class names in the projected UML express a design proposal; storage formats, clinical
 thresholds and the concrete UI arrangement still need implementation decisions.
-
-The viewport's mouse bindings are documented in [§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
-The 2026-10-16 control change stays inside `viewport.py`; it adds no module, model,
-signal, data flow or layer dependency, so the diagrams do not need redrawing.

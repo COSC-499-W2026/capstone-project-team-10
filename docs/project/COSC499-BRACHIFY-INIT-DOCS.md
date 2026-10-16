@@ -4814,10 +4814,6 @@ again. The collet boxes save themselves into the live settings every time their 
 
 ### 17.8 `viewport.py`, the 3D view
 
-> Update 2026-10-16: the mouse bindings below describe upstream. Left-drag now rotates,
-> right/middle-drag pans, and zoom is proportional. Click/drag separation protects selection.
-> See [current viewport controls](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
-
 `OrbitCameraViewer3d` is the 3D view on the right of the window: an OpenCASCADE viewer placed
 inside a Qt widget.
 

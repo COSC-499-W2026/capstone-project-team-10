@@ -166,8 +166,3 @@ It checks nested viewer URLs and rejects missing, stale or unembedded nested dia
 also checks that a diagram checked out with CRLF line endings, as Git for Windows does, still
 matches a stamp written on macOS or Linux, and that the `npx` it renders with can be started,
 which on Windows means `npx.cmd`. That test is skipped where Node is not installed.
-
-`views/test_camera_controls.py` exercises the camera gesture rules without initializing
-a native viewport. It covers drag versus click (including returning to the press point),
-right/middle pan deltas, and reversible wheel/trackpad zoom. Native camera motion still
-requires a displayed application run.
