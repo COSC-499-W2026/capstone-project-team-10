@@ -20,3 +20,10 @@ window the group is below the fold and the list shows about four rows, where wit
 scroll area the spin boxes above were squeezed unreadable. *Verified* by offscreen widget tests
 and a render of the shown window. No screenshot is in the repository, because the PR was at
 the file limit.
+
+Each row of the Channels list shows its channel's status. Own diameter is bold on amber,
+disabled is italic on grey, and the tandem is bold italic on blue, with a legend under the
+list. Every colour has its own bold and italic pair, so colour is never the only cue (WCAG
+1.4.1, Use of Color), and hovering a row names its status and diameter. A selected row shows
+the system highlight instead of its colour, and keeps its font. *Verified* by offscreen tests
+and a render. No screenshot is in the repository, because the PR was at the file limit.
