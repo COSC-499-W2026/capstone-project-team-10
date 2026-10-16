@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -217,11 +218,11 @@ def test_channel_keeps_its_own_diameter_when_channels_diameter_is_applied(
         model.set_channel_diameter(OWN_DIAMETER_CHANNEL, 3.2)
         view.ui.spinbox_diameter.setValue(2.5)
         view.action_apply_settings()
+        assert model.channels[OWN_DIAMETER_CHANNEL].get_diameter() == 3.2
+        assert model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter() == 2.5
     finally:
         values.config_values = live_settings
-
-    assert model.channels[OWN_DIAMETER_CHANNEL].get_diameter() == 3.2
-    assert model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter() == 2.5
+        model.set_diameter(live_settings["CONFIG_CHANNELS_DIAMETER"])
 
 
 def test_channel_follows_channels_diameter_again_once_its_own_is_cleared(
@@ -238,7 +239,7 @@ def test_channel_follows_channels_diameter_again_once_its_own_is_cleared(
     model.set_channel_diameter(CLEARED_CHANNEL, 3.4)
     model.clear_channel_diameter(CLEARED_CHANNEL)
 
-    assert model.channels[CLEARED_CHANNEL].get_diameter() == model.diameter
+    assert model.channels[CLEARED_CHANNEL].get_diameter() == model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter()
     assert not model.has_own_diameter(CLEARED_CHANNEL)
 
 
@@ -282,6 +283,55 @@ def test_loading_a_plan_clears_every_own_diameter(channels_window: MainWindow) -
     assert not model.has_own_diameter(REIMPORTED_CHANNEL)
     assert model.channels[REIMPORTED_CHANNEL].get_diameter() == get_app().values.config_values["CONFIG_CHANNELS_DIAMETER"]
 
+
+def test_clearing_own_diameter_after_config_import_matches_new_channels(
+    cylinder_window: MainWindow, tmp_path: Path,
+) -> None:
+    """Clear to the width used by new channels after loading a different config.
+
+    A real config file sets 3 mm before Ex1 is imported. Clearing a 4 mm override must
+    return to 3 mm, like an untouched channel. Returning the startup 2.7 mm fails the
+    literal assertion and would cut a narrower hole than the clinician requested.
+    """
+    from classes.app import get_app
+    from classes.dicom.fileio import read_dicom_folder
+    from settings.load import load_config_file
+    from settings.reset import resetAllValues
+
+    values = get_app().values
+    config_file = tmp_path / "channels.json"
+    config_file.write_text('{"CONFIG_CHANNELS_DIAMETER": 3.0}')
+    values.config_values, _, _ = load_config_file(str(config_file), values.config_values, 0)
+    resetAllValues(values.config_values)
+    plan = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
+    cylinder_window.dicommodel.update(read_dicom_folder(str(plan)))
+    model = cylinder_window.channelsmodel
+    model.set_channel_diameter(OWN_DIAMETER_CHANNEL, 4.0)
+
+    model.clear_channel_diameter(OWN_DIAMETER_CHANNEL)
+
+    assert model.channels[OWN_DIAMETER_CHANNEL].get_diameter() == 3.0
+    assert model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter() == 3.0
+    assert not model.has_own_diameter(OWN_DIAMETER_CHANNEL)
+
+
+@pytest.mark.parametrize("label", ["Missing channel", None])
+def test_unknown_channel_cannot_leave_an_own_diameter(
+    channels_window: MainWindow, label: str | None,
+) -> None:
+    """Reject an unknown or unselected channel before storing any diameter.
+
+    A missing label must raise KeyError and leave the override map unchanged. Writing
+    the map before looking up the channel fails the assertion and leaves phantom state
+    that could later apply to a different channel with that label.
+    """
+    model = channels_window.channelsmodel
+    before = model.own_diameters.copy()
+
+    with pytest.raises(KeyError):
+        model.set_channel_diameter(label, 3.0)
+
+    assert model.own_diameters == before
 
 APPLIED_CHANNEL = "Applicator6"
 RESET_CHANNEL = "Applicator8"
@@ -523,8 +573,6 @@ def test_the_tandem_channel_reads_tandem_in_the_list(cylinder_window: MainWindow
     cut as a needle, but the clinician must be able to tell it from a needle they switched off.
     A fresh window keeps tandem and disabled state out of the shared channel fixture.
     """
-    from pathlib import Path
-
     from classes.dicom.fileio import read_dicom_folder
     from windows.models.channels_model import ChannelStatus
 
