@@ -125,8 +125,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   a NaN case**.
 - The PR does not contain any temporary workaround because **the PDF and config gaps are recorded
   in §7.6 for FR-CN-07**.
-- The PR only contains small functions that are **7, 6, 4 and 2 (the four model methods), and at
-  most 28 in the tests** long.
+- The PR only contains small functions that are **7, 7, 4 and 2 (the four model methods), and at
+  most 29 in the tests** long.
 - I did **`anti_slop review --base main` (no findings)** to ensure that my feature contribution does
   not contain any of the following:
   - hardcoded values
@@ -137,6 +137,10 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   - deep nesting
   - high cyclomatic complexity
   - classes/modules/functions with many unrelated responsibilities
+- The review by **Ariq** identified **that clearing an own diameter fell back to the startup
+  width, not the live config default, and that an unknown label could leave a phantom
+  override**. Therefore, I did **clear to `NeedleChannel.default_diameter()`, look the channel
+  up before storing, and add a test for each**.
 - This work is written in **`channels_model.py`, with the minimum in `settings/defaults.py`**
   because **the model owns channel state, and the template library shares the minimum**.
 - This work belongs in **3 Channels** in the DFD because **it sets each needle solid's width**.
@@ -144,25 +148,16 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **Apply keeping an
-  own diameter, and clearing it (70 passed)** passed.
-- I wrote tests to cover abnormal situations involving **a new plan loaded over own diameters**
-  and they passed.
+  own diameter, and clearing it (80 passed)** passed.
+- I wrote tests to cover abnormal situations involving **a new plan loaded over own diameters,
+  a config import before clearing, and an unknown or unselected label** and they passed.
 - I checked that these negative cases involving **0.2 mm and NaN** failed as expected.
 - When I reviewed the **generated `test_channel_keeps_its_own_diameter_when_channels_diameter_is_applied`**,
   I noticed **it used `monkeypatch.setattr`, which anti-slop warns on**. Therefore, I did **restore
   the live settings in `finally` instead**.
-- Among these tests, **none** are unit tests and **all four** are integration tests.
+- Among these tests, **none** are unit tests and **all six** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (70
+- This new test PR did not break anything else in the system because **`python -m pytest` (80
   passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
-  ![1, python -m pytest on feat/channel-own-diameter at 632b389, 70 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5f297c8dafd3c13319dc0683b835927fd7eaefc2/docs/logs/ahab/screenshots/week-6/pr-59-1-pytest-70-passed.png)
-
-- Review follow-up for **Ariq's #59 comments**: **clearing uses the live config default,
-  unknown or unselected labels cannot leave phantom overrides, and shared test state is
-  restored**. The new config-import and invalid-label cases **failed before the fix and
-  under deliberate reversions**. **73 tests pass on macOS offscreen; anti-slop reports no
-  findings; architecture and session-start checks exit 0**. The documentation set was reviewed;
-  the project reference, init-guide note and test-fixture documentation changed. The four
-  diagrams still describe the same ownership, signals and files. **Native viewport and Windows
-  were not rerun**; screenshot 1 remains the original 70-test receipt.
+  ![1, python -m pytest on feat/channel-own-diameter at 9fd84a9, 80 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/144974714611352ba317c6659ea0bf11161f0b2d/docs/logs/ahab/screenshots/week-6/pr-59-1-pytest-80-passed.png)
