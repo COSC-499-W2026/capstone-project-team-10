@@ -775,7 +775,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     │   ├── info.py            APP_NAME, paths
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
-    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py
+    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
     ├── settings/              defaults.py, load.py, values.py, reset.py
@@ -860,10 +860,14 @@ point-count mismatches, nonfinite coordinates, and mixed XOR/non-XOR contours th
 Multiple observation records for one ROI are currently rejected as ambiguous.
 
 No coordinate transformation, frame matching, polygon planarity or self-intersection
-validation, surface reconstruction, display controls or structure-list GUI is implemented
-here. As of 2026-10-15, both vendor readers call
+validation, surface reconstruction, hide/show, opacity or 3D structure drawing is
+implemented here. As of 2026-10-15, both vendor readers call
 [`load_structures`](../../src/classes/dicom/load_structures.py) after reading the RTSTRUCT, so
-`DicomData.structures` holds the decode result (or `None` on `StructureReadError`). Example
+`DicomData.structures` holds the decode result (or `None` on `StructureReadError`).
+[`structure_list.py`](../../src/classes/dicom/structure_list.py) builds read-only Import-tab
+rows (label, RGB, category; ROI suffix when names clash). `ImportView` shows them in a
+`QListWidget` after a successful import (*Reasoned from code*;
+[tests/dicom/test_structure_list.py](../../tests/dicom/test_structure_list.py)). Example
 after `pydicom.dcmread` has loaded an RTSTRUCT:
 
 ```python
@@ -1825,6 +1829,7 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
+| `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, or `None`/empty structures invent rows (§5.3) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |

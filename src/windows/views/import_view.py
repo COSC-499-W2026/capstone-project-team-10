@@ -1,9 +1,10 @@
-from PySide6.QtWidgets import QWidget, QFileDialog
-from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QFileDialog, QListWidget, QListWidgetItem
+from PySide6.QtGui import QColor, QIcon, QPixmap
 
 from classes.app import get_app
 from classes.logger import log
 from classes.dicom.fileio import read_dicom_folder
+from classes.dicom.structure_list import structure_list_rows
 from windows.models.shape_model import ShapeTypes
 from windows.ui.import_view_ui import Ui_Import_View
 from windows.views.custom_view import display_action, CustomView
@@ -117,6 +118,7 @@ class ImportView(CustomView):
             data = read_dicom_folder(foldername)
         except:
             log.error("Empty folder selected.")
+            self.action_update_structure_list()
             return
 
         # Add patient and plan info to window
@@ -129,6 +131,7 @@ class ImportView(CustomView):
             window.displaymodel.set_transparent(True)
 
             self.action_update_import_label()
+            self.action_update_structure_list()
             window.navigationmodel.views[2].create_channels_list()#updates channels list
             #The tandems length should not be larger than the cylinder
             max_tandem_len = app.values.config_values.get('CONFIG_CYLINDER_LENGTH')
@@ -136,6 +139,8 @@ class ImportView(CustomView):
             
             app.signals.viewChanged.emit(4)
             window.change_color_export()
+        else:
+            self.action_update_structure_list()
 
     def action_update_import_label(self):
         self.ui.info_area.clear()
@@ -173,6 +178,17 @@ class ImportView(CustomView):
     def action_update_config_label(self, file_name):
         print("")
 
+    def action_update_structure_list(self):
+        """Fill the read-only structure list from DicomData.structures."""
+        self.structure_list.clear()
+        structures = get_app().window.dicommodel.data.structures
+        for row in structure_list_rows(structures):
+            item = QListWidgetItem(f"{row.label}  {row.category}")
+            swatch = QPixmap(12, 12)
+            swatch.fill(QColor(row.color[0], row.color[1], row.color[2]))
+            item.setIcon(QIcon(swatch))
+            self.structure_list.addItem(item)
+
     @display_action
     def on_open(self):
         log.debug(f"on view open")
@@ -184,6 +200,11 @@ class ImportView(CustomView):
         super().__init__()
         self.ui = Ui_Import_View()
         self.ui.setupUi(self)
+
+        self.structure_list = QListWidget(self)
+        self.structure_list.setObjectName("structure_list")
+        self.structure_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+        self.ui.verticalLayout_3.addWidget(self.structure_list)
 
         # signals and slots
         self.ui.btn_import_folder.pressed.connect(self.action_import_dicom_folder)
