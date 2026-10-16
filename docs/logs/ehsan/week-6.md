@@ -137,3 +137,57 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **all four** are unit tests and integration tests are not required because **load_structures only writes one field**.
 - These tests are included in the directory **tests/dicom/**.
 - This new test PR did not break anything else in the system because **build.py --check and anti-slop passed. The GUI was not run, so there is no screenshot**.
+
+### For PR #**75**
+
+- As part of requirement **FR-SV-02 / FR-SV-03 (frontend, light) and issue #41**, the user needs to do **see each imported structure's name, colour and category on the Import tab**.
+- Therefore, I implemented/generated code so that **Import shows a read-only list built from `DicomData.structures`, with ROI numbers when names clash**.
+
+#### Data Modeling and Integrity
+
+- This data **a list row** is modeled as **`StructureListRow` (label, RGB, category text)** because **the list only needs display fields**. We considered alternative models such as **binding the Qt list to live Structure objects, which would couple the view to DICOM**.
+- This data **duplicate names** uses the input validation to ensure it adheres to **an ROI suffix when the same name appears more than once**.
+- This data may be vulnerable to a security issue — **N/A**, local plan only.
+- This data may be vulnerable to a privacy issue — **N/A**, no new persistence.
+- This data stores sensitive information and uses encryption — **N/A**.
+- The data has access controls — **N/A**, brachify has no users.
+
+#### Backend
+
+- The system uses an architectural pattern — **N/A**, no pattern change.
+- The system architecture diagram — **updated**: domain dicom line names `structure_list`. `build.py --check` exits 0.
+- The system uses a database — **N/A**.
+- The system uses synchronous or asynchronous data processing — **N/A**.
+- The system adopts a stateful or stateless approach — **N/A**.
+- The Level 0 DFD — **N/A**.
+- The Level 1 DFD — **N/A**.
+- The backend API — **N/A**.
+- The following traceability matrix — **N/A**, FR-SV-02 is not complete yet.
+- By using a coverage tool — **N/A**, none is configured.
+
+#### Review and design
+
+- When I reviewed the **Import UI file**, I noticed **editing `.ui` plus regenerating `*_ui.py` would burn two of the ten-file budget**. Therefore, I did **add the `QListWidget` in code**.
+- The PR does not contain any temporary workaround because **rows come from one pure function**.
+- The PR only contains small functions that are **under 25 lines (counted with ast)** long.
+- I did **read the diff, run anti-slop (no findings), and break the ROI-suffix branch on purpose** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/classes/dicom/structure_list.py`** because **the row rules are testable without Qt**.
+- This work belongs in **process 1, Import** in the DFD because **the list updates when a plan is imported**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_structure_list_rows_include_name_colour_and_category` (3 passed with pydicom)** passed.
+- I wrote tests to cover abnormal situations involving **`test_duplicate_names_include_roi_number_in_the_label` and `test_structure_list_rows_for_missing_structures_is_empty`** and they passed.
+- I checked that these negative cases involving **dropping the ROI suffix (`assert 'Node' == 'Node (ROI 7)'`)** failed as expected.
+- When I reviewed the **view wiring**, I noticed **PySide6 is not on this machine**. Therefore, I did **keep Qt out of the unit tests and wire only through `structure_list_rows`**.
+- Among these tests, **all three** are unit tests and a full Import widget test is not required because **the list only paints pure rows**.
+- These tests are included in the directory **`tests/dicom/`**.
+- This new test PR did not break anything else in the system because **`build.py --check` and anti-slop passed. The GUI was not run, so there is no screenshot**.
