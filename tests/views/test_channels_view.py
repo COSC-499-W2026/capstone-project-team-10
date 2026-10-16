@@ -160,3 +160,24 @@ def test_viewport_pick_highlights_only_that_channel_in_list(channels_window: Mai
 
     assert channel_list.currentItem().text() == SECOND_CHANNEL
     assert [item.text() for item in channel_list.selectedItems()] == [SECOND_CHANNEL]
+
+
+CARRIED_OVER_CHANNEL = "Applicator7"
+
+
+def test_loading_a_plan_enables_every_channel_again(channels_window: MainWindow) -> None:
+    """Check that a channel disabled in one plan is enabled in the next plan loaded.
+
+    Applicator7 is disabled, then a plan is loaded through ChannelsModel.load_data, the slot
+    DicomModel.values_changed calls on every import. Fails if Applicator7 is still disabled, or
+    is missing from get_visible_channels, the list the Export cut and the PDF both use. Channel
+    labels repeat between plans, so a needle switched off for one patient would otherwise have
+    no hole in the next patient's printed cylinder, and nothing on screen says so.
+    """
+    model = channels_window.channelsmodel
+    model.toggle_channel_enabled(CARRIED_OVER_CHANNEL)
+
+    model.load_data(channels_window.dicommodel.data)
+
+    assert not model.is_channel_disabled(CARRIED_OVER_CHANNEL)
+    assert CARRIED_OVER_CHANNEL in [channel.label for channel in model.get_visible_channels()]
