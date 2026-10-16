@@ -11,3 +11,8 @@ Apply, DICOM import and config files retain mm internally. The choice is not sav
 provided in chat and was not saved as a repository artifact.
 See [source of truth §5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 for the controls and precision.
+
+The 3D viewport uses left-drag rotation, right/middle-drag panning, and proportional
+wheel zoom. A stationary left-click selects; dragging never selects on release. The
+platform drag threshold tolerates hand jitter. A viewport tooltip lists these controls.
+These are the project's chosen bindings, not a claim of a universal medical-viewer standard.

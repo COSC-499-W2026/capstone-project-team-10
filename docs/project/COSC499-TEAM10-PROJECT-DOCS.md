@@ -1105,14 +1105,28 @@ functions and `CapWords` classes, not colours.)
 `WA_PaintOnScreen`, `WA_NativeWindow` and `WA_NoSystemBackground`, then `OrbitCameraViewer3d`
 hands `int(self.winId())` to pythonocc's `OCCViewer.Viewer3d().Create()`.
 
-Mouse bindings, which are non-standard and worth knowing:
+Mouse bindings (updated 2026-10-16):
 
 | Input | Action |
 |---|---|
 | Left click | select shape (emits `sig_topods_selected`) |
-| **Right** drag | rotate |
-| Middle drag | pan |
-| Wheel | zoom (fixed 2.0× / 0.5× per notch) |
+| Left drag | rotate without selecting on release |
+| Right or middle drag | pan |
+| Wheel | smooth proportional zoom, 1.15× per 120 angle units |
+
+The Qt platform drag threshold separates clicks from drags. Pixel-only trackpad events
+use 30 vertical pixels per zoom step; zero vertical movement does nothing. Large individual
+events are capped at ten steps. A tooltip explains the bindings. These controls move the
+camera, not the geometry. Existing auto-fit on model redraw remains unchanged (§7).
+`CameraGesture` and `wheel_zoom_factor` keep gesture decisions independent of the native
+renderer; six cases in `tests/views/test_camera_controls.py` check click/drag separation,
+pan deltas and zoom. Removing drag suppression was caught by two tests.
+
+*Verified 2026-10-16 on macOS:* a native-window run with Ex1 and Ex2 sent Qt mouse
+and wheel events through the viewport handlers. Camera direction changed on left-drag,
+centre changed on right-drag, scale changed by 1/1.15 on a positive notch, and only a
+stationary left-click emitted selection. Both Export views were rendered and inspected.
+This is a camera interaction check, not clinical validation.
 
 > *Verified 2026-09-21:* this native-handle handoff works on macOS arm64. `lsof` on the running
 > process confirmed `OpenGL`, `QtGui`, `QtWidgets` and the full OpenCASCADE `libTK*` set
@@ -1644,6 +1658,10 @@ fails, and why that matters
 [utils/README.md](../../utils/README.md).
 
 ### 8.2 Current state
+
+Camera controls have six additional regression cases in `tests/views/test_camera_controls.py`.
+They were watched failing before implementation and passed afterwards. Removing drag
+suppression made two tests fail, then the implementation was restored.
 
 *Verified 2026-10-11 on macOS after merging main into the structure-reader branch:*
 `python -m pytest -q` passed all 63 tests. The anti-slop review against `origin/main`
