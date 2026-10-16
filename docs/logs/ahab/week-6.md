@@ -211,57 +211,57 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 ### For PR #**61**
 
-- As part of requirement **FR-CN-05, save needle designs as templates in a library, with
-  FR-CN-06's corrupted-file case**, the user needs to do **save a needle type's diameter under a
-  name and get the same width back in a later session**.
-- Therefore, I implemented/generated code so that **physicists' needle templates are kept in
-  `~/brachify/needle_templates.json`, validated, unique by name, and never overwritten when the
-  file is unreadable**.
+- As part of requirement **FR-CN-05, save needle designs as templates, with FR-CN-06's corrupted
+  file case**, the user needs to do **save a needle type's diameter under a name and get the same
+  width back later**.
+- Therefore, I implemented/generated code so that **physicists' templates are kept in
+  `~/brachify/needle_templates.json`, validated and never overwritten when unreadable**.
 
 #### Data Modeling and Integrity
 
 - This data **`NeedleTemplate`** is modeled as **a frozen dataclass of `name` and `diameter_mm`**
   because **a template must not change once validated**. We considered alternative models such as
-  **the decoded JSON `dict`, rejected because anti-slop forbids passing undecoded data inward**.
-- This data **`needle_templates.json`** uses the input validation to ensure it adheres to **a JSON
-  list of objects with a non-blank, unique `name` and a finite `diameter_mm` of at least 0.3**.
+  **a raw `dict`, which anti-slop forbids**.
+- This data **`needle_templates.json`** uses the input validation to ensure it adheres to **unique,
+  non-blank names and finite diameters of at least 0.3 mm**.
 - This data **`needle_templates.json`** may be vulnerable to **a corrupt or hand-edited file**.
-  Therefore, it uses a security-based sanitization by **decoding every entry through
-  `make_template` and refusing the whole file, without overwriting it**. We considered alternative
-  security solutions such as **skipping bad entries, rejected because a partly read library shows
-  widths from the wrong entry**.
+  Therefore, it uses a security-based sanitization by **refusing the whole file without
+  overwriting it**. We considered alternative security solutions such as **skipping bad entries,
+  which mislabels widths**.
 - Not applicable: **privacy sanitization (no patient data), encryption (nothing sensitive),
   access controls (one local user)**.
 
 #### Backend
 
-- The system architecture diagram consists of the following major components: **External,
-  Presentation, Application state, Domain services (now naming `needle_templates`), Libraries and
-  Local storage (now with `needle_templates.json`)**. This structure has low coupling because
-  **the module imports only `settings.defaults`, and its caller passes the path**. This structure
-  has high cohesion because **decoding, validating and saving templates live in one module**. This
-  design is scalable because **dead space for FR-CN-19 is one more field in the same objects**.
+- The system architecture diagram consists of the following major components: **External, Presentation, Application state, Domain services, Libraries and Local storage**. This
+  structure has low coupling because **the module imports only `settings.defaults`**. This
+  structure has high cohesion because **templates are handled in one module**. This design is scalable because **dead space for FR-CN-19 is one more field**.
 
-  **[System architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/a3db1e13f4fe77f045c6ee6d2e5b842a4b4a6e67/docs/architecture/diagrams/system-architecture.svg), redrawn in this PR**
+  **[System architecture (SVG), redrawn to name `needle_templates`](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/a3db1e13f4fe77f045c6ee6d2e5b842a4b4a6e67/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **medical physicist, treatment
+  planning system, brachify and printer or CAD**. **Templates stay inside brachify, in local storage**
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **Channels saves and
+  applies templates in the next PR**. **An unreadable library raises `NeedleTemplateError`**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
 - The following traceability matrix shows the list of requirements completed in this
   milestone and their associated tests: **FR-CN-05 → `test_a_saved_template_loads_back_with_identical_values`;
   FR-CN-06 → `test_a_corrupt_library_is_reported_and_left_unchanged`**
 - Not applicable: **architectural pattern (unchanged), database (a JSON file, above), data
-  processing (unchanged), state management (stateless module), Level 0 DFD, Level 1 DFD
-  (unchanged, local state like `filepaths.json`), backend API (none), test coverage (no coverage
-  tool)**.
+  processing (unchanged), state management (stateless module), backend API (none), test coverage
+  (no coverage tool)**.
 
 #### Review and design
 
-- When I reviewed the **generated `load_templates`**, I noticed **it let an `OSError` escape, which
-  would stop brachify starting once the Channels tab reads the library**. Therefore, I did **turn
-  read and write `OSError`s into `NeedleTemplateError`, with two tests**.
-- The PR does not contain any temporary workaround because **the module is complete, and only
-  its GUI caller is still to come**.
-- The PR only contains small functions that are **8, 12 and 9 (`make_template`, `load_templates`,
-  `save_template`), and at most 14 in the tests** long.
-- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my
-  feature contribution does not contain any of the following:
+- When I reviewed the **generated `load_templates`**, I noticed **an `OSError` could escape and stop
+  brachify starting**. Therefore, I did **raise `NeedleTemplateError` instead**.
+- The PR does not contain any temporary workaround because **only the GUI caller is still to
+  come**.
+- The PR only contains small functions that are **8, 12 and 9, and at most 14 in the tests** long.
+- I did **`anti_slop review --base main` (no findings)** to ensure that my feature contribution does
+  not contain any of the following:
   - hardcoded values
   - duplicate code
   - dead code
@@ -270,24 +270,22 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   - deep nesting
   - high cyclomatic complexity
   - classes/modules/functions with many unrelated responsibilities
-- This work is written in **`src/settings/needle_templates.py`** because **it is settings data from
-  `~/brachify`, beside `values.py`, with no Qt**.
-- This work belongs in **3 Channels** in the DFD because **a template sets a needle's bore there,
-  through the next PR**.
+- This work is written in **`src/settings/needle_templates.py`** because **it is settings data with
+  no Qt**.
+- This work belongs in **3 Channels** in the DFD because **a template sets a needle's bore there**.
 
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **a round trip and a
   replace by name (91 passed)** passed.
-- I wrote tests to cover abnormal situations involving **no file yet, an unreadable path and an
+- I wrote tests to cover abnormal situations involving **no file, an unreadable path and an
   unwritable folder** and they passed.
-- I checked that these negative cases involving **a blank name, 0.2 mm, NaN, a corrupt file and
-  four malformed libraries** failed as expected.
+- I checked that these negative cases involving **blank names, 0.2 mm, NaN and corrupt or
+  malformed files** failed as expected.
 - When I reviewed the **generated `test_a_library_with_a_malformed_entry_is_rejected`**, I noticed
-  **its `entries: object` parameter, which anti-slop's `no-object-parameters` warns on**.
-  Therefore, I did **type it as the `LibraryJson` alias**.
-- Among these tests, **all 15 cases in `test_needle_templates.py`** are unit tests and integration
-  tests are not required because **the module has no Qt or app dependency**.
+  **an `object` parameter, which anti-slop warns on**. Therefore, I did **type it as `LibraryJson`**.
+- Among these tests, **all 15 cases** are unit tests and integration tests are not required because
+  **the module has no Qt or app dependency**.
 - These tests are included in the directory **`tests/settings/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (91
   passed), `build.py --check` and `session-start.sh` (exit 0)**.
