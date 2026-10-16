@@ -215,4 +215,9 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **all six** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (76
-  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+  passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and brachify run on
+  macOS through its buttons, with Ex1 (screenshot 2)**.
+
+  ![1, python -m pytest on feat/channel-diameter-controls at 67be752, 76 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-60-1-pytest-76-passed.png)
+
+  ![2, Ex1 in brachify, Applicator4 given 3.5 mm by Apply to Channel and kept after Channels Diameter 2.0](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-60-2-selected-channel-group.png)
