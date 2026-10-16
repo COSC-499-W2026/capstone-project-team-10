@@ -77,44 +77,52 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 ### For PR #**59**
 
-- As part of requirement **FR-CN-08, individual needles have their own properties that override
-  the global channel settings**, the user needs to do **give one needle its own diameter, then
-  press Apply on the Channels tab with a new Channels Diameter, and keep that needle's width**.
-- Therefore, I implemented/generated code so that **physicists' per-needle diameters survive the
-  Channels tab's Apply, are refused below 0.3 mm or as NaN, and are cleared by a new import**.
+- As part of requirement **FR-CN-08, a needle's own properties override the global channel
+  settings**, the user needs to do **give one needle its own diameter, then press Apply on the
+  Channels tab with a new Channels Diameter**.
+- Therefore, I implemented/generated code so that **physicists' per-needle diameters survive
+  Apply, are refused below 0.3 mm or as NaN, and clear on a new import**.
 
 #### Backend
 
-- The system adopts a **stateful** approach to state management because **a needle's own diameter
-  must outlast every later Apply on the Channels tab**. This method is done by
-  **`ChannelsModel.own_diameters`, a `dict[str, float]` by label, which `set_diameter` reads for
-  each channel it rebuilds**. Benefits for using this approach include **one owner for every
-  needle's width, which Export cuts through `channel.shape()`**. Possible risks include **one
-  patient's width reaching the next patient's channel of the same label, and an invalid width
-  reaching the geometry**.
-  - To mitigate **own diameters carrying across imports**, we implemented **`load_data` emptying
-    `own_diameters`**.
-  - To mitigate **an invalid width**, we implemented **`ValueError` below
-    `MINIMUM_CHANNEL_DIAMETER_MM` or for NaN, which otherwise crashes OpenCASCADE (exit 139)**.
+- The system adopts a **stateful** approach to state management because **a needle's own
+  diameter must outlast later Applies**. This method is done by **`ChannelsModel.own_diameters`**.
+  Benefits for using this approach include **one owner of each needle's width**. Possible risks
+  include **a width reaching the next patient, or NaN reaching the geometry**.
+  - To mitigate **both**, we implemented **clearing on import, and `ValueError` below 0.3 mm or
+    for NaN**.
+- The system architecture diagram consists of the following major components: **External, Presentation, Application state, Domain services, Libraries and Local storage**. This
+  structure has low coupling because **views set widths only through `ChannelsModel`**. This
+  structure has high cohesion because **channel state stays in `ChannelsModel`**. This design is
+  scalable because **dead space can join `own_diameters` (FR-CN-19)**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **medical physicist, treatment
+  planning system, brachify and printer or CAD**. **Channel settings go in, and the STL and PDF come out**
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **Apply in
+  Channels keeps Applicator4's own 3.2 mm, and Export cuts it**. **Below 0.3 mm or NaN is refused
+  with `ValueError`, and nothing changes**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
 - The following traceability matrix shows the list of requirements completed in this
   milestone and their associated tests: **FR-CN-08 → the four own-diameter tests in
   `test_channels_view.py`**
-- Not applicable: **architectural pattern, architecture diagram, Level 0 DFD, Level 1 DFD
-  (unchanged, `build.py --check` exit 0), database (none), data processing (unchanged), backend
-  API (none), test coverage (no coverage tool)**.
+- Not applicable: **architectural pattern (unchanged), database (none), data processing
+  (unchanged), backend API (none), test coverage (no coverage tool)**.
 
 #### Review and design
 
 - When I reviewed the **generated `set_channel_diameter`**, I noticed **its `< 0.3` check let NaN
-  through, and a NaN diameter crashed the run with exit 139**. Therefore, I did **refuse any
-  value that is not finite, with a NaN test case**.
+  through, and NaN crashed the run (exit 139)**. Therefore, I did **refuse non-finite values, with
+  a NaN case**.
 - The PR does not contain any temporary workaround because **the PDF and config gaps are recorded
-  in §7.6 for FR-CN-07, not patched around**.
-- The PR only contains small functions that are **7, 6, 4 and 2 (`set_diameter`,
-  `set_channel_diameter`, `clear_channel_diameter`, `has_own_diameter`), and at most 28 in the
-  tests** long.
-- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my
-  feature contribution does not contain any of the following:
+  in §7.6 for FR-CN-07**.
+- The PR only contains small functions that are **7, 6, 4 and 2 (the four model methods), and at
+  most 28 in the tests** long.
+- I did **`anti_slop review --base main` (no findings)** to ensure that my feature contribution does
+  not contain any of the following:
   - hardcoded values
   - duplicate code
   - dead code
@@ -124,23 +132,19 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   - high cyclomatic complexity
   - classes/modules/functions with many unrelated responsibilities
 - This work is written in **`channels_model.py`, with the minimum in `settings/defaults.py`**
-  because **the model owns channel state, and `defaults.py` is pure, so the template library can
-  share the minimum**.
-- This work belongs in **3 Channels** in the DFD because **it sets the width of each needle solid
-  sent to the Shapes store**.
+  because **the model owns channel state, and the template library shares the minimum**.
+- This work belongs in **3 Channels** in the DFD because **it sets each needle solid's width**.
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving
-  **`test_channel_keeps_its_own_diameter_when_channels_diameter_is_applied` and
-  `test_channel_follows_channels_diameter_again_once_its_own_is_cleared` (70 passed)** passed.
-- I wrote tests to cover abnormal situations involving **a new plan loaded over own diameters
-  (`test_loading_a_plan_clears_every_own_diameter`)** and they passed.
-- I checked that these negative cases involving **0.2 mm and NaN
-  (`test_own_diameter_below_the_minimum_or_not_a_number_is_rejected`)** failed as expected.
+- The functionality works correctly because the happy path tests involving **Apply keeping an
+  own diameter, and clearing it (70 passed)** passed.
+- I wrote tests to cover abnormal situations involving **a new plan loaded over own diameters**
+  and they passed.
+- I checked that these negative cases involving **0.2 mm and NaN** failed as expected.
 - When I reviewed the **generated `test_channel_keeps_its_own_diameter_when_channels_diameter_is_applied`**,
-  I noticed **it used `monkeypatch.setattr`, which anti-slop's `no-module-mocking` warns on**.
-  Therefore, I did **swap the live settings for a copy and restore them in `finally`**.
+  I noticed **it used `monkeypatch.setattr`, which anti-slop warns on**. Therefore, I did **restore
+  the live settings in `finally` instead**.
 - Among these tests, **none** are unit tests and **all four** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (70
