@@ -8,6 +8,7 @@ from windows.ui import arrows_rc  # registers the :/arrows/ images used below
 from windows.ui.channels_view_ui import Ui_Channels_View
 from windows.views.custom_view import display_action, CustomView
 
+from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from settings.reset import getCurrentValues
 
 
@@ -112,6 +113,17 @@ class ChannelsView(CustomView):
         channel_label = model.get_selected_channel()   
         model.toggle_channel_enabled(channel_label)
 
+    @display_action
+    def action_apply_channel_diameter(self):
+        log.debug(f"action: give the selected channel its own diameter")
+        label = self.channelsmodel.get_selected_channel()
+        self.channelsmodel.set_channel_diameter(label, self.ui.sb_channel_diameter.value())
+
+    @display_action
+    def action_clear_channel_diameter(self):
+        log.debug(f"action: return the selected channel to the channels diameter")
+        self.channelsmodel.clear_channel_diameter(self.channelsmodel.get_selected_channel())
+
     def create_channels_list(self):
         # channels list
         selected_channel = self.channelsmodel.get_selected_channel()
@@ -140,6 +152,10 @@ class ChannelsView(CustomView):
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
         self.ui.btn_set_tandem.setEnabled(any_selected)
+        self.ui.group_selected_channel.setEnabled(any_selected)
+        if any_selected:
+            self.ui.sb_channel_diameter.setValue(self.channelsmodel.channels[selected_channel].get_diameter())
+        self.ui.btn_clear_channel_diameter.setEnabled(any_selected and self.channelsmodel.has_own_diameter(selected_channel))
         
         label = self.channelsmodel.get_selected_channel()
         is_disabled = self.channelsmodel.is_channel_disabled(label)
@@ -199,8 +215,12 @@ class ChannelsView(CustomView):
         self.ui.sb_threading_dept.setValue(config_values.get("CONFIG_CHANNELS_THREADING_DEPTH"))
         self.ui.sb_threading_diameter.setValue(config_values.get("CONFIG_CHANNELS_THREADING_DIAMETER"))
 
+        self.ui.sb_channel_diameter.setMinimum(MINIMUM_CHANNEL_DIAMETER_MM)
+
         # signals and slots
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
+        self.ui.btn_apply_channel_diameter.pressed.connect(self.action_apply_channel_diameter)
+        self.ui.btn_clear_channel_diameter.pressed.connect(self.action_clear_channel_diameter)
         self.ui.listwidget_channels.currentItemChanged.connect(self.action_select_channel)
         self.ui.btn_enable.pressed.connect(self.action_toggle_channel_disable)
         self.ui.btn_set_tandem.pressed.connect(self.action_set_tandem)

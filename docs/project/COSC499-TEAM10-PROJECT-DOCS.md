@@ -585,7 +585,7 @@ were added on 2026-10-11. It is not yet connected to the GUI import path. On 202
 importing a plan stopped keeping channels disabled in the previous plan (§7.10), the collar
 settings began to round-trip through config files, and *Generate Tandem* stopped dropping
 settings (§7.1). `ChannelsModel` began keeping a channel's own
-diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is not yet reachable from the GUI.
+diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is set in the Channels tab's Selected Channel group (§5.6).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -1112,6 +1112,16 @@ Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cas
 | `listwidget_channels` | Channels | |
 | `btn_set_tandem` | Set as Tandem / Clear Tandem | text toggles |
 | `btn_enable` | Disable / Enable | text toggles |
+| `group_selected_channel` | Selected Channel | enabled only while a channel is selected |
+| `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
+| `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
+| `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
+
+Every Channels control sits in a scroll area, `scroll_channels`, so the tab scrolls rather than
+squeezing its spin boxes when the window is too short for it. At the default 770 × 472 window
+the Selected Channel group is below the fold and the list shows about four rows. Without the
+scroll area, the group squeezed the four spin boxes above it to 9 px. *Verified* 2026-10-15
+offscreen, by a test and a render of the shown window.
 
 **Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
 
@@ -1832,7 +1842,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
@@ -1965,6 +1975,18 @@ python -m pytest
   `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
   and removing the notch line from `resetAllValues()` failed the config import test.
   *Not verified:* Windows.
+
+- *Verified* 2026-10-15 on macOS: 76 passed, with six Selected Channel tests added to
+  `test_channels_view.py` and `sb_channel_diameter` added to the arrow test. Five failed on
+  their assertions before the view was wired. Adding the group also turned the existing arrow
+  test red: the window stays 770 × 472, and the four spin boxes were squeezed to 9 px. The
+  height test was written for that, red at 9 px, and both went green with the scroll area. Five
+  deliberate breaks of the wiring were each caught. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS after Ariq's PR #60 review: 79 passed, including the
+  inherited config-import regression. Use Channels Diameter is checked against an untouched
+  channel's actual width instead of the cached model value. That comparison failed before
+  the #59 fix was integrated. Anti-slop, architecture and session-start checks passed.
+  Native viewport and Windows were not rerun.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

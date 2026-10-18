@@ -4719,6 +4719,8 @@ settings file: an export leaves it out and an import ignores it
 
 ### 17.5 `channels_view.py`, the Channels tab
 
+> **Changed 2026-10-15.** The Channels tab scrolls, and has a Selected Channel group below the list, for the selected needle's own values. Apply keeps a needle's own diameter. Its controls are listed in source of truth §5.6.
+
 | Widget | Label | Allowed values / does |
 |---|---|---|
 | `spinbox_diameter` | *Channels Diameter* | 0.3 to 99.99 mm |
@@ -4956,6 +4958,8 @@ The object name typed into Qt Designer becomes the Python name every other file 
 ### 18.3 What each design file contains
 
 > **Changed 2026-10-10.** The Cylinder design adds a Units selector and uses QDoubleSpinBox for length and both collar fields. Precision and limits scale with mm/cm. See source of truth §5.6.
+
+> **Changed 2026-10-15.** `channels_view.ui` puts its controls in a scroll area and adds the Selected Channel group. See source of truth §5.6.
 
 Every widget the code uses, with its label on screen and its allowed values. *Verified*, read
 from the `.ui` files.
