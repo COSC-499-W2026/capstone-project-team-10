@@ -9,6 +9,42 @@ from classes.app import get_app
 from classes.logger import log
 
 
+def wheel_zoom_factor(angle_delta: int, pixel_delta: int) -> float:
+    """Return a reversible zoom scale, including pixel-only trackpad events."""
+    steps = angle_delta / 120.0 if angle_delta else pixel_delta / 30.0
+    return 1.15 ** max(-10.0, min(10.0, steps))
+
+
+class CameraGesture:
+    """Track a single button gesture without touching the native viewer."""
+
+    def __init__(self, button: QtCore.Qt.MouseButton, x: int, y: int, threshold: int):
+        self.button = button
+        self.origin = (x, y)
+        self.previous = (x, y)
+        self.threshold = threshold
+        self.dragged = False
+
+    def move(self, x: int, y: int) -> tuple[str, int, int]:
+        """Distinguish click jitter from a drag and return camera movement."""
+        distance = abs(x - self.origin[0]) + abs(y - self.origin[1])
+        self.dragged = self.dragged or distance >= self.threshold
+        if not self.dragged:
+            return ('none', 0, 0)
+        dx, dy = x - self.previous[0], self.previous[1] - y
+        self.previous = (x, y)
+        if self.button == QtCore.Qt.LeftButton:
+            return ('rotate', dx, dy)
+        if self.button in (QtCore.Qt.RightButton, QtCore.Qt.MiddleButton):
+            return ('pan', dx, dy)
+        return ('none', 0, 0)
+
+    def select_on_release(self, x: int, y: int) -> bool:
+        """Select only a left click that never crossed the drag threshold."""
+        self.move(x, y)
+        return self.button == QtCore.Qt.LeftButton and not self.dragged
+
+
 class qtBaseViewer(QtWidgets.QWidget):
     """The base Qt Widget for an OCC viewer"""
 
@@ -85,6 +121,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._qApp = get_app()
         self._current_cursor = "arrow"
         self._available_cursors = {}
+        self._gesture: CameraGesture | None = None
+        self.setToolTip("Left drag to rotate • Right or middle drag to pan • Scroll to zoom")
 
     @property
     def qApp(self):
@@ -129,9 +167,10 @@ class OrbitCameraViewer3d(qtBaseViewer):
             painter.drawRect(rect)
 
     def wheelEvent(self, event):
-        delta = event.angleDelta().y()
-        zoom_factor = 2.0 if delta > 0 else 0.5
-        self._display.ZoomFactor(zoom_factor)
+        factor = wheel_zoom_factor(event.angleDelta().y(), event.pixelDelta().y())
+        if factor != 1.0:
+            self._display.ZoomFactor(factor)
+        event.accept()
 
     @property
     def cursor(self):
@@ -148,26 +187,29 @@ class OrbitCameraViewer3d(qtBaseViewer):
 
     def mousePressEvent(self, event):
         self.setFocus()
-        ev = event.pos()
-        self.dragStartPosX = ev.x()
-        self.dragStartPosY = ev.y()
-        self._display.StartRotation(self.dragStartPosX, self.dragStartPosY)
+        pt = event.position().toPoint()
+        if self._gesture is not None:
+            self._gesture.dragged = True
+            return
+        self._gesture = CameraGesture(
+            event.button(), pt.x(), pt.y(), QtWidgets.QApplication.startDragDistance()
+        )
+        self.dragStartPosX, self.dragStartPosY = pt.x(), pt.y()
+        if event.button() == QtCore.Qt.LeftButton:
+            self._display.StartRotation(pt.x(), pt.y())
+        event.accept()
 
     def mouseReleaseEvent(self, event):
-        pt = event.pos()
-        modifiers = event.modifiers()
-
-        if event.button() == QtCore.Qt.LeftButton:
-            # single select otherwise
-            self._display.Select(pt.x(), pt.y())
-
-            if self._display.selected_shapes is not None:
-                self.sig_topods_selected.emit(self._display.selected_shapes)
-
-        elif event.button() == QtCore.Qt.RightButton:
-            pass
-
-        self.cursor = "arrow"
+        pt = event.position().toPoint()
+        gesture = self._gesture
+        if gesture is not None and event.button() == gesture.button:
+            self._gesture = None
+            if gesture.select_on_release(pt.x(), pt.y()):
+                self._display.Select(pt.x(), pt.y())
+                if self._display.selected_shapes is not None:
+                    self.sig_topods_selected.emit(self._display.selected_shapes)
+        self.unsetCursor()
+        event.accept()
 
     def DrawBox(self, event):
         tolerance = 2
@@ -178,25 +220,20 @@ class OrbitCameraViewer3d(qtBaseViewer):
             return
         self._drawbox = [self.dragStartPosX, self.dragStartPosY, dx, dy]
 
-    def mouseMoveEvent(self, evt):
-        pt = evt.pos()
-        # buttons = int(evt.buttons())
-        buttons = evt.buttons()
-        modifiers = evt.modifiers()
-        # ROTATE
-        if buttons == QtCore.Qt.RightButton:
-            self.cursor = "rotate"
-            self._display.Rotation(pt.x(), pt.y())
-            self._drawbox = False
-        elif buttons == QtCore.Qt.MiddleButton:
-            dx = pt.x() - self.dragStartPosX
-            dy = pt.y() - self.dragStartPosY
-            self.dragStartPosX = pt.x()
-            self.dragStartPosY = pt.y()
-            self.cursor = "pan"
-            self._display.Pan(dx, -dy)
-            self._drawbox = False
-        else:
-            self._drawbox = False
+    def mouseMoveEvent(self, event):
+        pt = event.position().toPoint()
+        self._drawbox = False
+        gesture = self._gesture
+        if gesture is not None and event.buttons() == gesture.button:
+            action, dx, dy = gesture.move(pt.x(), pt.y())
+            if action == 'rotate':
+                self.setCursor(QtCore.Qt.ClosedHandCursor)
+                self._display.Rotation(pt.x(), pt.y())
+            elif action == 'pan':
+                self.setCursor(QtCore.Qt.SizeAllCursor)
+                self._display.Pan(dx, dy)
+        elif event.buttons() == QtCore.Qt.NoButton:
+            self._gesture = None
+            self.unsetCursor()
             self._display.MoveTo(pt.x(), pt.y())
-            self.cursor = "arrow"
+        event.accept()
