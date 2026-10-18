@@ -225,7 +225,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Backend
 
-- The system architecture diagram ΓÇö **described in prose** in the architecture README (diagram sources are on #75).
+- The system architecture diagram — **described in prose** in the architecture README (diagram sources are on #75).
 - Not applicable: **pattern, database, processing, DFDs, API, coverage tool**.
 
 #### Review and design
