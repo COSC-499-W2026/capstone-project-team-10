@@ -585,7 +585,8 @@ were added on 2026-10-11. It is not yet connected to the GUI import path. On 202
 importing a plan stopped keeping channels disabled in the previous plan (§7.10), the collar
 settings began to round-trip through config files, and *Generate Tandem* stopped dropping
 settings (§7.1). `ChannelsModel` began keeping a channel's own
-diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is set in the Channels tab's Selected Channel group (§5.6).
+diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is set in the Channels tab's Selected Channel group (§5.6). The Channels list
+shows each channel's status in colour (§5.6).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -759,7 +760,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, Channels and Cylinder units tests in views/ (§8)
+├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, Channels and Cylinder units tests in views/, needle template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -779,7 +780,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (standalone ROI reader)
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
-    ├── settings/              defaults.py, load.py, values.py, reset.py
+    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
@@ -844,6 +845,17 @@ single mutable dict every other module reads), the two most-recent config file p
   returns every key, 25 since the notch and tip settings. The collar's two come from the live settings,
   which *Apply Settings* writes (§7.1), and the notch's five from the cylinder's
   `notch_settings`.
+
+**[`settings/needle_templates.py`](../../src/settings/needle_templates.py)** — the needle template
+library, not yet called from the GUI. A `NeedleTemplate` is a frozen dataclass of `name` and
+`diameter_mm`. `make_template` trims the name and refuses an empty one, and refuses a diameter
+that is not finite or is below `MINIMUM_CHANNEL_DIAMETER_MM`. `load_templates(path)` decodes the
+JSON file into `NeedleTemplate` values at the boundary and returns all of them or none: a missing
+file is an empty library, and a malformed entry, a name used twice, or any `OSError` raises
+`NeedleTemplateError`. `save_template` replaces a template of the same name and writes the
+library back, and never overwrites a library it could not read. The module imports nothing from
+`classes` or `windows`, and the caller passes the path. Its error messages are written for
+clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
 
 ### 5.3 DICOM ingest
 
@@ -1005,7 +1017,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test) |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1116,12 +1128,20 @@ Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cas
 | `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
 | `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
 | `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
+| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours |
 
 Every Channels control sits in a scroll area, `scroll_channels`, so the tab scrolls rather than
 squeezing its spin boxes when the window is too short for it. At the default 770 × 472 window
 the Selected Channel group is below the fold and the list shows about four rows. Without the
 scroll area, the group squeezed the four spin boxes above it to 9 px. *Verified* 2026-10-15
 offscreen, by a test and a render of the shown window.
+
+Each row of `listwidget_channels` shows its channel's `ChannelStatus`: own diameter is bold on
+amber, disabled is italic on grey, the tandem is bold italic on blue, and the rest are plain.
+Its tooltip names the status and the diameter it is cut at. `mark_channel_statuses` restyles
+every row on each `ChannelsModel.values_changed` and after `create_channels_list`, looking rows
+up by label. The selected row's highlight hides its colour but not its font. *Verified* by
+offscreen tests and a render.
 
 **Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
 
@@ -1316,6 +1336,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 |---|---|---|
 | `app.log` | `logger.py` | rotating, 25 MB × 3 backups |
 | `filepaths.json` | `MainWindow.closeEvent` | `most_recently_opened_config_file`, `most_recently_saved_config_file` |
+| `needle_templates.json` | `settings.needle_templates.save_template`, not yet called from the GUI | a JSON list of `{"name", "diameter_mm"}` objects |
 
 `most_recently_saved_config_file` is stored but never read — it is reserved for future use.
 
@@ -1841,8 +1862,9 @@ Repository tooling tests, first added 2026-09-30, live in
 
 | Test | Fails when |
 |---|---|
+| `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6). Or a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
@@ -1987,6 +2009,22 @@ python -m pytest
   channel's actual width instead of the cached model value. That comparison failed before
   the #59 fix was integrated. Anti-slop, architecture and session-start checks passed.
   Native viewport and Windows were not rerun.
+
+- *Verified* 2026-10-15 on macOS: 80 passed, with four channel status tests added to
+  `test_channels_view.py`. All four failed before `ChannelStatus` existed. Four deliberate breaks
+  were each caught: own diameter ranked above disabled, no restyle on a model change, no italic,
+  and a two-decimal tooltip. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS after Ariq's PR #62 review: 83 passed. A cleared channel
+  tooltip is compared with an untouched channel's tooltip, which failed before the #59 fix
+  was integrated. The tandem status test imports Ex1 into a fresh window, leaving the shared
+  fixture's tandem and disabled state untouched. Anti-slop, architecture and session-start
+  checks passed. Native viewport and Windows were not rerun.
+
+- *Verified* 2026-10-15 on macOS: 95 passed, with `tests/settings/test_needle_templates.py` added.
+  It failed to import before the module existed. Six deliberate breaks were each caught: no
+  trimming, no duplicate check, no replace on save, a decode error returning an empty library,
+  NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
+  diagram named the module. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
