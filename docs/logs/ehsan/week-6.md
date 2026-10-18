@@ -101,7 +101,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Backend
 
 - The system uses an architectural pattern — **N/A**, no pattern change.
-- The system architecture diagram — **updated**: domain dicom line now names load_structures. Low coupling because **that module only depends on data, structures and the logger**. \uild.py --check\ exits 0.
+- The system architecture diagram — **updated**: domain dicom line now names load_structures. Low coupling because **that module only depends on data, structures and the logger**. `build.py --check` exits 0.
 - The system uses a database — **N/A**, brachify has no database.
 - The system uses synchronous or asynchronous data processing — **N/A**, unchanged.
 - The system adopts a stateful or stateless approach — **N/A**, unchanged.
@@ -137,3 +137,30 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **all four** are unit tests and integration tests are not required because **load_structures only writes one field**.
 - These tests are included in the directory **tests/dicom/**.
 - This new test PR did not break anything else in the system because **build.py --check and anti-slop passed. The GUI was not run, so there is no screenshot**.
+
+### For PR #**77**
+
+- As part of requirement **the course documentation receipts for FR-SV-01 / issue #40**, the user needs to do **open the source of truth and see that folder import attaches decoded structures**.
+- Therefore, I implemented/generated code so that **teammates reading the docs get the `load_structures` wiring, test inventory and this Part A recorded**.
+
+#### Review and design
+
+- When I reviewed the **§3.3 contribution paragraph** for this functionality, I noticed **it still said the RTSTRUCT reader was not connected to the GUI import path**. Therefore, I did **rewrite that sentence to match §5.3 and the #44 call sites**.
+- When I reviewed the **`tests/README.md` "exist" sentence**, I noticed **`test_load_structures.py` was only in the tree**. Therefore, I did **add it to that sentence**.
+- I did **diff the docs against #44's `load_structures` calls, count 22 `DicomData` fields, and drop the init-guide out-of-date note** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`docs/project/COSC499-TEAM10-PROJECT-DOCS.md`, `tests/README.md` and `docs/logs/ehsan/week-6.md`** because **those are the documentation-set files left stale by #44**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`rg` for the old "not yet connected" sentence (no hits) and a 22-field count of `DicomData.__init__`** passed.
+- This new test PR did not break anything else in the system because **`python docs/architecture/build.py --check` exits 0 on this branch. No `src/` change; no GUI run**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.

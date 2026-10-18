@@ -581,7 +581,8 @@ scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. The first
 on 2026-10-10, keep the Export tab disabled until a cylinder exists (§7.6) and add the
 Cylinder tab's mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.3, §8)
-were added on 2026-10-11. It is not yet connected to the GUI import path. On 2026-10-15,
+were added on 2026-10-11. Folder import now calls `load_structures` so
+`DicomData.structures` holds that decode, or `None` on failure (§5.3). On 2026-10-15,
 importing a plan stopped keeping channels disabled in the previous plan (§7.10), the collar
 settings began to round-trip through config files, and *Generate Tandem* stopped dropping
 settings (§7.1). `ChannelsModel` began keeping a channel's own
@@ -879,7 +880,7 @@ structures = read_structures(rs_dataset)
 152 contours each. This is a headless reader check, not a GUI or clinical validation.
 Synthetic tests are in `tests/dicom/test_structures.py`; Nucletron data remains unverified.
 
-**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of ~21
+**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of 22
 fields, including `structures` (a `tuple[Structure, ...]` from `read_structures`, or `None`).
 There is a comment in the file stating the rule explicitly: **any field added to
 `__init__` must also be added to `reset()`**. Keep the rule, but know how narrow the leak is:

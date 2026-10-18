@@ -1678,10 +1678,6 @@ rest of the app reads them.
                                    cylinder_roi and cylinder_contour (backup plan only)
 ```
 
-> **Out of date since 2026-10-15.** `DicomData` also holds `structures`, filled by
-> `load_structures` in `fileio.py` from Gilles's `read_structures`. See §5.3 of the
-> [project docs](COSC499-TEAM10-PROJECT-DOCS.md#53-dicom-ingest).
-
 **About the patient and plan.** Each box is copied straight from one field of the RP file:
 
 | Box | Copied from RP field | Ex2 value |
