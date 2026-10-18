@@ -50,8 +50,7 @@ tests/
 ├── models/
 ├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
-├── settings/              exists: config loading and the needle template library
-│   ├── test_needle_templates.py
+├── settings/              exists: config file loading
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
 │   ├── test_architecture_build.py
@@ -122,9 +121,6 @@ models and five views offscreen, with the 3D canvas never initialised and `HOME`
 `USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
 started it first, and disconnects application signals in its teardown. No application module is
 mocked. The pure functions below still have no tests.
-
-`settings/test_needle_templates.py` tests the needle template library against files in `tmp_path`.
-It imports no Qt and no `classes` module.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows.

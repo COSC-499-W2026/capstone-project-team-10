@@ -1,4 +1,3 @@
-from enum import Enum, auto
 from math import isfinite
 
 from PySide6.QtCore import QObject, Signal
@@ -11,14 +10,6 @@ from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from windows.models.shape_model import ShapeModel, ShapeTypes
 
 CHANNELS_LABEL = "applicator_"
-
-
-class ChannelStatus(Enum):
-    """How a channel differs from the Channels settings, the first that applies in this order."""
-    TANDEM = auto()  # the tandem's path, so it is not cut as a needle
-    DISABLED = auto()  # left out of the cut and the PDF
-    OWN_DIAMETER = auto()  # cut at its own diameter, not the Channels Diameter
-    STANDARD = auto()
 
 
 class ChannelsModel(QObject):
@@ -51,12 +42,6 @@ class ChannelsModel(QObject):
     def is_channel_tandem(self, label:str) -> bool:
         data = get_app().window.dicommodel.data
         return label == data.tandem_channel
-
-    def channel_status(self, label: str) -> ChannelStatus:
-        if self.is_channel_tandem(label): return ChannelStatus.TANDEM
-        if self.is_channel_disabled(label): return ChannelStatus.DISABLED
-        if self.has_own_diameter(label): return ChannelStatus.OWN_DIAMETER
-        return ChannelStatus.STANDARD
 
     # Slotted to Dicom Model's update
     def load_data(self, data: DicomData):
