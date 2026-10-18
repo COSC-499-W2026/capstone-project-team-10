@@ -1,3 +1,10 @@
+from math import isfinite
+
+from OCC.Core.AIS import AIS_Shape
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
+from OCC.Core.gp import gp_Pnt
+from OCC.Core.Prs3d import Prs3d_LineAspect
+from OCC.Core.Aspect import Aspect_TOL_DASH
 from OCC.Core.Graphic3d import Graphic3d_NOM_TRANSPARENT
 from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
 from OCC.Core.TopoDS import TopoDS_Shape
@@ -7,6 +14,19 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from classes.app import get_app
 from classes.logger import log
+
+# Graphic3d_ZLayerId.hxx defines Topmost as -3; pythonocc does not export this enum.
+TOPMOST_Z_LAYER = -3
+
+
+def central_axis_segment(length: float | None) -> tuple[
+    tuple[float, float, float], tuple[float, float, float]
+] | None:
+    """Cylinder centre line in model millimetres, extended 10% at each end."""
+    if length is None or not isfinite(length) or length <= 0:
+        return None
+    margin = length * 0.1
+    return ((0.0, 0.0, -margin), (0.0, 0.0, length + margin))
 
 
 def wheel_zoom_factor(angle_delta: int, pixel_delta: int) -> float:
@@ -83,6 +103,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         log.debug(f"updating viewport: {[shape.label for shape in shapes]}")
         # clear all the shapes
         self._display.Context.RemoveAll(True)
+        self._axis_presentation = None
 
         loggedinfo = ""
         for shape in shapes:
@@ -102,6 +123,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
 
         # resize
         if resize: self._display.FitAll()
+        cylinder = get_app().window.cylindermodel.cylinder
+        self.set_axis_length(cylinder.length if shapes and cylinder is not None else None)
         log.info(loggedinfo)
 
     def __init__(self, *kargs):
@@ -122,7 +145,67 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._current_cursor = "arrow"
         self._available_cursors = {}
         self._gesture: CameraGesture | None = None
+        self._axis_length: float | None = None
+        self._axis_presentation: AIS_Shape | None = None
+        self.central_axis_button = QtWidgets.QToolButton(self)
+        self.central_axis_button.setObjectName("central_axis_toggle")
+        self.central_axis_button.setText("Central axis")
+        self.central_axis_button.setToolTip("Show the cylinder centre line as a reference overlay")
+        self.central_axis_button.setCheckable(True)
+        self.central_axis_button.setChecked(True)
+        self.central_axis_button.setEnabled(False)
+        self.central_axis_button.setStyleSheet(
+            "QToolButton { background-color: #30343b; color: white; padding: 7px 12px;"
+            " border: 1px solid #727982; border-radius: 5px; }"
+            "QToolButton:checked { background-color: #665017; color: #ffe297;"
+            " border-color: #e2b64e; }"
+            "QToolButton:disabled { color: #9a9a9a; background-color: #3d3d3d;"
+            " border-color: #555555; }"
+        )
+        self.central_axis_button.toggled.connect(self._refresh_central_axis)
+        self.central_axis_button.adjustSize()
+        self._position_axis_button()
         self.setToolTip("Left drag to rotate • Right or middle drag to pan • Scroll to zoom")
+
+    def _position_axis_button(self):
+        """Keep the overlay control inset from the viewport's top-right corner."""
+        self.central_axis_button.move(
+            max(8, self.width() - self.central_axis_button.width() - 12), 12
+        )
+        self.central_axis_button.raise_()
+
+    def resizeEvent(self, event):
+        if self._inited:
+            super().resizeEvent(event)
+        self._position_axis_button()
+
+    def set_axis_length(self, length: float | None):
+        """Refresh the reference after a scene change without reframing the camera."""
+        self._axis_length = length if central_axis_segment(length) is not None else None
+        self.central_axis_button.setEnabled(self._axis_length is not None)
+        self._refresh_central_axis()
+
+    def _refresh_central_axis(self):
+        """Draw a non-selectable reference on top of solids, outside export geometry."""
+        if not self._inited:
+            return
+        context = self._display.Context
+        if self._axis_presentation is not None:
+            context.Remove(self._axis_presentation, False)
+            self._axis_presentation = None
+        segment = central_axis_segment(self._axis_length)
+        if self.central_axis_button.isChecked() and segment is not None:
+            start, end = segment
+            edge = BRepBuilderAPI_MakeEdge(gp_Pnt(*start), gp_Pnt(*end)).Edge()
+            axis = AIS_Shape(edge)
+            color = Quantity_Color(1.0, 0.78, 0.25, Quantity_TOC_RGB)
+            axis.SetColor(color)
+            axis.Attributes().SetLineAspect(Prs3d_LineAspect(color, Aspect_TOL_DASH, 2.0))
+            axis.SetZLayer(TOPMOST_Z_LAYER)
+            context.Display(axis, False)
+            context.Deactivate(axis)
+            self._axis_presentation = axis
+        self._display.Repaint()
 
     @property
     def qApp(self):
