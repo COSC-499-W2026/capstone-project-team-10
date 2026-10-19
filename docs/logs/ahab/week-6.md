@@ -393,6 +393,80 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`python -m pytest` (174
   passed), `build.py --check` and `session-start.sh` (exit 0)**.
 
+### For PR #**63**
+
+- As part of requirement **FR-CN-05 (interface), a template library to save, browse and apply
+  templates**, the user needs to do **select a needle, name it, press Save as Template, then choose
+  the template for another needle and press Apply Template**.
+- Therefore, I implemented/generated code so that **physicists save and reuse needle templates
+  across restarts, with errors shown beside the controls**.
+
+#### Data Modeling and Integrity
+
+- This data **`needle_templates.json`** uses the input validation to ensure it adheres to **a
+  trimmed, non-blank name and a finite diameter of at least 0.3 mm before anything is written**.
+- Not applicable: **data model, security sanitization (unchanged since #83), privacy sanitization
+  (no patient data), encryption (nothing sensitive), access controls (one local user)**.
+
+#### Frontend
+
+- The frontend uses **a tuple of `NeedleTemplate` in `ChannelsView.templates`** because **the
+  list's rows must index the templates Apply Template uses**. Benefits for using this pattern
+  include **one file read at startup, not per click**. Possible risks include **a row pointing at
+  the wrong template**.
+  - To mitigate **that**, we implemented **`show_templates` replacing the tuple and the list
+    together**.
+- The frontend is designed using **PySide6 and Qt Designer** with design components for **the
+  Selected Channel group's one stylesheet**. Therefore, changing the design of **that stylesheet**
+  will automatically change the look and feel of all instances of that component throughout the
+  system. Changes to the content will not affect the design because **the list text comes from
+  `NeedleTemplate` values**.
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-05 (interface) → `test_applying_a_template_gives_the_selected_channel_its_diameter`;
+  FR-CN-06 → `test_an_unreadable_library_is_reported_and_leaves_the_tab_usable`**
+- Not applicable: **restricted pages (no logins), usability evaluation (none run), accessibility
+  (no new principle), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated template list**, I noticed **it showed two decimals where the
+  Channel Diameter box shows three**. Therefore, I did **show three**.
+- The PR does not contain any temporary workaround because **errors go to the status line by
+  design (design README)**.
+- The PR only contains small functions that are **6, 5, 7 and 3, and at most 21 in the tests**
+  long.
+- I did **`anti_slop review --base main` (no findings)** to ensure that my feature contribution does
+  not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`channels_view.py` and `channels_view.ui`** because **the controls
+  belong to the Selected Channel group**.
+- This work belongs in **3 Channels** in the DFD because **a template sets a needle's bore there**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **saving and applying
+  a template (178 passed)** passed.
+- I wrote tests to cover abnormal situations involving **an unreadable library at startup** and
+  they passed.
+- I checked that these negative cases involving **a blank name** failed as expected.
+- Among these tests, **none** are unit tests and **all four** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (178
+  passed), `build.py --check` and `session-start.sh` (exit 0), and brachify run on
+  macOS through its buttons, with Ex1 (screenshot 1)**.
+
+
+  ![1, Ex1 in brachify, Plastic 6F saved at 2.2 mm and applied to Applicator7](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6f24e0b226af77974c9cfa765f539fe1245996c/docs/logs/ahab/screenshots/week-6/pr-63-2-needle-templates.png)
+
+- Not applicable: **generated-test review (no problem found)**.
+
 ### For PR #**74**
 
 - As part of requirement **the course's Part A receipts, which ask for a screenshot as proof of

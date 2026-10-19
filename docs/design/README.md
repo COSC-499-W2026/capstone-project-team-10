@@ -45,3 +45,9 @@ list. Every colour has its own bold and italic pair, so colour is never the only
 1.4.1, Use of Color), and hovering a row names its status and diameter. A selected row shows
 the system highlight instead of its colour, and keeps its font. *Verified* by offscreen tests
 and a render. A screenshot of it is linked from Ahab's week 6 log.
+
+The Selected Channel group also holds the needle templates: a name field with *Save as
+Template*, a list of saved templates with *Apply Template*, and a status line. A refused save
+or an unreadable template file is explained in the status line beside the controls rather
+than in a dialog, so the clinician sees why without leaving the tab, and a file brachify cannot
+read never stops it starting. *Verified* by offscreen widget tests. A screenshot of it is linked from Ahab's week 6 log.
