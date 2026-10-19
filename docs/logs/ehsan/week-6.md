@@ -164,3 +164,70 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - The functionality works correctly because the happy path tests involving **`rg` for the old "not yet connected" sentence (no hits) and a 22-field count of `DicomData.__init__`** passed.
 - This new test PR did not break anything else in the system because **`python docs/architecture/build.py --check` exits 0 on this branch. No `src/` change; no GUI run**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
+
+### For PR #**75**
+
+- As part of requirement **FR-SV-02 / FR-SV-03 (frontend, light) and issue #41**, the user needs to do **see each imported structure's name, colour and category on the Import tab**.
+- Therefore, I implemented/generated code so that **Import shows a read-only list built from `DicomData.structures`, with ROI numbers when names clash or labels would collide**.
+
+#### Data Modeling and Integrity
+
+- This data **a list row** is modeled as **`StructureListRow` (label, RGB, category text)** because **the list only needs display fields**. We considered alternative models such as **binding the Qt list to live Structure objects, which would couple the view to DICOM**.
+- This data **list labels** uses the input validation to ensure it adheres to **unique labels: ROI suffix on duplicate names, and a further unique form if that suffix would collide**.
+- Not applicable: **security sanitization, privacy sanitization, encryption, access controls**.
+
+#### Frontend
+
+- The frontend uses **a read-only `QListWidget` with colour swatches** received from the backend because **`structure_list_rows` supplies the text and RGB**. Benefits include **unit-tested rows without Qt**. Possible risks include **pale text on the Import page background**.
+  - To mitigate **unreadable labels**, we implemented **the same white background and black text stylesheet as `info_area`**.
+- Not applicable: **restricted pages, design components beyond the list, accessibility evaluation, usability evaluation, frontend traceability matrix, frontend coverage tool**.
+
+#### Backend
+
+- The system architecture diagram — **updated**: domain dicom line names `structure_list`. `build.py --check` exits 0.
+- Not applicable: **architectural pattern change, database, sync/async, state approach, DFDs, backend API, traceability matrix, coverage tool**.
+
+#### Review and design
+
+- When I reviewed the **Import page styles**, I noticed **list text inherited near-white colour from `page_import`**. Therefore, I did **set a black-on-white stylesheet on the list**.
+- When I reviewed the **ROI suffix**, I noticed **a structure named `Node (ROI 7)` could share a label with a duplicate `Node`**. Therefore, I did **track used labels and disambiguate further**.
+- The PR does not contain any temporary workaround because **rows come from one pure function**.
+- The PR only contains small functions that are **under 30 lines** long.
+- I did **read the diff, run anti-slop, and break collision and list-fill paths on purpose**.
+- This work is written in **`structure_list.py` and `import_view.py`** because **row rules stay testable without Qt**.
+- This work belongs in **process 1, Import** in the DFD.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_structure_list_rows_include_name_colour_and_category` (throwaway venv with pydicom)** passed.
+- **`test_importing_ex1_fills_the_structure_list` and `test_empty_folder_import_clears_the_structure_list` were not run on this machine** (need conda/PySide6; they call `import_dicom_from_folder` with no dialog mock).
+- I wrote tests to cover abnormal situations involving **`test_duplicate_names_include_roi_number_in_the_label`, `test_roi_suffix_avoids_colliding_with_an_existing_label` and `test_structure_list_rows_for_missing_structures_is_empty`** and they passed in the throwaway venv.
+- Among these tests, **four** are unit tests and **two** are view tests against the real Import tab.
+- These tests are included in the directories **`tests/dicom/`** and **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`build.py --check` and anti-slop on touched Python passed. Full GUI was not re-run here after the stylesheet fix**.
+
+### For PR #**80**
+
+- As part of requirement **FR-SV-02 documentation for issue #41**, the user needs to do **read accurate docs for the Import structure list**.
+- Therefore, I implemented/generated code so that **the documentation set and week-6 log match the feat on #75**.
+
+#### Data Modeling and Integrity
+
+- Not applicable: **no new data model** (docs-only).
+
+#### Backend
+
+- The system architecture diagram — **described in prose** in the architecture README (diagram sources are on #75). `build.py --check` exits 0 on the feat branch.
+- Not applicable: **pattern, database, processing, DFDs, API, coverage tool**.
+
+#### Review and design
+
+- When I reviewed the **architecture README**, I noticed **three lines still called the reader standalone**. Therefore, I did **update them to match import + list**.
+- The PR does not contain any temporary workaround because **it only records the feat**.
+- The PR only contains small documentation edits.
+- This work belongs in **process 1, Import** documentation.
+
+#### Testing receipts
+
+- Not applicable: **docs-only; tests live on #75**.
+

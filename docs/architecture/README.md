@@ -20,7 +20,8 @@ own diameter through Apply, not yet reachable from the Channels tab,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
-`DicomData` at import by `load_structures` (still no structure list or 3D display).
+`DicomData` at import by `load_structures`, and a read-only Import-tab structure list
+from `structure_list` (still no hide/show, opacity, or 3D display).
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -124,7 +125,8 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 Mostly course scaffolding. The changes to application behaviour are three Channels view fixes,
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
-An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`.
+An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`, and the Import
+tab lists each structure.
 
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
@@ -135,7 +137,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
 | Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
 | macOS setup notes and Cylinder display units | Server or database |
-| `DicomData` reset tests, RTSTRUCT decode at import, and tests in `tests/dicom/` and `tests/views/` | Structure list UI, 3D rendering, hide/show and opacity |
+| `DicomData` reset tests, RTSTRUCT decode at import, and the Import structure list with tests in `tests/dicom/` and `tests/views/` | Structure 3D rendering, hide/show and opacity |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
 | A channel's own diameter, kept by `ChannelsModel` through the Channels tab's Apply, not yet reachable from the GUI. No diagram changes, for the same reason | |
@@ -166,8 +168,8 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The RTSTRUCT reader is listed in the system architecture diagram and is attached at
-import by `load_structures`. The
+The RTSTRUCT reader and Import structure list are listed in the system architecture
+diagram; import attaches them via `load_structures`. The
 Channels list fix only changes widget state, and the Cylinder display-unit change keeps
 dimensions in mm, its widget conversion documented in prose, so neither changes a diagram.
 The Export tab fix adds one edge to the existing UML, `CylinderModel ..> MainWindow`, and

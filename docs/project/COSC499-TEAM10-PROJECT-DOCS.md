@@ -777,7 +777,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     │   ├── info.py            APP_NAME, paths
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
-    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py
+    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
     ├── settings/              defaults.py, load.py, values.py, reset.py
@@ -1066,7 +1066,10 @@ is documented upstream in [notes/gui.txt](../../notes/gui.txt).
 Complete control inventory, extracted from the `.ui` sources:
 
 **Import** (`import_view.ui`) — `btn_import_folder` "Import Dicom", `btn_config_file`
-"Import Config File", `info_area` (QTextEdit, the information panel).
+"Import Config File", `info_area` (QTextEdit, the information panel). After a successful
+import, `ImportView` also shows a read-only `structure_list` (`QListWidget` added in code,
+not in the `.ui`): name, colour swatch and category from `structure_list_rows`
+(*Reasoned from code*; `tests/views/test_import_view.py`).
 
 **Cylinder** (`cylinder_view.ui`)
 
@@ -1841,6 +1844,8 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
+| `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
+| `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
