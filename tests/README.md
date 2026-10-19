@@ -52,7 +52,8 @@ tests/
 ├── models/
 ├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
-├── settings/              exists: config file loading and the needle template library
+├── settings/              exists: config file loading, the needle template library and cylinder templates
+│   ├── test_cylinder_templates.py
 │   ├── test_needle_templates.py
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
@@ -74,7 +75,8 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`, `dicom/test_data.py`,
+`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`,
+`settings/test_cylinder_templates.py`, `dicom/test_data.py`,
 `dicom/test_structures.py`, `dicom/test_load_structures.py`, `dicom/test_structure_list.py`
 and `views/test_import_view.py` exist. The rest of the tree shows where tests will go.
 
@@ -131,7 +133,8 @@ started it first, and disconnects application signals in its teardown. No applic
 mocked. The pure functions below still have no tests.
 
 `settings/test_needle_templates.py` tests the needle template library against files in `tmp_path`.
-It imports no Qt and no `classes` module.
+It imports no Qt and no `classes` module. `settings/test_cylinder_templates.py` checks cylinder
+templates against every Cylinder tab range edge, with no Qt either.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows.
