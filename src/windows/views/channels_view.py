@@ -5,6 +5,7 @@ from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import QWidget, QListWidgetItem, QMessageBox
 
 from classes.app import get_app
+from classes.info import USER_PATH
 from classes.logger import log
 from windows.models.channels_model import ChannelStatus
 from windows.models.shape_model import ShapeTypes
@@ -13,6 +14,9 @@ from windows.ui.channels_view_ui import Ui_Channels_View
 from windows.views.custom_view import display_action, CustomView
 
 from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
+from settings.needle_templates import (
+    LIBRARY_FILE_NAME, NeedleTemplate, NeedleTemplateError, load_templates, make_template, save_template,
+)
 from settings.reset import getCurrentValues
 
 
@@ -152,6 +156,32 @@ class ChannelsView(CustomView):
         log.debug(f"action: return the selected channel to the channels diameter")
         self.channelsmodel.clear_channel_diameter(self.channelsmodel.get_selected_channel())
 
+    def action_load_templates(self) -> None:
+        try:
+            self.show_templates(load_templates(self.templates_path))
+        except NeedleTemplateError as error:
+            self.show_templates(())
+            self.ui.label_template_status.setText(str(error))
+
+    def show_templates(self, templates: tuple[NeedleTemplate, ...]) -> None:
+        self.templates = templates
+        self.ui.cb_needle_templates.clear()
+        self.ui.cb_needle_templates.addItems([f"{template.name}  {template.diameter_mm:.3f} mm" for template in templates])
+        self.ui.btn_apply_template.setEnabled(len(templates) > 0)
+
+    def action_save_template(self) -> None:
+        try:
+            template = make_template(self.ui.le_template_name.text(), self.ui.sb_channel_diameter.value())
+            self.show_templates(save_template(self.templates_path, template))
+            self.ui.label_template_status.setText(f"Saved {template.name}")
+        except NeedleTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
+    @display_action
+    def action_apply_template(self) -> None:
+        template = self.templates[self.ui.cb_needle_templates.currentIndex()]
+        self.channelsmodel.set_channel_diameter(self.channelsmodel.get_selected_channel(), template.diameter_mm)
+
     def create_channels_list(self):
         # channels list
         selected_channel = self.channelsmodel.get_selected_channel()
@@ -259,11 +289,15 @@ class ChannelsView(CustomView):
         self.ui.sb_threading_diameter.setValue(config_values.get("CONFIG_CHANNELS_THREADING_DIAMETER"))
 
         self.ui.sb_channel_diameter.setMinimum(MINIMUM_CHANNEL_DIAMETER_MM)
+        self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
+        self.action_load_templates()
 
         # signals and slots
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
         self.ui.btn_apply_channel_diameter.pressed.connect(self.action_apply_channel_diameter)
         self.ui.btn_clear_channel_diameter.pressed.connect(self.action_clear_channel_diameter)
+        self.ui.btn_save_template.pressed.connect(self.action_save_template)
+        self.ui.btn_apply_template.pressed.connect(self.action_apply_template)
         self.ui.listwidget_channels.currentItemChanged.connect(self.action_select_channel)
         self.ui.btn_enable.pressed.connect(self.action_toggle_channel_disable)
         self.ui.btn_set_tandem.pressed.connect(self.action_set_tandem)
