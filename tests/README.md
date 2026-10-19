@@ -41,6 +41,7 @@ tests/
 ├── dicom/                 exists: DicomData reset and RTSTRUCT reader tests
 │   ├── conftest.py        fixtures used only by dicom tests
 │   ├── test_data.py
+│   ├── test_load_structures.py  exists: attach read_structures onto DicomData
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
@@ -67,8 +68,9 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `dicom/test_data.py` and
-`dicom/test_structures.py` exist. The rest of the tree shows where tests will go.
+`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `dicom/test_data.py`,
+`dicom/test_structures.py` and `dicom/test_load_structures.py` exist. The rest of the tree
+shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
