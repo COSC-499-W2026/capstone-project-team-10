@@ -2060,7 +2060,7 @@ python -m pytest
   `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
   and removing the notch line from `resetAllValues()` failed the config import test.
   *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 76 passed, with six Selected Channel tests added to
+- *Verified* 2026-10-15 on macOS: 147 passed, with six Selected Channel tests added to
   `test_channels_view.py` and `sb_channel_diameter` added to the arrow test. Five failed on
   their assertions before the view was wired. Adding the group also turned the existing arrow
   test red: the window stays 770 × 472, and the four spin boxes were squeezed to 9 px. The

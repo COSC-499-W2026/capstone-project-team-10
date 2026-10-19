@@ -37,5 +37,4 @@ channel is selected, shows that channel's diameter, and gives it its own diamete
 Apply on the tab keeps any own diameter. The whole tab now scrolls: at the default 770 × 472
 window the group is below the fold and the list shows about four rows, where without the
 scroll area the spin boxes above were squeezed unreadable. *Verified* by offscreen widget tests
-and a render of the shown window. No screenshot is in the repository, because the PR was at
-the file limit.
+and a render of the shown window. A screenshot of it is linked from Ahab's week 6 log.
