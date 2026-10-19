@@ -670,6 +670,9 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 The Cylinder view's Units selector changes its seven length controls between mm and cm
 (§5.6). It does not apply the design. *Verified* by the offscreen unit-switch case.
 
+The shared viewport has independent XYZ grid and Central axis controls, described in §5.7.
+They are not additional navigation views.
+
 ### 4.4 Signal graph
 
 Three application-wide signals live on `AppSignals` ([signals.py](../../src/classes/signals.py)):
@@ -696,6 +699,9 @@ OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_sel
                                                  (connected on_open, disconnected on_close)
 ```
 
+`DisplayModel.reset()` emits `shapes_changed([], False)` to clear the scene and its
+reference overlays without fitting the camera (*Reasoned from code*).
+
 ### 4.5 The display pipeline
 
 Rendering is strictly one-way:
@@ -705,7 +711,7 @@ model computes an OCC TopoDS_Shape
   → wrapped in ShapeModel(label, shape, ShapeTypes.*)
   → DisplayModel.add_shape(s)           # dict keyed by label; enabled=False deletes the entry
   → DisplayModel.update()               # assigns materials by ShapeTypes, emits shapes_changed
-  → OrbitCameraViewer3d.update_display  # RemoveAll, DisplayShape each, Repaint, FitAll
+  → OrbitCameraViewer3d.update_display  # model shapes, grid, optional fit, then axis
 ```
 
 Any view method that mutates geometry **must** be decorated with `@display_action`
@@ -716,6 +722,10 @@ repaint.
 `ShapeTypes` (`CYLINDER` / `CHANNEL` / `TANDEM` / `SELECTED` / `EXPORT`) is a **material key,
 not a type hierarchy**. Each view installs its own `materials` dict in `on_open()`, which is
 how the same cylinder renders opaque-grey on one tab and translucent-teal on another.
+
+The viewport owns reference overlays separately from `ShapeModel`: it derives grid bounds
+from displayed shapes and reads `CylinderModel.cylinder.length` for the axis. Neither
+overlay enters exports. See §5.7 (*Reasoned from code*).
 
 ### 4.6 Coordinate conventions
 
@@ -760,7 +770,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, Channels and Cylinder units tests in views/ (§8)
+├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -1146,6 +1156,8 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 `top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
 `page_import` … `page_export`.
 
+The shared `display_view_widget` also hosts the grid and central-axis controls (§5.7).
+
 The Export nav button starts disabled and drawn grey. `MainWindow.enable_export_view` turns it on
 the first time `CylinderModel.values_changed` fires, which happens on an import and on the
 Cylinder tab's *Apply Settings* (§7.6).
@@ -1166,14 +1178,51 @@ functions and `CapWords` classes, not colours.)
 `WA_PaintOnScreen`, `WA_NativeWindow` and `WA_NoSystemBackground`, then `OrbitCameraViewer3d`
 hands `int(self.winId())` to pythonocc's `OCCViewer.Viewer3d().Create()`.
 
-Mouse bindings, which are non-standard and worth knowing:
+*Reasoned from code*, updated 2026-10-18 for PRs #78, #79 and #81:
 
 | Input | Action |
 |---|---|
 | Left click | select shape (emits `sig_topods_selected`) |
-| **Right** drag | rotate |
-| Middle drag | pan |
-| Wheel | zoom (fixed 2.0× / 0.5× per notch) |
+| Left drag | rotate; release does not select |
+| Right or middle drag | pan using incremental pointer movement |
+| Wheel | proportional zoom, 1.15× per 120 vertical angle units |
+
+`CameraGesture` uses Qt's platform drag threshold to tolerate click jitter. Once a drag
+starts, returning to its origin does not turn it into a click. A distant release also
+suppresses selection if intermediate move events were missing. `wheel_zoom_factor` uses
+30 vertical pixels per step for pixel-only trackpads, ignores zero movement and caps each
+event at ten steps in either direction. A tooltip lists the bindings. These are the
+project's chosen controls, not a universal medical-viewer standard.
+
+Two independent checkable controls sit at the top-right: **XYZ grid (mm)** above
+**Central axis**. Both start checked but disabled until their reference is available;
+redraws and empty-scene resets retain the user's checked state. Toggling repaints without
+moving or fitting the camera. These choices last for the widget's lifetime, not in config.
+
+The central axis is a dashed amber line drawn above solids, along local Z from
+`-0.1 * length` to `1.1 * length`. `update_display` reads the current `CylinderModel`
+length for a nonempty scene. Missing, nonfinite or nonpositive lengths disable the toggle.
+This is the cylinder's geometric centre line, not the imported DICOM central-channel contour.
+
+The grid uses `brepbndlib.AddOptimal` bounds of the displayed non-null model shapes.
+`grid_ticks` rounds outward with 1/2/5-based steps of at least 10 mm; larger scenes use
+larger steps. `ReferenceGrid` holds the outer bounds, unique line segments and `GridLabel`
+text/positions. Lines occupy three outer walls (minimum X, maximum Y and minimum Z);
+there are no translucent planes through the model. White ticks and X/Y/Z titles on a dark
+background denote **model coordinates in millimetres**, not patient Left/Posterior/Superior.
+The Cylinder tab's mm/cm selector does not change these labels.
+
+Both overlays are native AIS presentations deactivated for selection and kept outside
+`DisplayModel.shapes`, so they never enter mesh exports. On redraw the old presentations
+are cleared and rebuilt; an empty scene removes the grid and axis. When resize is requested,
+`ZFitAll` and `View.FitAll(0.2, False)` provide label margin; the central axis is added after
+fitting. Model redraw can still reframe the camera even though overlay toggles do not.
+
+*Verified in the native macOS runs recorded for PRs #78, #79 and #81:* Ex1/Ex2 camera
+movement and click/drag separation, independent overlay toggles, camera preservation on
+toggle, nonselectable decorations, Export redraw and reset were checked. Windows was not
+checked. These are UI regression observations, not clinical validation; the screenshots
+were inspected locally and are not archived in this PR.
 
 > *Verified 2026-09-21:* this native-handle handoff works on macOS arm64. `lsof` on the running
 > process confirmed `OpenGL`, `QtGui`, `QtWidgets` and the full OpenCASCADE `libTK*` set
@@ -1377,6 +1426,11 @@ gives a later date. §7.7 to §7.9 were found between 2026-09-29 and 2026-10-02,
 brachify's own code headless on copies of the sample folders. They sit at the end so the existing
 section numbers, which other files cite, stay stable. An entry that has since been fixed says
 **Fixed** with the date and stays listed. Severity is our judgement, not upstream's.
+
+*Viewport label binding trap (fixed in PR #81; verified by its native regression):*
+`AIS_TextLabel.SetText` requires Python text in the installed pythonocc binding. Passing
+`TCollection_ExtendedString` caused a native `Standard_NullObject` abort. `grid_text_label`
+passes `str`; `test_grid_label_preserves_text_and_position` exercises this binding directly.
 
 ### 7.1 HIGH — the collar is never saved to, or loaded from, a settings file
 
@@ -1731,7 +1785,7 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | LOW | `DisplayModel` | `add_shape(enabled=False)` for a label never added raises `KeyError`; `update()` with an `EXPORT` shape under the default material table crashes. Neither happens in the app today. See [15.4](COSC499-BRACHIFY-INIT-DOCS.md#154-display_modelpy-what-the-3d-view-shows) | *Verified* |
 | LOW | `palettes.py` | `dark` is a `@staticmethod` and `light` is not, so `Palettes().light(window)` would pass the wrong argument. Nothing calls either. See [14.4](COSC499-BRACHIFY-INIT-DOCS.md#144-palettespy-two-themes-nothing-uses) | *Reasoned from code* |
 | LOW | `main_window.ui` | six colours are written `rgba(240, 245, 250)`, with no alpha, so Qt prints `Specified color with alpha value but no alpha given` on every start. It also asks for an icon from a Qt resource file that is not in the repository. See [18.6](COSC499-BRACHIFY-INIT-DOCS.md#186-colours-and-other-text-in-the-design-files) | *Verified* for the warning |
-| LOW | the 3D view | every redraw zooms to fit, so after *Apply* or a selection any zoom the user set is lost. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
+| LOW | the 3D view | model updates with resize enabled zoom to fit, so after *Apply* or a selection any zoom the user set is lost; reference toggles and empty-scene reset do not fit. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
 | LOW | spin box limits | **Changed 2026-10-10:** Cylinder length and collar now use `QDoubleSpinBox`, with whole mm or tenths of cm displayed. `LengthField` retains exact mm settings through display rounding (§5.6); finer user editing remains limited by display precision. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
 | MEDIUM | `checkValuesExist`, a JSON `true` or `false` | **Fixed 2026-10-11.** A setting written as `true` was reported loaded and used as 1, because Python treats `True` as the int 1, so a cylinder diameter of `true` became 1 mm with no warning. `is_config_number()` now rejects `bool`, so the default is used and the key is reported missing, guarded by `tests/settings/test_load.py`. Negative and zero values still load. See [13.5](COSC499-BRACHIFY-INIT-DOCS.md#135-loadpy-reading-a-settings-file) | *Verified*: the test failed with `assert True == 30.0` before the fix |
 
@@ -1793,6 +1847,18 @@ fails, and why that matters
 [utils/README.md](../../utils/README.md).
 
 ### 8.2 Current state
+
+The viewport regressions (*Reasoned from the test bodies*) are:
+
+| File | What fails when behavior regresses |
+|---|---|
+| `views/test_camera_controls.py` (6 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom |
+| `views/test_central_axis.py` (8 cases) | local-Z endpoints and 10% margin, invalid-length rejection, button availability/preference, or reset notification |
+| `views/test_bounding_grid.py` (9 cases, PR #81) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, or nonoverlapping independent controls |
+
+These checks do not initialise the native canvas. The grid label test constructs a real
+`AIS_TextLabel`; native scene rendering still requires a displayed run (see §5.7).
+
 
 *Verified 2026-10-11 on macOS after merging main into the structure-reader branch:*
 `python -m pytest -q` passed all 63 tests. The anti-slop review against `origin/main`

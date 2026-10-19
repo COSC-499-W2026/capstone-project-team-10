@@ -18,3 +18,15 @@ Apply, DICOM import and config files retain mm internally. The choice is not sav
 provided in chat and was not saved as a repository artifact.
 See [source of truth §5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 for the controls and precision.
+
+*Reasoned from viewport code, PRs #78/#79/#81:* left-drag rotates, right/middle-drag pans,
+and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
+release. These are project bindings, not a universal medical-software standard.
+
+The dark viewport has white millimetre labels and faint grid lines on three outer walls,
+with no intersecting planes. The top-right **XYZ grid (mm)** control is blue when checked;
+the independent **Central axis** control below it is amber when checked and shows a dashed
+local-Z reference above solids. Both are disabled when their reference is unavailable.
+Toggling preserves the camera; preferences survive redraws but are not saved to config.
+Neither overlay is selectable or exported. Details and native-run limitations are in
+[§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
