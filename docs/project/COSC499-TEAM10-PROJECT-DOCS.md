@@ -896,8 +896,12 @@ boolean as a number, or 1 as a flag), an unreadable date, two templates sharing 
 ignoring case, an `OSError` or a number too large for a float all raise `CylinderTemplateError`,
 with the reason after the file name. `add_template` refuses a name already used in any case,
 pointing the clinician to Update, then writes through a `.tmp` file and `os.replace` as the
-needle library does, and never overwrites a file it could not read.
-*Verified* by `tests/settings/test_cylinder_templates.py` (§8.2).
+needle library does, and never overwrites a file it could not read. `update_template` replaces
+a template's name, note and design, keeps its ID, created date and place in the list, sets the
+modified date, and refuses a name another template uses in any case (its own name in another
+case is allowed). `delete_template` removes one template. Both refuse an unknown ID with "That
+cylinder template no longer exists", and both read and write the file the same way as
+`add_template`. *Verified* by `tests/settings/test_cylinder_templates.py` (§8.2).
 
 ### 5.3 DICOM ingest
 
@@ -1977,7 +1981,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
-| `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file (§5.2) |
+| `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
@@ -2155,6 +2159,12 @@ python -m pytest
   escaping a read, a shared ID or another version accepted, and a missing file refused. The
   `true` case sits in the collar thickness, whose range includes 1, so only the type check can
   refuse it. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 222 passed, with seven update and delete cases added to
+  `test_cylinder_templates.py` (44 in all). They failed to import before `update_template` and
+  `delete_template` existed. Six deliberate breaks were each caught: the created date replaced,
+  the updated template moved to the end, its own name counted as taken, a rename onto another
+  name allowed, a delete dropping the templates after it, and an unknown ID treated as the
+  first. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
