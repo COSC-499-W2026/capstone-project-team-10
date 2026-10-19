@@ -861,9 +861,12 @@ library, not yet called from the GUI. A `NeedleTemplate` is a frozen dataclass o
 `diameter_mm`. `make_template` trims the name and refuses an empty one, and refuses a diameter
 that is not finite or is below `MINIMUM_CHANNEL_DIAMETER_MM`. `load_templates(path)` decodes the
 JSON file into `NeedleTemplate` values at the boundary and returns all of them or none: a missing
-file is an empty library, and a malformed entry, a name used twice, or any `OSError` raises
-`NeedleTemplateError`. `save_template` replaces a template of the same name and writes the
-library back, and never overwrites a library it could not read. The module imports nothing from
+file is an empty library. The top level must be a list, each entry a text `name` and a number
+`diameter_mm` (a boolean or numeric text is refused), and a name used twice, an `OSError` or a
+number too large for a float all raise `NeedleTemplateError`. `save_template` replaces a template
+of the same name, writes the library to a `.tmp` file beside it and swaps that in with
+`os.replace`, so a failed save leaves the previous library whole. It never overwrites a library
+it could not read. The module imports nothing from
 `classes` or `windows`, and the caller passes the path. Its error messages are written for
 clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
 
@@ -1920,7 +1923,7 @@ Repository tooling tests, first added 2026-09-30, live in
 
 | Test | Fails when |
 |---|---|
-| `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
+| `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
@@ -2063,11 +2066,13 @@ python -m pytest
   `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
   and removing the notch line from `resetAllValues()` failed the config import test.
   *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 156 passed, with `tests/settings/test_needle_templates.py` added.
+- *Verified* 2026-10-15 on macOS: 164 passed, with `tests/settings/test_needle_templates.py` added.
   It failed to import before the module existed. Six deliberate breaks were each caught: no
   trimming, no duplicate check, no replace on save, a decode error returning an empty library,
   NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
-  diagram named the module. *Not verified:* Windows.
+  diagram named the module. After Writable04's review of PR #83, eight cases were added (wrong
+  JSON types, an oversized number and a failed `os.replace`), and each failed before the fix.
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

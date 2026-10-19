@@ -1,5 +1,6 @@
 """Exercise src/settings/needle_templates.py: the needle template library on disk."""
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,8 @@ from settings.needle_templates import (
     save_template,
 )
 
-LibraryJson = list[dict[str, str | float]] | dict[str, str | float]
+JsonScalar = str | float | bool | None
+LibraryJson = list[dict[str, JsonScalar]] | dict[str, JsonScalar] | str
 
 
 def test_a_saved_template_loads_back_with_identical_values(tmp_path: Path) -> None:
@@ -104,12 +106,20 @@ def test_a_corrupt_library_is_reported_and_left_unchanged(tmp_path: Path) -> Non
     [{"diameter_mm": 2.0}],
     {"name": "Not a list", "diameter_mm": 2.0},
     [{"name": "Twice", "diameter_mm": 2.0}, {"name": "Twice", "diameter_mm": 2.5}],
+    {},
+    "",
+    [{"name": None, "diameter_mm": True}],
+    [{"name": "Flag", "diameter_mm": True}],
+    [{"name": 6, "diameter_mm": 2.0}],
+    [{"name": "Text width", "diameter_mm": "2.0"}],
 ])
 def test_a_library_with_a_malformed_entry_is_rejected(tmp_path: Path, entries: LibraryJson) -> None:
-    """Check that a hand-edited library missing a field, or naming a template twice, is refused.
+    """Check that a hand-edited library missing a field, naming a template twice or holding wrong types is refused.
 
-    Fails if load_templates returns templates from it. A partly read library would show the
-    clinician templates whose widths came from the wrong entry.
+    Covers a top level that is not a list ({} and ""), a null or number as a name, and a
+    boolean or text as a diameter. Fails if load_templates returns templates from any of them.
+    A null name would otherwise be saved as "None" and true as a 1 mm needle, so the clinician
+    would apply a width nobody chose.
     """
     library = tmp_path / "needle_templates.json"
     library.write_text(json.dumps(entries), encoding="utf-8")
@@ -146,3 +156,44 @@ def test_a_library_that_cannot_be_written_is_reported(tmp_path: Path) -> None:
 
     with pytest.raises(NeedleTemplateError):
         save_template(not_a_folder / "needle_templates.json", make_template("Metal", 1.9))
+
+
+def test_a_diameter_too_large_for_a_float_is_reported_not_raised(tmp_path: Path) -> None:
+    """Check that a JSON diameter of 10 to the 400 raises NeedleTemplateError, not OverflowError.
+
+    Fails if the OverflowError escapes. Callers such as the Channels tab handle only
+    NeedleTemplateError, so an escaped error would stop brachify starting over one hand-edited
+    number.
+    """
+    library = tmp_path / "needle_templates.json"
+    library.write_text('[{"name": "Huge", "diameter_mm": 1' + "0" * 400 + "}]", encoding="utf-8")
+
+    with pytest.raises(NeedleTemplateError):
+        load_templates(library)
+
+
+def test_a_failed_save_keeps_the_previous_library_and_leaves_no_temporary_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Check that a save that fails while replacing the file leaves the old library whole.
+
+    os.replace is made to fail, as a full disk or a locked file would. Fails if the saved
+    "Metal" template is lost or changed, if NeedleTemplateError is not raised, or if a
+    temporary file stays beside the library. Writing the library in place would leave truncated
+    JSON, and the next start would then refuse to read every template the clinic had saved.
+    """
+    library = tmp_path / "needle_templates.json"
+    save_template(library, make_template("Metal", 1.9))
+    before = library.read_text(encoding="utf-8")
+
+    def refuse_to_replace(source: Path, destination: Path) -> None:
+        """Stand in for os.replace failing, as a helper and not a test."""
+        raise OSError("disk full")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "replace", refuse_to_replace)
+        with pytest.raises(NeedleTemplateError):
+            save_template(library, make_template("Plastic 6F", 2.0))
+
+    assert library.read_text(encoding="utf-8") == before
+    assert list(tmp_path.iterdir()) == [library]
