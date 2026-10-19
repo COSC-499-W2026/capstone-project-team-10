@@ -2,6 +2,7 @@
 DEFAULT_CONFIG_VALUES = {
     "CONFIG_CYLINDER_DIAMETER": 30.0, 
     "CONFIG_CYLINDER_LENGTH": 160.0, # cylinder length
+    "CONFIG_CYLINDER_FLAT_TIP": 0, # 1 for a flat tip, 0 for the half-sphere dome
     "CONFIG_CHANNELS_DIAMETER": 2.7, # channels diameter
     "CONFIG_DEADSPACE": 6.0,
     "CONFIG_TANDEM_TIP_HEIGHT": 170.0, 
@@ -19,4 +20,12 @@ DEFAULT_CONFIG_VALUES = {
     "CONFIG_TANDEM_COLLET_OUTER_DIAMETER_INNER": 5.0,
     "CONFIG_TANDEM_COLLET_OUTER_DIAMETER_OUTER": 8.0,
     "CONFIG_NEEDLE_COLLET_OUTER_DIAMETER": 5.0,
+    "CONFIG_NOTCH_ENABLED": 1, # 1 adds the orientation notch, 0 leaves it off
+    "CONFIG_NOTCH_ANGLE": 0.0, # degrees clockwise from Anterior, as the reference sheet draws it
+    "CONFIG_NOTCH_WIDTH": 2.0,
+    "CONFIG_NOTCH_DEPTH": 1.8, # how far the notch stands out of the wall
+    "CONFIG_NOTCH_HEIGHT": 10.0, # up from the base, capped at the collar height when there is one
 }
+
+# The narrowest channel brachify builds, the same minimum as the Channels Diameter box.
+MINIMUM_CHANNEL_DIAMETER_MM = 0.3

@@ -13,11 +13,14 @@ A clinician exports a brachytherapy plan as DICOM. brachify builds a patient-spe
 ## Already built
 
 This is the upstream app plus Team 10's changes to `src/`, listed under
-[What Team 10 has added](#what-team-10-has-added). They are a fix to how the Channels list
-shows its selection, which changes no diagram, the Cylinder mm/cm display selector, where
-`LengthField` keeps dimensions in mm while the four controls display either unit, and an
-Export tab that stays disabled until a cylinder exists. Team 10 has also added
-`classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder not yet called by the GUI.
+[What Team 10 has added](#what-team-10-has-added). They are three Channels tab fixes, to how
+the list shows its selection, to the spin box arrows, and so that a newly imported plan starts
+with every channel enabled, none of which changes a diagram, `ChannelsModel` keeping a channel's
+own diameter through Apply, not yet reachable from the Channels tab,
+the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
+controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
+`classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
+`DicomData` at import by `load_structures` (still no structure list or 3D display).
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -119,9 +122,9 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 ## What Team 10 has added
 
-Mostly course scaffolding. The changes to application behaviour are a Channels view fix,
+Mostly course scaffolding. The changes to application behaviour are three Channels view fixes,
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
-A standalone RTSTRUCT reader decodes anatomy for future visualization.
+An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`.
 
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
@@ -132,9 +135,13 @@ edits and exact mm values across switches; config files and exports use mm.
 | This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
 | Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
 | macOS setup notes and Cylinder display units | Server or database |
-| `DicomData` reset tests and the standalone RTSTRUCT reader with tests in `tests/dicom/` | Structure rendering and GUI integration |
+| `DicomData` reset tests, RTSTRUCT decode at import, and tests in `tests/dicom/` and `tests/views/` | Structure list UI, 3D rendering, hide/show and opacity |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
+| Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
+| A channel's own diameter, kept by `ChannelsModel` through the Channels tab's Apply, not yet reachable from the GUI. No diagram changes, for the same reason | |
+| A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
+| The collar round-trips through config files, and *Generate Tandem* merges its settings snapshot instead of replacing the live settings (§7.1). No diagram changes, because the same files are read and written | |
 
 ## Known gaps in the existing code
 
@@ -143,7 +150,6 @@ which is the proposed framework below.
 
 | Gap | Why it matters |
 |---|---|
-| Collar height and thickness are never written to an exported config, nor loaded back from one. Generating a tandem also drops them from the live settings, though the built cylinder keeps its collar | A collar saved in a config file is lost when the file is reopened. Recorded in §7.1. |
 | A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
 | No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
 | Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
@@ -160,8 +166,8 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The standalone RTSTRUCT reader is listed in the system architecture diagram; it is not
-yet connected to the GUI. The
+The RTSTRUCT reader is listed in the system architecture diagram and is attached at
+import by `load_structures`. The
 Channels list fix only changes widget state, and the Cylinder display-unit change keeps
 dimensions in mm, its widget conversion documented in prose, so neither changes a diagram.
 The Export tab fix adds one edge to the existing UML, `CylinderModel ..> MainWindow`, and

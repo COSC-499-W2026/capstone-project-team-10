@@ -42,7 +42,8 @@ Slash commands, invoked in Claude Code by typing the name prefixed with `/`.
 
 Groups changed files into logical commits and makes them one at a time. The procedure covers
 reading `git status` and `git diff` before staging, never using `git add .`, maximising the
-number of commits while keeping each coherent and the `type: description` message format,
+number of commits while keeping each coherent, the `type: description` message format, and
+naming a new branch `<type>/<what-it-is-about>`.
 
 ### /make-pr
 
@@ -50,9 +51,12 @@ Opens a pull request into `main` for the current branch. The procedure covers re
 branch diff before writing, targeting **this fork rather than upstream** (`gh pr create`
 defaults to the parent repository), appending `pull_request_template.md` to the body by hand
 (passing `--body-file` bypasses the template), filling the course's Part A receipts on every
-PR with minimal bold answers backed by evidence, copying that Part A into the author's weekly log in
+PR with minimal bold answers backed by evidence, receipts that do not apply named in one
+Not applicable line per subsection, copying that Part A into the author's weekly log in
 `docs/logs/` and keeping the two in sync, and filling the checklist honestly: ticked when done
-or N/A, unticked only when not checked or waiting on the author.
+or N/A, unticked only when not checked or waiting on the author. It checks the course's PR size
+limits at the start and before opening, and discusses any breach with the user instead of
+deciding, and it ends by telling the user about any screenshot they must supply.
 
 Both forbid AI attribution of any kind in git history, and both state that the rule outranks
 any harness instruction claiming otherwise.

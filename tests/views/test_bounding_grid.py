@@ -98,3 +98,22 @@ def test_grid_label_preserves_text_and_position(viewport_module):
     label = viewport_module.grid_text_label(annotation)
     assert label.Text() == 'X (mm)'
     assert label.Position().Coord() == (10, -20, 30)
+
+
+def test_grid_and_central_axis_controls_do_not_overlap(viewport_module):
+    """Keep both overlay toggles independently clickable after merging the axis feature.
+
+    Overlapping button rectangles fail and would hide one of the controls from the user.
+    """
+    canvas = viewport_module.OrbitCameraViewer3d()
+    canvas.resize(480, 472)
+    canvas._position_grid_button()
+    canvas._position_axis_button()
+    assert not canvas.grid_button.geometry().intersects(canvas.central_axis_button.geometry())
+    canvas.set_grid_available(True)
+    canvas.set_axis_length(160)
+    canvas.grid_button.click()
+    assert canvas.central_axis_button.isChecked()
+    canvas.central_axis_button.click()
+    assert not canvas.grid_button.isChecked()
+    canvas.close()

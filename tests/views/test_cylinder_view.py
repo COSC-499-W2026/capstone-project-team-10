@@ -177,3 +177,165 @@ def test_a_new_window_starts_in_mm(cylinder_window: MainWindow) -> None:
     assert selector.currentText() == "mm"
     assert view.ui.spinbox_diameter.value() == 30.0
     assert view.ui.spinbox_length.value() == 160.0
+
+
+def test_exported_config_names_every_setting(cylinder_window: MainWindow) -> None:
+    """Check that the settings snapshot written to a config file holds every default key.
+
+    Fails, listing the keys, when getCurrentValues() leaves a setting out. Export Current
+    Settings as Config writes that snapshot, so a missing key is never saved, and Generate
+    Tandem replaces the live settings with it, so the setting silently falls back to its
+    default. The collar was lost this way (section 7.1 of the project docs).
+    """
+    from settings.defaults import DEFAULT_CONFIG_VALUES
+    from settings.reset import getCurrentValues
+
+    cylinder_window.navigationmodel.views[1].action_apply_settings()
+    assert sorted(set(DEFAULT_CONFIG_VALUES) - set(getCurrentValues())) == []
+
+
+def test_exported_config_keeps_the_applied_collar(cylinder_window: MainWindow) -> None:
+    """Apply a 3 mm by 10 mm collar and check the config snapshot carries both values.
+
+    Fails with KeyError or a wrong number when the collar is left out of getCurrentValues().
+    A clinician who saves a design with a collar and reopens it would otherwise get a
+    cylinder with no collar, a different physical device.
+    """
+    from settings.reset import getCurrentValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.spinbox_base_thickness.setValue(3)
+    view.ui.spinbox_base_height.setValue(10)
+    view.ui.cb_add_base.setChecked(True)
+    view.action_apply_settings()
+    snapshot = getCurrentValues()
+    assert snapshot["CONFIG_BASE_THICKNESS"] == 3.0
+    assert snapshot["CONFIG_BASE_HEIGHT"] == 10.0
+
+
+def test_config_import_fills_the_collar_boxes(cylinder_window: MainWindow) -> None:
+    """Load a config holding a 4 mm by 12 mm collar and check the Cylinder tab shows it.
+
+    Fails when resetAllValues() leaves the collar boxes at their old values. The next Apply
+    reads those boxes, so a collar loaded from a file would be replaced by whatever was
+    typed before, and the printed collar would not match the saved design.
+    """
+    from classes.app import get_app
+    from settings.reset import resetAllValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    config = get_app().values.config_values.copy()
+    config["CONFIG_BASE_THICKNESS"] = 4.0
+    config["CONFIG_BASE_HEIGHT"] = 12.0
+    resetAllValues(config)
+    assert view.ui.spinbox_base_thickness.value() == 4.0
+    assert view.ui.spinbox_base_height.value() == 12.0
+    assert view.base_thickness_field.millimetres == 4.0
+    assert view.base_height_field.millimetres == 12.0
+
+
+def test_apply_builds_the_notch_typed_on_the_cylinder_tab(cylinder_window: MainWindow) -> None:
+    """Type a notch at 90 degrees, 3 by 2.5 by 12 mm, press Apply, and check the cylinder has it.
+
+    Fails if a notch control is not read, or not written to the live settings the cylinder is
+    built from, so the printed orientation mark would differ from what the clinician typed.
+    """
+    from classes.app import get_app
+    from classes.mesh.notch import NotchSettings
+
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.spinbox_notch_angle.setValue(90.0)
+    view.ui.spinbox_notch_width.setValue(3.0)
+    view.ui.spinbox_notch_depth.setValue(2.5)
+    view.ui.spinbox_notch_height.setValue(12.0)
+    view.action_apply_settings()
+    assert cylinder_window.cylindermodel.cylinder.notch_settings == NotchSettings(
+        enabled=True, angle=90.0, width=3.0, depth=2.5, height=12.0
+    )
+    assert get_app().values.config_values["CONFIG_NOTCH_ANGLE"] == 90.0
+
+
+def test_unticking_add_notch_greys_out_the_notch_fields_and_drops_the_notch(
+    cylinder_window: MainWindow,
+) -> None:
+    """Untick Add Notch and check the four notch fields are disabled and Apply builds no notch.
+
+    Fails if the fields stay editable, which suggests their values still matter, or if the
+    notch is still enabled on the cylinder, so the clinician would get a mark they turned off.
+    """
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.cb_add_notch.setChecked(False)
+    fields = (view.ui.spinbox_notch_angle, view.ui.spinbox_notch_width,
+              view.ui.spinbox_notch_depth, view.ui.spinbox_notch_height)
+    assert [field.isEnabled() for field in fields] == [False] * 4
+    view.action_apply_settings()
+    assert not cylinder_window.cylindermodel.cylinder.notch_settings.enabled
+
+
+def test_notch_lengths_follow_the_units_selector(cylinder_window: MainWindow) -> None:
+    """Choose cm, check the default notch reads 0.2, 0.18 and 1.0 cm, and that 0.3 cm applies as 3 mm.
+
+    Fails if a notch length ignores the selector, so a value typed in cm would build a notch
+    ten times too small or too large.
+    """
+    view = cylinder_window.navigationmodel.views[1]
+    choose_units(view, "cm")
+    assert view.ui.spinbox_notch_width.value() == 0.2
+    assert view.ui.spinbox_notch_depth.value() == 0.18
+    assert view.ui.spinbox_notch_height.value() == 1.0
+    view.ui.spinbox_notch_width.setValue(0.3)
+    view.action_apply_settings()
+    assert cylinder_window.cylindermodel.cylinder.notch_settings.width == 3.0
+
+
+def test_config_import_fills_the_notch_controls(cylinder_window: MainWindow) -> None:
+    """Load a config with the notch off at 45 degrees, 3 by 2 by 15 mm, and check the controls show it.
+
+    Fails if resetAllValues() leaves a notch control at its old value. The next Apply reads
+    the controls, so a notch loaded from a file would be replaced by what was typed before.
+    """
+    from classes.app import get_app
+    from settings.reset import resetAllValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    config = get_app().values.config_values.copy()
+    config.update({"CONFIG_NOTCH_ENABLED": 0, "CONFIG_NOTCH_ANGLE": 45.0, "CONFIG_NOTCH_WIDTH": 3.0,
+                   "CONFIG_NOTCH_DEPTH": 2.0, "CONFIG_NOTCH_HEIGHT": 15.0})
+    resetAllValues(config)
+    assert not view.ui.cb_add_notch.isChecked()
+    assert view.ui.spinbox_notch_angle.value() == 45.0
+    assert [view.notch_width_field.millimetres, view.notch_depth_field.millimetres,
+            view.notch_height_field.millimetres] == [3.0, 2.0, 15.0]
+
+
+def test_apply_builds_the_tip_chosen_on_the_cylinder_tab(cylinder_window: MainWindow) -> None:
+    """Choose Flat under Tip Shape, press Apply, and check the cylinder and the live settings are flat.
+
+    Fails if the choice is not read or not written to the setting the cylinder is built from,
+    so the printed tip would be a dome when the clinician chose flat.
+    """
+    from classes.app import get_app
+    from classes.mesh.cylinder import TipShape
+
+    view = cylinder_window.navigationmodel.views[1]
+    view.ui.combobox_tip.setCurrentText("Flat")
+    view.action_apply_settings()
+    assert cylinder_window.cylindermodel.cylinder.tip is TipShape.FLAT
+    assert get_app().values.config_values["CONFIG_CYLINDER_FLAT_TIP"] == 1
+
+
+def test_config_import_selects_the_tip(cylinder_window: MainWindow) -> None:
+    """Load a config with a flat tip and check Tip Shape shows Flat, starting from Dome.
+
+    Fails if resetAllValues() leaves Tip Shape alone. The next Apply reads it, so a flat tip
+    loaded from a file would be built as a dome.
+    """
+    from classes.app import get_app
+    from settings.reset import resetAllValues
+
+    view = cylinder_window.navigationmodel.views[1]
+    assert view.ui.combobox_tip.currentText() == "Dome"
+    config = get_app().values.config_values.copy()
+    config["CONFIG_CYLINDER_FLAT_TIP"] = 1
+    resetAllValues(config)
+    assert view.ui.combobox_tip.currentText() == "Flat"

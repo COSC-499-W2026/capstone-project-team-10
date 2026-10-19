@@ -36,35 +36,41 @@ Create the subfolder if it does not exist yet. Add a row above when you create a
 ```
 tests/
 ├── README.md
-├── conftest.py            fixtures shared by everything
+├── conftest.py            geometry_app, the one QApplication, and default_settings, for mesh/ and pdf/
 ├── data/                  sample inputs, never beside a test file
 ├── dicom/                 exists: DicomData reset and RTSTRUCT reader tests
 │   ├── conftest.py        fixtures used only by dicom tests
 │   ├── test_data.py
+│   ├── test_load_structures.py  exists: attach read_structures onto DicomData
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
-├── mesh/
-│   └── test_helper.py
+├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
+│   ├── test_cylinder.py
+│   ├── test_notch.py
+│   └── test_tandem.py
 ├── models/
-├── pdf/
-├── settings/
+├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
+│   └── test_template_reference.py
+├── settings/              exists: config file loading
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
 │   ├── test_architecture_build.py
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-├── views/                 exists: the Channels and Cylinder views, against the real window
+├── views/                 exists: the Channels, Cylinder and Tandem views, against the real window
 │   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
 │   ├── test_channels_view.py
-│   └── test_cylinder_view.py
+│   ├── test_cylinder_view.py
+│   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `dicom/test_data.py` and `dicom/test_structures.py` exist. The rest of the tree shows
-where tests will go.
+`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `dicom/test_data.py`,
+`dicom/test_structures.py` and `dicom/test_load_structures.py` exist. The rest of the tree
+shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -121,8 +127,22 @@ mocked. The pure functions below still have no tests.
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows.
 
+`mesh/test_notch.py` and `mesh/test_cylinder.py` build real solids and compare their bounding
+boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
+test a fresh copy of the defaults as the live settings. The literals for the default cylinder
+were measured on `main` before the notch settings existed, so the defaults are proven unchanged.
+`geometry_app` and `default_settings` live in the root `tests/conftest.py`, because `pdf/` needs
+them too.
+
+`pdf/test_template_reference.py` checks the reference sheet's interstitial lengths against
+hand-worked distances, for a dome tip, a flat tip, and a flat-tipped cylinder's wall, and the
+notch drawing, the label placement and the cylinder table against literals.
+
 `dicom/test_data.py` checks that a new `DicomData` starts empty and that `reset()` clears every
 field `__init__` declares. It imports no Qt or conda-only package.
+
+`settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
+imports no Qt or conda-only package.
 
 `views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
@@ -130,17 +150,24 @@ QApplication per process, so the two window fixtures share it rather than each m
 own. `channels_window` builds the real `MainWindow`, models and five views once per module
 and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
 in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
-builds a fresh window with default settings for each test. Neither calls
+builds a fresh window with default settings for each test and restores the previous app
+window afterwards, so later tests still reach their own models. Neither calls
 `canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and both
 disconnect their window from the application signals on teardown. No application module is
 mocked.
 
-`views/test_channels_view.py` checks that the Channels list's current item follows the
-selected channel, after leaving and reopening the tab and after a viewport pick.
+`views/test_channels_view.py` drives the Channels tab through the real window and models. §8.2
+of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes it fail.
 
-`views/test_cylinder_view.py` checks the mm/cm selector with the real window, models and
-widgets. It covers all four dimensions, precision, limits, Apply, configuration reset and
-Ex1 import with needle offsets.
+`views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
+and widgets. It covers the mm/cm selector across all four dimensions, precision, limits, Apply,
+configuration reset and Ex1 import with needle offsets, and the settings round trip: every
+default key is in the exported snapshot, and the collar is exported and loaded back. The notch
+controls are applied, grey out when *Add Notch* is unticked, follow the units, and are filled
+by a config import.
+
+`views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
+snapshot does not list.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.

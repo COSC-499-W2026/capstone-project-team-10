@@ -3473,6 +3473,8 @@ is ticked, and the *Height Offset* of an imported tandem.
 
 ### 13.3 `defaults.py`, the built-in values
 
+> **Changed 2026-10-15.** `defaults.py` also holds `MINIMUM_CHANNEL_DIAMETER_MM`. See source of truth §5.2.
+
 [`defaults.py`](../../src/settings/defaults.py) holds one dictionary, `DEFAULT_CONFIG_VALUES`, with
 the 19 settings in the table above. It has no functions. It is the **list of which settings
 exist**: `load.py` goes through its keys to decide what to look for in a settings file.
@@ -3613,6 +3615,10 @@ number?"**. *Verified*, with a settings file holding a mix of values:
 | `"MY_NOTE": "hello"` | kept, ignored | `"hello"` | not a setting. It stays in the live settings, so they then hold 20 keys |
 | (the other 14 settings) | not found | the defaults | missing from the file |
 
+> **Out of date since 2026-10-11.** `true` and `false` are no longer kept: the default is used
+> and the key is reported missing. See §7.9 of the
+> [project docs](COSC499-TEAM10-PROJECT-DOCS.md#79-further-bugs-found-while-writing-the-init-guide).
+
 A file that is not valid JSON, or that does not exist, is treated as no file at all: every
 setting comes from the fallback. *Verified*.
 
@@ -3747,6 +3753,10 @@ file again on every start until another one is imported.
 
 - **Whether a setting makes sense.** A −3 mm hole, a 0 mm cylinder, or `true` as a length all
   load. Only "is it a number" is checked.
+
+  > **Out of date since 2026-10-11.** `true` no longer loads. Negative and zero values still do.
+  > See §7.9 of the
+  > [project docs](COSC499-TEAM10-PROJECT-DOCS.md#79-further-bugs-found-while-writing-the-init-guide).
 - **That the defaults stay the defaults.** On a first start, changing a setting changes the
   built-in default too.
 - **That the collar survives.** It is missing from the export, ignored by the import, and dropped
@@ -4242,6 +4252,8 @@ cylinder then failed with an error from OpenCASCADE.
 | `disabled_channels` | the labels of the switched-off needles | `["Tandem"]` |
 | `diameter` | every needle's hole width | 2.7 |
 | `threading_depth`, `threading_diamenter` | the threaded hole's depth and width. The second name is misspelled, and every use matches it | 5.0, 3.17 |
+
+> **Changed 2026-10-15.** `diameter` is no longer every needle's width. A needle can keep its own diameter (`own_diameters`), which Apply keeps. Clearing uses the live config default, matching newly imported channels even when the model cache is stale. See source of truth §5.5 and §7.6.
 
 #### Loading the plan
 

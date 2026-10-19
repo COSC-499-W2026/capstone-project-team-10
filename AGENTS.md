@@ -188,7 +188,7 @@ This project follows the superpowers **test-driven-development** skill. It is ma
 
 The rest of this section is the repo-specific application of that skill: what must be tested, what cannot, and what makes a test worthless. Where this section is stricter than the skill, this section wins. The skill's open exceptions (a throwaway prototype, generated code, a configuration file) are not granted here unless your human partner says so. Generated `*_ui.py` files stay generated. You still do not hand-edit them, and you still test the logic you moved out of the view.
 
-**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Besides the tooling tests in `tests/tooling/`, `tests/dicom/test_structures.py` tests the standalone RTSTRUCT reader, `tests/dicom/test_data.py` checks that `DicomData.reset()` clears every field `__init__` declares, `tests/windows/` tests the main window's Export tab, and [tests/views/](tests/views/) tests the Channels view's list selection against the real window and checks Cylinder mm/cm displays, Apply, config reset and DICOM import through real widgets and models. The `windows/` and `views/` fixtures share one QApplication and never initialise the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
+**The test runner is configured, and `src/` has its first tests.** [pytest.ini](pytest.ini) puts `src/` (and the repository root) on `sys.path`, and [`.vscode/settings.json`](.vscode/settings.json) points pytest at [tests/](tests/). Run `python -m pytest` from the repository root, in the conda environment. Every test folder, and what it covers, is listed in [tests/README.md](tests/README.md), and §8.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes each test file fail. The `windows/` and `views/` fixtures share one QApplication and never initialise the native canvas. The pure functions listed below still need tests, and no missing fixture or folder is a reason to skip one.
 
 ### The loop
 
@@ -241,9 +241,10 @@ written the way it is. [tests/tooling/](tests/tooling/) shows the form.
 
 ## Cylinder display units
 
-The Cylinder tab alone displays mm or cm. Its four `LengthField` instances retain exact
-mm values; Apply reads those values. Config and model updates use
-`CylinderView.set_dimensions_mm`, never direct mm writes to the displayed spin boxes.
+The Cylinder tab alone displays mm or cm. Its seven `LengthField` instances, for the
+dimensions, the collar and the notch, retain exact mm values; Apply reads those values.
+Config and model updates use `CylinderView.set_dimensions_mm` and
+`CylinderView.set_notch_settings`, never direct mm writes to the displayed spin boxes.
 The selector starts in mm and is not saved. See §5.6 and §7.6 of the source of truth.
 
 ## UI copy
@@ -351,7 +352,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. Tooling, the standalone RTSTRUCT reader, `DicomData`, the main window's Export tab, the Channels view and Cylinder display units are tested so far, and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. What is tested so far is listed in [tests/README.md](tests/README.md), and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 
@@ -430,7 +431,7 @@ A channel labelled `"Central Axis"` is mandatory — it defines the cylinder axi
 
 `DEFAULT_CONFIG_VALUES` ([settings/defaults.py](src/settings/defaults.py)) is the schema: a flat `CONFIG_*` → number dict. Adding a setting touches four places — `defaults.py`, `settings/reset.py` (`resetAllValues` to push it into a spin box, `getCurrentValues` to read it back), and the owning view's `__init__`.
 
-Config loading is lenient by design: `load_config_file` keeps any key that is present and numeric, falls back to defaults/previous values for the rest, and reports both lists through `config_keys_loaded` so `createConfigMessageText` can tell the user exactly what was and was not loaded. Unknown keys in a user's JSON are preserved but ignored.
+Config loading is lenient by design: `load_config_file` keeps any key that is present and numeric (`true` and `false` are rejected, since Python treats `True` as 1), falls back to defaults/previous values for the rest, and reports both lists through `config_keys_loaded` so `createConfigMessageText` can tell the user exactly what was and was not loaded. Unknown keys in a user's JSON are preserved but ignored.
 
 ### Qt UI files
 

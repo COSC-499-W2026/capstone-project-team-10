@@ -170,6 +170,117 @@ class Ui_Cylinder_View(object):
 
         self.gridLayout.addWidget(self.cb_add_base, 4, 1, 1, 1)
 
+        self.label_add_notch = QLabel(Cylinder_View)
+        self.label_add_notch.setObjectName(u"label_add_notch")
+        self.label_add_notch.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_add_notch, 6, 0, 1, 1)
+
+        self.cb_add_notch = QCheckBox(Cylinder_View)
+        self.cb_add_notch.setObjectName(u"cb_add_notch")
+        self.cb_add_notch.setLayoutDirection(Qt.RightToLeft)
+        self.cb_add_notch.setStyleSheet(u"QCheckBox {\n"
+"    background-color: rgb(240, 245, 250);\n"
+"}\n"
+"")
+        self.cb_add_notch.setChecked(True)
+
+        self.gridLayout.addWidget(self.cb_add_notch, 6, 1, 1, 1)
+
+        self.label_notch_angle = QLabel(Cylinder_View)
+        self.label_notch_angle.setObjectName(u"label_notch_angle")
+        self.label_notch_angle.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_notch_angle, 7, 0, 1, 1)
+
+        self.spinbox_notch_angle = QDoubleSpinBox(Cylinder_View)
+        self.spinbox_notch_angle.setObjectName(u"spinbox_notch_angle")
+        self.spinbox_notch_angle.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+        self.spinbox_notch_angle.setDecimals(1)
+        self.spinbox_notch_angle.setMinimum(0.000000000000000)
+        self.spinbox_notch_angle.setMaximum(359.899999999999977)
+        self.spinbox_notch_angle.setSingleStep(1.000000000000000)
+        self.spinbox_notch_angle.setValue(0.000000000000000)
+        self.spinbox_notch_angle.setWrapping(True)
+
+        self.gridLayout.addWidget(self.spinbox_notch_angle, 7, 1, 1, 1)
+
+        self.label_notch_width = QLabel(Cylinder_View)
+        self.label_notch_width.setObjectName(u"label_notch_width")
+        self.label_notch_width.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_notch_width, 8, 0, 1, 1)
+
+        self.spinbox_notch_width = QDoubleSpinBox(Cylinder_View)
+        self.spinbox_notch_width.setObjectName(u"spinbox_notch_width")
+        self.spinbox_notch_width.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+        self.spinbox_notch_width.setDecimals(1)
+        self.spinbox_notch_width.setMinimum(0.500000000000000)
+        self.spinbox_notch_width.setMaximum(10.000000000000000)
+        self.spinbox_notch_width.setSingleStep(0.100000000000000)
+        self.spinbox_notch_width.setValue(2.000000000000000)
+
+        self.gridLayout.addWidget(self.spinbox_notch_width, 8, 1, 1, 1)
+
+        self.label_notch_depth = QLabel(Cylinder_View)
+        self.label_notch_depth.setObjectName(u"label_notch_depth")
+        self.label_notch_depth.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_notch_depth, 9, 0, 1, 1)
+
+        self.spinbox_notch_depth = QDoubleSpinBox(Cylinder_View)
+        self.spinbox_notch_depth.setObjectName(u"spinbox_notch_depth")
+        self.spinbox_notch_depth.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+        self.spinbox_notch_depth.setDecimals(1)
+        self.spinbox_notch_depth.setMinimum(0.500000000000000)
+        self.spinbox_notch_depth.setMaximum(5.000000000000000)
+        self.spinbox_notch_depth.setSingleStep(0.100000000000000)
+        self.spinbox_notch_depth.setValue(1.800000000000000)
+
+        self.gridLayout.addWidget(self.spinbox_notch_depth, 9, 1, 1, 1)
+
+        self.label_notch_height = QLabel(Cylinder_View)
+        self.label_notch_height.setObjectName(u"label_notch_height")
+        self.label_notch_height.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_notch_height, 10, 0, 1, 1)
+
+        self.spinbox_notch_height = QDoubleSpinBox(Cylinder_View)
+        self.spinbox_notch_height.setObjectName(u"spinbox_notch_height")
+        self.spinbox_notch_height.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+        self.spinbox_notch_height.setDecimals(0)
+        self.spinbox_notch_height.setMinimum(1.000000000000000)
+        self.spinbox_notch_height.setMaximum(60.000000000000000)
+        self.spinbox_notch_height.setSingleStep(1.000000000000000)
+        self.spinbox_notch_height.setValue(10.000000000000000)
+
+        self.gridLayout.addWidget(self.spinbox_notch_height, 10, 1, 1, 1)
+
+        self.label_tip = QLabel(Cylinder_View)
+        self.label_tip.setObjectName(u"label_tip")
+        self.label_tip.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.label_tip, 11, 0, 1, 1)
+
+        self.combobox_tip = QComboBox(Cylinder_View)
+        self.combobox_tip.addItem("")
+        self.combobox_tip.addItem("")
+        self.combobox_tip.setObjectName(u"combobox_tip")
+        self.combobox_tip.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+
+        self.gridLayout.addWidget(self.combobox_tip, 11, 1, 1, 1)
+
 
         self.verticalLayout.addLayout(self.gridLayout)
 
@@ -204,6 +315,12 @@ class Ui_Cylinder_View(object):
         self.label.setBuddy(self.spinbox_diameter)
         self.label_2.setBuddy(self.spinbox_length)
         self.label_3.setBuddy(self.cb_add_base)
+        self.label_add_notch.setBuddy(self.cb_add_notch)
+        self.label_notch_angle.setBuddy(self.spinbox_notch_angle)
+        self.label_notch_width.setBuddy(self.spinbox_notch_width)
+        self.label_notch_depth.setBuddy(self.spinbox_notch_depth)
+        self.label_notch_height.setBuddy(self.spinbox_notch_height)
+        self.label_tip.setBuddy(self.combobox_tip)
 #endif // QT_CONFIG(shortcut)
 
         self.retranslateUi(Cylinder_View)
@@ -227,6 +344,20 @@ class Ui_Cylinder_View(object):
         self.spinbox_base_height.setSuffix(QCoreApplication.translate("Cylinder_View", u" mm", None))
         self.label_3.setText(QCoreApplication.translate("Cylinder_View", u"Add Collar", None))
         self.cb_add_base.setText("")
+        self.label_add_notch.setText(QCoreApplication.translate("Cylinder_View", u"Add Notch", None))
+        self.cb_add_notch.setText("")
+        self.label_notch_angle.setText(QCoreApplication.translate("Cylinder_View", u"Notch Angle", None))
+        self.spinbox_notch_angle.setSuffix(QCoreApplication.translate("Cylinder_View", u"\u00b0", None))
+        self.label_notch_width.setText(QCoreApplication.translate("Cylinder_View", u"Notch Width", None))
+        self.spinbox_notch_width.setSuffix(QCoreApplication.translate("Cylinder_View", u" mm", None))
+        self.label_notch_depth.setText(QCoreApplication.translate("Cylinder_View", u"Notch Depth", None))
+        self.spinbox_notch_depth.setSuffix(QCoreApplication.translate("Cylinder_View", u" mm", None))
+        self.label_notch_height.setText(QCoreApplication.translate("Cylinder_View", u"Notch Height", None))
+        self.spinbox_notch_height.setSuffix(QCoreApplication.translate("Cylinder_View", u" mm", None))
+        self.label_tip.setText(QCoreApplication.translate("Cylinder_View", u"Tip Shape", None))
+        self.combobox_tip.setItemText(0, QCoreApplication.translate("Cylinder_View", u"Dome", None))
+        self.combobox_tip.setItemText(1, QCoreApplication.translate("Cylinder_View", u"Flat", None))
+
         self.btn_apply_settings.setText(QCoreApplication.translate("Cylinder_View", u"Apply Settings", None))
     # retranslateUi
 

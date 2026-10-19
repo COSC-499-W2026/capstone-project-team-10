@@ -581,7 +581,12 @@ scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. The first
 on 2026-10-10, keep the Export tab disabled until a cylinder exists (§7.6) and add the
 Cylinder tab's mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.3, §8)
-were added on 2026-10-11. It is not yet connected to the GUI import path.
+were added on 2026-10-11. Folder import now calls `load_structures` so
+`DicomData.structures` holds that decode, or `None` on failure (§5.3). On 2026-10-15,
+importing a plan stopped keeping channels disabled in the previous plan (§7.10), the collar
+settings began to round-trip through config files, and *Generate Tandem* stopped dropping
+settings (§7.1). `ChannelsModel` began keeping a channel's own
+diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is not yet reachable from the GUI.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -662,7 +667,7 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 **Reordering this list breaks call sites scattered across `settings/reset.py`, every view, and
 `main_window.py`.** There is no symbolic lookup. Treat the order as frozen.
 
-The Cylinder view's Units selector changes the four dimension controls between mm and cm
+The Cylinder view's Units selector changes its seven length controls between mm and cm
 (§5.6). It does not apply the design. *Verified* by the offscreen unit-switch case.
 
 ### 4.4 Signal graph
@@ -772,7 +777,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     │   ├── info.py            APP_NAME, paths
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
-    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (standalone ROI reader)
+    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
     ├── settings/              defaults.py, load.py, values.py, reset.py
@@ -782,7 +787,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
         ├── length_field.py    LengthField and LengthUnit, mm-backed Cylinder controls
         ├── models/            six QObject models
         ├── views/             five views + custom_view.py + viewport.py
-        └── ui/                .ui sources and generated *_ui.py
+        └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
 ```
 
 ---
@@ -812,10 +817,14 @@ a stderr stream handler. Creates `~/brachify/` at import time if missing.
 ### 5.2 Settings and configuration
 
 **[`settings/defaults.py`](../../src/settings/defaults.py)** — `DEFAULT_CONFIG_VALUES`, the
-schema: a flat `CONFIG_*` → number dict, 19 keys. Full table in §6.2.
+schema: a flat `CONFIG_*` → number dict, 25 keys. Full table in §6.2. It also holds
+`MINIMUM_CHANNEL_DIAMETER_MM` (0.3), the narrowest channel `ChannelsModel` accepts as a
+channel's own diameter, the same value as the Channels Diameter box's minimum in
+`channels_view.ui`. It is not a `CONFIG_*` key.
 
 **[`settings/load.py`](../../src/settings/load.py)** — `load_config_file()` is lenient by
-design. It keeps any key present in the user's JSON whose value is `int` or `float`, falls back
+design. It keeps any key present in the user's JSON whose value is `int` or `float` and not
+`true` or `false` (checked by `is_config_number()`), falls back
 to defaults (or the previous values, on a mid-session import) for the rest, and returns a
 two-list `config_keys_loaded` of `[loaded, missing]` so the UI can tell the user exactly what
 was and was not applied. Unknown keys in a user's JSON are preserved but never used.
@@ -830,9 +839,12 @@ single mutable dict every other module reads), the two most-recent config file p
   writes cylinder dimensions through `CylinderView.set_dimensions_mm`, so the current
   display unit does not change the meaning of an imported mm value. It
   handles the three tandem states explicitly (absent / generated / imported), because a
-  generated tandem must be regenerated while an imported one must not be touched.
-- `getCurrentValues()` reads the current state **back out** into a dict. **It returns only 17
-  of the 19 keys** — see §7.1, this is a live bug.
+  generated tandem must be regenerated while an imported one must not be touched. Since
+  2026-10-15 it also fills the two collar boxes (§7.1).
+- `getCurrentValues()` reads the current state **back out** into a dict. Since 2026-10-15 it
+  returns every key, 25 since the notch and tip settings. The collar's two come from the live settings,
+  which *Apply Settings* writes (§7.1), and the notch's five from the cylinder's
+  `notch_settings`.
 
 ### 5.3 DICOM ingest
 
@@ -852,10 +864,12 @@ point-count mismatches, nonfinite coordinates, and mixed XOR/non-XOR contours th
 `StructureReadError`. A failure returns no partial result and does not mutate the input.
 Multiple observation records for one ROI are currently rejected as ambiguous.
 
-No file discovery, coordinate transformation, frame matching, polygon planarity or
-self-intersection validation, surface reconstruction, display controls or GUI wiring is
-implemented here. The existing vendor readers still operate independently. Example after
-`pydicom.dcmread` has loaded an RTSTRUCT:
+No coordinate transformation, frame matching, polygon planarity or self-intersection
+validation, surface reconstruction, display controls or structure-list GUI is implemented
+here. As of 2026-10-15, both vendor readers call
+[`load_structures`](../../src/classes/dicom/load_structures.py) after reading the RTSTRUCT, so
+`DicomData.structures` holds the decode result (or `None` on `StructureReadError`). Example
+after `pydicom.dcmread` has loaded an RTSTRUCT:
 
 ```python
 from classes.dicom.structures import read_structures
@@ -866,8 +880,9 @@ structures = read_structures(rs_dataset)
 152 contours each. This is a headless reader check, not a GUI or clinical validation.
 Synthetic tests are in `tests/dicom/test_structures.py`; Nucletron data remains unverified.
 
-**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of ~20
-fields. There is a comment in the file stating the rule explicitly: **any field added to
+**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of 22
+fields, including `structures` (a `tuple[Structure, ...]` from `read_structures`, or `None`).
+There is a comment in the file stating the rule explicitly: **any field added to
 `__init__` must also be added to `reset()`**. Keep the rule, but know how narrow the leak is:
 every import builds a **new** `DicomData`, so a field missing from `reset()` only survives an
 import that fails partway and leaves the old object in place (*Reasoned from code*; see [10.4 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#104-datapy-the-form-brachify-fills-in)).
@@ -877,7 +892,11 @@ field in `__init__` is missing from `reset()`.
 
 **[`dicom/fileio.py`](../../src/classes/dicom/fileio.py)** — the vendor readers. `read_dicom_folder()`
 globs `**/*.dcm`, takes the **first** file that parses as RTPLAN and the **first** that parses
-as RTSTRUCT, then branches on `rp_dataset.Manufacturer`:
+as RTSTRUCT, then branches on `rp_dataset.Manufacturer`. After each branch reads the RTSTRUCT,
+it calls [`load_structures`](../../src/classes/dicom/load_structures.py), which fills
+`data.structures` via `read_structures`, or sets it to `None` on `StructureReadError` without
+aborting needle or cylinder loading (*Reasoned from code*; guarded by
+[tests/dicom/test_load_structures.py](../../tests/dicom/test_load_structures.py)):
 
 | Manufacturer string | Reader |
 |---|---|
@@ -910,10 +929,13 @@ the top of each loader so that importing two folders in a row behaves correctly.
 
 All under [`src/classes/mesh/`](../../src/classes/mesh/), one concern per module.
 
-**`cylinder.py`** — `BrachyCylinder`. `shape()` builds a `BRepPrimAPI_MakeCylinder`, finds the
-highest planar face by walking a `TopExp_Explorer`, fillets that top edge into a dome, then
-optionally fuses a base collar (`add_base`) and always fuses the orientation notch
-(`add_notch`). **`shape()` reads a cache but never writes one.** It returns `self._shape` when
+**`cylinder.py`** — `BrachyCylinder`. `shape()` builds a `BRepPrimAPI_MakeCylinder`, then for
+a dome tip calls `add_dome()`, which finds the highest planar face by walking a
+`TopExp_Explorer` and fillets that top edge into a half-sphere. A flat tip skips `add_dome()`.
+It then optionally fuses a base collar (`add_base`) and fuses the orientation notch
+(`add_notch`) unless the notch is off. Since 2026-10-15 the tip is `TipShape.DOME` or
+`TipShape.FLAT`, read once in `__init__` by `tip_shape_from_config()` from
+`CONFIG_CYLINDER_FLAT_TIP` (§6.2). The defaults still build the dome. **`shape()` reads a cache but never writes one.** It returns `self._shape` when
 one is stored, and otherwise rebuilds the solid without storing it. Only the three setters,
 `setDiameter`, `setLength` and `enableBase`, clear `_shape`, rebuild and store the result
 (*Verified* for the init guide: after calling `shape()` on a new cylinder, `_shape` was still
@@ -944,7 +966,10 @@ changing any value.
 **`tandem.py`** — `Tandem`. Two distinct shape methods, easily confused:
 - `generate_shape()` — the **cut-out** subtracted from the cylinder. Built by intersecting a
   swept tandem profile with a cylinder-shaped envelope (`BRepAlgoAPI_Common`), so the tandem
-  channel stops at the cylinder surface.
+  channel stops at the cylinder surface. The envelope reaches `height_offset` past a dome,
+  10 mm. Since 2026-10-15 `height_offset` is a property: for a flat tip
+  (`CONFIG_CYLINDER_FLAT_TIP`, read in `__init__`) it grows to `√(R² + (R + 1)²) − R + 1` when
+  that exceeds 10, so the envelope still contains the flat top's corners (§7.11).
 - `tandem_shape()` — the **visual preview** of the physical tandem tool, shown in the Export
   tab when *Show Tandem* is ticked. Not exported.
 
@@ -953,10 +978,19 @@ Both work in 2D (`gp_Pnt2d`, `Geom2d_*`), find bend/exit points by curve interse
 `get_app()` supplying hardcoded fallback values, so the module can be run standalone
 (`python src/classes/mesh/tandem.py`) to visualise a tandem without launching brachify.
 
-**`notch.py`** — `CylinderNotch`, a small box fused to the cylinder wall at `Z=0`, rotated
-270°, marking orientation for the person inserting the applicator. The docstring still
-describes an 'L' shape from two fused boxes; that code is commented out and it is now a single
-box.
+**`notch.py`** — `CylinderNotch`, a small box standing out of the cylinder wall from `Z=0`,
+marking orientation for the person inserting the applicator. Since 2026-10-15 its size and
+position come from `NotchSettings`, a frozen dataclass of `enabled`, `angle`, `width`, `depth`
+and `height`, which `notch_settings_from_config()` reads from the five `CONFIG_NOTCH_*` keys
+(§6.2) and raises `KeyError` on a missing one. `angle` is in degrees clockwise from Anterior as
+the reference sheet draws it, so the model rotation is `(angle − 90) mod 360`, and the default 0
+gives the 270° every cylinder had before. The box starts 0.2 mm inside the wall (`WALL_OVERLAP`)
+so it fuses, so its radial size is `depth + 0.2`. `BrachyCylinder.__init__` reads the settings
+from the live config once, `shape()` builds the notch only when `enabled`, and with a collar the
+notch sits on the collar's outer wall and its height is capped at the collar height. The
+defaults reproduce the old notch and cylinder exactly (*Verified* by `tests/mesh/`). The
+Cylinder tab's notch controls set them (§5.6). The reference sheet still draws the notch at
+the top whatever its angle.
 
 **`helper.py`** — shared utilities: `face_is_plane`, `geom_plane_from_face`, face sorting by Z,
 `get_vector` / `get_direction` / `get_magnitude`, `extend_bottom_face` (prisms the lowest face
@@ -979,7 +1013,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set | the tandem channel is auto-disabled when set |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test) |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1015,6 +1049,16 @@ Regenerate after editing a `.ui`:
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
 ```
 
+`arrows_rc.py` is generated the same way, from `arrows.qrc` and the two black 14×14 PNGs in
+`ui/arrows/`, and is never hand-edited either. `ChannelsView` imports it, which registers the
+images as `:/arrows/spin_up.png` and `:/arrows/spin_down.png` for its spin box stylesheet. The
+images are compiled into Python because PyInstaller bundles imported modules but not the
+`resources/` folder (§7.5). After changing an image or the `.qrc`:
+
+```bash
+pyside6-rcc src/windows/ui/arrows.qrc -o src/windows/ui/arrows_rc.py
+```
+
 The full workflow — Designer → `.ui` → `uic` → hand-written `*_view.py` → register in
 `NavigationModel` → connect signals to `action_*` methods → decorate with `@display_action` —
 is documented upstream in [notes/gui.txt](../../notes/gui.txt).
@@ -1034,18 +1078,32 @@ Complete control inventory, extracted from the `.ui` sources:
 | `spinbox_base_thickness` | Collar Thickness | 0–99 mm or 0–9.9 cm |
 | `spinbox_base_height` | Collar Height | 0–99 mm or 0–9.9 cm |
 | `cb_add_base` | Add Collar | checkbox |
+| `cb_add_notch` | Add Notch | checkbox, on by default. Unticked, it greys out the four notch fields |
+| `spinbox_notch_angle` | Notch Angle | 0–359.9°, wraps, clockwise from Anterior on the sheet |
+| `spinbox_notch_width` | Notch Width | 0.5–10 mm or 0.05–1 cm |
+| `spinbox_notch_depth` | Notch Depth | 0.5–5 mm or 0.05–0.5 cm |
+| `spinbox_notch_height` | Notch Height | 1–60 mm or 0.1–6 cm |
+| `combobox_tip` | Tip Shape | Dome or Flat, the `TipShape` values. Not affected by Units |
 | `btn_apply_settings` | Apply Settings | |
+
+The notch ranges are Team 10's choice, added 2026-10-15. No clinical document sets them.
+*Tip Shape* was added the same day, below the notch rows. `set_tip` fills it from the model or a
+config, and Apply writes `CONFIG_CYLINDER_FLAT_TIP`.
 
 **[`windows/length_field.py`](../../src/windows/length_field.py)** — `LengthUnit` names mm
 and cm; each `LengthField` owns one `QDoubleSpinBox` and an exact mm value. User edits
 convert to mm. Programmatic updates and unit switches block widget signals, preserving
 precision even when the displayed value rounds. Diameter has 2 decimal places in mm and
-3 in cm; length and collar have 0 in mm and 1 in cm. Steps remain 1 mm or 0.1 cm.
+3 in cm; length, collar and notch height have 0 in mm and 1 in cm, and notch width and depth
+1 in mm and 2 in cm. Steps are 1 mm or 0.1 cm, and 0.1 mm or 0.01 cm for notch width and
+depth.
 
 `CylinderView.set_dimensions_mm` receives model and config dimensions; Apply reads the
 four fields' mm values, including the length offset sent to Channels and Tandem. Changing
 the selector preserves pending edits and does not apply geometry or change live settings.
-The selector affects only these four controls. *Verified* 2026-10-10 by eight offscreen
+The selector affects only these controls, seven since the notch fields were added
+(2026-10-15). `set_notch_settings` fills the notch controls from the model or a config, the way
+`set_dimensions_mm` fills the dimensions. *Verified* 2026-10-10 by eight offscreen
 integration cases, watched failing before implementation. Ahab supplied a GUI screenshot
 showing 3.125, 17.3, 0.3 and 1.2 cm with Add Collar selected, and terminal output
 showing Ex1 import and a 13 mm height offset on Apply. The original image was not saved;
@@ -1123,8 +1181,11 @@ Mouse bindings, which are non-standard and worth knowing:
 [`pdf/template_reference.py`](../../src/classes/pdf/template_reference.py) (806 lines) and
 [`pdf/canvas.py`](../../src/classes/pdf/canvas.py).
 
-`generate_pdf()` produces a one-page reportlab document: header, patient/plan identifiers, a
-table of channels, and a matplotlib cross-section diagram.
+`generate_pdf()` produces a reportlab document: header, patient/plan identifiers, since
+2026-10-15 a two-column cylinder table built by `cylinder_rows()` (diameter, length, tip,
+notch, collar, in mm, with no colons), a table of channels, and a matplotlib cross-section
+diagram. It is not always one page: with Ex1's 12 channels the diagram moves to page 2, on
+`main` before the cylinder table as well as after (*Verified* 2026-10-15 by rendering both).
 
 The substantive computation is **interstitial length** — how far each needle protrudes beyond
 the cylinder surface:
@@ -1137,13 +1198,23 @@ the cylinder surface:
 3. `add_deadspace()` extends a **copy** of each needle tip outward by `CONFIG_DEADSPACE`.
 4. `get_all_interstitial_lengths()` builds a dense point cloud of the cylinder surface
    (straight wall + hemispherical dome, 0.1 mm spacing) and finds where each needle's first
-   segment crosses it, within a 0.25 mm tolerance.
+   segment crosses it, within a 0.25 mm tolerance. Since 2026-10-15, for a flat tip
+   (`TipShape.FLAT`, §5.4) the wall runs the full length and `flat_top_points()` covers the
+   top at `z = length` with a 0.1 mm grid and the rim ring, instead of the dome.
 
 `save_points_diagram()` draws the cross-section: one circle per channel with its channel
 number, the tandem marked `<n>T`, a dashed line showing tandem rotation (generated tandems
 only), the orientation notch as a rectangle, `Anterior`/`Posterior` labels, and — if *Show
 Collet Spacings* is ticked — dashed collet rings coloured **green** when clear and **red** when
 they overlap another collet. It writes `basemap.png` **next to the PDF**, as a side effect.
+
+Since 2026-10-15 the notch is drawn by `notch_outline()`, the part standing out of the circle,
+`width` wide and `depth` deep, turned clockwise from the top by the notch angle, and not at all
+when the notch is off. It is drawn on the cylinder's circle even when a collar puts the real
+notch on the collar's wall, because the diagram does not draw the collar. `label_distance()`
+places *Anterior* and *Posterior* 1.5 beyond the notch's depth, so the rectangle no longer
+covers *Anterior*, as it did before. *Verified* 2026-10-15 by rendering Ex1's sheet with the
+default notch and with a 4 mm notch at 90°, and by `tests/pdf/`.
 
 `FooterCanvas` in `canvas.py` subclasses `reportlab.pdfgen.canvas.Canvas` to stamp "Page x of
 y" and an export timestamp on every page.
@@ -1190,13 +1261,14 @@ Plan authoring requirements (from the User Manual, both vendors):
 
 ### 6.2 Configuration keys
 
-`DEFAULT_CONFIG_VALUES` — 19 keys, all numeric, all millimetres unless noted.
+`DEFAULT_CONFIG_VALUES` — 25 keys, all numeric, all millimetres unless noted.
 The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 
 | Key | Default | Meaning | Round-trips? |
 |---|---|---|---|
 | `CONFIG_CYLINDER_DIAMETER` | 30.0 | cylinder outer diameter | yes |
 | `CONFIG_CYLINDER_LENGTH` | 160.0 | cylinder length | yes |
+| `CONFIG_CYLINDER_FLAT_TIP` | 0 | 1 for a flat tip, 0 for the half-sphere dome (§5.4) | yes. Apply writes it, a config import fills *Tip Shape* |
 | `CONFIG_CHANNELS_DIAMETER` | 2.7 | needle channel diameter (all channels) | yes |
 | `CONFIG_DEADSPACE` | 6.0 | needle dead space at the tip | yes |
 | `CONFIG_CHANNELS_THREADING_DEPTH` | 5.0 | channel threading depth; 0 disables | yes |
@@ -1212,8 +1284,13 @@ The Cylinder mm/cm selector changes display only and adds no config key (§5.6).
 | `CONFIG_NEEDLE_COLLET_OUTER_DIAMETER` | 5.0 | needle collet tolerance ring (PDF only) | yes |
 | `CONFIG_TANDEM_COLLET_OUTER_DIAMETER_INNER` | 5.0 | tandem collet inner ring (PDF only) | yes |
 | `CONFIG_TANDEM_COLLET_OUTER_DIAMETER_OUTER` | 8.0 | tandem collet outer ring (PDF only) | yes |
-| `CONFIG_BASE_HEIGHT` | 0.0 | collar height; 0 disables the collar | **NO — §7.1** |
-| `CONFIG_BASE_THICKNESS` | 0.0 | collar wall thickness; 0 disables the collar | **NO — §7.1** |
+| `CONFIG_BASE_HEIGHT` | 0.0 | collar height; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
+| `CONFIG_BASE_THICKNESS` | 0.0 | collar wall thickness; 0 disables the collar | yes, since 2026-10-15 (§7.1) |
+| `CONFIG_NOTCH_ENABLED` | 1 | 1 adds the orientation notch, 0 leaves it off (§5.4) | yes. Apply writes it, a config import fills the Cylinder tab's control |
+| `CONFIG_NOTCH_ANGLE` | 0.0 | notch position, degrees clockwise from Anterior as the sheet draws it | as above |
+| `CONFIG_NOTCH_WIDTH` | 2.0 | notch width | as above |
+| `CONFIG_NOTCH_DEPTH` | 1.8 | how far the notch stands out of the wall | as above |
+| `CONFIG_NOTCH_HEIGHT` | 10.0 | notch height from the base, capped at the collar height | as above |
 
 **Where the physical defaults come from.** `3D Models and Templates/Values for Cylinders
 (1).docx` lists the physicist's cylinder dimensions, and six of them match the defaults above
@@ -1246,8 +1323,8 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 |---|---|---|
 | Export Mesh | `.stl` (binary) or `.step`/`.stp` | `_final_mesh()` — booleans cut out of the cylinder |
 | Export Shape(s) | `.step`/`.stp` | `_final_shape()` — a `TopoDS_Compound` keeping parts separate |
-| Export Reference Sheet | `.pdf` (+ `basemap.png` alongside) | `template_reference.generate_pdf` |
-| Export Current Settings as Config | `.json` | `getCurrentValues()` — **loses 2 keys, §7.1** |
+| Export Reference Sheet | `.pdf` (+ `basemap.png` alongside), with the cylinder table since 2026-10-15 | `template_reference.generate_pdf` |
+| Export Current Settings as Config | `.json` | `getCurrentValues()`, every key since 2026-10-15 (§7.1) |
 
 ### 6.5 The User Manual against the code
 
@@ -1265,7 +1342,7 @@ with the current UI.
 | §1–2: give the Central Axis zero dwell time | Nothing reads the dwell times. Both samples give it 222.8 s (§3.2). *Verified* |
 | §2: give the Oncentra central axis channel number 1 | Neither reader checks the channel number. It is matched by name only (§3.2) |
 | §1–2: ensure no needles intersect | Nothing checks this. `are_colliding()` is never called (§7.4) |
-| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:14-17](../../src/windows/views/channels_view.py#L14-L17)). *Verified* |
+| 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:15-18](../../src/windows/views/channels_view.py#L15-L18)). *Verified* |
 | 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab does nothing (§7.8) |
 | 4.4: lists *Dead Space* in the layout, but never explains it | `CONFIG_DEADSPACE` extends each needle tip outward, in the model and in the interstitial lengths (§5.4, §5.8) |
 | 4.3: Collar Thickness "changes the diameter of the collar" | It is the collar's wall thickness. The collar's diameter is the cylinder diameter plus twice the thickness (`outer_radius = radius1 + base_thickness`, [cylinder.py:136](../../src/classes/mesh/cylinder.py#L136)) |
@@ -1299,6 +1376,17 @@ section numbers, which other files cite, stay stable. An entry that has since be
 **Fixed** with the date and stays listed. Severity is our judgement, not upstream's.
 
 ### 7.1 HIGH — the collar is never saved to, or loaded from, a settings file
+
+**Fixed 2026-10-15.** `getCurrentValues()` now returns both collar keys, read from the live
+settings that *Apply Settings* writes, and `resetAllValues()` fills the two collar boxes before
+it applies. `TandemView.action_set_tandem()` now merges the snapshot into the live settings
+with `config_values.update(getCurrentValues())` instead of replacing them, so *Generate Tandem*
+cannot drop a key the snapshot leaves out. *Verified* 2026-10-15 on macOS by four tests in
+`tests/views/`, each watched failing before the fix: every default key is in the snapshot, an
+applied 3 mm × 10 mm collar is exported, a 4 mm × 12 mm collar loaded from a config fills the
+boxes, and a setting the snapshot does not list survives *Generate Tandem*. Not changed: the
+*Add Collar* tick box is not a setting, so a config file still cannot turn the collar on or
+off (*Reasoned from code*). The text below is the bug as it was.
 
 *Corrected 2026-10-02.* The 2026-09-21 audit described this as the collar disappearing after
 *Generate Tandem*. Running the real tabs headless on `SI_C_D30 Brachify_Ex2/` for the init guide
@@ -1412,6 +1500,19 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - `spec-file.txt` is `win-64` only (§1.2). macOS and Linux install the same dependencies
   from the command in §1.2, but nothing locks their versions, so they can differ from
   Windows (§1.1).
+- **Fixed 2026-10-08 on the Channels tab only: spin box arrows were invisible on macOS in dark
+  mode.** Each spin box's stylesheet paints its field white, but in dark mode macOS still
+  draws the native up and down arrows white, for a dark background, so they vanish.
+  `ChannelsView` now sets a stylesheet that draws its four spin boxes' arrows from black
+  images (§5.6), and leaves the rest of the app, the file dialogs included, in the OS colour
+  scheme. *Verified* 2026-10-08 on macOS in dark mode by rendering the Channels spin box, and
+  by `test_channels_spin_box_arrows_are_black`. *Verified* again 2026-10-13 after merging
+  `main`, in the app itself on macOS in dark mode (the native `cocoa` platform): with Ex1
+  imported through *Import Dicom* and the Channels tab open, `QWidget.grab()` of all four
+  spin boxes gave a darkest pixel of 39 in the up arrow and 1 in the down arrow. The 3D
+  viewport was not captured. *Still open:* the spin boxes on the Cylinder,
+  Tandem and Export tabs have the same invisible arrows in macOS dark mode. *Not verified:*
+  Windows, where the images replace the native arrows too.
 
 ### 7.6 Traps that are not bugs — know these before editing
 
@@ -1488,8 +1589,8 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   `tests/dicom/test_data.py` fails if they drift apart.
 - **Adding a config key touches four places** (§6.2).
 - **`*_ui.py` files are generated** — edit the `.ui` and re-run `pyside6-uic` (§5.6).
-- **Cylinder spin box values are in the selected display unit.** Use the four
-  `LengthField.millimetres` values for Apply and `set_dimensions_mm` for model/config
+- **Cylinder spin box values are in the selected display unit.** Use the seven
+  `LengthField.millimetres` values for Apply, and `set_dimensions_mm` and `set_notch_settings` for model/config
   updates. Writing mm directly to a widget while cm is selected scales the device by ten.
   Reading a rounded display on a unit switch loses precision. *Verified* by the offscreen
   configuration and repeated-switch cases (§5.6).
@@ -1526,6 +1627,17 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   module read `src\classes\mesh\...` on Windows and `src/classes/mesh/...` elsewhere, and 5 of
   the 8 tests in `test_architecture_drift.py` failed on every Windows clone, `main` included.
   Both now print `.as_posix()`. *Verified* on Windows: 5 failed before, all 8 passed after.
+- **Config import can leave `ChannelsModel.diameter` stale.** Import replaces the config before
+  Apply compares it with the spin box, so the model can retain its startup diameter while new
+  channels use the imported setting. Clearing an own diameter now uses
+  `NeedleChannel.default_diameter()`, matching newly imported channels. The wider config-import
+  synchronization issue remains: `getCurrentValues()` still reads the cached model diameter.
+  *Reasoned from code*; the regression loads 3 mm, imports Ex1 and clears a 4 mm override.
+- **A channel's own diameter is not in the PDF or a config file.** `save_points_diagram` draws
+  every channel circle, and its collet rings, at `CONFIG_CHANNELS_DIAMETER`, and
+  `getCurrentValues()` writes only the global diameter. The 3D export is correct, because it
+  cuts `channel.shape()`, so a reference sheet checked against a cylinder printed with own
+  diameters disagrees with it. FR-CN-07 is the follow-up. *Reasoned from code*.
 
 
 ### 7.7 MEDIUM — a tandem channel's rotation is measured from `(1, 0)`, not the axis
@@ -1568,8 +1680,8 @@ first test for `tests/mesh/`. Inspect the result in the Export tab.
 *Reasoned from code, 2026-09-29; not reproduced in the GUI.*
 
 When the selected channel is the tandem, `btn_set_tandem` reads *Clear Tandem*
-([channels_view.py:153](../../src/windows/views/channels_view.py#L153)). Pressing it calls
-`action_set_tandem()` ([channels_view.py:63-98](../../src/windows/views/channels_view.py#L63-L98)),
+([channels_view.py:161](../../src/windows/views/channels_view.py#L161)). Pressing it calls
+`action_set_tandem()` ([channels_view.py:71-106](../../src/windows/views/channels_view.py#L71-L106)),
 whose only call to `ChannelsModel.set_tandem()` runs when the selected channel is **not**
 already the tandem:
 
@@ -1618,6 +1730,40 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | LOW | `main_window.ui` | six colours are written `rgba(240, 245, 250)`, with no alpha, so Qt prints `Specified color with alpha value but no alpha given` on every start. It also asks for an icon from a Qt resource file that is not in the repository. See [18.6](COSC499-BRACHIFY-INIT-DOCS.md#186-colours-and-other-text-in-the-design-files) | *Verified* for the warning |
 | LOW | the 3D view | every redraw zooms to fit, so after *Apply* or a selection any zoom the user set is lost. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
 | LOW | spin box limits | **Changed 2026-10-10:** Cylinder length and collar now use `QDoubleSpinBox`, with whole mm or tenths of cm displayed. `LengthField` retains exact mm settings through display rounding (§5.6); finer user editing remains limited by display precision. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
+| MEDIUM | `checkValuesExist`, a JSON `true` or `false` | **Fixed 2026-10-11.** A setting written as `true` was reported loaded and used as 1, because Python treats `True` as the int 1, so a cylinder diameter of `true` became 1 mm with no warning. `is_config_number()` now rejects `bool`, so the default is used and the key is reported missing, guarded by `tests/settings/test_load.py`. Negative and zero values still load. See [13.5](COSC499-BRACHIFY-INIT-DOCS.md#135-loadpy-reading-a-settings-file) | *Verified*: the test failed with `assert True == 30.0` before the fix |
+
+### 7.10 HIGH — a channel disabled in one plan stayed disabled in the next
+
+**Fixed 2026-10-15 in PR #43.** `ChannelsModel.load_data` reset the selection and the channels
+but not `disabled_channels`. A channel disabled in one plan therefore stayed disabled in the next
+plan imported, if that plan had a channel with the same label. Ex1 and Ex2 both label their
+needles `Applicator2` to `Applicator13`. The carried-over channel was not drawn, and was missing
+from `get_visible_channels()`, which the Export cut and the PDF both use, so the printed cylinder
+had no hole for a needle the plan contains, and nothing on screen said so. *Verified* 2026-10-15
+offscreen on macOS: with Applicator4 disabled in Ex1, importing Ex2 through the calls
+`ImportView` makes left Ex2's Applicator4 disabled, out of `get_visible_channels()` and out of
+`DisplayModel.shapes`. `load_data` now empties `disabled_channels` before building the channels,
+so only a plan's tandem channel starts disabled. `test_loading_a_plan_enables_every_channel_again`
+in `tests/views/test_channels_view.py` covers it.
+
+### 7.11 HIGH — a flat tip was not followed by the PDF maths or the tandem
+
+**Fixed 2026-10-15, both halves.** The tandem half: `Tandem.height_offset` grows for a flat tip
+(§5.4). *Verified*: with a flat-tipped 90 mm cylinder, an 80° bend and Tandem Height 100, the
+dome-sized envelope trimmed away 133.4 mm³ of cut-out inside the cylinder, and after the fix
+none. A probe of 48 builds (diameters 30, 45, 60 and 90 mm, bends of 30°, 60° and 80°, Tandem
+Height 100 and 130, bend radius 15 and 35, each with a dome and a flat tip) found cut-out
+trimmed away only from flat tips at 60 and 90 mm before the fix, up to 133.4 mm³, and none
+after. The text below is the bug as it was.
+
+*Reasoned from code, 2026-10-15.* `CONFIG_CYLINDER_FLAT_TIP` builds a flat-topped cylinder
+(§5.4). **The reference sheet's half is fixed, 2026-10-15:** interstitial lengths used to be
+measured against a dome point cloud whatever the tip, and now follow it (§5.8, *Verified* by
+`tests/pdf/`). Still open: the generated tandem's cut-out is trimmed by a dome
+outline 10 mm larger than the cylinder, centred 1 mm below the dome's centre. A flat top's corners leave it once
+√(R² + (R + 1)²) > R + 10, a diameter above about 45 mm, which could leave the tandem hole closed. Only a config file can set a
+flat tip until the Cylinder tab gains the control. The tandem fix is the next change in the
+same stack of pull requests.
 
 ---
 
@@ -1677,6 +1823,10 @@ initialised.
 passed afterwards. Three deliberate breaks (cm scale, Apply conversion, rounded mm
 cache) each failed the relevant assertions. No application module is mocked.
 
+**Config loading is tested in `tests/settings/`.** `test_load.py`, added 2026-10-11, loads real
+JSON files from a temporary folder: a file with one key, a file that is not valid JSON, and a
+`true` dimension.
+
 Both view test files share the one QApplication from the `units_app` fixture in
 [tests/views/conftest.py](../../tests/views/conftest.py), which isolates HOME/USERPROFILE.
 `channels_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
@@ -1690,8 +1840,15 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6) |
-| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress |
+| `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6) |
+| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
+| `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
+| `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
+| `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
+| `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
+| `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
+| `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
@@ -1735,6 +1892,13 @@ python -m pytest
   views offscreen with the canvas never initialised (§7.6), points `HOME` at a temporary
   folder so the developer's `~/brachify` config is not loaded, and imports
   `SI_C_D30 Brachify_Ex1/`. *Not verified:* Windows.
+- *Verified* 2026-10-08 on macOS: 23 passed, with `test_channels_spin_box_arrows_are_black`
+  added. It failed before the fix with the headless Fusion style's grey arrows (darkest
+  pixel 94 of 255), passed on PySide6 6.11.2 and 6.8.1, and failed again (85) when the
+  `arrows_rc` import was removed. The arrows come from the stylesheet's images, so the test
+  sees what every platform draws. *Verified* again 2026-10-13 after merging `main`: 64
+  passed, the five Channels view tests also passed on PySide6 6.8.1, and the arrows test
+  still failed with no stylesheet (94) and with no `arrows_rc` import (85).
 - *Verified* 2026-10-10 on macOS: 24 passed, with two viewport-pick tests added to
   `test_channels_view.py`. They send the pick through the canvas's real `sig_topods_selected`
   signal. Both were watched failing on the code before the viewport-pick fix, and three of the
@@ -1744,6 +1908,11 @@ python -m pytest
   including the two `DicomData` tests. `data.py` imports nothing, so they need no conda
   package. The `reset()` test failed naming `central_axis_flag` before the fix, and naming
   `operator` when that line was removed from `reset()` on purpose.
+- *Verified* 2026-10-15 on Windows, with only `pydicom` in a throwaway venv (not the conda
+  app env): `tests/dicom/test_data.py` and `test_load_structures.py` passed 4 of 4. Both
+  `load_structures` cases failed when the attach was broken on purpose (empty tuple, and
+  leaving a previous value on `StructureReadError`). Loading Ex1's RTSTRUCT through
+  `load_structures` produced 42 structures, matching §5.3.
 - *Verified* 2026-10-10 on macOS: 25 passed, with `windows/test_main_window.py` added. Its five
   tests were written before the fix. Three were red on `main`, and the other two, which
   describe behaviour the fix must keep, went red once Export was disabled and before it was
@@ -1756,6 +1925,59 @@ python -m pytest
 - *Verified* 2026-10-11 on macOS, after merging `main` into the Export tab branch: 39 passed.
   `tests/windows` and `tests/views` also passed, 17 of 17, run in either order, so
   `brachify_app` and `units_app` share the one QApplication whichever starts it.
+  *Not verified:* Windows.
+- *Verified* 2026-10-11 on Windows, outside conda: 20 passed with `test_build_executable.py`
+  and `tests/views/` ignored, since `tests/views/` needs PySide6. The `true` test failed with
+  `assert True == 30.0` before the fix and again when the `bool` check was removed on purpose.
+  The partial-file test failed with `assert 0 == 1` when a file needed two keys to count.
+- *Verified* 2026-10-15 on macOS: 65 passed, with
+  `test_loading_a_plan_enables_every_channel_again` added to `test_channels_view.py`. It failed
+  with `assert not True` before the fix, and again when the fix line was removed on purpose.
+  *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 70 passed, with four own-diameter tests (five cases) added to
+  `test_channels_view.py`. All five failed with `AttributeError` before `set_channel_diameter`
+  existed. Four deliberate breaks were each caught: Apply ignoring an own diameter, a clear that
+  keeps the width, a reload that keeps own diameters, and NaN let through, which crashed the run
+  with exit 139. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS after Ariq's PR #59 review: 73 passed. A real 3 mm config
+  load followed by Ex1 import and clearing a 4 mm override now returns to 3 mm; the old code
+  returned 2.7 mm. Unknown and unselected labels raise `KeyError` without changing overrides.
+  Both regressions failed before the fix and under deliberate reversions. The shared Apply
+  test restores the global model width as well as config, and fresh windows restore the
+  previous app window on teardown. Native viewport and Windows were not rerun.
+- *Verified* 2026-10-15 on macOS: 68 passed, with three collar round-trip tests added to
+  `test_cylinder_view.py` and `test_tandem_view.py` added. All four failed before the fix
+  (§7.1): two missing collar keys, collar boxes left at 0, and the extra setting dropped.
+  *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 79 passed, with `tests/mesh/` added for the notch settings.
+  The literals in the default tests were measured on `main` first: volume 109,599.266 mm³, the
+  notch from y −16.8 to −14.8 mm. The new-behaviour tests failed first, and flipping the angle
+  conversion's sign and always fusing the notch were each caught. `mesh_app` in
+  `tests/mesh/conftest.py` reuses the one QApplication, like the other fixtures. It moved the
+  same day to [tests/conftest.py](../../tests/conftest.py) as `geometry_app`, when
+  `tests/pdf/` needed it too. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 97 passed, with six reference-sheet tests added to
+  `pdf/test_template_reference.py`. All six failed before `notch_outline`, `label_distance` and
+  `cylinder_rows` existed, and turning the notch counterclockwise failed the 90° test.
+  *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 91 passed, with two *Tip Shape* tests added to
+  `test_cylinder_view.py`. Both failed before the control existed, and removing the tip line
+  from `resetAllValues()` failed the config import test. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 89 passed, with `mesh/test_tandem.py` added. The dome
+  cut-out's literal, 3,875.268 mm³, was measured before the fix. The flat-tip test failed at
+  133.387 mm³ before it, and again when the outline was kept at 10 mm. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 87 passed, with `tests/pdf/test_template_reference.py`
+  added. A needle 10 mm off the axis, tip at z 180, measures 23.82 mm past the dome
+  (145 + √(15² − 10²) = 156.18) and 20 mm past a flat top. The flat-top test failed at 23.81
+  before the fix, and stopping the flat-tip wall where a dome begins failed the wall test.
+  *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 84 passed, with the flat-tip test added to
+  `mesh/test_cylinder.py`. Its literal, π × 15² × 160 = 113,097.336 mm³, was worked by hand. It
+  failed at 109,563.044 before the tip setting existed, and again when the dome was always
+  built. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 83 passed, with four notch-control tests added to
+  `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
+  and removing the notch line from `resetAllValues()` failed the config import test.
   *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
