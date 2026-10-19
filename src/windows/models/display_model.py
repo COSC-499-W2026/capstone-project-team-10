@@ -107,6 +107,7 @@ class DisplayModel(QObject):
     def reset(self):
         self.visibility = {}  # label: bool where True is visible
         self.shapes = {}  # each entry stored as (ShapeModel)
+        self.shapes_changed.emit([], False)
 
     def __init__(self):
         super().__init__()
