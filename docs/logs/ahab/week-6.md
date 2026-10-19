@@ -162,6 +162,91 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, python -m pytest on feat/channel-own-diameter at 9fd84a9, 80 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/144974714611352ba317c6659ea0bf11161f0b2d/docs/logs/ahab/screenshots/week-6/pr-59-1-pytest-80-passed.png)
 
+### For PR #**83**
+
+- As part of requirement **FR-CN-05, save needle designs as templates, with FR-CN-06's corrupted
+  file case**, the user needs to do **save a needle type's diameter under a name and get the same
+  width back later**.
+- Therefore, I implemented/generated code so that **physicists' templates are kept in
+  `~/brachify/needle_templates.json`, validated and never overwritten when unreadable**.
+
+#### Data Modeling and Integrity
+
+- This data **`NeedleTemplate`** is modeled as **a frozen dataclass of `name` and `diameter_mm`**
+  because **a template must not change once validated**. We considered alternative models such as
+  **a raw `dict`, which anti-slop forbids**.
+- This data **`needle_templates.json`** uses the input validation to ensure it adheres to **text names that are unique and
+  non-blank, and number diameters (not booleans) that are finite of at least 0.3 mm**.
+- This data **`needle_templates.json`** may be vulnerable to **a corrupt or hand-edited file**.
+  Therefore, it uses a security-based sanitization by **refusing the whole file without
+  overwriting it**. We considered alternative security solutions such as **skipping bad entries,
+  which mislabels widths**.
+- Not applicable: **privacy sanitization (no patient data), encryption (nothing sensitive),
+  access controls (one local user)**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **External, Presentation, Application state, Domain services, Libraries and Local storage**. This
+  structure has low coupling because **the module imports only `settings.defaults`**. This
+  structure has high cohesion because **templates are handled in one module**. This design is scalable because **dead space for FR-CN-19 is one more field**.
+
+  **[System architecture (SVG), redrawn to name `needle_templates`](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b9109a1a59e8aeac3c5de1f207a598a2b7debe33/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **medical physicist, treatment
+  planning system, brachify and printer or CAD**. **Templates stay inside brachify, in local storage**
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **Channels saves and
+  applies templates in the next PR**. **An unreadable library raises `NeedleTemplateError`**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/7b31587691980185009f292ce7454c352c9f1de4/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-05 → `test_a_saved_template_loads_back_with_identical_values`;
+  FR-CN-06 → `test_a_corrupt_library_is_reported_and_left_unchanged`**
+- Not applicable: **architectural pattern (unchanged), database (a JSON file, above), data
+  processing (unchanged), state management (stateless module), backend API (none), test coverage
+  (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated `load_templates`**, I noticed **an `OSError` could escape and stop
+  brachify starting**. Therefore, I did **raise `NeedleTemplateError` instead**.
+- When Writable04 reviewed this PR, they found **a failed save could leave truncated JSON, `{}` and a
+  `null` name were accepted, and `10**400` raised `OverflowError`**. Therefore, I did **save through a
+  temporary file and `os.replace`, check the JSON types, and raise `NeedleTemplateError`**. The eight
+  new cases **failed before the fix**.
+- The PR does not contain any temporary workaround because **only the GUI caller is still to
+  come**.
+- The PR only contains small functions that are **8, 12 and 9, and at most 14 in the tests** long.
+- I did **`anti_slop review --base main` (no findings)** to ensure that my feature contribution does
+  not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/settings/needle_templates.py`** because **it is settings data with
+  no Qt**.
+- This work belongs in **3 Channels** in the DFD because **a template sets a needle's bore there**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **a round trip and a
+  replace by name (164 passed)** passed.
+- I wrote tests to cover abnormal situations involving **no file, an unreadable path and an
+  unwritable folder** and they passed.
+- I checked that these negative cases involving **blank names, 0.2 mm, NaN and corrupt or
+  malformed files** failed as expected.
+- When I reviewed the **generated `test_a_library_with_a_malformed_entry_is_rejected`**, I noticed
+  **an `object` parameter, which anti-slop warns on**. Therefore, I did **type it as `LibraryJson`**.
+- Among these tests, **all 23 cases** are unit tests and integration tests are not required because
+  **the module has no Qt or app dependency**.
+- These tests are included in the directory **`tests/settings/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (164
+  passed), `build.py --check` and `session-start.sh` (exit 0)**.
+
 ### For PR #**84**
 
 - As part of requirement **FR-CN-08, with FR-CN-02 (interface), edit controls disabled with

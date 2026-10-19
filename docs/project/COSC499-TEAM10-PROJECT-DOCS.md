@@ -770,7 +770,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/ (§8)
+├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -790,7 +790,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
-    ├── settings/              defaults.py, load.py, values.py, reset.py
+    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
@@ -855,6 +855,20 @@ single mutable dict every other module reads), the two most-recent config file p
   returns every key, 25 since the notch and tip settings. The collar's two come from the live settings,
   which *Apply Settings* writes (§7.1), and the notch's five from the cylinder's
   `notch_settings`.
+
+**[`settings/needle_templates.py`](../../src/settings/needle_templates.py)** — the needle template
+library, not yet called from the GUI. A `NeedleTemplate` is a frozen dataclass of `name` and
+`diameter_mm`. `make_template` trims the name and refuses an empty one, and refuses a diameter
+that is not finite or is below `MINIMUM_CHANNEL_DIAMETER_MM`. `load_templates(path)` decodes the
+JSON file into `NeedleTemplate` values at the boundary and returns all of them or none: a missing
+file is an empty library. The top level must be a list, each entry a text `name` and a number
+`diameter_mm` (a boolean or numeric text is refused), and a name used twice, an `OSError` or a
+number too large for a float all raise `NeedleTemplateError`. `save_template` replaces a template
+of the same name, writes the library to a `.tmp` file beside it and swaps that in with
+`os.replace`, so a failed save leaves the previous library whole. It never overwrites a library
+it could not read. The module imports nothing from
+`classes` or `windows`, and the caller passes the path. Its error messages are written for
+clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
 
 ### 5.3 DICOM ingest
 
@@ -1376,6 +1390,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 |---|---|---|
 | `app.log` | `logger.py` | rotating, 25 MB × 3 backups |
 | `filepaths.json` | `MainWindow.closeEvent` | `most_recently_opened_config_file`, `most_recently_saved_config_file` |
+| `needle_templates.json` | `settings.needle_templates.save_template`, not yet called from the GUI | a JSON list of `{"name", "diameter_mm"}` objects |
 
 `most_recently_saved_config_file` is stored but never read — it is reserved for future use.
 
@@ -1918,6 +1933,7 @@ Repository tooling tests, first added 2026-09-30, live in
 
 | Test | Fails when |
 |---|---|
+| `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
@@ -2059,6 +2075,13 @@ python -m pytest
 - *Verified* 2026-10-15 on macOS: 83 passed, with four notch-control tests added to
   `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
   and removing the notch line from `resetAllValues()` failed the config import test.
+  *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 164 passed, with `tests/settings/test_needle_templates.py` added.
+  It failed to import before the module existed. Six deliberate breaks were each caught: no
+  trimming, no duplicate check, no replace on save, a decode error returning an empty library,
+  NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
+  diagram named the module. After Writable04's review of PR #83, eight cases were added (wrong
+  JSON types, an oversized number and a failed `os.replace`), and each failed before the fix.
   *Not verified:* Windows.
 - *Verified* 2026-10-15 on macOS: 147 passed, with six Selected Channel tests added to
   `test_channels_view.py` and `sb_channel_diameter` added to the arrow test. Five failed on
