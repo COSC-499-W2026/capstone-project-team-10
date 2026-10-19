@@ -23,7 +23,8 @@ controls display either unit, and an Export tab that stays disabled until a cyli
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
 `DicomData` at import by `load_structures`, and a read-only Import-tab structure list
 from `structure_list` (still no hide/show, opacity, or 3D display), and
-`settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from.
+`settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from,
+and `settings/cylinder_templates.py`, tested cylinder templates that nothing saves or uses yet.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
