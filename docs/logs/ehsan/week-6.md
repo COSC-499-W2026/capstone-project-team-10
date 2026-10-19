@@ -19,25 +19,25 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   **a dataclass per setting group, which would change every caller**.
 - This data **each config value** uses the input validation to ensure it adheres to **an `int`
   or `float` that is not a `bool` (`is_config_number`)**.
-- This data config file may be vulnerable to a security issue ΓÇö **N/A**, it is a local file the
+- This data config file may be vulnerable to a security issue — **N/A**, it is a local file the
   user chose.
-- This data config file may be vulnerable to a privacy issue ΓÇö **N/A**, it holds no patient data.
-- This data stores sensitive information and uses encryption ΓÇö **N/A**, it holds no sensitive
+- This data config file may be vulnerable to a privacy issue — **N/A**, it holds no patient data.
+- This data stores sensitive information and uses encryption — **N/A**, it holds no sensitive
   data.
-- The data has access controls ΓÇö **N/A**, brachify has no users.
+- The data has access controls — **N/A**, brachify has no users.
 
 #### Backend
 
-- The system uses an architectural pattern ΓÇö **N/A**, the PR changes no pattern.
-- The system architecture diagram ΓÇö **N/A**, no component changed.
-- The system uses a database ΓÇö **N/A**, brachify has no database.
-- The system uses synchronous or asynchronous data processing ΓÇö **N/A**, no processing changed.
-- The system adopts a stateful or stateless approach ΓÇö **N/A**, state handling is unchanged.
-- The Level 0 DFD ΓÇö **N/A**, no flow changed.
-- The Level 1 DFD ΓÇö **N/A**, no process changed.
-- The backend API ΓÇö **N/A**, brachify has no network API.
-- The following traceability matrix ΓÇö **N/A**, no requirement is complete yet.
-- By using a coverage tool ΓÇö **N/A**, none is configured.
+- The system uses an architectural pattern — **N/A**, the PR changes no pattern.
+- The system architecture diagram — **N/A**, no component changed.
+- The system uses a database — **N/A**, brachify has no database.
+- The system uses synchronous or asynchronous data processing — **N/A**, no processing changed.
+- The system adopts a stateful or stateless approach — **N/A**, state handling is unchanged.
+- The Level 0 DFD — **N/A**, no flow changed.
+- The Level 1 DFD — **N/A**, no process changed.
+- The backend API — **N/A**, brachify has no network API.
+- The following traceability matrix — **N/A**, no requirement is complete yet.
+- By using a coverage tool — **N/A**, none is configured.
 
 #### Review and design
 
@@ -93,23 +93,23 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 - This data **DicomData.structures** is modeled as **None or a tuple of Structure** because **that is what read_structures returns**. We considered alternative models such as **a separate GUI model, out of scope for #40**.
 - This data **structures** uses the input validation to ensure it adheres to **StructureReadError; failures set structures to None**.
-- This data may be vulnerable to a security issue ΓÇö **N/A**, local DICOM only.
+- This data may be vulnerable to a security issue — **N/A**, local DICOM only.
 - This data may be vulnerable to **another plan's anatomy surviving a failed decode**. Therefore, it uses a privacy-based sanitization by **setting structures to None on StructureReadError**. We considered alternative privacy solutions such as **aborting the whole import, which would also drop the needles**.
-- This data stores sensitive information and uses encryption ΓÇö **N/A**, no new persistence.
-- The data has access controls ΓÇö **N/A**, brachify has no users.
+- This data stores sensitive information and uses encryption — **N/A**, no new persistence.
+- The data has access controls — **N/A**, brachify has no users.
 
 #### Backend
 
-- The system uses an architectural pattern ΓÇö **N/A**, no pattern change.
-- The system architecture diagram ΓÇö **updated**: domain dicom line now names load_structures. Low coupling because **that module only depends on data, structures and the logger**. `build.py --check` exits 0.
-- The system uses a database ΓÇö **N/A**, brachify has no database.
-- The system uses synchronous or asynchronous data processing ΓÇö **N/A**, unchanged.
-- The system adopts a stateful or stateless approach ΓÇö **N/A**, unchanged.
-- The Level 0 DFD ΓÇö **N/A**, no external flow changed.
-- The Level 1 DFD ΓÇö **N/A**, no process flow changed.
-- The backend API ΓÇö **N/A**, no network API.
-- The following traceability matrix ΓÇö **N/A**, FR-SV-01 is not complete yet.
-- By using a coverage tool ΓÇö **N/A**, none is configured.
+- The system uses an architectural pattern — **N/A**, no pattern change.
+- The system architecture diagram — **updated**: domain dicom line now names load_structures. Low coupling because **that module only depends on data, structures and the logger**. `build.py --check` exits 0.
+- The system uses a database — **N/A**, brachify has no database.
+- The system uses synchronous or asynchronous data processing — **N/A**, unchanged.
+- The system adopts a stateful or stateless approach — **N/A**, unchanged.
+- The Level 0 DFD — **N/A**, no external flow changed.
+- The Level 1 DFD — **N/A**, no process flow changed.
+- The backend API — **N/A**, no network API.
+- The following traceability matrix — **N/A**, FR-SV-01 is not complete yet.
+- By using a coverage tool — **N/A**, none is configured.
 
 #### Review and design
 
@@ -145,7 +145,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Review and design
 
-- When I reviewed the **┬º3.3 contribution paragraph** for this functionality, I noticed **it still said the RTSTRUCT reader was not connected to the GUI import path**. Therefore, I did **rewrite that sentence to match ┬º5.3 and the #44 call sites**.
+- When I reviewed the **§3.3 contribution paragraph** for this functionality, I noticed **it still said the RTSTRUCT reader was not connected to the GUI import path**. Therefore, I did **rewrite that sentence to match §5.3 and the #44 call sites**.
 - When I reviewed the **`tests/README.md` "exist" sentence**, I noticed **`test_load_structures.py` was only in the tree**. Therefore, I did **add it to that sentence**.
 - I did **diff the docs against #44's `load_structures` calls, count 22 `DicomData` fields, and drop the init-guide out-of-date note** to ensure that my feature contribution does not contain any of the following:
   - hardcoded values
@@ -174,45 +174,37 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 - This data **a list row** is modeled as **`StructureListRow` (label, RGB, category text)** because **the list only needs display fields**. We considered alternative models such as **binding the Qt list to live Structure objects, which would couple the view to DICOM**.
 - This data **list labels** uses the input validation to ensure it adheres to **unique labels: ROI suffix on duplicate names, and a further unique form if that suffix would collide**.
-- Not applicable: **security sanitization, privacy sanitization, encryption, access controls** (local plan only, no new persistence, no users).
+- Not applicable: **security sanitization, privacy sanitization, encryption, access controls**.
 
 #### Frontend
 
-- The frontend uses **a read-only `QListWidget` with colour swatches** received from the backend because **`structure_list_rows` supplies the text and RGB**. Benefits for using this pattern include **unit-tested rows without Qt**. Possible risks include **pale text on the Import page background**.
+- The frontend uses **a read-only `QListWidget` with colour swatches** received from the backend because **`structure_list_rows` supplies the text and RGB**. Benefits include **unit-tested rows without Qt**. Possible risks include **pale text on the Import page background**.
   - To mitigate **unreadable labels**, we implemented **the same white background and black text stylesheet as `info_area`**.
 - Not applicable: **restricted pages, design components beyond the list, accessibility evaluation, usability evaluation, frontend traceability matrix, frontend coverage tool**.
 
 #### Backend
 
-- The system architecture diagram ΓÇö **updated**: domain dicom line names `structure_list`. `build.py --check` exits 0.
-- Not applicable: **architectural pattern change, database, sync/async processing, stateful approach change, Level 0/1 DFD change, backend API, backend traceability matrix, coverage tool**.
+- The system architecture diagram — **updated**: domain dicom line names `structure_list`. `build.py --check` exits 0.
+- Not applicable: **architectural pattern change, database, sync/async, state approach, DFDs, backend API, traceability matrix, coverage tool**.
 
 #### Review and design
 
 - When I reviewed the **Import page styles**, I noticed **list text inherited near-white colour from `page_import`**. Therefore, I did **set a black-on-white stylesheet on the list**.
 - When I reviewed the **ROI suffix**, I noticed **a structure named `Node (ROI 7)` could share a label with a duplicate `Node`**. Therefore, I did **track used labels and disambiguate further**.
-- The PR does not contain any temporary workaround because **rows come from one pure function and the view only paints them**.
-- The PR only contains small functions that are **under 30 lines (counted with ast)** long.
-- I did **read the diff, run anti-slop on the Python change, and break the collision and list-fill paths on purpose** to ensure that my feature contribution does not contain any of the following:
-  - hardcoded values
-  - duplicate code
-  - dead code
-  - unnecessary function calls
-  - excessive conditional logic
-  - deep nesting
-  - high cyclomatic complexity
-  - classes/modules/functions with many unrelated responsibilities
-- This work is written in **`src/classes/dicom/structure_list.py` and `import_view.py`** because **row rules stay testable without Qt and the list is Import-only**.
-- This work belongs in **process 1, Import** in the DFD because **the list updates when a plan is imported**.
+- The PR does not contain any temporary workaround because **rows come from one pure function**.
+- The PR only contains small functions that are **under 30 lines** long.
+- I did **read the diff, run anti-slop, and break collision and list-fill paths on purpose**.
+- This work is written in **`structure_list.py` and `import_view.py`** because **row rules stay testable without Qt**.
+- This work belongs in **process 1, Import** in the DFD.
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_structure_list_rows_include_name_colour_and_category` and `test_importing_ex1_fills_the_structure_list`** passed (unit tests in a throwaway venv with pydicom; view tests need conda/PySide6 and were not run on this machine; they call import_dicom_from_folder with no dialog mock).
-- I wrote tests to cover abnormal situations involving **`test_duplicate_names_include_roi_number_in_the_label`, `test_roi_suffix_avoids_colliding_with_an_existing_label`, `test_structure_list_rows_for_missing_structures_is_empty` and `test_empty_folder_import_clears_the_structure_list`**.
-- I checked that these negative cases involving **dropping the ROI suffix and removing the collision branch** failed as expected for the unit tests.
+- The functionality works correctly because the happy path tests involving **`test_structure_list_rows_include_name_colour_and_category` (throwaway venv with pydicom)** passed.
+- **`test_importing_ex1_fills_the_structure_list` and `test_empty_folder_import_clears_the_structure_list` were not run on this machine** (need conda/PySide6; they call `import_dicom_from_folder` with no dialog mock).
+- I wrote tests to cover abnormal situations involving **`test_duplicate_names_include_roi_number_in_the_label`, `test_roi_suffix_avoids_colliding_with_an_existing_label` and `test_structure_list_rows_for_missing_structures_is_empty`** and they passed in the throwaway venv.
 - Among these tests, **four** are unit tests and **two** are view tests against the real Import tab.
 - These tests are included in the directories **`tests/dicom/`** and **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`build.py --check` and anti-slop on touched Python passed. Full GUI was not re-run here after the stylesheet fix; please confirm black labels in the app**.
+- This new test PR did not break anything else in the system because **`build.py --check` and anti-slop on touched Python passed. Full GUI was not re-run here after the stylesheet fix**.
 
 ### For PR #**80**
 
@@ -225,15 +217,17 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Backend
 
-- The system architecture diagram — **described in prose** in the architecture README (diagram sources are on #75).
+- The system architecture diagram — **described in prose** in the architecture README (diagram sources are on #75). `build.py --check` exits 0 on the feat branch.
 - Not applicable: **pattern, database, processing, DFDs, API, coverage tool**.
 
 #### Review and design
 
 - When I reviewed the **architecture README**, I noticed **three lines still called the reader standalone**. Therefore, I did **update them to match import + list**.
 - The PR does not contain any temporary workaround because **it only records the feat**.
+- The PR only contains small documentation edits.
 - This work belongs in **process 1, Import** documentation.
 
 #### Testing receipts
 
 - Not applicable: **docs-only; tests live on #75**.
+
