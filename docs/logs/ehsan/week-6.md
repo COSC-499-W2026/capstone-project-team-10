@@ -231,3 +231,28 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 - Not applicable: **docs-only; tests live on #75**.
 
+### For PR #**86**
+
+- As part of requirement **the course week-6 team Part B log**, the user needs to do **read one team log that covers every PR merged this week**.
+- Therefore, I implemented/generated code so that **graders and teammates get `docs/logs/team/week-6.md` listing 34 merges at `e559396`**.
+
+#### Review and design
+
+- When I reviewed the **draft open-PR list (#63, #74, #82)**, I noticed **those three plus #83–#85 had since merged**. Therefore, I did **add them to the table and clear the still-open line**.
+- I did **compare the PR table to `gh pr list --state merged` and pin diagram links to `e559396`** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`docs/logs/team/week-6.md`** because **Part B lives in the team log, not in a PR description**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`gh` merge list vs the 34-row table at `e559396` (counts match; no open PRs)** passed.
+- This new test PR did not break anything else in the system because **no `src/` or `tests/` file changed**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
