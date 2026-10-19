@@ -294,7 +294,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **apply, undo and the
-  shown diameter (147 passed)** passed.
+  shown diameter (170 passed)** passed.
 - I wrote tests to cover abnormal situations involving **the default window size and no
   selection** and they passed.
 - I checked that these negative cases involving **0.1 mm typed into the box** failed as expected.
@@ -303,7 +303,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   first**.
 - Among these tests, **none** are unit tests and **all six** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (147
+- This new test PR did not break anything else in the system because **`python -m pytest` (170
   passed), `build.py --check` and `session-start.sh` (exit 0), and brachify run on
   macOS through its buttons, with Ex1 before this PR was split out (screenshot 1)**.
 

@@ -2083,7 +2083,7 @@ python -m pytest
   diagram named the module. After Writable04's review of PR #83, eight cases were added (wrong
   JSON types, an oversized number and a failed `os.replace`), and each failed before the fix.
   *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 147 passed, with six Selected Channel tests added to
+- *Verified* 2026-10-15 on macOS: 170 passed, with six Selected Channel tests added to
   `test_channels_view.py` and `sb_channel_diameter` added to the arrow test. Five failed on
   their assertions before the view was wired. Adding the group also turned the existing arrow
   test red: the window stays 770 × 472, and the four spin boxes were squeezed to 9 px. The
