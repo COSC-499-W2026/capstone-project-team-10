@@ -175,8 +175,8 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This data **`NeedleTemplate`** is modeled as **a frozen dataclass of `name` and `diameter_mm`**
   because **a template must not change once validated**. We considered alternative models such as
   **a raw `dict`, which anti-slop forbids**.
-- This data **`needle_templates.json`** uses the input validation to ensure it adheres to **unique,
-  non-blank names and finite diameters of at least 0.3 mm**.
+- This data **`needle_templates.json`** uses the input validation to ensure it adheres to **text names that are unique and
+  non-blank, and number diameters (not booleans) that are finite of at least 0.3 mm**.
 - This data **`needle_templates.json`** may be vulnerable to **a corrupt or hand-edited file**.
   Therefore, it uses a security-based sanitization by **refusing the whole file without
   overwriting it**. We considered alternative security solutions such as **skipping bad entries,
@@ -210,6 +210,10 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 - When I reviewed the **generated `load_templates`**, I noticed **an `OSError` could escape and stop
   brachify starting**. Therefore, I did **raise `NeedleTemplateError` instead**.
+- When Writable04 reviewed this PR, they found **a failed save could leave truncated JSON, `{}` and a
+  `null` name were accepted, and `10**400` raised `OverflowError`**. Therefore, I did **save through a
+  temporary file and `os.replace`, check the JSON types, and raise `NeedleTemplateError`**. The eight
+  new cases **failed before the fix**.
 - The PR does not contain any temporary workaround because **only the GUI caller is still to
   come**.
 - The PR only contains small functions that are **8, 12 and 9, and at most 14 in the tests** long.
@@ -230,17 +234,17 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **a round trip and a
-  replace by name (156 passed)** passed.
+  replace by name (164 passed)** passed.
 - I wrote tests to cover abnormal situations involving **no file, an unreadable path and an
   unwritable folder** and they passed.
 - I checked that these negative cases involving **blank names, 0.2 mm, NaN and corrupt or
   malformed files** failed as expected.
 - When I reviewed the **generated `test_a_library_with_a_malformed_entry_is_rejected`**, I noticed
   **an `object` parameter, which anti-slop warns on**. Therefore, I did **type it as `LibraryJson`**.
-- Among these tests, **all 15 cases** are unit tests and integration tests are not required because
+- Among these tests, **all 23 cases** are unit tests and integration tests are not required because
   **the module has no Qt or app dependency**.
 - These tests are included in the directory **`tests/settings/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (156
+- This new test PR did not break anything else in the system because **`python -m pytest` (164
   passed), `build.py --check` and `session-start.sh` (exit 0)**.
 
 ---
