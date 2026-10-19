@@ -13,9 +13,6 @@ classDiagram
     shapes by label
   }
   class OrbitCameraViewer3d
-  class CameraGesture
-  class ReferenceGrid
-  class GridLabel
   class DicomModel
   class CylinderModel
   class ChannelsModel
@@ -32,11 +29,7 @@ classDiagram
   MainWindow --> NavigationModel
   MainWindow --> OrbitCameraViewer3d
   MainWindow --> DisplayModel
-  DisplayModel ..> OrbitCameraViewer3d : shapes_changed including reset
-  OrbitCameraViewer3d --> CylinderModel : reads reference length
-  OrbitCameraViewer3d *-- CameraGesture
-  OrbitCameraViewer3d *-- ReferenceGrid
-  ReferenceGrid *-- GridLabel
+  DisplayModel ..> OrbitCameraViewer3d : shapes_changed
   MainWindow --> DicomModel
   MainWindow --> CylinderModel
   MainWindow --> ChannelsModel

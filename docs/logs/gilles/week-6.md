@@ -131,17 +131,17 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 ### For PR #**82**
 
 - As part of requirement **frontend FR-SV-06 documentation and the course's weekly receipts**, the user needs to do **read the current viewport controls and review Gilles's week 6 evidence for PRs #78, #79 and #81**.
-- Therefore, I implemented code so that **the reference docs, test catalogue, architecture diagrams and weekly log describe the delivered viewport features**.
+- Therefore, I implemented code so that **the reference docs, test catalogue and weekly log describe the delivered viewport features; architecture updates remain deferred**.
 
 #### Review and design
 
 - When I reviewed the **viewport documentation**, I noticed **§5.7 still described right-drag rotation and twofold wheel zoom, and omitted the reference overlays**. Therefore, I did **replace the bindings and document overlay units, lifecycle, selection/export exclusion and validation limits**.
 - I did **compare the prose with viewport.py and its tests, check receipt equality and run git diff --check** to check for stale or duplicated documentation.
-- This work is written in **the project reference, init-guide notes, design and architecture docs, tests/README.md and docs/logs/gilles/week-6.md** because **each owns part of the behavior, validation or weekly evidence**.
+- This work is written in **the project reference, init-guide notes, design docs, tests/README.md and docs/logs/gilles/week-6.md** because **each owns part of the behavior, validation or weekly evidence**.
 - Not applicable: **temporary workaround, function length, DFD process (no application code changed)**.
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **the regenerated architecture check, 17 architecture/line-ending tests and source-receipt comparison** passed.
+- The functionality works correctly because the happy path tests involving **the architecture file-consistency check, 17 architecture/line-ending tests and source-receipt comparison** passed.
 - This new test PR did not break anything else in the system because **132 pytest cases passed on this branch before the additional documentation edits; the 17 affected tooling checks passed afterward, with no application or executable-test changes**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (documentation only; existing checks reused)**.
