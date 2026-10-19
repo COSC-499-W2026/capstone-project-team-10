@@ -128,7 +128,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **141 tests passed with isolated user directories; native macOS Ex1/Ex2 checks confirmed independent toggles, unchanged camera on toggle, nonselectable decorations, Export redraw and reset**.
 - Not applicable: **generated-test review (no separate test-review defect found)**.
 
-### For PR #**[number]**
+### For PR #**82**
 
 - As part of requirement **the course's weekly Part A receipts**, the user needs to do **review Gilles's week 6 evidence for PRs #78, #79 and #81 together**.
 - Therefore, I implemented code so that **the deferred receipts are recorded in one weekly log without changing application code**.
@@ -143,5 +143,5 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **exact comparison of all three feature receipts with their source PR descriptions** passed.
-- This new test PR did not break anything else in the system because **the diff changes only the week 6 log; the architecture check and full pytest suite passed on the branch**.
+- This new test PR did not break anything else in the system because **the diff changes only the week 6 log; the architecture check and 132 pytest cases passed on the branch with isolated HOME/USERPROFILE and offscreen Qt**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
