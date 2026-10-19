@@ -18,3 +18,30 @@ Apply, DICOM import and config files retain mm internally. The choice is not sav
 provided in chat and was not saved as a repository artifact.
 See [source of truth §5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 for the controls and precision.
+
+*Reasoned from viewport code, PRs #78/#79/#81:* left-drag rotates, right/middle-drag pans,
+and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
+release. These are project bindings, not a universal medical-software standard.
+
+The dark viewport has white millimetre labels and faint grid lines on three outer walls,
+with no intersecting planes. The top-right **XYZ grid (mm)** control is blue when checked;
+the independent **Central axis** control below it is amber when checked and shows a dashed
+local-Z reference above solids. Both are disabled when their reference is unavailable.
+Toggling preserves the camera; preferences survive redraws but are not saved to config.
+Neither overlay is selectable or exported. Details and native-run limitations are in
+[§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+
+The Channels tab has a Selected Channel group below the list. It is enabled only while a
+channel is selected, shows that channel's diameter, and gives it its own diameter with
+*Apply to Channel*. *Use Channels Diameter* returns it to the tab's Channels Diameter, and
+Apply on the tab keeps any own diameter. The whole tab now scrolls: at the default 770 × 472
+window the group is below the fold and the list shows about four rows, where without the
+scroll area the spin boxes above were squeezed unreadable. *Verified* by offscreen widget tests
+and a render of the shown window. A screenshot of it is linked from Ahab's week 6 log.
+
+Each row of the Channels list shows its channel's status. Own diameter is bold on amber,
+disabled is italic on grey, and the tandem is bold italic on blue, with a legend under the
+list. Every colour has its own bold and italic pair, so colour is never the only cue (WCAG
+1.4.1, Use of Color), and hovering a row names its status and diameter. A selected row shows
+the system highlight instead of its colour, and keeps its font. *Verified* by offscreen tests
+and a render. A screenshot of it is linked from Ahab's week 6 log.

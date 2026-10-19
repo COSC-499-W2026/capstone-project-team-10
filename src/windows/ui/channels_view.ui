@@ -34,6 +34,36 @@
   <property name="styleSheet">
    <string notr="true"/>
   </property>
+  <layout class="QVBoxLayout" name="verticalLayout_scroll">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QScrollArea" name="scroll_channels">
+     <property name="styleSheet">
+      <string notr="true">QScrollArea, QScrollArea &gt; QWidget &gt; QWidget {
+	background: transparent;
+}</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::NoFrame</enum>
+     </property>
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarAlwaysOff</enum>
+     </property>
+     <property name="widgetResizable">
+      <bool>true</bool>
+     </property>
+     <widget class="QWidget" name="scroll_channels_contents">
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>5</number>
@@ -402,6 +432,19 @@ color: rgb(0, 0, 0);</string>
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="label_channel_status_legend">
+     <property name="styleSheet">
+      <string notr="true">color: rgb(0, 0, 0);</string>
+     </property>
+     <property name="text">
+      <string>Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <property name="spacing">
       <number>0</number>
@@ -478,6 +521,76 @@ QPushButton:pressed {
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="group_selected_channel">
+     <property name="styleSheet">
+      <string notr="true">QGroupBox, QLabel {
+	color: rgb(0, 0, 0);
+}
+QDoubleSpinBox {
+	background-color: rgb(255, 255, 255);
+	color: rgb(0, 0, 0);
+}
+QPushButton {
+	color: rgb(0, 0, 0);
+	background-color: rgb(199, 219, 237);
+	border: 0px solid;
+	min-height: 33px;
+}
+QPushButton:hover {
+	color: rgb(250,250,250);
+	background-color: rgb(48, 88, 162);
+}
+QPushButton:pressed {
+	color: rgb(250,250,250);
+	background-color: rgb(28, 44, 81);
+}
+QPushButton:disabled {
+	color: rgb(150, 150, 150);
+}</string>
+     </property>
+     <property name="title">
+      <string>Selected Channel</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_selected_channel">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_channel_diameter">
+        <property name="text">
+         <string>Channel Diameter</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QDoubleSpinBox" name="sb_channel_diameter">
+        <property name="suffix">
+         <string> mm</string>
+        </property>
+        <property name="decimals">
+         <number>3</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QPushButton" name="btn_apply_channel_diameter">
+        <property name="text">
+         <string>Apply to Channel</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="2">
+       <widget class="QPushButton" name="btn_clear_channel_diameter">
+        <property name="text">
+         <string>Use Channels Diameter</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>

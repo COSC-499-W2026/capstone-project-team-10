@@ -581,10 +581,13 @@ scaffolding (`docs/`, `tests/`, `utils/`), and this documentation set. The first
 on 2026-10-10, keep the Export tab disabled until a cylinder exists (§7.6) and add the
 Cylinder tab's mm/cm display selector (§5.6). Geometry and configuration remain in mm.
 The standalone RTSTRUCT reader `classes/dicom/structures.py` and its tests (§5.3, §8)
-were added on 2026-10-11. It is not yet connected to the GUI import path. On 2026-10-15,
+were added on 2026-10-11. Folder import now calls `load_structures` so
+`DicomData.structures` holds that decode, or `None` on failure (§5.3). On 2026-10-15,
 importing a plan stopped keeping channels disabled in the previous plan (§7.10), the collar
 settings began to round-trip through config files, and *Generate Tandem* stopped dropping
-settings (§7.1).
+settings (§7.1). `ChannelsModel` began keeping a channel's own
+diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is set in the Channels tab's Selected Channel group (§5.6). The Channels list
+shows each channel's status in colour (§5.6).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -668,6 +671,9 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 The Cylinder view's Units selector changes its seven length controls between mm and cm
 (§5.6). It does not apply the design. *Verified* by the offscreen unit-switch case.
 
+The shared viewport has independent XYZ grid and Central axis controls, described in §5.7.
+They are not additional navigation views.
+
 ### 4.4 Signal graph
 
 Three application-wide signals live on `AppSignals` ([signals.py](../../src/classes/signals.py)):
@@ -694,6 +700,9 @@ OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_sel
                                                  (connected on_open, disconnected on_close)
 ```
 
+`DisplayModel.reset()` emits `shapes_changed([], False)` to clear the scene and its
+reference overlays without fitting the camera (*Reasoned from code*).
+
 ### 4.5 The display pipeline
 
 Rendering is strictly one-way:
@@ -703,7 +712,7 @@ model computes an OCC TopoDS_Shape
   → wrapped in ShapeModel(label, shape, ShapeTypes.*)
   → DisplayModel.add_shape(s)           # dict keyed by label; enabled=False deletes the entry
   → DisplayModel.update()               # assigns materials by ShapeTypes, emits shapes_changed
-  → OrbitCameraViewer3d.update_display  # RemoveAll, DisplayShape each, Repaint, FitAll
+  → OrbitCameraViewer3d.update_display  # model shapes, grid, optional fit, then axis
 ```
 
 Any view method that mutates geometry **must** be decorated with `@display_action`
@@ -714,6 +723,10 @@ repaint.
 `ShapeTypes` (`CYLINDER` / `CHANNEL` / `TANDEM` / `SELECTED` / `EXPORT`) is a **material key,
 not a type hierarchy**. Each view installs its own `materials` dict in `on_open()`, which is
 how the same cylinder renders opaque-grey on one tab and translucent-teal on another.
+
+The viewport owns reference overlays separately from `ShapeModel`: it derives grid bounds
+from displayed shapes and reads `CylinderModel.cylinder.length` for the axis. Neither
+overlay enters exports. See §5.7 (*Reasoned from code*).
 
 ### 4.6 Coordinate conventions
 
@@ -758,7 +771,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, Channels and Cylinder units tests in views/ (§8)
+├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -775,10 +788,10 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
     │   ├── info.py            APP_NAME, paths
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
-    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (standalone ROI reader)
+    │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
-    ├── settings/              defaults.py, load.py, values.py, reset.py
+    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
@@ -815,7 +828,10 @@ a stderr stream handler. Creates `~/brachify/` at import time if missing.
 ### 5.2 Settings and configuration
 
 **[`settings/defaults.py`](../../src/settings/defaults.py)** — `DEFAULT_CONFIG_VALUES`, the
-schema: a flat `CONFIG_*` → number dict, 25 keys. Full table in §6.2.
+schema: a flat `CONFIG_*` → number dict, 25 keys. Full table in §6.2. It also holds
+`MINIMUM_CHANNEL_DIAMETER_MM` (0.3), the narrowest channel `ChannelsModel` accepts as a
+channel's own diameter, the same value as the Channels Diameter box's minimum in
+`channels_view.ui`. It is not a `CONFIG_*` key.
 
 **[`settings/load.py`](../../src/settings/load.py)** — `load_config_file()` is lenient by
 design. It keeps any key present in the user's JSON whose value is `int` or `float` and not
@@ -841,6 +857,20 @@ single mutable dict every other module reads), the two most-recent config file p
   which *Apply Settings* writes (§7.1), and the notch's five from the cylinder's
   `notch_settings`.
 
+**[`settings/needle_templates.py`](../../src/settings/needle_templates.py)** — the needle template
+library, not yet called from the GUI. A `NeedleTemplate` is a frozen dataclass of `name` and
+`diameter_mm`. `make_template` trims the name and refuses an empty one, and refuses a diameter
+that is not finite or is below `MINIMUM_CHANNEL_DIAMETER_MM`. `load_templates(path)` decodes the
+JSON file into `NeedleTemplate` values at the boundary and returns all of them or none: a missing
+file is an empty library. The top level must be a list, each entry a text `name` and a number
+`diameter_mm` (a boolean or numeric text is refused), and a name used twice, an `OSError` or a
+number too large for a float all raise `NeedleTemplateError`. `save_template` replaces a template
+of the same name, writes the library to a `.tmp` file beside it and swaps that in with
+`os.replace`, so a failed save leaves the previous library whole. It never overwrites a library
+it could not read. The module imports nothing from
+`classes` or `windows`, and the caller passes the path. Its error messages are written for
+clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
+
 ### 5.3 DICOM ingest
 
 **[`dicom/structures.py`](../../src/classes/dicom/structures.py)** — standalone
@@ -859,10 +889,12 @@ point-count mismatches, nonfinite coordinates, and mixed XOR/non-XOR contours th
 `StructureReadError`. A failure returns no partial result and does not mutate the input.
 Multiple observation records for one ROI are currently rejected as ambiguous.
 
-No file discovery, coordinate transformation, frame matching, polygon planarity or
-self-intersection validation, surface reconstruction, display controls or GUI wiring is
-implemented here. The existing vendor readers still operate independently. Example after
-`pydicom.dcmread` has loaded an RTSTRUCT:
+No coordinate transformation, frame matching, polygon planarity or self-intersection
+validation, surface reconstruction, display controls or structure-list GUI is implemented
+here. As of 2026-10-15, both vendor readers call
+[`load_structures`](../../src/classes/dicom/load_structures.py) after reading the RTSTRUCT, so
+`DicomData.structures` holds the decode result (or `None` on `StructureReadError`). Example
+after `pydicom.dcmread` has loaded an RTSTRUCT:
 
 ```python
 from classes.dicom.structures import read_structures
@@ -873,8 +905,9 @@ structures = read_structures(rs_dataset)
 152 contours each. This is a headless reader check, not a GUI or clinical validation.
 Synthetic tests are in `tests/dicom/test_structures.py`; Nucletron data remains unverified.
 
-**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of ~20
-fields. There is a comment in the file stating the rule explicitly: **any field added to
+**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of 22
+fields, including `structures` (a `tuple[Structure, ...]` from `read_structures`, or `None`).
+There is a comment in the file stating the rule explicitly: **any field added to
 `__init__` must also be added to `reset()`**. Keep the rule, but know how narrow the leak is:
 every import builds a **new** `DicomData`, so a field missing from `reset()` only survives an
 import that fails partway and leaves the old object in place (*Reasoned from code*; see [10.4 of the init guide](COSC499-BRACHIFY-INIT-DOCS.md#104-datapy-the-form-brachify-fills-in)).
@@ -884,7 +917,11 @@ field in `__init__` is missing from `reset()`.
 
 **[`dicom/fileio.py`](../../src/classes/dicom/fileio.py)** — the vendor readers. `read_dicom_folder()`
 globs `**/*.dcm`, takes the **first** file that parses as RTPLAN and the **first** that parses
-as RTSTRUCT, then branches on `rp_dataset.Manufacturer`:
+as RTSTRUCT, then branches on `rp_dataset.Manufacturer`. After each branch reads the RTSTRUCT,
+it calls [`load_structures`](../../src/classes/dicom/load_structures.py), which fills
+`data.structures` via `read_structures`, or sets it to `None` on `StructureReadError` without
+aborting needle or cylinder loading (*Reasoned from code*; guarded by
+[tests/dicom/test_load_structures.py](../../tests/dicom/test_load_structures.py)):
 
 | Manufacturer string | Reader |
 |---|---|
@@ -1001,7 +1038,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1054,7 +1091,10 @@ is documented upstream in [notes/gui.txt](../../notes/gui.txt).
 Complete control inventory, extracted from the `.ui` sources:
 
 **Import** (`import_view.ui`) — `btn_import_folder` "Import Dicom", `btn_config_file`
-"Import Config File", `info_area` (QTextEdit, the information panel).
+"Import Config File", `info_area` (QTextEdit, the information panel). After a successful
+import, `ImportView` also shows a read-only `structure_list` (`QListWidget` added in code,
+not in the `.ui`): name, colour swatch and category from `structure_list_rows`
+(*Reasoned from code*; `tests/views/test_import_view.py`).
 
 **Cylinder** (`cylinder_view.ui`)
 
@@ -1108,6 +1148,24 @@ Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cas
 | `listwidget_channels` | Channels | |
 | `btn_set_tandem` | Set as Tandem / Clear Tandem | text toggles |
 | `btn_enable` | Disable / Enable | text toggles |
+| `group_selected_channel` | Selected Channel | enabled only while a channel is selected |
+| `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
+| `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
+| `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
+| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours |
+
+Every Channels control sits in a scroll area, `scroll_channels`, so the tab scrolls rather than
+squeezing its spin boxes when the window is too short for it. At the default 770 × 472 window
+the Selected Channel group is below the fold and the list shows about four rows. Without the
+scroll area, the group squeezed the four spin boxes above it to 9 px. *Verified* 2026-10-15
+offscreen, by a test and a render of the shown window.
+
+Each row of `listwidget_channels` shows its channel's `ChannelStatus`: own diameter is bold on
+amber, disabled is italic on grey, the tandem is bold italic on blue, and the rest are plain.
+Its tooltip names the status and the diameter it is cut at. `mark_channel_statuses` restyles
+every row on each `ChannelsModel.values_changed` and after `create_channels_list`, looking rows
+up by label. The selected row's highlight hides its colour but not its font. *Verified* by
+offscreen tests and a render.
 
 **Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
 
@@ -1131,6 +1189,8 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 `top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
 `page_import` … `page_export`.
 
+The shared `display_view_widget` also hosts the grid and central-axis controls (§5.7).
+
 The Export nav button starts disabled and drawn grey. `MainWindow.enable_export_view` turns it on
 the first time `CylinderModel.values_changed` fires, which happens on an import and on the
 Cylinder tab's *Apply Settings* (§7.6).
@@ -1151,14 +1211,51 @@ functions and `CapWords` classes, not colours.)
 `WA_PaintOnScreen`, `WA_NativeWindow` and `WA_NoSystemBackground`, then `OrbitCameraViewer3d`
 hands `int(self.winId())` to pythonocc's `OCCViewer.Viewer3d().Create()`.
 
-Mouse bindings, which are non-standard and worth knowing:
+*Reasoned from code*, updated 2026-10-18 for PRs #78, #79 and #81:
 
 | Input | Action |
 |---|---|
 | Left click | select shape (emits `sig_topods_selected`) |
-| **Right** drag | rotate |
-| Middle drag | pan |
-| Wheel | zoom (fixed 2.0× / 0.5× per notch) |
+| Left drag | rotate; release does not select |
+| Right or middle drag | pan using incremental pointer movement |
+| Wheel | proportional zoom, 1.15× per 120 vertical angle units |
+
+`CameraGesture` uses Qt's platform drag threshold to tolerate click jitter. Once a drag
+starts, returning to its origin does not turn it into a click. A distant release also
+suppresses selection if intermediate move events were missing. `wheel_zoom_factor` uses
+30 vertical pixels per step for pixel-only trackpads, ignores zero movement and caps each
+event at ten steps in either direction. A tooltip lists the bindings. These are the
+project's chosen controls, not a universal medical-viewer standard.
+
+Two independent checkable controls sit at the top-right: **XYZ grid (mm)** above
+**Central axis**. Both start checked but disabled until their reference is available;
+redraws and empty-scene resets retain the user's checked state. Toggling repaints without
+moving or fitting the camera. These choices last for the widget's lifetime, not in config.
+
+The central axis is a dashed amber line drawn above solids, along local Z from
+`-0.1 * length` to `1.1 * length`. `update_display` reads the current `CylinderModel`
+length for a nonempty scene. Missing, nonfinite or nonpositive lengths disable the toggle.
+This is the cylinder's geometric centre line, not the imported DICOM central-channel contour.
+
+The grid uses `brepbndlib.AddOptimal` bounds of the displayed non-null model shapes.
+`grid_ticks` rounds outward with 1/2/5-based steps of at least 10 mm; larger scenes use
+larger steps. `ReferenceGrid` holds the outer bounds, unique line segments and `GridLabel`
+text/positions. Lines occupy three outer walls (minimum X, maximum Y and minimum Z);
+there are no translucent planes through the model. White ticks and X/Y/Z titles on a dark
+background denote **model coordinates in millimetres**, not patient Left/Posterior/Superior.
+The Cylinder tab's mm/cm selector does not change these labels.
+
+Both overlays are native AIS presentations deactivated for selection and kept outside
+`DisplayModel.shapes`, so they never enter mesh exports. On redraw the old presentations
+are cleared and rebuilt; an empty scene removes the grid and axis. When resize is requested,
+`ZFitAll` and `View.FitAll(0.2, False)` provide label margin; the central axis is added after
+fitting. Model redraw can still reframe the camera even though overlay toggles do not.
+
+*Verified in the native macOS runs recorded for PRs #78, #79 and #81:* Ex1/Ex2 camera
+movement and click/drag separation, independent overlay toggles, camera preservation on
+toggle, nonselectable decorations, Export redraw and reset were checked. Windows was not
+checked. These are UI regression observations, not clinical validation; the screenshots
+were inspected locally and are not archived in this PR.
 
 > *Verified 2026-09-21:* this native-handle handoff works on macOS arm64. `lsof` on the running
 > process confirmed `OpenGL`, `QtGui`, `QtWidgets` and the full OpenCASCADE `libTK*` set
@@ -1302,6 +1399,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 |---|---|---|
 | `app.log` | `logger.py` | rotating, 25 MB × 3 backups |
 | `filepaths.json` | `MainWindow.closeEvent` | `most_recently_opened_config_file`, `most_recently_saved_config_file` |
+| `needle_templates.json` | `settings.needle_templates.save_template`, not yet called from the GUI | a JSON list of `{"name", "diameter_mm"}` objects |
 
 `most_recently_saved_config_file` is stored but never read — it is reserved for future use.
 
@@ -1362,6 +1460,11 @@ gives a later date. §7.7 to §7.9 were found between 2026-09-29 and 2026-10-02,
 brachify's own code headless on copies of the sample folders. They sit at the end so the existing
 section numbers, which other files cite, stay stable. An entry that has since been fixed says
 **Fixed** with the date and stays listed. Severity is our judgement, not upstream's.
+
+*Viewport label binding trap (fixed in PR #81; verified by its native regression):*
+`AIS_TextLabel.SetText` requires Python text in the installed pythonocc binding. Passing
+`TCollection_ExtendedString` caused a native `Standard_NullObject` abort. `grid_text_label`
+passes `str`; `test_grid_label_preserves_text_and_position` exercises this binding directly.
 
 ### 7.1 HIGH — the collar is never saved to, or loaded from, a settings file
 
@@ -1615,6 +1718,17 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   module read `src\classes\mesh\...` on Windows and `src/classes/mesh/...` elsewhere, and 5 of
   the 8 tests in `test_architecture_drift.py` failed on every Windows clone, `main` included.
   Both now print `.as_posix()`. *Verified* on Windows: 5 failed before, all 8 passed after.
+- **Config import can leave `ChannelsModel.diameter` stale.** Import replaces the config before
+  Apply compares it with the spin box, so the model can retain its startup diameter while new
+  channels use the imported setting. Clearing an own diameter now uses
+  `NeedleChannel.default_diameter()`, matching newly imported channels. The wider config-import
+  synchronization issue remains: `getCurrentValues()` still reads the cached model diameter.
+  *Reasoned from code*; the regression loads 3 mm, imports Ex1 and clears a 4 mm override.
+- **A channel's own diameter is not in the PDF or a config file.** `save_points_diagram` draws
+  every channel circle, and its collet rings, at `CONFIG_CHANNELS_DIAMETER`, and
+  `getCurrentValues()` writes only the global diameter. The 3D export is correct, because it
+  cuts `channel.shape()`, so a reference sheet checked against a cylinder printed with own
+  diameters disagrees with it. FR-CN-07 is the follow-up. *Reasoned from code*.
 
 
 ### 7.7 MEDIUM — a tandem channel's rotation is measured from `(1, 0)`, not the axis
@@ -1705,7 +1819,7 @@ was run headless and the result observed; nothing here was seen in the GUI.
 | LOW | `DisplayModel` | `add_shape(enabled=False)` for a label never added raises `KeyError`; `update()` with an `EXPORT` shape under the default material table crashes. Neither happens in the app today. See [15.4](COSC499-BRACHIFY-INIT-DOCS.md#154-display_modelpy-what-the-3d-view-shows) | *Verified* |
 | LOW | `palettes.py` | `dark` is a `@staticmethod` and `light` is not, so `Palettes().light(window)` would pass the wrong argument. Nothing calls either. See [14.4](COSC499-BRACHIFY-INIT-DOCS.md#144-palettespy-two-themes-nothing-uses) | *Reasoned from code* |
 | LOW | `main_window.ui` | six colours are written `rgba(240, 245, 250)`, with no alpha, so Qt prints `Specified color with alpha value but no alpha given` on every start. It also asks for an icon from a Qt resource file that is not in the repository. See [18.6](COSC499-BRACHIFY-INIT-DOCS.md#186-colours-and-other-text-in-the-design-files) | *Verified* for the warning |
-| LOW | the 3D view | every redraw zooms to fit, so after *Apply* or a selection any zoom the user set is lost. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
+| LOW | the 3D view | model updates with resize enabled zoom to fit, so after *Apply* or a selection any zoom the user set is lost; reference toggles and empty-scene reset do not fit. See [17.8](COSC499-BRACHIFY-INIT-DOCS.md#178-viewportpy-the-3d-view) | *Reasoned from code* |
 | LOW | spin box limits | **Changed 2026-10-10:** Cylinder length and collar now use `QDoubleSpinBox`, with whole mm or tenths of cm displayed. `LengthField` retains exact mm settings through display rounding (§5.6); finer user editing remains limited by display precision. *Cylinder Diameter* allows 0 and *Bend Angle* allows 99.99°, because no limits were set. See [18.3](COSC499-BRACHIFY-INIT-DOCS.md#183-what-each-design-file-contains) | *Verified* from the `.ui` files |
 | MEDIUM | `checkValuesExist`, a JSON `true` or `false` | **Fixed 2026-10-11.** A setting written as `true` was reported loaded and used as 1, because Python treats `True` as the int 1, so a cylinder diameter of `true` became 1 mm with no warning. `is_config_number()` now rejects `bool`, so the default is used and the key is reported missing, guarded by `tests/settings/test_load.py`. Negative and zero values still load. See [13.5](COSC499-BRACHIFY-INIT-DOCS.md#135-loadpy-reading-a-settings-file) | *Verified*: the test failed with `assert True == 30.0` before the fix |
 
@@ -1768,6 +1882,18 @@ fails, and why that matters
 
 ### 8.2 Current state
 
+The viewport regressions (*Reasoned from the test bodies*) are:
+
+| File | What fails when behavior regresses |
+|---|---|
+| `views/test_camera_controls.py` (6 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom |
+| `views/test_central_axis.py` (8 cases) | local-Z endpoints and 10% margin, invalid-length rejection, button availability/preference, or reset notification |
+| `views/test_bounding_grid.py` (9 cases, PR #81) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, or nonoverlapping independent controls |
+
+These checks do not initialise the native canvas. The grid label test constructs a real
+`AIS_TextLabel`; native scene rendering still requires a displayed run (see §5.7).
+
+
 *Verified 2026-10-11 on macOS after merging main into the structure-reader branch:*
 `python -m pytest -q` passed all 63 tests. The anti-slop review against `origin/main`
 reported no findings, and the architecture check passed. No manual GUI run was performed
@@ -1816,8 +1942,13 @@ Repository tooling tests, first added 2026-09-30, live in
 
 | Test | Fails when |
 |---|---|
+| `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
-| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10) |
+| `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
+| `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
+| `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
+| `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
+| `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
@@ -1884,6 +2015,11 @@ python -m pytest
   including the two `DicomData` tests. `data.py` imports nothing, so they need no conda
   package. The `reset()` test failed naming `central_axis_flag` before the fix, and naming
   `operator` when that line was removed from `reset()` on purpose.
+- *Verified* 2026-10-15 on Windows, with only `pydicom` in a throwaway venv (not the conda
+  app env): `tests/dicom/test_data.py` and `test_load_structures.py` passed 4 of 4. Both
+  `load_structures` cases failed when the attach was broken on purpose (empty tuple, and
+  leaving a previous value on `StructureReadError`). Loading Ex1's RTSTRUCT through
+  `load_structures` produced 42 structures, matching §5.3.
 - *Verified* 2026-10-10 on macOS: 25 passed, with `windows/test_main_window.py` added. Its five
   tests were written before the fix. Three were red on `main`, and the other two, which
   describe behaviour the fix must keep, went red once Export was disabled and before it was
@@ -1905,6 +2041,17 @@ python -m pytest
   `test_loading_a_plan_enables_every_channel_again` added to `test_channels_view.py`. It failed
   with `assert not True` before the fix, and again when the fix line was removed on purpose.
   *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 70 passed, with four own-diameter tests (five cases) added to
+  `test_channels_view.py`. All five failed with `AttributeError` before `set_channel_diameter`
+  existed. Four deliberate breaks were each caught: Apply ignoring an own diameter, a clear that
+  keeps the width, a reload that keeps own diameters, and NaN let through, which crashed the run
+  with exit 139. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS after Ariq's PR #59 review: 73 passed. A real 3 mm config
+  load followed by Ex1 import and clearing a 4 mm override now returns to 3 mm; the old code
+  returned 2.7 mm. Unknown and unselected labels raise `KeyError` without changing overrides.
+  Both regressions failed before the fix and under deliberate reversions. The shared Apply
+  test restores the global model width as well as config, and fresh windows restore the
+  previous app window on teardown. Native viewport and Windows were not rerun.
 - *Verified* 2026-10-15 on macOS: 68 passed, with three collar round-trip tests added to
   `test_cylinder_view.py` and `test_tandem_view.py` added. All four failed before the fix
   (§7.1): two missing collar keys, collar boxes left at 0, and the extra setting dropped.
@@ -1939,6 +2086,23 @@ python -m pytest
   `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
   and removing the notch line from `resetAllValues()` failed the config import test.
   *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 164 passed, with `tests/settings/test_needle_templates.py` added.
+  It failed to import before the module existed. Six deliberate breaks were each caught: no
+  trimming, no duplicate check, no replace on save, a decode error returning an empty library,
+  NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
+  diagram named the module. After Writable04's review of PR #83, eight cases were added (wrong
+  JSON types, an oversized number and a failed `os.replace`), and each failed before the fix.
+  *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 170 passed, with six Selected Channel tests added to
+  `test_channels_view.py` and `sb_channel_diameter` added to the arrow test. Five failed on
+  their assertions before the view was wired. Adding the group also turned the existing arrow
+  test red: the window stays 770 × 472, and the four spin boxes were squeezed to 9 px. The
+  height test was written for that, red at 9 px, and both went green with the scroll area. Five
+  deliberate breaks of the wiring were each caught. *Not verified:* Windows.
+- *Verified* 2026-10-15 on macOS: 174 passed, with four channel status tests added in
+  `test_channel_status_colours.py`. All four failed before `ChannelStatus` existed. Four deliberate breaks
+  were each caught: own diameter ranked above disabled, no restyle on a model change, no italic,
+  and a two-decimal tooltip. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

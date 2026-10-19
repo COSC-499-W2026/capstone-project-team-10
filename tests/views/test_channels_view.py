@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
+import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+
 if TYPE_CHECKING:
-    from PySide6.QtWidgets import QDoubleSpinBox, QStyle
+    from PySide6.QtWidgets import QDoubleSpinBox, QPushButton, QStyle
 
     from windows.main_window import MainWindow
 
@@ -99,7 +104,7 @@ def test_channels_spin_box_arrows_are_black(channels_window: MainWindow) -> None
 
     ui = channels_window.navigationmodel.views[CHANNELS_TAB].ui
     spin_boxes = (ui.spinbox_diameter, ui.sb_needle_length, ui.sb_threading_dept,
-                  ui.sb_threading_diameter)
+                  ui.sb_threading_diameter, ui.sb_channel_diameter)
 
     arrows = (("up", QStyle.SubControl.SC_SpinBoxUp), ("down", QStyle.SubControl.SC_SpinBoxDown))
 
@@ -181,3 +186,301 @@ def test_loading_a_plan_enables_every_channel_again(channels_window: MainWindow)
 
     assert not model.is_channel_disabled(CARRIED_OVER_CHANNEL)
     assert CARRIED_OVER_CHANNEL in [channel.label for channel in model.get_visible_channels()]
+
+
+OWN_DIAMETER_CHANNEL = "Applicator4"
+CLEARED_CHANNEL = "Applicator5"
+REJECTED_CHANNEL = "Applicator11"
+REIMPORTED_CHANNEL = "Applicator12"
+GLOBAL_DIAMETER_CHANNEL = "Applicator13"
+
+
+def test_channel_keeps_its_own_diameter_when_channels_diameter_is_applied(
+    channels_window: MainWindow,
+) -> None:
+    """Check that Apply on the Channels tab leaves a channel's own diameter alone.
+
+    Applicator4 is given 3.2 mm, then the Channels Diameter box is set to 2.5 mm and Apply is
+    pressed. Fails if Applicator4 is rebuilt at 2.5 mm, or if Applicator13 is not. That is
+    FR-CN-08: a needle that needs a wider channel would silently be printed at the global width
+    the next time anyone pressed Apply, and the needle would not fit the printed cylinder. The
+    live settings are swapped for a copy and put back afterwards, so the 2.5 mm that Apply
+    writes does not leak into later test modules.
+    """
+    from classes.app import get_app
+
+    values = get_app().values
+    live_settings = values.config_values
+    values.config_values = live_settings.copy()
+    model = channels_window.channelsmodel
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    try:
+        model.set_channel_diameter(OWN_DIAMETER_CHANNEL, 3.2)
+        view.ui.spinbox_diameter.setValue(2.5)
+        view.action_apply_settings()
+        assert model.channels[OWN_DIAMETER_CHANNEL].get_diameter() == 3.2
+        assert model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter() == 2.5
+    finally:
+        values.config_values = live_settings
+        model.set_diameter(live_settings["CONFIG_CHANNELS_DIAMETER"])
+
+
+def test_channel_follows_channels_diameter_again_once_its_own_is_cleared(
+    channels_window: MainWindow,
+) -> None:
+    """Check that clearing a channel's own diameter returns it to the global diameter.
+
+    Fails if Applicator5 keeps 3.4 mm after the clear, or still reports an own diameter. A
+    clinician who undoes a per-channel change must get the channel the rest of the plan uses,
+    not a leftover width that no control on screen shows.
+    """
+    model = channels_window.channelsmodel
+
+    model.set_channel_diameter(CLEARED_CHANNEL, 3.4)
+    model.clear_channel_diameter(CLEARED_CHANNEL)
+
+    assert model.channels[CLEARED_CHANNEL].get_diameter() == model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter()
+    assert not model.has_own_diameter(CLEARED_CHANNEL)
+
+
+@pytest.mark.parametrize("diameter", [0.2, float("nan")])
+def test_own_diameter_below_the_minimum_or_not_a_number_is_rejected(
+    channels_window: MainWindow, diameter: float,
+) -> None:
+    """Check that a channel cannot be given a diameter below 0.3 mm, or NaN.
+
+    Runs for 0.2 mm and for NaN. Fails if set_channel_diameter does not raise ValueError, or if
+    Applicator11 is left with an own diameter or a different width. The global Channels Diameter
+    box stops at 0.3 mm, a narrower channel prints as a hole no needle passes through, and NaN
+    passes a plain "less than" check, so it would reach the geometry unnoticed.
+    """
+    model = channels_window.channelsmodel
+    before = model.channels[REJECTED_CHANNEL].get_diameter()
+
+    with pytest.raises(ValueError):
+        model.set_channel_diameter(REJECTED_CHANNEL, diameter)
+
+    assert not model.has_own_diameter(REJECTED_CHANNEL)
+    assert model.channels[REJECTED_CHANNEL].get_diameter() == before
+
+
+def test_loading_a_plan_clears_every_own_diameter(channels_window: MainWindow) -> None:
+    """Check that loading a plan forgets the previous plan's own diameters.
+
+    The plan is loaded through ChannelsModel.load_data, the slot DicomModel.values_changed
+    calls on every import. Fails if Applicator12 still reports an own diameter, or is not
+    rebuilt at the Channels Diameter in the live settings. Channel labels repeat between plans,
+    so a width chosen for one patient's Applicator12 would otherwise be printed into the next
+    patient's cylinder.
+    """
+    from classes.app import get_app
+
+    model = channels_window.channelsmodel
+
+    model.set_channel_diameter(REIMPORTED_CHANNEL, 3.6)
+    model.load_data(channels_window.dicommodel.data)
+
+    assert not model.has_own_diameter(REIMPORTED_CHANNEL)
+    assert model.channels[REIMPORTED_CHANNEL].get_diameter() == get_app().values.config_values["CONFIG_CHANNELS_DIAMETER"]
+
+
+def test_clearing_own_diameter_after_config_import_matches_new_channels(
+    cylinder_window: MainWindow, tmp_path: Path,
+) -> None:
+    """Clear to the width used by new channels after loading a different config.
+
+    A real config file sets 3 mm before Ex1 is imported. Clearing a 4 mm override must
+    return to 3 mm, like an untouched channel. Returning the startup 2.7 mm fails the
+    literal assertion and would cut a narrower hole than the clinician requested.
+    """
+    from classes.app import get_app
+    from classes.dicom.fileio import read_dicom_folder
+    from settings.load import load_config_file
+    from settings.reset import resetAllValues
+
+    values = get_app().values
+    config_file = tmp_path / "channels.json"
+    config_file.write_text('{"CONFIG_CHANNELS_DIAMETER": 3.0}')
+    values.config_values, _, _ = load_config_file(str(config_file), values.config_values, 0)
+    resetAllValues(values.config_values)
+    plan = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
+    cylinder_window.dicommodel.update(read_dicom_folder(str(plan)))
+    model = cylinder_window.channelsmodel
+    model.set_channel_diameter(OWN_DIAMETER_CHANNEL, 4.0)
+
+    model.clear_channel_diameter(OWN_DIAMETER_CHANNEL)
+
+    assert model.channels[OWN_DIAMETER_CHANNEL].get_diameter() == 3.0
+    assert model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter() == 3.0
+    assert not model.has_own_diameter(OWN_DIAMETER_CHANNEL)
+
+
+@pytest.mark.parametrize("label", ["Missing channel", None])
+def test_unknown_channel_cannot_leave_an_own_diameter(
+    channels_window: MainWindow, label: str | None,
+) -> None:
+    """Reject an unknown or unselected channel before storing any diameter.
+
+    A missing label must raise KeyError and leave the override map unchanged. Writing
+    the map before looking up the channel fails the assertion and leaves phantom state
+    that could later apply to a different channel with that label.
+    """
+    model = channels_window.channelsmodel
+    before = model.own_diameters.copy()
+
+    with pytest.raises(KeyError):
+        model.set_channel_diameter(label, 3.0)
+
+    assert model.own_diameters == before
+
+
+APPLIED_CHANNEL = "Applicator6"
+RESET_CHANNEL = "Applicator8"
+SHOWN_CHANNEL = "Applicator9"
+OTHER_SHOWN_CHANNEL = "Applicator10"
+
+
+def click(button: QPushButton) -> None:
+    """Click a button with the left mouse button, the way a clinician does.
+
+    A helper, not a test. QTest sends a real press and release, so the pressed signal and
+    every slot connected to it run. A disabled button ignores the click, so a test that clicks
+    a control the view left disabled fails on its assertions.
+    """
+    QTest.mouseClick(button, Qt.MouseButton.LeftButton)
+
+
+def select_channel(window: MainWindow, label: str) -> None:
+    """Make one channel the Channels list's current row, as clicking it would.
+
+    A helper, not a test. setCurrentRow emits currentItemChanged, the signal a mouse click
+    emits, so the view selects the channel in ChannelsModel. Fails with IndexError if the list
+    has no row with that label.
+    """
+    channel_list = window.navigationmodel.views[CHANNELS_TAB].ui.listwidget_channels
+    channel_list.setCurrentRow(channel_list.row(channel_list.findItems(label, Qt.MatchFlag.MatchExactly)[0]))
+
+
+def open_channels_tab_and_select(window: MainWindow, label: str) -> None:
+    """Open the Channels tab fresh, then select one channel in its list.
+
+    A helper, not a test. Leaving for the Cylinder tab first runs on_close and on_open, as a
+    clinician arriving at the tab would, so no earlier selection carries over.
+    """
+    from classes.app import get_app
+
+    get_app().signals.viewChanged.emit(CYLINDER_TAB)
+    get_app().signals.viewChanged.emit(CHANNELS_TAB)
+    select_channel(window, label)
+
+
+def test_apply_to_channel_changes_only_the_selected_channel(channels_window: MainWindow) -> None:
+    """Check that Apply to Channel gives the selected channel, and only it, the typed diameter.
+
+    Fails if Applicator6 is not rebuilt at 3.3 mm, or if Applicator13's diameter changes. A
+    clinician widening one needle's channel must not resize every other channel in the
+    cylinder. Applicator13 is compared with its own value from before the click, not with the
+    global diameter, because an earlier test in this module reloads the plan.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    untouched_before = model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter()
+    open_channels_tab_and_select(channels_window, APPLIED_CHANNEL)
+
+    view.ui.sb_channel_diameter.setValue(3.3)
+    click(view.ui.btn_apply_channel_diameter)
+
+    assert model.channels[APPLIED_CHANNEL].get_diameter() == 3.3
+    assert model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter() == untouched_before
+
+
+def test_selected_channel_controls_are_disabled_with_no_channel_selected(
+    channels_window: MainWindow,
+) -> None:
+    """Check that the Selected Channel group cannot be used until a channel is selected.
+
+    Arriving at the Channels tab selects nothing. Fails if the group is enabled then. With no
+    channel selected, Apply to Channel would have no channel to change, and the clinician could
+    not tell which needle the box refers to. This is FR-CN-02's interface test case.
+    """
+    from classes.app import get_app
+
+    get_app().signals.viewChanged.emit(CYLINDER_TAB)
+    get_app().signals.viewChanged.emit(CHANNELS_TAB)
+
+    assert not channels_window.navigationmodel.views[CHANNELS_TAB].ui.group_selected_channel.isEnabled()
+
+
+def test_use_channels_diameter_returns_the_selected_channel_to_the_global_diameter(
+    channels_window: MainWindow,
+) -> None:
+    """Check that Use Channels Diameter undoes a channel's own diameter, then disables itself.
+
+    Fails if Applicator8 keeps 3.4 mm, still reports an own diameter, or the button stays
+    enabled when there is nothing left to undo. This is the clinician's only way back to the
+    plan-wide width without re-importing the plan.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    open_channels_tab_and_select(channels_window, RESET_CHANNEL)
+    view.ui.sb_channel_diameter.setValue(3.4)
+    click(view.ui.btn_apply_channel_diameter)
+
+    click(view.ui.btn_clear_channel_diameter)
+
+    assert model.channels[RESET_CHANNEL].get_diameter() == model.channels[GLOBAL_DIAMETER_CHANNEL].get_diameter()
+    assert not model.has_own_diameter(RESET_CHANNEL)
+    assert not view.ui.btn_clear_channel_diameter.isEnabled()
+
+
+def test_channel_diameter_box_stops_at_the_minimum(channels_window: MainWindow) -> None:
+    """Check that the Channel Diameter box will not hold less than 0.3 mm.
+
+    Fails if typing 0.1 mm leaves 0.1 in the box. The model rejects anything narrower, and a
+    narrower channel prints as a hole no needle passes through, so the box must stop the value
+    before Apply to Channel is pressed.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+
+    view.ui.sb_channel_diameter.setValue(0.1)
+
+    assert view.ui.sb_channel_diameter.value() == 0.3
+
+
+def test_selecting_a_channel_shows_its_current_diameter(channels_window: MainWindow) -> None:
+    """Check that the Channel Diameter box shows the diameter of whichever channel is selected.
+
+    Applicator9 is given 3.1 mm. Applicator10 is selected, 1.0 is typed into the box and never
+    applied, then Applicator9 is selected. Fails if the box did not first show Applicator10's
+    diameter, or does not then read 3.1. A box that kept a typed value across selections would
+    make the clinician think a channel had a width it does not have.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    model.set_channel_diameter(SHOWN_CHANNEL, 3.1)
+    open_channels_tab_and_select(channels_window, OTHER_SHOWN_CHANNEL)
+    shown_for_other = view.ui.sb_channel_diameter.value()
+    view.ui.sb_channel_diameter.setValue(1.0)
+
+    select_channel(channels_window, SHOWN_CHANNEL)
+
+    assert shown_for_other == model.channels[OTHER_SHOWN_CHANNEL].get_diameter()
+    assert view.ui.sb_channel_diameter.value() == 3.1
+
+
+def test_channels_settings_keep_their_height_in_the_default_window(channels_window: MainWindow) -> None:
+    """Check that the Channels spin boxes keep their full height in brachify's default window.
+
+    channels_window is 770 by 472, the size main_window.ui opens at. The Channels tab is opened
+    fresh and a channel selected. Fails if any of the four Channels spin boxes is shorter than
+    20 px, the least that still shows its value. They are 21 px when the tab fits. Each control
+    added under the list makes the tab taller, and once it no longer fits, Qt squeezes the spin
+    boxes to 9 px, so the clinician cannot read or set the channel diameter, dead space or
+    threading.
+    """
+    ui = channels_window.navigationmodel.views[CHANNELS_TAB].ui
+    open_channels_tab_and_select(channels_window, APPLIED_CHANNEL)
+
+    for spin_box in (ui.spinbox_diameter, ui.sb_needle_length, ui.sb_threading_dept, ui.sb_threading_diameter):
+        spin_box.grab()
+        assert spin_box.height() >= 20, spin_box.objectName()

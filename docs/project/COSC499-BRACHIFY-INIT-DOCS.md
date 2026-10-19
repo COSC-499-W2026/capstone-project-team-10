@@ -3473,6 +3473,8 @@ is ticked, and the *Height Offset* of an imported tandem.
 
 ### 13.3 `defaults.py`, the built-in values
 
+> **Changed 2026-10-15.** `defaults.py` also holds `MINIMUM_CHANNEL_DIAMETER_MM`. See source of truth §5.2.
+
 [`defaults.py`](../../src/settings/defaults.py) holds one dictionary, `DEFAULT_CONFIG_VALUES`, with
 the 19 settings in the table above. It has no functions. It is the **list of which settings
 exist**: `load.py` goes through its keys to decide what to look for in a settings file.
@@ -4175,6 +4177,10 @@ its own shape, it answered `False`. Nothing calls it.
 
 ### 15.4 `display_model.py`, what the 3D view shows
 
+> Update after PR #79: `reset()` now emits `shapes_changed([], False)` so the viewport
+> clears model geometry and reference overlays. See
+> [current display pipeline](COSC499-TEAM10-PROJECT-DOCS.md#45-the-display-pipeline).
+
 `DisplayModel` keeps a dictionary of shapes, `label → ShapeModel`, and the current tab's colour
 table. Every model puts its shapes in; the 3D view draws whatever is there.
 
@@ -4250,6 +4256,8 @@ cylinder then failed with an error from OpenCASCADE.
 | `disabled_channels` | the labels of the switched-off needles | `["Tandem"]` |
 | `diameter` | every needle's hole width | 2.7 |
 | `threading_depth`, `threading_diamenter` | the threaded hole's depth and width. The second name is misspelled, and every use matches it | 5.0, 3.17 |
+
+> **Changed 2026-10-15.** `diameter` is no longer every needle's width. A needle can keep its own diameter (`own_diameters`), which Apply keeps. Clearing uses the live config default, matching newly imported channels even when the model cache is stale. See source of truth §5.5 and §7.6.
 
 #### Loading the plan
 
@@ -4715,6 +4723,8 @@ settings file: an export leaves it out and an import ignores it
 
 ### 17.5 `channels_view.py`, the Channels tab
 
+> **Changed 2026-10-15.** The Channels tab scrolls, and has a Selected Channel group below the list, for the selected needle's own values. Apply keeps a needle's own diameter. Its controls are listed in source of truth §5.6.
+
 | Widget | Label | Allowed values / does |
 |---|---|---|
 | `spinbox_diameter` | *Channels Diameter* | 0.3 to 99.99 mm |
@@ -4821,6 +4831,11 @@ again. The collet boxes save themselves into the live settings every time their 
 > building the solid, after the tabs had already recorded the switch. See [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
 
 ### 17.8 `viewport.py`, the 3D view
+
+> Out of date after PRs #78/#79/#81: the upstream bindings below have been replaced by
+> left-drag rotation, right/middle-drag pan and proportional zoom. The viewport now has
+> independent central-axis and outer-wall XYZ grid toggles. See
+> [current viewport behavior](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
 `OrbitCameraViewer3d` is the 3D view on the right of the window: an OpenCASCADE viewer placed
 inside a Qt widget.
@@ -4952,6 +4967,8 @@ The object name typed into Qt Designer becomes the Python name every other file 
 ### 18.3 What each design file contains
 
 > **Changed 2026-10-10.** The Cylinder design adds a Units selector and uses QDoubleSpinBox for length and both collar fields. Precision and limits scale with mm/cm. See source of truth §5.6.
+
+> **Changed 2026-10-15.** `channels_view.ui` puts its controls in a scroll area and adds the Selected Channel group. See source of truth §5.6.
 
 Every widget the code uses, with its label on screen and its allowed values. *Verified*, read
 from the `.ui` files.

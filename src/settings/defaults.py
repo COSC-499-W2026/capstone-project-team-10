@@ -26,3 +26,6 @@ DEFAULT_CONFIG_VALUES = {
     "CONFIG_NOTCH_DEPTH": 1.8, # how far the notch stands out of the wall
     "CONFIG_NOTCH_HEIGHT": 10.0, # up from the base, capped at the collar height when there is one
 }
+
+# The narrowest channel brachify builds, the same minimum as the Channels Diameter box.
+MINIMUM_CHANNEL_DIAMETER_MM = 0.3
