@@ -10,3 +10,6 @@ flowchart LR
   physicist -->|"diameter, length, channels, tandem, config JSON"| brachify
   brachify -->|"STL or STEP"| printer
   brachify -->|"PDF sheet and JSON config"| physicist
+
+  physicist -->|"camera gestures, reference visibility"| brachify
+  brachify -->|"3D scene with axis and model-mm grid"| physicist

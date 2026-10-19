@@ -60,6 +60,9 @@ tests/
 │   └── test_line_endings.py
 ├── views/                 exists: the Channels, Cylinder and Tandem views, against the real window
 │   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
+│   ├── test_camera_controls.py  camera gesture and zoom rules
+│   ├── test_central_axis.py     reference geometry and toggle/reset state
+│   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
 │   ├── test_cylinder_view.py
 │   └── test_tandem_view.py
@@ -193,3 +196,17 @@ It checks nested viewer URLs and rejects missing, stale or unembedded nested dia
 also checks that a diagram checked out with CRLF line endings, as Git for Windows does, still
 matches a stamp written on macOS or Linux, and that the `npx` it renders with can be started,
 which on Windows means `npx.cmd`. That test is skipped where Node is not installed.
+
+## Viewport controls and references
+
+`views/test_camera_controls.py` has six cases for left-drag versus click, jitter, distant
+release, incremental right/middle panning and proportional reversible wheel/trackpad zoom.
+`views/test_central_axis.py` has eight cases for local-Z endpoints, invalid lengths, the
+real toggle's availability/preference and `DisplayModel.reset` emitting an empty scene.
+`views/test_bounding_grid.py` (PR #81) has nine cases for rounded bounds, invalid input,
+outer-wall lines, model-mm axis titles, real AIS label text/position, reset and independent
+nonoverlapping controls. The fixtures isolate user files before importing the viewport.
+
+These tests never initialise the native canvas. They cannot prove the grid is visually
+legible or the camera moves correctly; native Ex1/Ex2 checks supplement them, as recorded
+in [§5.7](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).

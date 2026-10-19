@@ -191,3 +191,13 @@ and anatomy checks. FR-CN-01–20 maps to design editing, templates, history, va
 and exports. Milestone 2 describes the corresponding review and editing controls.
 Class names in the projected UML express a design proposal; storage formats, clinical
 thresholds and the concrete UI arrangement still need implementation decisions.
+
+### Viewport references (PRs #78/#79/#81)
+
+*Reasoned from code:* `OrbitCameraViewer3d` owns camera gestures and AIS-only reference
+presentations. It reads `CylinderModel.cylinder.length` for the central axis and computes
+`ReferenceGrid`/`GridLabel` values from displayed shape bounds. `DisplayModel.reset` sends
+an empty `shapes_changed` notification. Overlays never enter `ShapeModel` or export geometry.
+The system/UML diagrams show this dependency and ownership; DFDs distinguish screen review
+from printable output. No new library, persistence format or navigation tab is introduced.
+See [§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport) for controls and units.

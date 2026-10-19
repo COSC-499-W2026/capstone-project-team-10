@@ -30,3 +30,9 @@ flowchart TB
   d1 -->|"patient and plan"| p5
   p5 -->|"STL or STEP"| printer
   p5 -->|"PDF and JSON"| physicist
+
+  review(("Shared viewport"))
+  d2 -->|"displayed shapes, empty scene on reset"| review
+  p2 -->|"cylinder reference length"| review
+  physicist -->|"camera gestures, reference visibility"| review
+  review -->|"3D scene with axis and model-mm grid"| physicist
