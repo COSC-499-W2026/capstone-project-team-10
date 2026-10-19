@@ -65,7 +65,6 @@ tests/
 │   ├── test_camera_controls.py  camera gesture and zoom rules
 │   ├── test_central_axis.py     reference geometry and toggle/reset state
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
-│   ├── test_channel_status_colours.py
 │   ├── test_channels_view.py
 │   ├── test_cylinder_view.py
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
@@ -166,7 +165,7 @@ window afterwards, so later tests still reach their own models. Neither calls
 disconnect their window from the application signals on teardown. No application module is
 mocked.
 
-`views/test_channels_view.py` drives the Channels tab through the real window and models. `views/test_channel_status_colours.py` checks how each list row shows its channel's status. §8.2
+`views/test_channels_view.py` drives the Channels tab through the real window and models. §8.2
 of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes it fail.
 
 `views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
