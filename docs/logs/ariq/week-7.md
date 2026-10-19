@@ -51,3 +51,54 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **all 18** are unit tests and integration tests are not required because **the module imports nothing from the app**.
 - These tests are included in the directory **`tests/settings/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (196 passed), `build.py --check` and `session-start.sh` (exit 0)**.
+
+### For PR #**94**
+
+- As part of requirement **FR-CN-05 and FR-CN-06, save templates in a library and keep it safe**, the user needs to do **save a cylinder template, close brachify, and find it again next time, even if the file was edited by hand**.
+- Therefore, I implemented/generated code so that **physicists' cylinder templates are saved to and read from `~/brachify/cylinder_templates.json`, with a bad file refused rather than overwritten**.
+
+#### Data Modeling and Integrity
+
+- This data **the template library file** is modeled as **a versioned JSON object, `{"version": 1, "templates": [...]}`, decoded into `CylinderTemplate` values in `load_templates` and nowhere else** because **AGENTS.md asks to decode at the boundary**. We considered alternative models such as **a bare list like `needle_templates.json`, rejected because needles or tandem will join later and need a version to tell files apart**.
+- This data **each saved template** uses the input validation to ensure it adheres to **JSON numbers that are not booleans, real `true`/`false` flags, ISO 8601 dates, unique IDs and names ignoring case, then #93's range checks**.
+- This data **the library file** may be vulnerable to **a hand edit or a crash corrupting every saved template**. Therefore, it uses a security-based sanitization by **refusing the whole file on any bad entry, never writing over a file it could not read, and saving through a `.tmp` file swapped in with `os.replace`**. We considered alternative security solutions such as **skipping bad entries, rejected because the next save would then delete them**.
+- Not applicable: **privacy sanitization (no patient data, #93), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **a pure settings module that takes the file path from its caller** because **the Cylinder tab passes `~/brachify` and the tests pass `tmp_path`**. Benefits for using this pattern include **37 tests in 0.04 s that never touch the developer's home folder**. Possible risks include **two copies of brachify saving at once**.
+  - To mitigate **a half-written file**, we implemented **the `.tmp` then `os.replace` save, so the file is always the old or the new library**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage**. This structure has low coupling because **`cylinder_templates.py` imports only the standard library**. This structure has high cohesion because **it only checks, reads and writes templates**. This design is scalable because **a later version can be read beside version 1**.
+
+  **[System architecture, local storage now names `cylinder_templates.json`](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/ef6f4ae21faa98dea9ed801a96f95187a950a171/docs/architecture/diagrams/system-architecture.svg)**
+- The system uses **a local JSON file as its** database because **templates are a few small records for one clinic machine, like `needle_templates.json`**. This method is done by **`load_templates` and `add_template` in `cylinder_templates.py`**. Benefits for using this approach include **no server and a file a physicist can read**. Possible risks include **a hand edit breaking it**.
+  - To mitigate **a broken hand edit**, we implemented **all-or-nothing decoding with the reason in the error, for example `Cylinder Length must be from 60 to 300 mm`**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-05 and FR-CN-06 (library file): `tests/settings/test_cylinder_templates.py`, 19 file cases**
+- Not applicable: **data processing, state management (no app state changed), Level 0 DFD, Level 1 DFD (nothing calls the module yet), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated malformed-file test** for this functionality, I noticed **its `true` sat in the length, where the 60 mm minimum refused it, so reading `true` as 1 went uncaught**. Therefore, I did **move it to the collar thickness, whose range includes 1**.
+- The PR does not contain any temporary workaround because **the save is the needle library's tested pattern**.
+- The PR only contains small functions that are **3 to 20 lines (module) and 3 to 25 lines (tests)** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/settings/cylinder_templates.py`** because **the file belongs with the template it stores**.
+- This work belongs in **Cylinder** in the DFD because **the library stores the Cylinder tab's settings**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_saved_template_loads_back_with_identical_values`, `test_no_library_file_means_no_templates_yet` (37 passed)** passed.
+- I wrote tests to cover abnormal situations involving **a corrupt, malformed, unreadable or unwritable library, 10 to the 400, and a failed `os.replace`** and they passed.
+- I checked that these negative cases involving **eight deliberate breaks (case-sensitive names, `true` as a number, 1 as a flag, writing in place, `OverflowError` escaping, a shared ID, any version, a missing file refused) each failed a test** failed as expected.
+- When I reviewed the **`test_a_library_with_a_malformed_entry_is_rejected`**, I noticed **the `true` case passed for the wrong reason (see Review and design)**. Therefore, I did **move it to the collar thickness**.
+- Among these tests, **all 37** are unit tests and integration tests are not required because **the module reads and writes only the path it is given**.
+- These tests are included in the directory **`tests/settings/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (215 passed), `build.py --check` and `session-start.sh` (exit 0)**.
