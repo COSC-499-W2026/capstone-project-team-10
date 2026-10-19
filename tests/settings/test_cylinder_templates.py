@@ -12,8 +12,10 @@ from settings.cylinder_templates import (
     CylinderTemplate,
     CylinderTemplateError,
     add_template,
+    delete_template,
     load_templates,
     make_template,
+    update_template,
 )
 
 SAVED_AT = datetime(2026, 10, 19, 17, 5, tzinfo=timezone.utc)
@@ -287,3 +289,127 @@ def test_a_failed_save_keeps_the_previous_library_and_leaves_no_temporary_file(
 
     assert library.read_text(encoding="utf-8") == before
     assert list(tmp_path.iterdir()) == [library]
+
+
+LATER = SAVED_AT + timedelta(days=2)
+LONG = replace(STANDARD, length_mm=180.0, flat_tip=True)
+
+
+def library_of(path: Path, *names: str) -> tuple[CylinderTemplate, ...]:
+    """Save one template per name, IDs "t0", "t1" and on, and return the library, as a helper and not a test."""
+    for index, name in enumerate(names):
+        add_template(path, template_named(name, template_id=f"t{index}"))
+    return load_templates(path)
+
+
+def test_updating_a_template_keeps_its_id_created_date_and_place(tmp_path: Path) -> None:
+    """Check that Update replaces the name, note and settings but keeps the ID, created date and order.
+
+    The middle of three templates is renamed, given a note and made 180 mm with a flat tip.
+    Fails if the ID or created date changes, the modified date is not the update's, any of the
+    new values is lost, or the template moves in the list. FR-CN-06: a physicist editing a
+    template must find it where it was, as the same template.
+    """
+    library = tmp_path / "cylinder_templates.json"
+    library_of(library, "Short", "Standard", "Wide")
+
+    update_template(library, "t1", "Standard long", "Revised", LONG, LATER)
+
+    assert load_templates(library)[1] == CylinderTemplate("t1", "Standard long", "Revised", SAVED_AT, LATER, LONG)
+    assert [template.name for template in load_templates(library)] == ["Short", "Standard long", "Wide"]
+
+
+def test_updating_to_another_templates_name_in_any_case_is_refused(tmp_path: Path) -> None:
+    """Check that renaming "Standard" to "short" while "Short" exists raises and leaves the file alone.
+
+    Fails if the rename is saved or the file changes. Two templates whose names differ only in
+    case would read as one, so the physicist could load the wrong cylinder.
+    """
+    library = tmp_path / "cylinder_templates.json"
+    library_of(library, "Short", "Standard")
+    before = library.read_text(encoding="utf-8")
+
+    with pytest.raises(CylinderTemplateError, match="already exists"):
+        update_template(library, "t1", "short", "", STANDARD, LATER)
+
+    assert library.read_text(encoding="utf-8") == before
+
+
+def test_a_template_can_keep_its_own_name_in_another_case(tmp_path: Path) -> None:
+    """Check that updating "Standard" to "STANDARD" is allowed, since no other template has that name.
+
+    Fails if a template's own name counts as taken, which would stop the physicist changing the
+    settings or the case of a name without renaming it to something else first.
+    """
+    library = tmp_path / "cylinder_templates.json"
+    library_of(library, "Standard")
+
+    update_template(library, "t0", "STANDARD", "", LONG, LATER)
+
+    assert load_templates(library)[0].name == "STANDARD"
+
+
+def test_an_update_with_a_value_outside_the_tabs_range_is_refused(tmp_path: Path) -> None:
+    """Check that Update applies the same range checks as a new template, leaving the file alone.
+
+    Fails if a 0 mm diameter is saved. An update must not slip past the checks that Save as
+    Template applies, or a template could hold a cylinder the tab cannot show.
+    """
+    library = tmp_path / "cylinder_templates.json"
+    library_of(library, "Standard")
+    before = library.read_text(encoding="utf-8")
+
+    with pytest.raises(CylinderTemplateError, match="must be from"):
+        update_template(library, "t0", "Standard", "", replace(STANDARD, diameter_mm=0.0), LATER)
+
+    assert library.read_text(encoding="utf-8") == before
+
+
+def test_deleting_removes_only_that_template(tmp_path: Path) -> None:
+    """Check that deleting the middle of three templates leaves the other two, in order.
+
+    Fails if the wrong template, or more than one, is removed. Deleting is permanent, so the
+    physicist must lose only the template they chose.
+    """
+    library = tmp_path / "cylinder_templates.json"
+    short, _, wide = library_of(library, "Short", "Standard", "Wide")
+
+    delete_template(library, "t1")
+
+    assert load_templates(library) == (short, wide)
+
+
+def test_an_unknown_template_cannot_be_updated_or_deleted(tmp_path: Path) -> None:
+    """Check that Update and Delete of an ID not in the library raise and change nothing.
+
+    Fails if either succeeds or changes the file. The template may have been deleted by
+    another copy of brachify since the list was shown, and a silent success would tell the
+    physicist a change was saved when it was not.
+    """
+    library = tmp_path / "cylinder_templates.json"
+    library_of(library, "Standard")
+    before = library.read_text(encoding="utf-8")
+
+    with pytest.raises(CylinderTemplateError, match="no longer exists"):
+        update_template(library, "gone", "Standard", "", STANDARD, LATER)
+    with pytest.raises(CylinderTemplateError, match="no longer exists"):
+        delete_template(library, "gone")
+
+    assert library.read_text(encoding="utf-8") == before
+
+
+def test_a_corrupt_library_is_not_changed_by_update_or_delete(tmp_path: Path) -> None:
+    """Check that Update and Delete refuse an unreadable library and leave it as it was.
+
+    Fails if either rewrites the file. Writing over it would silently delete every cylinder
+    template the clinic had saved.
+    """
+    library = tmp_path / "cylinder_templates.json"
+    library.write_text("not json", encoding="utf-8")
+
+    with pytest.raises(CylinderTemplateError):
+        update_template(library, "t0", "Standard", "", STANDARD, LATER)
+    with pytest.raises(CylinderTemplateError):
+        delete_template(library, "t0")
+
+    assert library.read_text(encoding="utf-8") == "not json"

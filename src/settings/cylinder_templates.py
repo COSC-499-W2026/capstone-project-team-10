@@ -204,13 +204,48 @@ def write_templates(path: Path, templates: tuple[CylinderTemplate, ...]) -> None
         raise CylinderTemplateError(f"{path.name} could not be saved") from error
 
 
+def name_taken(templates: tuple[CylinderTemplate, ...], name: str, template_id: str) -> bool:
+    """Whether a template other than template_id already uses this name, in any case."""
+    return any(name_key(saved.name) == name_key(name) and saved.template_id != template_id for saved in templates)
+
+
+def position(templates: tuple[CylinderTemplate, ...], template_id: str) -> int:
+    """Where the template with this ID sits in the library, or an error if it has gone."""
+    for index, saved in enumerate(templates):
+        if saved.template_id == template_id:
+            return index
+    raise CylinderTemplateError("That cylinder template no longer exists")
+
+
 def add_template(path: Path, template: CylinderTemplate) -> tuple[CylinderTemplate, ...]:
     """Add a new template and write the library back, refusing a name already used in any case."""
     templates = load_templates(path)
-    if any(name_key(saved.name) == name_key(template.name) for saved in templates):
+    if name_taken(templates, template.name, template.template_id):
         raise CylinderTemplateError(f"A cylinder template named {template.name} already exists. Use Update to change it")
     if any(saved.template_id == template.template_id for saved in templates):
         raise CylinderTemplateError("A cylinder template with this ID already exists")
     templates += (template,)
+    write_templates(path, templates)
+    return templates
+
+
+def update_template(path: Path, template_id: str, name: str, note: str,
+                    design: CylinderDesign, now: datetime) -> tuple[CylinderTemplate, ...]:
+    """Replace a template's name, note and design, keeping its ID, created date and place in the list."""
+    templates = load_templates(path)
+    index = position(templates, template_id)
+    updated = make_template(template_id, name, note, design, templates[index].created, now)
+    if name_taken(templates, updated.name, template_id):
+        raise CylinderTemplateError(f"A cylinder template named {updated.name} already exists")
+    templates = templates[:index] + (updated,) + templates[index + 1:]
+    write_templates(path, templates)
+    return templates
+
+
+def delete_template(path: Path, template_id: str) -> tuple[CylinderTemplate, ...]:
+    """Remove one template and write the library back."""
+    templates = load_templates(path)
+    index = position(templates, template_id)
+    templates = templates[:index] + templates[index + 1:]
     write_templates(path, templates)
     return templates
