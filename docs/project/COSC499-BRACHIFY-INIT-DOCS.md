@@ -4179,6 +4179,10 @@ its own shape, it answered `False`. Nothing calls it.
 
 ### 15.4 `display_model.py`, what the 3D view shows
 
+> Update after PR #79: `reset()` now emits `shapes_changed([], False)` so the viewport
+> clears model geometry and reference overlays. See
+> [current display pipeline](COSC499-TEAM10-PROJECT-DOCS.md#45-the-display-pipeline).
+
 `DisplayModel` keeps a dictionary of shapes, `label → ShapeModel`, and the current tab's colour
 table. Every model puts its shapes in; the 3D view draws whatever is there.
 
@@ -4829,6 +4833,11 @@ again. The collet boxes save themselves into the live settings every time their 
 > building the solid, after the tabs had already recorded the switch. See [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
 
 ### 17.8 `viewport.py`, the 3D view
+
+> Out of date after PRs #78/#79/#81: the upstream bindings below have been replaced by
+> left-drag rotation, right/middle-drag pan and proportional zoom. The viewport now has
+> independent central-axis and outer-wall XYZ grid toggles. See
+> [current viewport behavior](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
 `OrbitCameraViewer3d` is the 3D view on the right of the window: an OpenCASCADE viewer placed
 inside a Qt widget.

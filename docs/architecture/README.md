@@ -20,7 +20,9 @@ Channels tab's Selected Channel group and kept through Apply, each channel's sta
 colour in the Channels list,
 the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm while the four
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
-`classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder not yet called by the GUI, and
+`classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
+`DicomData` at import by `load_structures`, and a read-only Import-tab structure list
+from `structure_list` (still no hide/show, opacity, or 3D display), and
 `settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
@@ -125,7 +127,8 @@ A view method that changes geometry must use `@display_action`, or the model upd
 
 Mostly course scaffolding. The changes to application behaviour are three Channels view fixes,
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
-A standalone RTSTRUCT reader decodes anatomy for future visualization.
+An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`, and the Import
+tab lists each structure.
 
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
@@ -136,11 +139,11 @@ edits and exact mm values across switches; config files and exports use mm.
 | This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
 | Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
 | macOS setup notes and Cylinder display units | Server or database |
-| `DicomData` reset tests and the standalone RTSTRUCT reader with tests in `tests/dicom/` | Structure rendering and GUI integration |
+| `DicomData` reset tests, RTSTRUCT decode at import, and the Import structure list with tests in `tests/dicom/` and `tests/views/` | Structure 3D rendering, hide/show and opacity |
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
-| Each channel's status, from `ChannelsModel.channel_status`, shown in colour in the Channels list. No diagram changes, because the status is computed from state the model already holds and nothing reaches the display path | |
 | A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, saved and applied on the Channels tab. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
+| Each channel's status, from `ChannelsModel.channel_status`, shown in colour in the Channels list. No diagram changes, because the status is computed from state the model already holds and nothing reaches the display path | |
 | A channel's own diameter, set in the Channels tab's Selected Channel group and kept by `ChannelsModel` through Apply. The tab scrolls when the window is short. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
@@ -169,8 +172,8 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The standalone RTSTRUCT reader is listed in the system architecture diagram; it is not
-yet connected to the GUI. The
+The RTSTRUCT reader and Import structure list are listed in the system architecture
+diagram; import attaches them via `load_structures`. The
 Channels list fix only changes widget state, and the Cylinder display-unit change keeps
 dimensions in mm, its widget conversion documented in prose, so neither changes a diagram.
 The Export tab fix adds one edge to the existing UML, `CylinderModel ..> MainWindow`, and

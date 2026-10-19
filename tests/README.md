@@ -38,9 +38,11 @@ tests/
 ├── README.md
 ├── conftest.py            geometry_app, the one QApplication, and default_settings, for mesh/ and pdf/
 ├── data/                  sample inputs, never beside a test file
-├── dicom/                 exists: DicomData reset and RTSTRUCT reader tests
+├── dicom/                 exists: DicomData reset, RTSTRUCT reader, import attach and list-row tests
 │   ├── conftest.py        fixtures used only by dicom tests
 │   ├── test_data.py
+│   ├── test_load_structures.py  exists: attach read_structures onto DicomData
+│   ├── test_structure_list.py   exists: Import-tab list rows from Structures
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
@@ -50,7 +52,7 @@ tests/
 ├── models/
 ├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
-├── settings/              exists: config loading and the needle template library
+├── settings/              exists: config file loading and the needle template library
 │   ├── test_needle_templates.py
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
@@ -58,18 +60,23 @@ tests/
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
-├── views/                 exists: the Channels, Cylinder and Tandem views, against the real window
+├── views/                 exists: the Channels, Cylinder, Tandem and Import views, against the real window
 │   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
+│   ├── test_camera_controls.py  camera gesture and zoom rules
+│   ├── test_central_axis.py     reference geometry and toggle/reset state
+│   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
 │   ├── test_cylinder_view.py
+│   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `dicom/test_data.py` and
-`dicom/test_structures.py` exist. The rest of the tree shows where tests will go.
+`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`, `dicom/test_data.py`,
+`dicom/test_structures.py`, `dicom/test_load_structures.py`, `dicom/test_structure_list.py`
+and `views/test_import_view.py` exist. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.
@@ -195,3 +202,17 @@ It checks nested viewer URLs and rejects missing, stale or unembedded nested dia
 also checks that a diagram checked out with CRLF line endings, as Git for Windows does, still
 matches a stamp written on macOS or Linux, and that the `npx` it renders with can be started,
 which on Windows means `npx.cmd`. That test is skipped where Node is not installed.
+
+## Viewport controls and references
+
+`views/test_camera_controls.py` has six cases for left-drag versus click, jitter, distant
+release, incremental right/middle panning and proportional reversible wheel/trackpad zoom.
+`views/test_central_axis.py` has eight cases for local-Z endpoints, invalid lengths, the
+real toggle's availability/preference and `DisplayModel.reset` emitting an empty scene.
+`views/test_bounding_grid.py` (PR #81) has nine cases for rounded bounds, invalid input,
+outer-wall lines, model-mm axis titles, real AIS label text/position, reset and independent
+nonoverlapping controls. The fixtures isolate user files before importing the viewport.
+
+These tests never initialise the native canvas. They cannot prove the grid is visually
+legible or the camera moves correctly; native Ex1/Ex2 checks supplement them, as recorded
+in [§5.7](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
