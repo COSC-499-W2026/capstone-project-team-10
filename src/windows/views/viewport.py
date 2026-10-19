@@ -1,12 +1,17 @@
-from math import isfinite
+from dataclasses import dataclass
+from math import ceil, floor, isfinite, log10
 
-from OCC.Core.AIS import AIS_Shape
+from OCC.Core.AIS import AIS_InteractiveObject, AIS_Shape, AIS_TextLabel
+from OCC.Core.Bnd import Bnd_Box
+from OCC.Core.BRep import BRep_Builder
+from OCC.Core.BRepBndLib import brepbndlib
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge
 from OCC.Core.gp import gp_Pnt
 from OCC.Core.Prs3d import Prs3d_LineAspect
 from OCC.Core.Aspect import Aspect_TOL_DASH
-from OCC.Core.Graphic3d import Graphic3d_NOM_TRANSPARENT
-from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB
+from OCC.Core.TopoDS import TopoDS_Compound
+from OCC.Core.Graphic3d import Graphic3d_NOM_TRANSPARENT, Graphic3d_HTA_CENTER
+from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_RGB, Quantity_TOC_sRGB
 from OCC.Core.TopoDS import TopoDS_Shape
 from OCC.Display import OCCViewer
 
@@ -14,6 +19,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from classes.app import get_app
 from classes.logger import log
+
 
 # Graphic3d_ZLayerId.hxx defines Topmost as -3; pythonocc does not export this enum.
 TOPMOST_Z_LAYER = -3
@@ -27,6 +33,77 @@ def central_axis_segment(length: float | None) -> tuple[
         return None
     margin = length * 0.1
     return ((0.0, 0.0, -margin), (0.0, 0.0, length + margin))
+
+
+GridPoint = tuple[float, float, float]
+GridBounds = tuple[float, float, float, float, float, float]
+GridLine = tuple[GridPoint, GridPoint]
+
+
+@dataclass(frozen=True)
+class GridLabel:
+    text: str
+    position: GridPoint
+
+
+@dataclass(frozen=True)
+class ReferenceGrid:
+    lower: GridPoint
+    upper: GridPoint
+    lines: tuple[GridLine, ...]
+    labels: tuple[GridLabel, ...]
+
+
+def grid_ticks(lower: float, upper: float) -> tuple[int, ...]:
+    """Enclose model bounds with readable 1/2/5-based steps of at least 10 mm."""
+    if not isfinite(lower) or not isfinite(upper) or upper < lower:
+        raise ValueError('Grid bounds must be finite and ordered')
+    target = max(10, (upper - lower) / 10)
+    decade = 10 ** floor(log10(target))
+    step = next(multiplier * decade for multiplier in (1, 2, 5, 10)
+                if multiplier * decade >= target)
+    start, stop = floor(lower / step) * step, ceil(upper / step) * step
+    if start == stop:
+        stop += step
+    return tuple(range(start, stop + step, step))
+
+
+def reference_grid(bounds: GridBounds) -> ReferenceGrid:
+    """Build an outer-wall lattice and model-coordinate labels."""
+    xs, ys, zs = (grid_ticks(bounds[i], bounds[i + 3]) for i in range(3))
+    x0, x1, y0, y1, z0, z1 = xs[0], xs[-1], ys[0], ys[-1], zs[0], zs[-1]
+    lines: set[GridLine] = set()
+    for x in xs:
+        lines.add(((x, y0, z0), (x, y1, z0)))
+        lines.add(((x, y1, z0), (x, y1, z1)))
+    for y in ys:
+        lines.add(((x0, y, z0), (x1, y, z0)))
+        lines.add(((x0, y, z0), (x0, y, z1)))
+    for z in zs:
+        lines.add(((x0, y0, z), (x0, y1, z)))
+        lines.add(((x0, y1, z), (x1, y1, z)))
+    xm, ym, zm = (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2
+    gap = max(x1 - x0, y1 - y0) * 0.12
+    labels = [GridLabel(str(x), (x, y0 - gap, z0)) for x in xs]
+    labels += [GridLabel(str(y), (x1 + gap, y, z0)) for y in ys]
+    labels += [GridLabel(str(z), (x0 - gap, y0, z)) for z in zs]
+    labels += [GridLabel('X (mm)', (xm, y0 - 5 * gap, z0)),
+               GridLabel('Y (mm)', (x1 + 5 * gap, ym, z0)),
+               GridLabel('Z (mm)', (x0 - 5 * gap, y0, zm))]
+    return ReferenceGrid((x0, y0, z0), (x1, y1, z1), tuple(sorted(lines)), tuple(labels))
+
+
+def grid_text_label(annotation: GridLabel) -> AIS_TextLabel:
+    """Create screen-readable native text at a model-coordinate anchor."""
+    label = AIS_TextLabel()
+    label.SetText(annotation.text)
+    label.SetFont("Arial")
+    label.SetHJustification(Graphic3d_HTA_CENTER)
+    label.SetPosition(gp_Pnt(*annotation.position))
+    label.SetColor(Quantity_Color(0.92, 0.94, 0.96, Quantity_TOC_RGB))
+    label.SetHeight(16 if 'mm' in annotation.text else 12)
+    label.SetZoomable(False)
+    return label
 
 
 def wheel_zoom_factor(angle_delta: int, pixel_delta: int) -> float:
@@ -103,11 +180,14 @@ class OrbitCameraViewer3d(qtBaseViewer):
         log.debug(f"updating viewport: {[shape.label for shape in shapes]}")
         # clear all the shapes
         self._display.Context.RemoveAll(True)
+        self._grid_presentations.clear()
         self._axis_presentation = None
+        bounds = Bnd_Box()
 
         loggedinfo = ""
         for shape in shapes:
-            if not shape.shape: continue
+            if not shape.shape or shape.shape.IsNull(): continue
+            brepbndlib.AddOptimal(shape.shape, bounds)
             if shape.selected:
                 loggedinfo += f"\n    {shape.label}: Type:{shape.type.name} Selected: {shape.selected} rgb: {shape.rgb} Transparent: {shape.transparent}"
             rgb = shape.material["rgb"]
@@ -118,11 +198,12 @@ class OrbitCameraViewer3d(qtBaseViewer):
             if transparent: self._display.DisplayShape(shape.shape, color=colour, material=Graphic3d_NOM_TRANSPARENT, update=False)
             else: self._display.DisplayShape(shape.shape, color=colour, update=False)
 
+        self._grid_definition = None if bounds.IsVoid() else reference_grid(bounds.Get())
+        self.set_grid_available(self._grid_definition is not None)
+        if resize:
+            self._display.View.ZFitAll()
+            self._display.View.FitAll(0.2, False)
         self._display.Repaint()
-        # set the grid model
-
-        # resize
-        if resize: self._display.FitAll()
         cylinder = get_app().window.cylindermodel.cylinder
         self.set_axis_length(cylinder.length if shapes and cylinder is not None else None)
         log.info(loggedinfo)
@@ -145,6 +226,24 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._current_cursor = "arrow"
         self._available_cursors = {}
         self._gesture: CameraGesture | None = None
+        self._grid_available = False
+        self._grid_definition: ReferenceGrid | None = None
+        self._grid_presentations: list[AIS_InteractiveObject] = []
+        self.grid_button = QtWidgets.QToolButton(self)
+        self.grid_button.setText("XYZ grid (mm)")
+        self.grid_button.setToolTip("Outer bounding-box grid; model XYZ coordinates in millimetres")
+        self.grid_button.setCheckable(True)
+        self.grid_button.setChecked(True)
+        self.grid_button.setEnabled(False)
+        self.grid_button.setStyleSheet(
+            "QToolButton { background: #30343b; color: white; padding: 7px 12px;"
+            " border: 1px solid #727982; border-radius: 5px; }"
+            "QToolButton:checked { background: #244e69; border-color: #7bc5ef; }"
+            "QToolButton:disabled { color: #999999; background: #3d3d3d; }"
+        )
+        self.grid_button.toggled.connect(self._refresh_grid)
+        self.grid_button.adjustSize()
+        self._position_grid_button()
         self._axis_length: float | None = None
         self._axis_presentation: AIS_Shape | None = None
         self.central_axis_button = QtWidgets.QToolButton(self)
@@ -170,14 +269,53 @@ class OrbitCameraViewer3d(qtBaseViewer):
     def _position_axis_button(self):
         """Keep the overlay control inset from the viewport's top-right corner."""
         self.central_axis_button.move(
-            max(8, self.width() - self.central_axis_button.width() - 12), 12
+            max(8, self.width() - self.central_axis_button.width() - 12),
+            self.grid_button.y() + self.grid_button.height() + 8
         )
         self.central_axis_button.raise_()
+
+    def _position_grid_button(self):
+        self.grid_button.move(max(8, self.width() - self.grid_button.width() - 12), 12)
+        self.grid_button.raise_()
 
     def resizeEvent(self, event):
         if self._inited:
             super().resizeEvent(event)
+        self._position_grid_button()
         self._position_axis_button()
+
+    def set_grid_available(self, available: bool):
+        """Hide the grid in empty scenes without losing the user's toggle choice."""
+        self._grid_available = available
+        self.grid_button.setEnabled(available)
+        self._refresh_grid()
+
+    def _refresh_grid(self):
+        """Draw subdued outer-wall lines and white millimetre labels."""
+        if not self._inited:
+            return
+        for presentation in self._grid_presentations:
+            self._display.Context.Remove(presentation, False)
+        self._grid_presentations.clear()
+        grid = self._grid_definition
+        if self._grid_available and self.grid_button.isChecked() and grid is not None:
+            builder = BRep_Builder()
+            lattice = TopoDS_Compound()
+            builder.MakeCompound(lattice)
+            for start, end in grid.lines:
+                builder.Add(lattice, BRepBuilderAPI_MakeEdge(gp_Pnt(*start), gp_Pnt(*end)).Edge())
+            wire = AIS_Shape(lattice)
+            wire.SetColor(Quantity_Color(0.16, 0.19, 0.23, Quantity_TOC_sRGB))
+            wire.SetWidth(1)
+            self._show_grid_presentation(wire)
+            for annotation in grid.labels:
+                self._show_grid_presentation(grid_text_label(annotation))
+        self._display.Repaint()
+
+    def _show_grid_presentation(self, presentation: AIS_InteractiveObject):
+        self._display.Context.Display(presentation, False)
+        self._display.Context.Deactivate(presentation)
+        self._grid_presentations.append(presentation)
 
     def set_axis_length(self, length: float | None):
         """Refresh the reference after a scene change without reframing the camera."""
@@ -220,6 +358,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._display.Create(window_handle=int(self.winId()), parent=self)
         # background gradient
         self._display.SetModeShaded()
+        background = Quantity_Color(12 / 255, 17 / 255, 23 / 255, Quantity_TOC_sRGB)
+        self._display.View.SetBgGradientColors(background, background)
         self._inited = True
 
     def keyPressEvent(self, event):
