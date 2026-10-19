@@ -2063,7 +2063,7 @@ python -m pytest
   `test_cylinder_view.py` in their own test PR. All four failed before the controls existed,
   and removing the notch line from `resetAllValues()` failed the config import test.
   *Not verified:* Windows.
-- *Verified* 2026-10-15 on macOS: 85 passed, with `tests/settings/test_needle_templates.py` added.
+- *Verified* 2026-10-15 on macOS: 156 passed, with `tests/settings/test_needle_templates.py` added.
   It failed to import before the module existed. Six deliberate breaks were each caught: no
   trimming, no duplicate check, no replace on save, a decode error returning an empty library,
   NaN accepted, and an `OSError` escaping a read. The architecture drift test went red until the
