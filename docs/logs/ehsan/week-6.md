@@ -238,7 +238,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Review and design
 
-- When I reviewed the **draft open-PR list (#63, #74, #82)**, I noticed **those three plus #83–#85 had since merged**. Therefore, I did **add them to the table and clear the still-open line**.
+- When I reviewed the **draft open-PR list (#63, #74, #82)**, I noticed **those three plus #83-#85 had since merged**. Therefore, I did **add them to the table and clear the still-open line**.
 - I did **compare the PR table to `gh pr list --state merged` and pin diagram links to `e559396`** to ensure that my feature contribution does not contain any of the following:
   - hardcoded values
   - duplicate code
