@@ -184,6 +184,7 @@ window.
 `views/test_cylinder_template_controls.py` checks the Cylinder tab's Templates group: *Save as
 Template* writes every setting from its own control, in mm, a blank or taken name or an unreadable
 library is explained in the status line, and the library's ranges match the tab's spin boxes.
+*Load* fills every control, the name and the note, in the displayed unit, without applying.
 Run alone, a small `tests/views` file can crash at exit after passing (§7.13 of the project docs).
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
