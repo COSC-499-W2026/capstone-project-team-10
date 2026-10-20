@@ -188,7 +188,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - I checked that these negative cases involving **the code before the scroll area (16 px), the scroll area without its size constraint (16 px), and the 280 px spacer put back (18 px sideways)** failed as expected.
 - Among these tests, **both** are integration tests and unit tests are not required because **the behaviour is the real window's layout**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (224 passed), `build.py --check` and `session-start.sh` (exit 0), and the running app on macOS (screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (224 passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and the running app on macOS (screenshot 1)**.
 
-  ![1, the Cylinder tab at 770 by 472 on main and on this branch](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/93b585714cf5a8ca8ecbad12e23f13eae45ea32e/docs/logs/ariq/screenshots/week-7/pr-97-1-cylinder-tab-before-after.png)
+  ![1, the Cylinder tab at 770 by 472 on main and on this branch, then the tests on this branch, 19 and 224 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5ccaea5d1fcb0aa452d105dde833e13cde16974d/docs/logs/ariq/screenshots/week-7/pr-97-1-cylinder-tab-before-after.png)
 - Not applicable: **abnormal cases (layout only), generated-test review (no problem found)**.
