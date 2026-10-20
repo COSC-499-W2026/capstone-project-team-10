@@ -313,12 +313,12 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_update_after_confirming_saves_the_tabs_name_note_and_settings`, `test_delete_after_confirming_removes_the_template` (242 passed)** passed.
+- The functionality works correctly because the happy path tests involving **`test_update_after_confirming_saves_the_tabs_name_note_and_settings`, `test_delete_after_confirming_removes_the_template` (18 and 242 passed, screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **an update to a taken name (`test_update_to_a_taken_name_says_why_and_changes_nothing`)** and they passed.
 - I checked that these negative cases involving **Cancel for both, nothing selected, and six deliberate breaks (Cancel ignored, no question, Yes the default, old note kept, buttons never enabled, deleted but still listed)** failed as expected.
 - When I reviewed the **`test_the_confirmation_dialog_offers_yes_and_cancel_with_cancel_the_default`**, I noticed **its title check fails on macOS, where Qt drops message box titles**. Therefore, I did **check the question text instead, which names the action and the template**.
 - Among these tests, **all six** are integration tests and unit tests are not required because **update and delete are unit tested in the library (#95)**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (242 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (242 passed, exit 0, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
-  ![1, the Delete confirmation in macOS dark mode, parented to the tab and with no parent](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6d46070913d0594d08b3084e7c98ccf97d0fb0ea/docs/logs/ariq/screenshots/week-7/pr-101-1-delete-dialog-dark-mode.png)
+  ![1, the Delete confirmation in macOS dark mode, parented to the tab and with no parent, then the tests on this branch, 18 and 242 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7a160ebc06b182d9a87392c8f7e40ef6ca9737bc/docs/logs/ariq/screenshots/week-7/pr-101-1-delete-dialog-dark-mode.png)
