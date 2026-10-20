@@ -67,6 +67,7 @@ tests/
 │   ├── test_central_axis.py     reference geometry and toggle/reset state
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
+│   ├── test_cylinder_template_controls.py
 │   ├── test_cylinder_view.py
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   └── test_tandem_view.py
@@ -179,6 +180,11 @@ default key is in the exported snapshot, and the collar is exported and loaded b
 controls are applied, grey out when *Add Notch* is unticked, follow the units, and are filled
 by a config import. The tab's spin boxes keep 20 px and nothing scrolls sideways in the default
 window.
+
+`views/test_cylinder_template_controls.py` checks the Cylinder tab's Templates group: *Save as
+Template* writes every setting from its own control, in mm, a blank or taken name or an unreadable
+library is explained in the status line, and the library's ranges match the tab's spin boxes.
+Run alone, a small `tests/views` file can crash at exit after passing (§7.13 of the project docs).
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.

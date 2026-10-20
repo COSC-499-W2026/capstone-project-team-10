@@ -22,6 +22,13 @@ Since 2026-10-19 the Cylinder tab scrolls up and down, as the Channels tab does:
 770 × 472 window its spin boxes had been squeezed to 16 px, with the bottoms of the values cut off.
 Nothing scrolls sideways. *Verified* by offscreen tests and in the running app (§7.12).
 
+Below *Apply Settings*, a Templates group saves the tab's settings under a name: a name field, a
+note field, the list of saved templates and *Save as Template*. Hovering a template shows its
+note, dates and a one-line summary. As with the needle templates, a refused save or an unreadable
+file is explained in a status line beside the controls, not a dialog. The group's colours match
+the tab's, and its buttons look like *Apply Settings*. *Verified* by offscreen tests and in the
+running app.
+
 *Reasoned from viewport code, PRs #78/#79/#81:* left-drag rotates, right/middle-drag pans,
 and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
 release. These are project bindings, not a universal medical-software standard.
