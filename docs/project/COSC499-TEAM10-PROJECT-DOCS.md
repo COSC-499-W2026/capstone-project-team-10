@@ -591,7 +591,7 @@ shows each channel's status in colour (§5.6). The Selected Channel group also s
 channel's diameter as a named needle template and applies one (§5.2, §6.3). On 2026-10-19
 `settings/cylinder_templates.py` began modelling a named cylinder template, the Cylinder tab's
 settings checked against its own limits, and saving them to `~/brachify/cylinder_templates.json`
-(§5.2, §6.3). The Cylinder tab does not use it yet.
+(§5.2, §6.3). The Cylinder tab's Templates group saves the tab's settings to it (§5.6).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -877,8 +877,8 @@ it could not read. The module imports nothing from
 clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
 
 **[`settings/cylinder_templates.py`](../../src/settings/cylinder_templates.py)** — cylinder
-template library, added 2026-10-19. Nothing in the app calls it yet: the Cylinder tab's
-controls are the next change. A `CylinderTemplate` is a frozen dataclass of
+template library, added 2026-10-19. The Cylinder tab's *Save as Template* calls `add_template`
+(§5.6). A `CylinderTemplate` is a frozen dataclass of
 `template_id`, `name`, `note`, `created`, `modified` and a `CylinderDesign`, which holds the
 Cylinder tab's 11 settings with lengths in mm and the notch angle in degrees: diameter, length,
 collar on or off, collar thickness and height, notch on or off, notch angle, width, depth and
@@ -1145,6 +1145,12 @@ not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 | `spinbox_notch_height` | Notch Height | 1–60 mm or 0.1–6 cm |
 | `combobox_tip` | Tip Shape | Dome or Flat, the `TipShape` values. Not affected by Units |
 | `btn_apply_settings` | Apply Settings | |
+| `group_templates` | Templates | below *Apply Settings* |
+| `le_template_name` | Template name (placeholder) | the name to save the tab's settings under |
+| `le_template_note` | Note (placeholder) | an optional note saved with them |
+| `list_templates` | | every saved cylinder template by name. Its tooltip gives the note, the created and modified dates, and a summary such as `30.00 mm by 160 mm, Dome` |
+| `btn_save_template` | Save as Template | writes `~/brachify/cylinder_templates.json` |
+| `label_template_status` | | which template was saved, or why a save or a read failed |
 
 The notch ranges are Team 10's choice, added 2026-10-15. No clinical document sets them.
 *Tip Shape* was added the same day, below the notch rows. `set_tip` fills it from the model or a
@@ -1168,6 +1174,15 @@ integration cases, watched failing before implementation. Ahab supplied a GUI sc
 showing 3.125, 17.3, 0.3 and 1.2 cm with Add Collar selected, and terminal output
 showing Ex1 import and a 13 mm height offset on Apply. The original image was not saved;
 Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cases.
+
+*Save as Template* (added 2026-10-19) reads the tab's 11 settings with `CylinderView.cylinder_design()`,
+lengths from the `LengthField` mm values so a value shown in cm is saved in mm, and saves them
+with a new random ID through `settings.cylinder_templates`. A blank or taken name, or a library
+that cannot be read, is explained in `label_template_status` rather than a dialog, as on the
+Channels tab, and the tab reads the library when it is built without ever stopping brachify
+starting. `RANGES` in that module is checked against these spin boxes' limits by a test. The
+group's one stylesheet colours its labels, fields and buttons. *Verified* by offscreen tests
+(§8.2) and in the running app on macOS.
 
 Since 2026-10-19 the Cylinder tab's controls sit in a scroll area, `scroll_cylinder`, which
 `CylinderView.__init__` builds in code around the generated UI, so the tab scrolls up and down
@@ -1446,7 +1461,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 | `app.log` | `logger.py` | rotating, 25 MB × 3 backups |
 | `filepaths.json` | `MainWindow.closeEvent` | `most_recently_opened_config_file`, `most_recently_saved_config_file` |
 | `needle_templates.json` | `settings.needle_templates.save_template`, from the Channels tab's *Save as Template* | a JSON list of `{"name", "diameter_mm"}` objects |
-| `cylinder_templates.json` | `settings.cylinder_templates.add_template`. Nothing in the app calls it yet (§5.2) | `{"version": 1, "templates": [...]}`, each template an `id`, `name`, `note`, ISO 8601 `created` and `modified`, and the 11 Cylinder tab settings in mm |
+| `cylinder_templates.json` | `settings.cylinder_templates.add_template`, from the Cylinder tab's *Save as Template* (§5.6) | `{"version": 1, "templates": [...]}`, each template an `id`, `name`, `note`, ISO 8601 `created` and `modified`, and the 11 Cylinder tab settings in mm |
 
 `most_recently_saved_config_file` is stored but never read — it is reserved for future use.
 
@@ -1913,6 +1928,17 @@ by `test_cylinder_spin_boxes_keep_their_height_in_the_default_window` and
 `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`. Found while adding the
 cylinder template controls, which would have squeezed the rows further. *Not verified:* Windows.
 
+### 7.13 Trap — a small `tests/views` run can crash after every test has passed
+
+*Verified 2026-10-19 on macOS.* Running only one or a few tests that build a window, such as
+`python -m pytest tests/views/test_cylinder_view.py -k test_a_new_window_starts_in_mm`, often
+ends with exit 138 or 139 (a bus error or segfault) after the line of dots, so pytest prints no
+summary. On `main` that one test exited 0, 138 and 138 in three runs. The crash is in the garbage
+collection pytest runs while it shuts down (`gc_collect_harder` in `pytest_unconfigure`), which
+destroys the left-over windows' Qt objects in an order Qt does not expect. The whole suite, and
+the whole of `tests/views`, exit 0 (three runs each on `main`). Not fixed. When you run a subset,
+read the dots and the exit code, or add `-p no:unraisableexception`, which skips that collection.
+
 ---
 
 ## 8. Testing
@@ -2006,6 +2032,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
 | `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
+| `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits (§5.6) |
 | `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
@@ -2189,6 +2216,14 @@ python -m pytest
   and again at 16 px with the scroll area but without the layout's size constraint. The
   sideways test failed with an 18 px sideways range when the spacer's 280 px width was put back.
   *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 231 passed, exit 0, with `tests/views/test_cylinder_template_controls.py`
+  added (six tests, seven cases). All failed with `AttributeError` before the controls existed.
+  Seven deliberate breaks were each caught: the displayed number saved, the collar fields
+  swapped, a save not listed, a refusal not shown, a read error escaping, the tooltip's length
+  wrong, and `RANGES` drifting from the `.ui`. The collar swap first survived, because the
+  default collar is 0 by 0, so a test sets all 11 values differently. Run alone, this file
+  crashed at exit after passing (§7.13). Saving two templates was also checked in the running
+  app. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
