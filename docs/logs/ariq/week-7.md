@@ -230,3 +230,46 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **all seven cases** are integration tests and unit tests are not required because **the library's rules are unit tested in `tests/settings/` (#93, #94)**.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (231 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0), and saving two templates in the running app on macOS**.
+
+### For PR #**100**
+
+- As part of requirement **FR-CN-05 and FR-CN-10, reuse a saved cylinder template without importing a plan**, the user needs to do **select a saved template on the Cylinder tab, press Load, check the values, then press Apply Settings**.
+- Therefore, I implemented/generated code so that **physicists load any saved cylinder template onto the Cylinder tab and review it before building it**.
+
+#### Frontend
+
+- The frontend uses **the `CylinderTemplate` tuple the tab already holds, indexed by the list's selected row** because **the list is filled from that tuple in the same order**. Benefits for using this pattern include **no second read of the file on Load**. Possible risks include **Load pressed with no row selected**.
+  - To mitigate **Load with no selection**, we implemented **`action_select_template`, which enables Load only while a row is selected**.
+- The frontend is designed using **PySide6, Qt Designer `.ui` files and the Templates group's one stylesheet** with design components for **the five tab views**. Therefore, changing the design of **the `group_templates` stylesheet** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the values come from the template, the look from the `.ui`**.
+- The frontend adopts accessibility principle **WCAG 2.1 SC 3.2.2 On Input, no change of context without warning**. The aspects that demonstrate this principle in the system include **Load building nothing until Apply Settings, with the status line saying so (screenshot 1)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-05 and FR-CN-10 (load a template): `test_load_fills_every_control_and_the_name_and_note_without_applying`, `test_load_then_apply_settings_builds_the_templates_cylinder`**
+- Not applicable: **restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated `set_cylinder_design`** for this functionality, I did not find any problems with it because **it writes lengths through `set_dimensions_mm` and the `LengthField`s, and `test_a_template_loaded_while_showing_cm_is_displayed_in_cm` passes**.
+- The PR does not contain any temporary workaround because **Load reuses the tab's own setters, the same ones a config import uses**.
+- The PR only contains small functions that are **3 to 10 lines (view) and 4 to 28 lines (tests); `CylinderView.__init__` grows from 49 to 51** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/cylinder_view.py` and `cylinder_view.ui`** because **Load is part of the Cylinder tab's Templates group**.
+- This work belongs in **Cylinder** in the DFD because **it reads the Cylinder tab's settings from the Plan and settings store**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_load_fills_every_control_and_the_name_and_note_without_applying`, `test_load_then_apply_settings_builds_the_templates_cylinder` (235 passed) and the running app (screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a template loaded while the tab shows cm** and they passed.
+- I checked that these negative cases involving **Load with nothing selected, and six deliberate breaks (collar tick, tip or note not loaded, mm shown as cm, Load applying, Load always enabled)** failed as expected.
+- Among these tests, **all four** are integration tests and unit tests are not required because **the template is decoded and checked by the tested library (#93, #94)**.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (235 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, the running app after Load, the 30 mm standard template back on the Cylinder tab](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d363c8080bc87597ebfc062561f7c47f3835ef5f/docs/logs/ariq/screenshots/week-7/pr-100-1-cylinder-tab-after-load.png)
+- Not applicable: **generated-test review (no problem found)**.
