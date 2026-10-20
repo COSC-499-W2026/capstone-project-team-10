@@ -227,10 +227,12 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_save_as_template_lists_the_template_and_writes_it`, `test_every_setting_on_the_tab_is_saved_in_its_own_field`, `test_a_value_typed_in_centimetres_is_saved_in_millimetres` (231 passed)** passed.
+- The functionality works correctly because the happy path tests involving **`test_save_as_template_lists_the_template_and_writes_it`, `test_every_setting_on_the_tab_is_saved_in_its_own_field`, `test_a_value_typed_in_centimetres_is_saved_in_millimetres` (7 and 231 passed, screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **an unreadable library (`test_an_unreadable_library_empties_the_list_and_names_the_file`)** and they passed.
 - I checked that these negative cases involving **a blank name, a name taken in another case, and seven deliberate breaks (displayed number saved, collar fields swapped, saved but not listed, refusal not shown, read error escaping, wrong tooltip length, `RANGES` drifting from the `.ui`)** failed as expected.
 - When I reviewed the **`test_save_as_template_lists_the_template_and_writes_it`**, I noticed **its default cylinder hid swapped collar fields (see Review and design)**. Therefore, I did **add the all-different test**.
 - Among these tests, **all seven cases** are integration tests and unit tests are not required because **the library's rules are unit tested in `tests/settings/` (#93, #94)**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (231 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0), and saving two templates in the running app on macOS**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (231 passed, exit 0, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and saving two templates in the running app on macOS (screenshot 1)**.
+
+  ![1, the running app after saving 30 mm standard then 180 mm flat, then the tests on this branch, 7 and 231 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9c36e450f417428df193e4d33f668b9b6764a0ae/docs/logs/ariq/screenshots/week-7/pr-98-1-save-template-and-tests.png)
