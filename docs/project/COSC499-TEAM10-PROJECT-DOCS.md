@@ -588,7 +588,9 @@ settings began to round-trip through config files, and *Generate Tandem* stopped
 settings (§7.1). `ChannelsModel` began keeping a channel's own
 diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is set in the Channels tab's Selected Channel group (§5.6). The Channels list
 shows each channel's status in colour (§5.6). The Selected Channel group also saves a
-channel's diameter as a named needle template and applies one (§5.2, §6.3).
+channel's diameter as a named needle template and applies one (§5.2, §6.3). On 2026-10-19
+`settings/cylinder_templates.py` began modelling a named cylinder template, the Cylinder tab's
+settings checked against its own limits (§5.2). Nothing saves or uses one yet.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -772,7 +774,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle template tests in settings/ (§8)
+├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle and cylinder template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -792,7 +794,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
-    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py
+    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py, cylinder_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
@@ -872,6 +874,22 @@ of the same name, writes the library to a `.tmp` file beside it and swaps that i
 it could not read. The module imports nothing from
 `classes` or `windows`, and the caller passes the path. Its error messages are written for
 clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
+
+**[`settings/cylinder_templates.py`](../../src/settings/cylinder_templates.py)** — cylinder
+templates, added 2026-10-19. Nothing in the app calls it yet: saving to a file and the Cylinder
+tab's controls are the next changes. A `CylinderTemplate` is a frozen dataclass of
+`template_id`, `name`, `note`, `created`, `modified` and a `CylinderDesign`, which holds the
+Cylinder tab's 11 settings with lengths in mm and the notch angle in degrees: diameter, length,
+collar on or off, collar thickness and height, notch on or off, notch angle, width, depth and
+height, and `flat_tip`. The Units choice is not stored. `make_template` trims the name and
+note, and refuses an empty name or ID, a timestamp with no time zone, a modified time before the
+created one, and any value outside the Cylinder tab's spin box range in mm (`RANGES`, copied
+from `cylinder_view.ui`, with 0.01 mm as the smallest diameter since that box allows 0), NaN and
+infinity included. The caller passes the ID and the times, so the module stays deterministic.
+It imports nothing from `classes` or `windows`, because `classes.mesh.cylinder` cannot be
+imported before the app exists (§7.6), so it stores the tip as `flat_tip` rather than as a
+`TipShape`. Its error messages are shown to clinicians, so they follow the UI copy rule.
+*Verified* by `tests/settings/test_cylinder_templates.py` (§8.2).
 
 ### 5.3 DICOM ingest
 
@@ -1950,6 +1968,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
+| `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
@@ -2115,6 +2134,11 @@ python -m pytest
   `test_needle_template_controls.py`. All four failed before the view was wired. Four deliberate breaks were
   each caught: a template listed but not written, applied to the wrong channel, and a save or a
   load error escaping. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 196 passed, with `tests/settings/test_cylinder_templates.py`
+  added (18 cases). It failed to import before the module existed. Six deliberate breaks were
+  each caught: no range check, a 0 mm diameter allowed, no trimming, and no ID, time zone or
+  modified-time check. The empty-ID test was added after its check, when this change was split
+  from the file library, so it was watched failing by removing the check. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
