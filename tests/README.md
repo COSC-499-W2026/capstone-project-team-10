@@ -68,6 +68,7 @@ tests/
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
 │   ├── test_cylinder_template_controls.py
+│   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   └── test_tandem_view.py
@@ -188,6 +189,9 @@ library is explained in the status line, and the library's ranges match the tab'
 *Update* and *Delete* change the file only after Yes, through `CylinderView.confirm`, and the
 confirmation dialog defaults to Cancel and has no parent.
 Run alone, a small `tests/views` file can crash at exit after passing (§7.13 of the project docs).
+
+`views/test_cylinder_template_exports.py` checks that a loaded and applied template reaches the
+reference sheet's cylinder table and the Export tab's mesh, and moves Ex1's needles with the tip.
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.

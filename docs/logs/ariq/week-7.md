@@ -322,3 +322,17 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`python -m pytest` (242 passed, exit 0, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
   ![1, the Delete confirmation in macOS dark mode, parented to the tab and with no parent, then the tests on this branch, 18 and 242 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/7a160ebc06b182d9a87392c8f7e40ef6ca9737bc/docs/logs/ariq/screenshots/week-7/pr-101-1-delete-dialog-dark-mode.png)
+
+### For test PR #**102** written to assess functionality in **#98, #100 and #101, saving, loading and applying cylinder templates on the Cylinder tab**
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_the_reference_sheet_table_shows_the_loaded_template`, `test_the_exported_mesh_is_the_loaded_templates_cylinder` (245 passed), and the Ex1 and Ex2 runs (screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a template longer than the imported plan's cylinder (`test_a_longer_template_moves_the_imported_needles_with_the_tip`)** and they passed.
+- I checked that these negative cases involving **five deliberate breaks (Load dropping the flat tip or the collar tick, swapping the collar sizes, turning the notch on, Apply no longer moving the needles)** failed as expected.
+- When I reviewed the **`test_the_exported_mesh_is_the_loaded_templates_cylinder`**, I noticed **its expected volume must not come from the code it checks**. Therefore, I did **work it by hand, π·15²·160 + π·(18²−15²)·10 mm³, with the notch off so no box needs subtracting**.
+- Among these tests, **all three** are integration tests and unit tests are not required because **the pieces they join are unit tested in `tests/settings/`, `tests/mesh/` and `tests/pdf/`**.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (3 and 245 passed, exit 0, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and both exported STLs measured: z 0 to 170 mm, flat top 15 mm in radius, notch on the collar 19.83 mm out (screenshot 1)**.
+
+  ![1, Ex1's Export tab and reference sheet after loading and applying the flat 170 mm collared template, then the tests on this branch, 3 and 245 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/08a2f0eb7fbb8abba317ac56f6c24acc5dcc7b74/docs/logs/ariq/screenshots/week-7/pr-102-1-ex1-export-and-sheet.png)
