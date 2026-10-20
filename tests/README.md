@@ -52,7 +52,7 @@ tests/
 ├── models/
 ├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
-├── settings/              exists: config file loading and the needle and cylinder template libraries
+├── settings/              exists: config file loading, the needle template library and cylinder templates
 │   ├── test_cylinder_templates.py
 │   ├── test_needle_templates.py
 │   └── test_load.py
@@ -134,8 +134,7 @@ mocked. The pure functions below still have no tests.
 
 `settings/test_needle_templates.py` tests the needle template library against files in `tmp_path`.
 It imports no Qt and no `classes` module. `settings/test_cylinder_templates.py` checks cylinder
-templates against every Cylinder tab range edge, and their library against files in `tmp_path`,
-with no Qt either.
+templates against every Cylinder tab range edge, with no Qt either.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows.
