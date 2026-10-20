@@ -1169,6 +1169,15 @@ showing 3.125, 17.3, 0.3 and 1.2 cm with Add Collar selected, and terminal outpu
 showing Ex1 import and a 13 mm height offset on Apply. The original image was not saved;
 Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cases.
 
+Since 2026-10-19 the Cylinder tab's controls sit in a scroll area, `scroll_cylinder`, which
+`CylinderView.__init__` builds in code around the generated UI, so the tab scrolls up and down
+rather than squeezing its rows. Its layout sets the content's minimum size, because the `.ui`'s
+290 px minimum would otherwise let the scroll area squeeze the rows, and the empty spacer under
+*Apply Settings* no longer asks for 280 px of width, which had made the content wider than the
+panel and added a sideways scroll bar. The `.ui` itself is not wrapped, which would have rewritten
+the whole file. *Verified* 2026-10-19 by two offscreen tests and in the running app on macOS at
+the default window: every spin box is 22 px and nothing scrolls sideways (§7.12).
+
 **Channels** (`channels_view.ui`)
 
 | Widget | Label | Range |
@@ -1894,6 +1903,16 @@ outline 10 mm larger than the cylinder, centred 1 mm below the dome's centre. A 
 flat tip until the Cylinder tab gains the control. The tandem fix is the next change in the
 same stack of pull requests.
 
+### 7.12 LOW — the Cylinder tab squeezed its spin boxes in the default window
+
+**Fixed 2026-10-19.** At brachify's default 770 × 472 window the Cylinder tab's 13 rows did not
+fit, so Qt squeezed every spin box to 15 or 16 px, below the 20 px the Channels tab's test sets
+as the least that shows a value, and cut the bottoms off the values and labels. *Verified*
+offscreen (16 px) and in the running app on macOS. The tab now scrolls instead (§5.6), guarded
+by `test_cylinder_spin_boxes_keep_their_height_in_the_default_window` and
+`test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`. Found while adding the
+cylinder template controls, which would have squeezed the rows further. *Not verified:* Windows.
+
 ---
 
 ## 8. Testing
@@ -1989,7 +2008,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
 | `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
-| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
+| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
@@ -2165,6 +2184,11 @@ python -m pytest
   the updated template moved to the end, its own name counted as taken, a rename onto another
   name allowed, a delete dropping the templates after it, and an unknown ID treated as the
   first. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 224 passed, with two Cylinder tab layout tests added to
+  `test_cylinder_view.py`. The height test failed at 16 px on the code before the scroll area,
+  and again at 16 px with the scroll area but without the layout's size constraint. The
+  sideways test failed with an 18 px sideways range when the spacer's 280 px width was put back.
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
