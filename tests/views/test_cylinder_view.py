@@ -339,3 +339,42 @@ def test_config_import_selects_the_tip(cylinder_window: MainWindow) -> None:
     config["CONFIG_CYLINDER_FLAT_TIP"] = 1
     resetAllValues(config)
     assert view.ui.combobox_tip.currentText() == "Flat"
+
+
+def test_cylinder_spin_boxes_keep_their_height_in_the_default_window(cylinder_window: MainWindow) -> None:
+    """Check that the Cylinder tab's eight spin boxes keep their full height in brachify's default window.
+
+    cylinder_window is 770 by 472, the size main_window.ui opens at, and the Cylinder tab is
+    opened through the real navigation signal. Fails if any spin box is shorter than 20 px, the
+    least that still shows its value, the same floor the Channels tab's test uses. Before this
+    test the tab's 13 rows did not fit and Qt squeezed every spin box to 15 or 16 px, so the
+    physicist could not read the diameter or length they were about to print.
+    """
+    from classes.app import get_app
+    from PySide6.QtWidgets import QDoubleSpinBox
+
+    get_app().signals.viewChanged.emit(1)
+    view = cylinder_window.navigationmodel.views[1]
+    cylinder_window.grab()
+
+    for spin_box in view.findChildren(QDoubleSpinBox):
+        spin_box.grab()
+        assert spin_box.height() >= 20, (spin_box.objectName(), spin_box.height())
+
+
+def test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window(cylinder_window: MainWindow) -> None:
+    """Check that the Cylinder tab's scroll area has no sideways range at 770 by 472.
+
+    The tab scrolls up and down so its rows keep their height. Fails if the controls are wider
+    than the panel, as they were when an empty spacer asked for 280 px: a sideways scroll bar
+    appeared and cut off the right edge, where Add Collar, Add Notch and the spin box arrows sit,
+    so the physicist could not see whether the collar or notch was on.
+    """
+    from classes.app import get_app
+    from PySide6.QtWidgets import QScrollArea
+
+    get_app().signals.viewChanged.emit(1)
+    scroll = cylinder_window.navigationmodel.views[1].findChild(QScrollArea, "scroll_cylinder")
+    cylinder_window.grab()
+
+    assert scroll.horizontalScrollBar().maximum() == 0

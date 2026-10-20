@@ -177,7 +177,8 @@ and widgets. It covers the mm/cm selector across all four dimensions, precision,
 configuration reset and Ex1 import with needle offsets, and the settings round trip: every
 default key is in the exported snapshot, and the collar is exported and loaded back. The notch
 controls are applied, grey out when *Add Notch* is unticked, follow the units, and are filled
-by a config import.
+by a config import. The tab's spin boxes keep 20 px and nothing scrolls sideways in the default
+window.
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.

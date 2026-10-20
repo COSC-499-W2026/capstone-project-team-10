@@ -152,3 +152,43 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, python -m pytest on feat/cylinder-template-edits, 44 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/56d6fe2094f1381b130b42e9e440a18c022421e0/docs/logs/ariq/screenshots/week-7/pr-95-1-pytest-44-passed.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**97**
+
+- As part of requirement **FR-CN-14, set the cylinder's settings on the cylinder form**, the user needs to do **open the Cylinder tab in brachify's default window and read and change every value**.
+- Therefore, I implemented/generated code so that **physicists see every Cylinder tab value at full height, scrolling down to reach the rest**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6, Qt Designer `.ui` files and a `QScrollArea`** with design components for **the five tab views**. Therefore, changing the design of **`scroll_cylinder`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the rows still come from the generated `Ui_Cylinder_View`, only placed inside the scroll area**.
+- The frontend adopts accessibility principle **WCAG 2.1 SC 1.4.10 Reflow, content readable without scrolling in two directions**. The aspects that demonstrate this principle in the system include **full-height values with vertical scrolling only (screenshot 1)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-14 (readable cylinder form): `test_cylinder_spin_boxes_keep_their_height_in_the_default_window`, `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`**
+- Not applicable: **data caching (no data changes), restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated scroll area** for this functionality, I noticed **in the running app it scrolled sideways and cut off the tick boxes, which the height test could not see**. Therefore, I did **zero the spacer's 280 px width and add `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`**.
+- The PR does not contain any temporary workaround because **the scroll area replaces the squeeze rather than shrinking fonts or widgets**.
+- The PR only contains small functions that are **19 and 16 lines (tests); `CylinderView.__init__` grows from 34 to 46 lines with the scroll area**.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/cylinder_view.py`** because **wrapping the `.ui` in a scroll area would have rewritten the whole file**.
+- This work belongs in **Cylinder** in the DFD because **it is the Cylinder tab's layout**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **both layout tests (224 passed) and the running app (screenshot 1)** passed.
+- I checked that these negative cases involving **the code before the scroll area (16 px), the scroll area without its size constraint (16 px), and the 280 px spacer put back (18 px sideways)** failed as expected.
+- Among these tests, **both** are integration tests and unit tests are not required because **the behaviour is the real window's layout**.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (224 passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and the running app on macOS (screenshot 1)**.
+
+  ![1, the Cylinder tab at 770 by 472 on main and on this branch, then the tests on this branch, 19 and 224 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5ccaea5d1fcb0aa452d105dde833e13cde16974d/docs/logs/ariq/screenshots/week-7/pr-97-1-cylinder-tab-before-after.png)
+- Not applicable: **abnormal cases (layout only), generated-test review (no problem found)**.

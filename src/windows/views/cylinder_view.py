@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import QFrame, QLayout, QScrollArea, QVBoxLayout, QWidget
 
 from classes.app import get_app
 from classes.logger import log
@@ -139,7 +139,19 @@ class CylinderView(CustomView):
     def __init__(self):
         super().__init__()
         self.ui = Ui_Cylinder_View()  # the converted python file from the ui file
-        self.ui.setupUi(self)
+        # the tab's rows do not fit brachify's default window, so they scroll rather than squeeze
+        content = QWidget()
+        self.ui.setupUi(content)
+        # the .ui's 290 px minimum would let the scroll area squeeze the rows, so the layout sets it
+        self.ui.verticalLayout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        scroll = QScrollArea(self)
+        scroll.setObjectName("scroll_cylinder")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(content)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
 
         self.diameter_field = LengthField(self.ui.spinbox_diameter)
         self.length_field = LengthField(self.ui.spinbox_length)
