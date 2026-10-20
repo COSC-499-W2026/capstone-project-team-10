@@ -273,3 +273,46 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, the running app after Load, the 30 mm standard template back on the Cylinder tab](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d363c8080bc87597ebfc062561f7c47f3835ef5f/docs/logs/ariq/screenshots/week-7/pr-100-1-cylinder-tab-after-load.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**101**
+
+- As part of requirement **FR-CN-06 and FR-CN-12, manage templates and confirm before replacing**, the user needs to do **select a saved template on the Cylinder tab, then rename or change it with Update, or remove it with Delete, confirming each**.
+- Therefore, I implemented/generated code so that **physicists update or delete a saved cylinder template from the Cylinder tab, and never by accident**.
+
+#### Frontend
+
+- The frontend uses **the tuple each library call returns, shown again after every Update or Delete** because **the file is the single source of templates**. Benefits for using this pattern include **the list always matches the file**. Possible risks include **changing the wrong template**.
+  - To mitigate **changing the wrong template**, we implemented **a question naming the template, with Cancel the default, tested by `test_cancelling_update_or_delete_changes_nothing`**.
+- The frontend is designed using **PySide6, Qt Designer `.ui` files and the Templates group's one stylesheet** with design components for **the five tab views**. Therefore, changing the design of **the `group_templates` stylesheet** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the names come from the templates, the look from the `.ui`**.
+- The frontend adopts accessibility principle **WCAG 2.1 SC 1.4.3 Contrast (Minimum), text readable against its background**. The aspects that demonstrate this principle in the system include **the confirmation dialog in system colours, readable in dark mode where the first version was not (screenshot 1)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-06 and FR-CN-12 (update, delete, confirm): `test_update_after_confirming_saves_the_tabs_name_note_and_settings`, `test_delete_after_confirming_removes_the_template`, `test_cancelling_update_or_delete_changes_nothing`**
+- Not applicable: **restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated confirmation dialog** for this functionality, I noticed **in the running app, in dark mode, its text and buttons were white on the tab's light background (screenshot 1)**. Therefore, I did **create it with no parent, and add a test that fails if it has one**.
+- The PR does not contain any temporary workaround because **the dialog follows the system's colours, as the app's other dialogs do, instead of overriding them**.
+- The PR only contains small functions that are **3 to 13 lines (view) and 3 to 27 lines (tests); `CylinderView.__init__` grows from 51 to 55** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/cylinder_view.py` and `cylinder_view.ui`** because **Update and Delete belong to the Cylinder tab's Templates group**.
+- This work belongs in **Cylinder** in the DFD because **it changes the Cylinder tab's templates in the Plan and settings store**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_update_after_confirming_saves_the_tabs_name_note_and_settings`, `test_delete_after_confirming_removes_the_template` (242 passed)** passed.
+- I wrote tests to cover abnormal situations involving **an update to a taken name (`test_update_to_a_taken_name_says_why_and_changes_nothing`)** and they passed.
+- I checked that these negative cases involving **Cancel for both, nothing selected, and six deliberate breaks (Cancel ignored, no question, Yes the default, old note kept, buttons never enabled, deleted but still listed)** failed as expected.
+- When I reviewed the **`test_the_confirmation_dialog_offers_yes_and_cancel_with_cancel_the_default`**, I noticed **its title check fails on macOS, where Qt drops message box titles**. Therefore, I did **check the question text instead, which names the action and the template**.
+- Among these tests, **all six** are integration tests and unit tests are not required because **update and delete are unit tested in the library (#95)**.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (242 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, the Delete confirmation in macOS dark mode, parented to the tab and with no parent](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6d46070913d0594d08b3084e7c98ccf97d0fb0ea/docs/logs/ariq/screenshots/week-7/pr-101-1-delete-dialog-dark-mode.png)
