@@ -306,7 +306,7 @@ class Ui_Cylinder_View(object):
 
         self.verticalLayout.addWidget(self.btn_apply_settings)
 
-        self.verticalSpacer = QSpacerItem(280, 270, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.verticalSpacer = QSpacerItem(0, 270, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
 

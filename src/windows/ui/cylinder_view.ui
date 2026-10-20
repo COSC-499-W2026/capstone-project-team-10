@@ -490,7 +490,7 @@ QPushButton:pressed {
      </property>
      <property name="sizeHint" stdset="0">
       <size>
-       <width>280</width>
+       <width>0</width>
        <height>270</height>
       </size>
      </property>
