@@ -349,6 +349,23 @@ class Ui_Cylinder_View(object):
 
         self.layout_templates.addLayout(self.layout_template_buttons)
 
+        self.layout_template_changes = QHBoxLayout()
+        self.layout_template_changes.setObjectName(u"layout_template_changes")
+        self.btn_update_template = QPushButton(self.group_templates)
+        self.btn_update_template.setObjectName(u"btn_update_template")
+        self.btn_update_template.setEnabled(False)
+
+        self.layout_template_changes.addWidget(self.btn_update_template)
+
+        self.btn_delete_template = QPushButton(self.group_templates)
+        self.btn_delete_template.setObjectName(u"btn_delete_template")
+        self.btn_delete_template.setEnabled(False)
+
+        self.layout_template_changes.addWidget(self.btn_delete_template)
+
+
+        self.layout_templates.addLayout(self.layout_template_changes)
+
         self.label_template_status = QLabel(self.group_templates)
         self.label_template_status.setObjectName(u"label_template_status")
         self.label_template_status.setWordWrap(True)
@@ -416,5 +433,7 @@ class Ui_Cylinder_View(object):
         self.le_template_note.setPlaceholderText(QCoreApplication.translate("Cylinder_View", u"Note", None))
         self.btn_save_template.setText(QCoreApplication.translate("Cylinder_View", u"Save as Template", None))
         self.btn_load_template.setText(QCoreApplication.translate("Cylinder_View", u"Load", None))
+        self.btn_update_template.setText(QCoreApplication.translate("Cylinder_View", u"Update", None))
+        self.btn_delete_template.setText(QCoreApplication.translate("Cylinder_View", u"Delete", None))
     # retranslateUi
 

@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from PySide6.QtWidgets import QFrame, QLayout, QListWidgetItem, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QLayout, QListWidgetItem, QMessageBox, QScrollArea, QVBoxLayout, QWidget
 
 from classes.app import get_app
 from classes.info import USER_PATH
@@ -15,8 +16,8 @@ from windows.views.custom_view import display_action, CustomView
 from windows.length_field import LengthField, LengthUnit
 
 from settings.cylinder_templates import (
-    LIBRARY_FILE_NAME, CylinderDesign, CylinderTemplate, CylinderTemplateError, add_template, load_templates,
-    make_template,
+    LIBRARY_FILE_NAME, CylinderDesign, CylinderTemplate, CylinderTemplateError, add_template, delete_template,
+    load_templates, make_template, update_template,
 )
 from settings.reset import getCurrentValues
 from OCC.Core.gp import gp_Dir, gp_Ax2, gp_Pnt
@@ -38,6 +39,21 @@ def template_summary(template: CylinderTemplate) -> str:
               f"Modified {template.modified.astimezone():%d %b %Y}",
               f"{design.diameter_mm:.2f} mm by {design.length_mm:g} mm, {tip.value}"]
     return "\n".join(lines)
+
+
+def template_change_dialog(title: str, question: str) -> QMessageBox:
+    """The dialog Update and Delete ask with. Cancel is the default, so pressing Return changes nothing.
+
+    It has no parent, like the app's other dialogs: parented to the tab it inherited the main
+    window's light stylesheet, and its dark-mode white text could not be read.
+    """
+    dialog = QMessageBox()
+    dialog.setIcon(QMessageBox.Icon.Question)
+    dialog.setWindowTitle(title)
+    dialog.setText(question)
+    dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+    dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+    return dialog
 
 
 class CylinderView(CustomView):
@@ -188,8 +204,37 @@ class CylinderView(CustomView):
         self.set_tip(TipShape.FLAT if design.flat_tip else TipShape.DOME)
 
     def action_select_template(self, row: int) -> None:
-        """Load needs a selected template."""
-        self.ui.btn_load_template.setEnabled(row >= 0)
+        """Load, Update and Delete need a selected template."""
+        for button in (self.ui.btn_load_template, self.ui.btn_update_template, self.ui.btn_delete_template):
+            button.setEnabled(row >= 0)
+
+    def ask(self, title: str, question: str) -> bool:
+        """Ask the physicist to confirm, with Cancel the default."""
+        return template_change_dialog(title, question).exec() == QMessageBox.StandardButton.Yes
+
+    def action_update_template(self) -> None:
+        """Once confirmed, write the tab's name, note and settings to the selected template."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        if not self.confirm("Update Template", f"Replace {template.name} with the settings on this tab?"):
+            return
+        try:
+            self.show_templates(update_template(self.templates_path, template.template_id, self.ui.le_template_name.text(),
+                                                self.ui.le_template_note.text(), self.cylinder_design(),
+                                                datetime.now(timezone.utc)))
+            self.ui.label_template_status.setText(f"Updated {self.ui.le_template_name.text().strip()}")
+        except CylinderTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
+    def action_delete_template(self) -> None:
+        """Once confirmed, remove the selected template."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        if not self.confirm("Delete Template", f"Delete the template {template.name}?"):
+            return
+        try:
+            self.show_templates(delete_template(self.templates_path, template.template_id))
+            self.ui.label_template_status.setText(f"Deleted {template.name}")
+        except CylinderTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
 
     def action_load_template(self) -> None:
         """Put the selected template on the tab. Apply Settings builds it."""
@@ -259,11 +304,15 @@ class CylinderView(CustomView):
         self.set_notch_settings(notch_settings_from_config(config))
         self.set_tip(tip_shape_from_config(config))
         self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
+        # Update and Delete ask through this, so a test can answer for the physicist
+        self.confirm: Callable[[str, str], bool] = self.ask
         self.action_load_templates()
 
         # signals and slots
         self.ui.btn_save_template.pressed.connect(self.action_save_template)
         self.ui.btn_load_template.pressed.connect(self.action_load_template)
+        self.ui.btn_update_template.pressed.connect(self.action_update_template)
+        self.ui.btn_delete_template.pressed.connect(self.action_delete_template)
         self.ui.list_templates.currentRowChanged.connect(self.action_select_template)
         self.ui.cb_add_notch.toggled.connect(self.action_enable_notch_fields)
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
