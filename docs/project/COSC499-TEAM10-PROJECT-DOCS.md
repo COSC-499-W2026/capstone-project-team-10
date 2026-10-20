@@ -1150,6 +1150,7 @@ not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 | `le_template_note` | Note (placeholder) | an optional note saved with them |
 | `list_templates` | | every saved cylinder template by name. Its tooltip gives the note, the created and modified dates, and a summary such as `30.00 mm by 160 mm, Dome` |
 | `btn_save_template` | Save as Template | writes `~/brachify/cylinder_templates.json` |
+| `btn_load_template` | Load | fills the tab from the selected template, without applying it. Disabled while no template is selected |
 | `label_template_status` | | which template was saved, or why a save or a read failed |
 
 The notch ranges are Team 10's choice, added 2026-10-15. No clinical document sets them.
@@ -1183,6 +1184,14 @@ Channels tab, and the tab reads the library when it is built without ever stoppi
 starting. `RANGES` in that module is checked against these spin boxes' limits by a test. The
 group's one stylesheet colours its labels, fields and buttons. *Verified* by offscreen tests
 (§8.2) and in the running app on macOS.
+
+*Load* (added 2026-10-19) puts the selected template's 11 settings on the tab through
+`CylinderView.set_cylinder_design()`, which writes mm through the `LengthField`s as
+`set_dimensions_mm` does, so a template loaded while the tab shows cm is shown in cm. It also
+fills the name and note fields, which is how a template is renamed with *Update*. It does not
+apply: the status line says to press *Apply Settings*, which builds the cylinder, so loading the
+wrong template never moves an imported plan's needles by itself. *Verified* by offscreen tests and
+in the running app on macOS.
 
 Since 2026-10-19 the Cylinder tab's controls sit in a scroll area, `scroll_cylinder`, which
 `CylinderView.__init__` builds in code around the generated UI, so the tab scrolls up and down
@@ -2032,7 +2041,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
 | `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
-| `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits (§5.6) |
+| `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder (§5.6) |
 | `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
@@ -2224,6 +2233,11 @@ python -m pytest
   default collar is 0 by 0, so a test sets all 11 values differently. Run alone, this file
   crashed at exit after passing (§7.13). Saving two templates was also checked in the running
   app. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 235 passed, exit 0, with four *Load* tests added to
+  `test_cylinder_template_controls.py` (11 cases). All four failed with `AttributeError` before
+  `btn_load_template` existed. Six deliberate breaks were each caught: the collar tick, the tip or
+  the note not loaded, mm written into the boxes as shown, *Load* also applying, and *Load* always
+  enabled. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
