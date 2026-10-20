@@ -23,7 +23,8 @@ controls display either unit, and an Export tab that stays disabled until a cyli
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
 `DicomData` at import by `load_structures`, and a read-only Import-tab structure list
 from `structure_list` (still no hide/show, opacity, or 3D display), and
-`settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from.
+`settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from,
+and `settings/cylinder_templates.py`, a tested cylinder template library saved to `~/brachify/cylinder_templates.json`.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -83,7 +84,7 @@ libraries and disk. Two arrows point back up: outputs leave through the Export v
 | Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel` and `ShapeModel` | `src/classes/app.py`, `src/windows/models/` |
 | Domain services | DICOM readers, OpenCASCADE geometry, PDF sheet, config load and reset | `src/classes/dicom/`, `mesh/`, `pdf/`, `src/settings/` |
 | Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib | conda environment |
-| Local storage | `app.log`, `filepaths.json` and `needle_templates.json` in `~/brachify` | `src/classes/info.py`, `src/settings/needle_templates.py` |
+| Local storage | `app.log`, `filepaths.json`, `needle_templates.json` and `cylinder_templates.json` in `~/brachify` | `src/classes/info.py`, `src/settings/needle_templates.py`, `src/settings/cylinder_templates.py` |
 
 It is a single process desktop app. There is no server, database or network call. Views reach
 other views by index and reach the models through `get_app().window`, so the layering above is the
@@ -143,6 +144,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
 | A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, saved and applied on the Channels tab. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
+| A cylinder template library in `settings/cylinder_templates.py`, saved to `~/brachify/cylinder_templates.json`. The system architecture names the module and the file. The other three diagrams are unchanged, because it is local state, like `needle_templates.json`, inside the DFD level 1 Plan and settings store | |
 | Each channel's status, from `ChannelsModel.channel_status`, shown in colour in the Channels list. No diagram changes, because the status is computed from state the model already holds and nothing reaches the display path | |
 | A channel's own diameter, set in the Channels tab's Selected Channel group and kept by `ChannelsModel` through Apply. The tab scrolls when the window is short. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
