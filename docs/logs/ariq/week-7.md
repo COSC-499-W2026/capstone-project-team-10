@@ -188,3 +188,45 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![1, the Cylinder tab at 770 by 472 on main and on this branch](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/93b585714cf5a8ca8ecbad12e23f13eae45ea32e/docs/logs/ariq/screenshots/week-7/pr-97-1-cylinder-tab-before-after.png)
 - Not applicable: **abnormal cases (layout only), generated-test review (no problem found)**.
+
+### For PR #**98**
+
+- As part of requirement **FR-CN-05, save cylinder designs as templates in a library**, the user needs to do **set up a cylinder on the Cylinder tab, type a name and an optional note, and press Save as Template**.
+- Therefore, I implemented/generated code so that **physicists save the Cylinder tab's settings as a named template and see every saved template listed on the tab**.
+
+#### Frontend
+
+- The frontend uses **an in-memory tuple of `CylinderTemplate` values, reread from the library on start and replaced by the library each save returns** because **the file is the single source and the list must never show a template the file lacks**. Benefits for using this pattern include **the list cannot drift from the file**. Possible risks include **a file another copy of brachify changed since start**.
+  - To mitigate **a stale list after a save**, we implemented **listing the tuple `add_template` returns after writing, not the old list plus one**.
+- The frontend is designed using **PySide6, Qt Designer `.ui` files and one group stylesheet** with design components for **the five tab views**. Therefore, changing the design of **the `group_templates` stylesheet** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the names and status text come from the view, the look from the `.ui`**.
+- The frontend adopts accessibility principle **WCAG 2.1 SC 3.3.1 Error Identification, input errors described in text**. The aspects that demonstrate this principle in the system include **the status line naming why a save was refused, such as `A cylinder template needs a name`**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-05 (save from the tab): `tests/views/test_cylinder_template_controls.py`, seven cases**
+- Not applicable: **restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated save test** for this functionality, I noticed **it saved the default cylinder, whose collar thickness and height are both 0, so saving one from the other's box went unnoticed**. Therefore, I did **add `test_every_setting_on_the_tab_is_saved_in_its_own_field`, with all 11 values different**.
+- When I reviewed the **generated test run** for this functionality, I noticed **this file alone crashed at exit (138) after passing; one existing Cylinder test alone does the same on `main`**. Therefore, I did **record it as §7.13 and confirm the whole suite exits 0**.
+- The PR does not contain any temporary workaround because **the controls call the tested library, and the §7.13 crash is recorded, not hidden**.
+- The PR only contains small functions that are **7 to 15 lines (view) and 5 to 28 lines (tests); `CylinderView.__init__` grows from 46 to 49** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/windows/views/cylinder_view.py` and `cylinder_view.ui`** because **the group is part of the Cylinder tab**.
+- This work belongs in **Cylinder** in the DFD because **it saves the Cylinder tab's settings to the Plan and settings store**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_save_as_template_lists_the_template_and_writes_it`, `test_every_setting_on_the_tab_is_saved_in_its_own_field`, `test_a_value_typed_in_centimetres_is_saved_in_millimetres` (231 passed)** passed.
+- I wrote tests to cover abnormal situations involving **an unreadable library (`test_an_unreadable_library_empties_the_list_and_names_the_file`)** and they passed.
+- I checked that these negative cases involving **a blank name, a name taken in another case, and seven deliberate breaks (displayed number saved, collar fields swapped, saved but not listed, refusal not shown, read error escaping, wrong tooltip length, `RANGES` drifting from the `.ui`)** failed as expected.
+- When I reviewed the **`test_save_as_template_lists_the_template_and_writes_it`**, I noticed **its default cylinder hid swapped collar fields (see Review and design)**. Therefore, I did **add the all-different test**.
+- Among these tests, **all seven cases** are integration tests and unit tests are not required because **the library's rules are unit tested in `tests/settings/` (#93, #94)**.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (231 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0), and saving two templates in the running app on macOS**.
