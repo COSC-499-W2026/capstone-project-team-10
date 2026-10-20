@@ -44,13 +44,15 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_a_value_on_the_edge_of_its_range_is_accepted`, `test_spaces_around_the_name_and_note_are_trimmed` (18 passed)** passed.
+- The functionality works correctly because the happy path tests involving **`test_a_value_on_the_edge_of_its_range_is_accepted`, `test_spaces_around_the_name_and_note_are_trimmed` (18 passed, screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **NaN and infinity (`test_a_value_outside_the_cylinder_tabs_range_is_rejected`), a naive or backwards date** and they passed.
 - I checked that these negative cases involving **six deliberate breaks (no range check, 0 mm diameter, no trim, no ID, time zone or modified check) each failed a test** failed as expected.
 - When I reviewed the **`test_a_template_without_an_id_is_rejected`**, I noticed **it was added after its check when this PR was split from #87, so it was never red**. Therefore, I did **remove the check and watch it fail**.
 - Among these tests, **all 18** are unit tests and integration tests are not required because **the module imports nothing from the app**.
 - These tests are included in the directory **`tests/settings/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (196 passed), `build.py --check` and `session-start.sh` (exit 0)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (196 passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/cylinder-template-values, 18 passed in test_cylinder_templates.py and 196 passed in the whole suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/973b7717407d6dd4ca383b1424509e774b91ba12/docs/logs/ariq/screenshots/week-7/pr-93-1-pytest-196-passed.png)
 
 ### For PR #**94**
 
@@ -95,13 +97,15 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_a_saved_template_loads_back_with_identical_values`, `test_no_library_file_means_no_templates_yet` (37 passed)** passed.
+- The functionality works correctly because the happy path tests involving **`test_a_saved_template_loads_back_with_identical_values`, `test_no_library_file_means_no_templates_yet` (37 passed, screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **a corrupt, malformed, unreadable or unwritable library, 10 to the 400, and a failed `os.replace`** and they passed.
 - I checked that these negative cases involving **eight deliberate breaks (case-sensitive names, `true` as a number, 1 as a flag, writing in place, `OverflowError` escaping, a shared ID, any version, a missing file refused) each failed a test** failed as expected.
 - When I reviewed the **`test_a_library_with_a_malformed_entry_is_rejected`**, I noticed **the `true` case passed for the wrong reason (see Review and design)**. Therefore, I did **move it to the collar thickness**.
 - Among these tests, **all 37** are unit tests and integration tests are not required because **the module reads and writes only the path it is given**.
 - These tests are included in the directory **`tests/settings/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (215 passed), `build.py --check` and `session-start.sh` (exit 0)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (215 passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/cylinder-template-library, 37 passed in test_cylinder_templates.py and 215 passed in the whole suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3eb3e0aee41101555ded9b9ff287fdd8ac61fa9c/docs/logs/ariq/screenshots/week-7/pr-94-1-pytest-215-passed.png)
 
 ### For PR #**95**
 
@@ -184,9 +188,9 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - I checked that these negative cases involving **the code before the scroll area (16 px), the scroll area without its size constraint (16 px), and the 280 px spacer put back (18 px sideways)** failed as expected.
 - Among these tests, **both** are integration tests and unit tests are not required because **the behaviour is the real window's layout**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (224 passed), `build.py --check` and `session-start.sh` (exit 0), and the running app on macOS (screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (224 passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and the running app on macOS (screenshot 1)**.
 
-  ![1, the Cylinder tab at 770 by 472 on main and on this branch](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/93b585714cf5a8ca8ecbad12e23f13eae45ea32e/docs/logs/ariq/screenshots/week-7/pr-97-1-cylinder-tab-before-after.png)
+  ![1, the Cylinder tab at 770 by 472 on main and on this branch, then the tests on this branch, 19 and 224 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5ccaea5d1fcb0aa452d105dde833e13cde16974d/docs/logs/ariq/screenshots/week-7/pr-97-1-cylinder-tab-before-after.png)
 - Not applicable: **abnormal cases (layout only), generated-test review (no problem found)**.
 
 ### For PR #**98**
@@ -223,13 +227,15 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_save_as_template_lists_the_template_and_writes_it`, `test_every_setting_on_the_tab_is_saved_in_its_own_field`, `test_a_value_typed_in_centimetres_is_saved_in_millimetres` (231 passed)** passed.
+- The functionality works correctly because the happy path tests involving **`test_save_as_template_lists_the_template_and_writes_it`, `test_every_setting_on_the_tab_is_saved_in_its_own_field`, `test_a_value_typed_in_centimetres_is_saved_in_millimetres` (7 and 231 passed, screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **an unreadable library (`test_an_unreadable_library_empties_the_list_and_names_the_file`)** and they passed.
 - I checked that these negative cases involving **a blank name, a name taken in another case, and seven deliberate breaks (displayed number saved, collar fields swapped, saved but not listed, refusal not shown, read error escaping, wrong tooltip length, `RANGES` drifting from the `.ui`)** failed as expected.
 - When I reviewed the **`test_save_as_template_lists_the_template_and_writes_it`**, I noticed **its default cylinder hid swapped collar fields (see Review and design)**. Therefore, I did **add the all-different test**.
 - Among these tests, **all seven cases** are integration tests and unit tests are not required because **the library's rules are unit tested in `tests/settings/` (#93, #94)**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (231 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0), and saving two templates in the running app on macOS**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (231 passed, exit 0, screenshot 1), `build.py --check` and `session-start.sh` (exit 0), and saving two templates in the running app on macOS (screenshot 1)**.
+
+  ![1, the running app after saving 30 mm standard then 180 mm flat, then the tests on this branch, 7 and 231 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9c36e450f417428df193e4d33f668b9b6764a0ae/docs/logs/ariq/screenshots/week-7/pr-98-1-save-template-and-tests.png)
 
 ### For PR #**100**
 
@@ -269,9 +275,9 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - I checked that these negative cases involving **Load with nothing selected, and six deliberate breaks (collar tick, tip or note not loaded, mm shown as cm, Load applying, Load always enabled)** failed as expected.
 - Among these tests, **all four** are integration tests and unit tests are not required because **the template is decoded and checked by the tested library (#93, #94)**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (235 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (235 passed, exit 0, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
-  ![1, the running app after Load, the 30 mm standard template back on the Cylinder tab](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d363c8080bc87597ebfc062561f7c47f3835ef5f/docs/logs/ariq/screenshots/week-7/pr-100-1-cylinder-tab-after-load.png)
+  ![1, the running app before and after Load of 30 mm standard, then the tests on this branch, 11 and 235 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d4653b7159a85e0abb0b078e6d5bac8da0c73138/docs/logs/ariq/screenshots/week-7/pr-100-1-cylinder-tab-after-load.png)
 - Not applicable: **generated-test review (no problem found)**.
 
 ### For PR #**101**
