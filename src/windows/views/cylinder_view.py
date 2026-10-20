@@ -174,6 +174,30 @@ class CylinderView(CustomView):
             row = QListWidgetItem(template.name)
             row.setToolTip(template_summary(template))
             self.ui.list_templates.addItem(row)
+        self.action_select_template(self.ui.list_templates.currentRow())
+
+    def set_cylinder_design(self, design: CylinderDesign) -> None:
+        """Show a design in the controls without applying it, lengths given in mm."""
+        self.set_dimensions_mm(design.diameter_mm, design.length_mm)
+        self.ui.cb_add_base.setChecked(design.collar_enabled)
+        self.base_thickness_field.set_millimetres(design.collar_thickness_mm)
+        self.base_height_field.set_millimetres(design.collar_height_mm)
+        self.set_notch_settings(NotchSettings(
+            enabled=design.notch_enabled, angle=design.notch_angle_deg, width=design.notch_width_mm,
+            depth=design.notch_depth_mm, height=design.notch_height_mm))
+        self.set_tip(TipShape.FLAT if design.flat_tip else TipShape.DOME)
+
+    def action_select_template(self, row: int) -> None:
+        """Load needs a selected template."""
+        self.ui.btn_load_template.setEnabled(row >= 0)
+
+    def action_load_template(self) -> None:
+        """Put the selected template on the tab. Apply Settings builds it."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        self.set_cylinder_design(template.design)
+        self.ui.le_template_name.setText(template.name)
+        self.ui.le_template_note.setText(template.note)
+        self.ui.label_template_status.setText(f"Loaded {template.name}. Press Apply Settings to build it.")
 
     def action_save_template(self) -> None:
         """Save the tab's settings under the typed name and note, or say in the status line why not."""
@@ -239,6 +263,8 @@ class CylinderView(CustomView):
 
         # signals and slots
         self.ui.btn_save_template.pressed.connect(self.action_save_template)
+        self.ui.btn_load_template.pressed.connect(self.action_load_template)
+        self.ui.list_templates.currentRowChanged.connect(self.action_select_template)
         self.ui.cb_add_notch.toggled.connect(self.action_enable_notch_fields)
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
         self.ui.combobox_units.currentTextChanged.connect(self.action_change_units)
