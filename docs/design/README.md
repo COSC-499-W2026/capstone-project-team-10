@@ -18,6 +18,9 @@ Apply, DICOM import and config files retain mm internally. The choice is not sav
 provided in chat and was not saved as a repository artifact.
 See [source of truth §5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 for the controls and precision.
+Since 2026-10-19 the Cylinder tab scrolls up and down, as the Channels tab does: at the default
+770 × 472 window its spin boxes had been squeezed to 16 px, with the bottoms of the values cut off.
+Nothing scrolls sideways. *Verified* by offscreen tests and in the running app (§7.12).
 
 *Reasoned from viewport code, PRs #78/#79/#81:* left-drag rotates, right/middle-drag pans,
 and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
