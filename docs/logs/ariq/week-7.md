@@ -102,3 +102,49 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **all 37** are unit tests and integration tests are not required because **the module reads and writes only the path it is given**.
 - These tests are included in the directory **`tests/settings/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (215 passed), `build.py --check` and `session-start.sh` (exit 0)**.
+
+### For PR #**95**
+
+- As part of requirement **FR-CN-06, manage templates**, the user needs to do **rename a saved cylinder template, change its settings or note, or delete it**.
+- Therefore, I implemented/generated code so that **physicists can update or delete one saved cylinder template without touching the others**.
+
+#### Data Modeling and Integrity
+
+- This data **an updated template** uses the input validation to ensure it adheres to **#93's range checks, a name no other template uses in any case, and a known ID**.
+- Not applicable: **data model (unchanged, #93), security sanitization (the file is read and written as in #94), privacy sanitization (no patient data), encryption, access controls (no stored secrets, no user roles)**.
+
+#### Backend
+
+- The system uses **the same read, change, then safe write as `add_template`** because **all three must refuse a file they could not read**. Benefits for using this pattern include **one save path (`write_templates`) for every change**. Possible risks include **an update moving the template in the list the physicist knows**.
+  - To mitigate **a moved template**, we implemented **a replace at the same index, tested by `test_updating_a_template_keeps_its_id_created_date_and_place`**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-06 (update and delete): `tests/settings/test_cylinder_templates.py`, seven cases**
+- Not applicable: **architecture diagram (unchanged, the module is already named), database (the JSON file of #94), data processing, state management (no app state changed), Level 0 DFD, Level 1 DFD (nothing calls the module yet), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated `add_template` name check** for this functionality, I noticed **update needed the same check but must let a template keep its own name**. Therefore, I did **move it into `name_taken(templates, name, template_id)`, which skips the template's own ID, and use it in both**.
+- The PR does not contain any temporary workaround because **update and delete reuse the tested load and save**.
+- The PR only contains small functions that are **3 to 11 lines (module) and 5 to 17 lines (tests)** long.
+- I did **`anti_slop review --base main` (no findings) and a read of the diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`src/settings/cylinder_templates.py`** because **every change to the library file lives beside its reader**.
+- This work belongs in **Cylinder** in the DFD because **the library stores the Cylinder tab's settings**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_updating_a_template_keeps_its_id_created_date_and_place`, `test_deleting_removes_only_that_template` (44 passed, screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **an unknown ID and a corrupt library, for both update and delete** and they passed.
+- I checked that these negative cases involving **six deliberate breaks (created date replaced, template moved, own name taken, rename onto another name, delete dropping the rest, unknown ID read as the first) each failed a test** failed as expected.
+- Among these tests, **all 44** are unit tests and integration tests are not required because **the module reads and writes only the path it is given**.
+- These tests are included in the directory **`tests/settings/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (222 passed), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/cylinder-template-edits, 44 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/56d6fe2094f1381b130b42e9e440a18c022421e0/docs/logs/ariq/screenshots/week-7/pr-95-1-pytest-44-passed.png)
+- Not applicable: **generated-test review (no problem found)**.
