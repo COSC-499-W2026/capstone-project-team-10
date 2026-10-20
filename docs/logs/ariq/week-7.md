@@ -97,10 +97,12 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_a_saved_template_loads_back_with_identical_values`, `test_no_library_file_means_no_templates_yet` (37 passed)** passed.
+- The functionality works correctly because the happy path tests involving **`test_a_saved_template_loads_back_with_identical_values`, `test_no_library_file_means_no_templates_yet` (37 passed, screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **a corrupt, malformed, unreadable or unwritable library, 10 to the 400, and a failed `os.replace`** and they passed.
 - I checked that these negative cases involving **eight deliberate breaks (case-sensitive names, `true` as a number, 1 as a flag, writing in place, `OverflowError` escaping, a shared ID, any version, a missing file refused) each failed a test** failed as expected.
 - When I reviewed the **`test_a_library_with_a_malformed_entry_is_rejected`**, I noticed **the `true` case passed for the wrong reason (see Review and design)**. Therefore, I did **move it to the collar thickness**.
 - Among these tests, **all 37** are unit tests and integration tests are not required because **the module reads and writes only the path it is given**.
 - These tests are included in the directory **`tests/settings/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (215 passed), `build.py --check` and `session-start.sh` (exit 0)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (215 passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/cylinder-template-library, 37 passed in test_cylinder_templates.py and 215 passed in the whole suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3eb3e0aee41101555ded9b9ff287fdd8ac61fa9c/docs/logs/ariq/screenshots/week-7/pr-94-1-pytest-215-passed.png)
