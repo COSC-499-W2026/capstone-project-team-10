@@ -188,3 +188,105 @@ def test_the_template_ranges_match_the_cylinder_tabs_spin_boxes(cylinder_tab: Cy
     assert (RANGES["notch_angle_deg"].minimum, RANGES["notch_angle_deg"].maximum) == (angle.minimum(), angle.maximum())
     assert (view.diameter_field.minimum_mm, view.diameter_field.maximum_mm) == (0.0, RANGES["diameter_mm"].maximum)
     assert RANGES["diameter_mm"].minimum == 0.01
+
+
+FLAT_COLLAR_VALUES = (31.25, 173.0, True, 3.0, 12.0, False, 90.0, 3.5, 2.5, 15.0, True)
+
+
+def saved_flat_collar(view: CylinderView) -> None:
+    """Write a "Flat collar" template straight to the library and reread it, as a helper and not a test.
+
+    Its 11 values all differ from the tab's defaults, so a setting Load skips stays visible.
+    """
+    from datetime import datetime, timezone
+
+    from settings.cylinder_templates import CylinderDesign, add_template, make_template
+
+    saved_at = datetime(2026, 10, 19, 17, 5, tzinfo=timezone.utc)
+    design = CylinderDesign(*FLAT_COLLAR_VALUES)
+    add_template(library_path(), make_template("a1", "Flat collar", "Long cases", design, saved_at, saved_at))
+    view.action_load_templates()
+
+
+def load_first_template(view: CylinderView) -> None:
+    """Select the first saved template and press Load, as a helper and not a test."""
+    view.ui.list_templates.setCurrentRow(0)
+    click(view.ui.btn_load_template)
+
+
+def test_load_fills_every_control_and_the_name_and_note_without_applying(
+    cylinder_window: MainWindow, cylinder_tab: CylinderView,
+) -> None:
+    """Check that Load puts the template's 11 settings, name and note on the tab, and builds nothing.
+
+    Fails if any control keeps its old value, the name or note box is not filled, the status
+    line does not say to press Apply Settings, or a cylinder is built or the live settings
+    change. Load only fills the tab: Apply Settings builds the cylinder, so loading the wrong
+    template never moves an imported plan's needles by itself.
+    """
+    from classes.app import get_app
+
+    view = cylinder_tab
+    live_settings = dict(get_app().values.config_values)
+    saved_flat_collar(view)
+
+    load_first_template(view)
+
+    shown = (view.diameter_field.millimetres, view.length_field.millimetres, view.ui.cb_add_base.isChecked(),
+             view.base_thickness_field.millimetres, view.base_height_field.millimetres,
+             view.ui.cb_add_notch.isChecked(), view.ui.spinbox_notch_angle.value(),
+             view.notch_width_field.millimetres, view.notch_depth_field.millimetres,
+             view.notch_height_field.millimetres, view.ui.combobox_tip.currentText() == "Flat")
+    assert shown == FLAT_COLLAR_VALUES
+    assert (view.ui.le_template_name.text(), view.ui.le_template_note.text()) == ("Flat collar", "Long cases")
+    assert view.ui.label_template_status.text() == "Loaded Flat collar. Press Apply Settings to build it."
+    assert cylinder_window.cylindermodel.cylinder is None
+    assert get_app().values.config_values == live_settings
+
+
+def test_load_then_apply_settings_builds_the_templates_cylinder(
+    cylinder_window: MainWindow, cylinder_tab: CylinderView,
+) -> None:
+    """Check that Load followed by Apply Settings builds the template's cylinder.
+
+    Fails if the built cylinder's diameter, length, collar, notch or tip is not the template's.
+    That is the point of a template: the device printed matches the design saved.
+    """
+    from classes.mesh.cylinder import TipShape
+    from classes.mesh.notch import NotchSettings
+
+    saved_flat_collar(cylinder_tab)
+    load_first_template(cylinder_tab)
+
+    click(cylinder_tab.ui.btn_apply_settings)
+
+    cylinder = cylinder_window.cylindermodel.cylinder
+    assert (cylinder.diameter, cylinder.length, cylinder.expand_base, cylinder.tip) == (31.25, 173.0, True, TipShape.FLAT)
+    assert cylinder.notch_settings == NotchSettings(enabled=False, angle=90.0, width=3.5, depth=2.5, height=15.0)
+
+
+def test_a_template_loaded_while_showing_cm_is_displayed_in_cm(cylinder_tab: CylinderView) -> None:
+    """Check that loading the 31.25 by 173 mm template with Units set to cm shows 3.125 and 17.3 cm.
+
+    Fails if the mm values are written into the boxes as they are, which would show 31.25 cm,
+    and Apply would build a cylinder ten times too large.
+    """
+    cylinder_tab.ui.combobox_units.setCurrentText("cm")
+    saved_flat_collar(cylinder_tab)
+
+    load_first_template(cylinder_tab)
+
+    assert (cylinder_tab.ui.spinbox_diameter.value(), cylinder_tab.ui.spinbox_length.value()) == (3.125, 17.3)
+
+
+def test_load_is_disabled_until_a_template_is_selected(cylinder_tab: CylinderView) -> None:
+    """Check that Load cannot be pressed while no template is selected, and can once one is.
+
+    Fails if Load starts enabled after the list is filled, or stays disabled after a selection.
+    With nothing selected, Load would have no template to put on the tab.
+    """
+    saved_flat_collar(cylinder_tab)
+
+    assert not cylinder_tab.ui.btn_load_template.isEnabled()
+    cylinder_tab.ui.list_templates.setCurrentRow(0)
+    assert cylinder_tab.ui.btn_load_template.isEnabled()
