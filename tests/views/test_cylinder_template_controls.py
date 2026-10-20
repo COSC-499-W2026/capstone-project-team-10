@@ -290,3 +290,143 @@ def test_load_is_disabled_until_a_template_is_selected(cylinder_tab: CylinderVie
     assert not cylinder_tab.ui.btn_load_template.isEnabled()
     cylinder_tab.ui.list_templates.setCurrentRow(0)
     assert cylinder_tab.ui.btn_load_template.isEnabled()
+
+
+class Answers:
+    """Stand in for the physicist answering the confirmation dialog, as a helper and not a test.
+
+    Assigned to CylinderView.confirm, the view's seam for its dialog, so no module is patched.
+    It records each title and question asked and gives the chosen answer.
+    """
+
+    def __init__(self, answer: bool) -> None:
+        self.answer = answer
+        self.asked: list[tuple[str, str]] = []
+
+    def __call__(self, title: str, question: str) -> bool:
+        self.asked.append((title, question))
+        return self.answer
+
+
+def test_update_after_confirming_saves_the_tabs_name_note_and_settings(cylinder_tab: CylinderView) -> None:
+    """Check that Update, once confirmed, writes the tab's name, note and settings to the selected template.
+
+    "Flat collar" is loaded, renamed "Flat collar long", its note cleared and its length set to
+    180 mm. Fails if the question does not name the template, the file still holds the old
+    values, the ID or created date changes, or the list and status line do not show the new
+    name. Update is how a template is renamed or corrected (FR-CN-06).
+    """
+    from datetime import datetime, timezone
+
+    from settings.cylinder_templates import load_templates
+
+    saved_flat_collar(cylinder_tab)
+    load_first_template(cylinder_tab)
+    cylinder_tab.ui.le_template_name.setText("Flat collar long")
+    cylinder_tab.ui.le_template_note.setText("")
+    cylinder_tab.ui.spinbox_length.setValue(180)
+    cylinder_tab.confirm = answers = Answers(True)
+
+    click(cylinder_tab.ui.btn_update_template)
+
+    [updated] = load_templates(library_path())
+    assert answers.asked == [("Update Template", "Replace Flat collar with the settings on this tab?")]
+    assert (updated.template_id, updated.name, updated.note, updated.design.length_mm) == ("a1", "Flat collar long", "", 180.0)
+    assert updated.created == datetime(2026, 10, 19, 17, 5, tzinfo=timezone.utc)
+    assert cylinder_tab.ui.list_templates.item(0).text() == "Flat collar long"
+    assert cylinder_tab.ui.label_template_status.text() == "Updated Flat collar long"
+
+
+def test_delete_after_confirming_removes_the_template(cylinder_tab: CylinderView) -> None:
+    """Check that Delete, once confirmed, removes the selected template from the file and the list.
+
+    Fails if the question does not name the template, or the template is still saved or listed.
+    """
+    from settings.cylinder_templates import load_templates
+
+    saved_flat_collar(cylinder_tab)
+    cylinder_tab.ui.list_templates.setCurrentRow(0)
+    cylinder_tab.confirm = answers = Answers(True)
+
+    click(cylinder_tab.ui.btn_delete_template)
+
+    assert answers.asked == [("Delete Template", "Delete the template Flat collar?")]
+    assert load_templates(library_path()) == ()
+    assert cylinder_tab.ui.list_templates.count() == 0
+    assert cylinder_tab.ui.label_template_status.text() == "Deleted Flat collar"
+
+
+@pytest.mark.parametrize("button", ["btn_update_template", "btn_delete_template"])
+def test_cancelling_update_or_delete_changes_nothing(cylinder_tab: CylinderView, button: str) -> None:
+    """Check that answering Cancel to Update or Delete leaves the library file byte for byte as it was.
+
+    Fails if the template is changed or removed after Cancel. Both overwrite a saved design for
+    good, so the physicist must be able to back out of a click on the wrong template.
+    """
+    saved_flat_collar(cylinder_tab)
+    before = library_path().read_text(encoding="utf-8")
+    load_first_template(cylinder_tab)
+    cylinder_tab.ui.spinbox_length.setValue(180)
+    cylinder_tab.confirm = Answers(False)
+
+    click(cylinder_tab.ui.btn_update_template if button == "btn_update_template" else cylinder_tab.ui.btn_delete_template)
+
+    assert library_path().read_text(encoding="utf-8") == before
+
+
+def test_update_to_a_taken_name_says_why_and_changes_nothing(cylinder_tab: CylinderView) -> None:
+    """Check that renaming one template to another's name is refused in the status line.
+
+    "Flat collar" is renamed "Standard 30", which another template already uses. Fails if the
+    file changes or the status line does not say why, which would leave two templates the
+    physicist cannot tell apart.
+    """
+    saved_flat_collar(cylinder_tab)
+    save_as(cylinder_tab, "Standard 30")
+    before = library_path().read_text(encoding="utf-8")
+    load_first_template(cylinder_tab)
+    cylinder_tab.ui.le_template_name.setText("Standard 30")
+    cylinder_tab.confirm = Answers(True)
+
+    click(cylinder_tab.ui.btn_update_template)
+
+    assert library_path().read_text(encoding="utf-8") == before
+    assert cylinder_tab.ui.label_template_status.text() == "A cylinder template named Standard 30 already exists"
+
+
+def test_update_and_delete_are_disabled_until_a_template_is_selected(cylinder_tab: CylinderView) -> None:
+    """Check that Update and Delete cannot be pressed with nothing selected, and can once a template is.
+
+    Fails if either starts enabled after the list is filled, or stays disabled after a selection.
+    With nothing selected there is no template for them to change.
+    """
+    saved_flat_collar(cylinder_tab)
+    buttons = (cylinder_tab.ui.btn_update_template, cylinder_tab.ui.btn_delete_template)
+
+    assert [button.isEnabled() for button in buttons] == [False, False]
+    cylinder_tab.ui.list_templates.setCurrentRow(0)
+    assert [button.isEnabled() for button in buttons] == [True, True]
+
+
+def test_the_confirmation_dialog_offers_yes_and_cancel_with_cancel_the_default(cylinder_tab: CylinderView) -> None:
+    """Check the dialog Update and Delete ask with: its question, buttons and default.
+
+    Fails if it does not offer exactly Yes and Cancel, or if Yes is the default, so pressing
+    Return would overwrite or delete a template the physicist did not mean to change. Also fails
+    if the dialog has a parent widget: it would inherit the main window's light stylesheet, and
+    in macOS dark mode its white text and button labels became unreadable on it, seen in the
+    running app. Without a parent it takes the system's colours, like the app's other dialogs.
+    The title is not checked: Qt drops message box titles on macOS, as Apple's guidelines ask,
+    so the question itself names the action and the template.
+    """
+    from PySide6.QtWidgets import QMessageBox
+
+    from windows.views.cylinder_view import template_change_dialog
+
+    dialog = template_change_dialog("Delete Template", "Delete the template Flat collar?")
+
+    assert dialog.parent() is None
+
+    assert dialog.text() == "Delete the template Flat collar?"
+    assert dialog.standardButtons() == QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+    assert dialog.defaultButton() == dialog.button(QMessageBox.StandardButton.Cancel)

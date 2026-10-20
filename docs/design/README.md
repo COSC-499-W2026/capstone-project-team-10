@@ -27,7 +27,10 @@ note field, the list of saved templates and *Save as Template*. Hovering a templ
 note, dates and a one-line summary. As with the needle templates, a refused save or an unreadable
 file is explained in a status line beside the controls, not a dialog. *Load* fills the tab from
 the selected template but builds nothing: the status line says to press *Apply Settings*, so the
-physicist checks the values first, and loading never moves an imported plan's needles by itself. The group's colours match
+physicist checks the values first, and loading never moves an imported plan's needles by itself.
+*Update* and *Delete* each ask first, naming the template, with Cancel the default. The question
+is a system dialog, so it follows the system's light or dark colours; parented to the tab it had
+inherited the tab's light background under dark-mode white text and could not be read. The group's colours match
 the tab's, and its buttons look like *Apply Settings*. *Verified* by offscreen tests and in the
 running app.
 
