@@ -25,7 +25,9 @@ Nothing scrolls sideways. *Verified* by offscreen tests and in the running app (
 Below *Apply Settings*, a Templates group saves the tab's settings under a name: a name field, a
 note field, the list of saved templates and *Save as Template*. Hovering a template shows its
 note, dates and a one-line summary. As with the needle templates, a refused save or an unreadable
-file is explained in a status line beside the controls, not a dialog. The group's colours match
+file is explained in a status line beside the controls, not a dialog. *Load* fills the tab from
+the selected template but builds nothing: the status line says to press *Apply Settings*, so the
+physicist checks the values first, and loading never moves an imported plan's needles by itself. The group's colours match
 the tab's, and its buttons look like *Apply Settings*. *Verified* by offscreen tests and in the
 running app.
 
