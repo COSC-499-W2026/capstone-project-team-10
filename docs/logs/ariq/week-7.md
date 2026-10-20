@@ -44,10 +44,12 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_a_value_on_the_edge_of_its_range_is_accepted`, `test_spaces_around_the_name_and_note_are_trimmed` (18 passed)** passed.
+- The functionality works correctly because the happy path tests involving **`test_a_value_on_the_edge_of_its_range_is_accepted`, `test_spaces_around_the_name_and_note_are_trimmed` (18 passed, screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **NaN and infinity (`test_a_value_outside_the_cylinder_tabs_range_is_rejected`), a naive or backwards date** and they passed.
 - I checked that these negative cases involving **six deliberate breaks (no range check, 0 mm diameter, no trim, no ID, time zone or modified check) each failed a test** failed as expected.
 - When I reviewed the **`test_a_template_without_an_id_is_rejected`**, I noticed **it was added after its check when this PR was split from #87, so it was never red**. Therefore, I did **remove the check and watch it fail**.
 - Among these tests, **all 18** are unit tests and integration tests are not required because **the module imports nothing from the app**.
 - These tests are included in the directory **`tests/settings/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (196 passed), `build.py --check` and `session-start.sh` (exit 0)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (196 passed, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
+
+  ![1, python -m pytest on feat/cylinder-template-values, 18 passed in test_cylinder_templates.py and 196 passed in the whole suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/973b7717407d6dd4ca383b1424509e774b91ba12/docs/logs/ariq/screenshots/week-7/pr-93-1-pytest-196-passed.png)
