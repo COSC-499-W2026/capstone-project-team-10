@@ -275,7 +275,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - I checked that these negative cases involving **Load with nothing selected, and six deliberate breaks (collar tick, tip or note not loaded, mm shown as cm, Load applying, Load always enabled)** failed as expected.
 - Among these tests, **all four** are integration tests and unit tests are not required because **the template is decoded and checked by the tested library (#93, #94)**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (235 passed, exit 0), `build.py --check` and `session-start.sh` (exit 0)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (235 passed, exit 0, screenshot 1), `build.py --check` and `session-start.sh` (exit 0)**.
 
-  ![1, the running app after Load, the 30 mm standard template back on the Cylinder tab](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d363c8080bc87597ebfc062561f7c47f3835ef5f/docs/logs/ariq/screenshots/week-7/pr-100-1-cylinder-tab-after-load.png)
+  ![1, the running app before and after Load of 30 mm standard, then the tests on this branch, 11 and 235 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d4653b7159a85e0abb0b078e6d5bac8da0c73138/docs/logs/ariq/screenshots/week-7/pr-100-1-cylinder-tab-after-load.png)
 - Not applicable: **generated-test review (no problem found)**.
