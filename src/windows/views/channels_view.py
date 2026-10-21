@@ -113,7 +113,13 @@ class ChannelsView(CustomView):
 
     @display_action
     def action_move_channel(self, item: QListWidgetItem) -> None:
-        label = item.text()
+        self.ask_and_move(item.text())
+
+    @display_action
+    def action_move_selected_channel(self) -> None:
+        self.ask_and_move(self.channelsmodel.get_selected_channel())
+
+    def ask_and_move(self, label: str) -> None:
         if self.channelsmodel.is_channel_tandem(label): return
         current = self.channelsmodel.channels[label].translation
         translation = self.ask_translation(label, current)
@@ -292,6 +298,7 @@ class ChannelsView(CustomView):
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
         self.ui.btn_set_tandem.setEnabled(any_selected)
+        self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
         if any_selected:
             self.ui.sb_channel_diameter.setValue(self.channelsmodel.channels[selected_channel].get_diameter())
@@ -364,6 +371,7 @@ class ChannelsView(CustomView):
         # signals and slots
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
         self.ui.btn_apply_channel_diameter.pressed.connect(self.action_apply_channel_diameter)
+        self.ui.btn_move_channel.pressed.connect(self.action_move_selected_channel)
         self.ui.btn_clear_channel_diameter.pressed.connect(self.action_clear_channel_diameter)
         self.ui.btn_save_template.pressed.connect(self.action_save_template)
         self.ui.btn_apply_template.pressed.connect(self.action_apply_template)

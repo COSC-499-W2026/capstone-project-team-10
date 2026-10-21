@@ -313,31 +313,36 @@ class Ui_Channels_View(object):
 
         self.gridLayout_selected_channel.addWidget(self.btn_clear_channel_diameter, 2, 0, 1, 2)
 
+        self.btn_move_channel = QPushButton(self.group_selected_channel)
+        self.btn_move_channel.setObjectName(u"btn_move_channel")
+
+        self.gridLayout_selected_channel.addWidget(self.btn_move_channel, 3, 0, 1, 2)
+
         self.le_template_name = QLineEdit(self.group_selected_channel)
         self.le_template_name.setObjectName(u"le_template_name")
 
-        self.gridLayout_selected_channel.addWidget(self.le_template_name, 3, 0, 1, 1)
+        self.gridLayout_selected_channel.addWidget(self.le_template_name, 4, 0, 1, 1)
 
         self.btn_save_template = QPushButton(self.group_selected_channel)
         self.btn_save_template.setObjectName(u"btn_save_template")
 
-        self.gridLayout_selected_channel.addWidget(self.btn_save_template, 3, 1, 1, 1)
+        self.gridLayout_selected_channel.addWidget(self.btn_save_template, 4, 1, 1, 1)
 
         self.cb_needle_templates = QComboBox(self.group_selected_channel)
         self.cb_needle_templates.setObjectName(u"cb_needle_templates")
 
-        self.gridLayout_selected_channel.addWidget(self.cb_needle_templates, 4, 0, 1, 1)
+        self.gridLayout_selected_channel.addWidget(self.cb_needle_templates, 5, 0, 1, 1)
 
         self.btn_apply_template = QPushButton(self.group_selected_channel)
         self.btn_apply_template.setObjectName(u"btn_apply_template")
 
-        self.gridLayout_selected_channel.addWidget(self.btn_apply_template, 4, 1, 1, 1)
+        self.gridLayout_selected_channel.addWidget(self.btn_apply_template, 5, 1, 1, 1)
 
         self.label_template_status = QLabel(self.group_selected_channel)
         self.label_template_status.setObjectName(u"label_template_status")
         self.label_template_status.setWordWrap(True)
 
-        self.gridLayout_selected_channel.addWidget(self.label_template_status, 5, 0, 1, 2)
+        self.gridLayout_selected_channel.addWidget(self.label_template_status, 6, 0, 1, 2)
 
 
         self.verticalLayout.addWidget(self.group_selected_channel)
@@ -364,7 +369,7 @@ class Ui_Channels_View(object):
         self.sb_threading_diameter.setSuffix(QCoreApplication.translate("Channels_View", u" mm", None))
         self.btn_apply_settings.setText(QCoreApplication.translate("Channels_View", u"Apply", None))
         self.label_5.setText(QCoreApplication.translate("Channels_View", u"Channels", None))
-        self.label_channel_status_legend.setText(QCoreApplication.translate("Channels_View", u"Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem.", None))
+        self.label_channel_status_legend.setText(QCoreApplication.translate("Channels_View", u"Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem. Underlined has been moved.", None))
         self.btn_set_tandem.setText(QCoreApplication.translate("Channels_View", u"Set as Tandem", None))
         self.btn_enable.setText(QCoreApplication.translate("Channels_View", u"Disable", None))
         self.group_selected_channel.setTitle(QCoreApplication.translate("Channels_View", u"Selected Channel", None))
@@ -372,6 +377,7 @@ class Ui_Channels_View(object):
         self.sb_channel_diameter.setSuffix(QCoreApplication.translate("Channels_View", u" mm", None))
         self.btn_apply_channel_diameter.setText(QCoreApplication.translate("Channels_View", u"Apply to Channel", None))
         self.btn_clear_channel_diameter.setText(QCoreApplication.translate("Channels_View", u"Use Channels Diameter", None))
+        self.btn_move_channel.setText(QCoreApplication.translate("Channels_View", u"Move...", None))
         self.le_template_name.setPlaceholderText(QCoreApplication.translate("Channels_View", u"Template name", None))
         self.btn_save_template.setText(QCoreApplication.translate("Channels_View", u"Save as Template", None))
         self.btn_apply_template.setText(QCoreApplication.translate("Channels_View", u"Apply Template", None))
