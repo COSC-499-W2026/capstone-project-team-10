@@ -141,7 +141,8 @@ against files in `tmp_path`, with no Qt either.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows. It also checks that the Structures button sits under Import and opens
-`views[5]` without moving Cylinder off index 1.
+`views[5]` without moving Cylinder off index 1, that the six nav buttons do not overlap after
+`show()`, and that Structures highlights on click and unhighlights when Cylinder is clicked.
 
 `mesh/test_notch.py` and `mesh/test_cylinder.py` build real solids and compare their bounding
 boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
