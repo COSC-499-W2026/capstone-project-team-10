@@ -332,7 +332,7 @@ def test_a_needle_moved_out_of_the_cylinder_is_left_off_the_sheet_and_named(chan
 
     assert label not in [channel.label for channel in channels_inside_cylinder(channels, diameter)]
     assert label in [channel.label for channel in moved_channels_left_off(channels, diameter)]
-    assert left_off_note([label]) == f"Moved needles left off this sheet because they no longer reach the base inside the cylinder, {label}."
+    assert left_off_note([label]) == f"Moved channels left off this sheet because they no longer pass through the base circle of the cylinder, {label}."
 
 
 def test_a_needle_moved_wholly_below_the_base_is_not_listed_with_a_zero_length(channels_window: MainWindow) -> None:
@@ -428,11 +428,11 @@ def test_a_move_out_of_the_cylinder_warns_in_the_view_and_the_row_tooltip(channe
     label = channel_label(channels_window, 3)
 
     assert view.warning_for(label, (0.0, 0.0, 0.0)) == ""
-    assert view.warning_for(label, (100.0, 0.0, 0.0)) == "This needle no longer reaches the base inside the cylinder, so the reference sheet will not list it."
+    assert view.warning_for(label, (100.0, 0.0, 0.0)) == "This move takes the channel outside the base circle of the cylinder, so the reference sheet will not list it."
 
     channels_window.channelsmodel.move_channel(label, 100.0, 0.0, 0.0)
     row = view.ui.listwidget_channels.findItems(label, Qt.MatchFlag.MatchExactly)[0]
-    assert "no longer reaches the base inside the cylinder" in row.toolTip()
+    assert "outside the base circle of the cylinder" in row.toolTip()
 
 
 def test_importing_a_plan_again_clears_every_move(channels_window: MainWindow) -> None:

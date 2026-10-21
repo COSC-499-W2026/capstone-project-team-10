@@ -65,7 +65,7 @@ def channel_status_text(status: ChannelStatus, diameter: float) -> str:
     return f"Channels diameter {diameter:.3f} mm"
 
 
-OUTSIDE_WARNING = "This needle no longer reaches the base inside the cylinder, so the reference sheet will not list it."
+OUTSIDE_WARNING = "This move takes the channel outside the base circle of the cylinder, so the reference sheet will not list it."
 
 
 def no_warning(translation: Translation) -> str:

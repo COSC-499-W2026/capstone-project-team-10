@@ -662,7 +662,7 @@ def moved_channels_left_off(channels: list[NeedleChannel], diameter: float) -> l
 
 
 def left_off_note(labels: list[str]) -> str:
-    return f"Moved needles left off this sheet because they no longer reach the base inside the cylinder, {', '.join(labels)}."
+    return f"Moved channels left off this sheet because they no longer pass through the base circle of the cylinder, {', '.join(labels)}."
 
 # Add Deadspace
 def add_deadspace(needles: list, deadspace_mm: float) -> list:
