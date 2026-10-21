@@ -311,6 +311,130 @@ def test_the_legend_explains_the_underline(channels_window: MainWindow) -> None:
     assert ":" not in legend and "—" not in legend
 
 
+def sheet_diameter(window: MainWindow) -> float:
+    """Return the cylinder's diameter, the one the reference sheet uses, as a helper and not a test."""
+    return window.cylindermodel.cylinder.diameter
+
+
+def test_a_needle_moved_out_of_the_cylinder_is_left_off_the_sheet_and_named(channels_window: MainWindow) -> None:
+    """Check a needle moved 100 mm sideways is left off the sheet and named in the note.
+
+    Fails if the needle is still counted inside the cylinder, if it is missing from the moved
+    needles left off, or if the note does not name it. Without the note the sheet drops a
+    needle the Export still cuts, and nobody reading the sheet would know it exists.
+    """
+    from classes.pdf.template_reference import channels_inside_cylinder, left_off_note, moved_channels_left_off
+
+    label = channel_label(channels_window, 11)
+    channels_window.channelsmodel.move_channel(label, 100.0, 0.0, 0.0)
+    channels = channels_window.channelsmodel.get_visible_channels()
+    diameter = sheet_diameter(channels_window)
+
+    assert label not in [channel.label for channel in channels_inside_cylinder(channels, diameter)]
+    assert label in [channel.label for channel in moved_channels_left_off(channels, diameter)]
+    assert left_off_note([label]) == f"Moved needles left off this sheet because they no longer reach the base inside the cylinder, {label}."
+
+
+def test_a_needle_moved_wholly_below_the_base_is_not_listed_with_a_zero_length(channels_window: MainWindow) -> None:
+    """Check a needle moved 300 mm down, wholly below the base, is not counted inside the cylinder.
+
+    Fails if it is still listed. A needle with no point above the base cuts no hole, and the
+    sheet used to list it anyway, with a made-up point at the base and an extension of 0.0 cm.
+    """
+    from classes.pdf.template_reference import channels_inside_cylinder
+
+    label = channel_label(channels_window, 0)
+    channels_window.channelsmodel.move_channel(label, 0.0, 0.0, -300.0)
+
+    inside = channels_inside_cylinder(channels_window.channelsmodel.get_visible_channels(), sheet_diameter(channels_window))
+
+    assert label not in [channel.label for channel in inside]
+
+
+def test_every_unmoved_needle_of_the_plan_stays_on_the_sheet(channels_window: MainWindow) -> None:
+    """Check the needles nobody moved all still count as inside the cylinder.
+
+    Fails if the new above-the-base rule drops an ordinary plan needle. Dropping one would
+    silently remove a needle from the reference sheet of an untouched plan.
+    """
+    from classes.pdf.template_reference import channels_inside_cylinder, moved_channels_left_off
+
+    unmoved = [channel for channel in channels_window.channelsmodel.get_visible_channels() if channel.translation == (0.0, 0.0, 0.0)]
+
+    assert len(unmoved) >= 4
+    assert channels_inside_cylinder(unmoved, sheet_diameter(channels_window)) == unmoved
+    assert moved_channels_left_off(unmoved, sheet_diameter(channels_window)) == []
+
+
+def test_the_note_has_no_colon_or_dash(channels_window: MainWindow) -> None:
+    """Check the sheet's note follows the UI copy rule, with no colon and no em dash.
+
+    Fails if either appears. The sheet is read by a clinician, so AGENTS.md forbids both in
+    text written onto it.
+    """
+    from classes.pdf.template_reference import left_off_note
+
+    note = left_off_note(["Applicator3", "Applicator5"])
+
+    assert note.endswith("cylinder, Applicator3, Applicator5.")
+    assert ":" not in note and "\u2014" not in note
+
+
+def test_the_popup_warns_while_the_typed_move_would_leave_the_cylinder(channels_window: MainWindow) -> None:
+    """Check the popup's warning shows for a move that leaves the cylinder and hides again for one that does not.
+
+    Fails if the warning stays hidden after X is set to 60, keeps showing after X goes back to
+    0, or the text is not the one given. The warning must follow the typed value, so a
+    physicist sees it before pressing OK, and it must never stop OK.
+    """
+    from windows.views.channels_view import MoveChannelDialog
+
+    dialog = MoveChannelDialog("Applicator2", (0.0, 0.0, 0.0), lambda move: "Warned" if move[0] > 50 else "")
+    assert dialog.label_warning.isHidden()
+
+    dialog.spin_x.setValue(60.0)
+    assert not dialog.label_warning.isHidden() and dialog.label_warning.text() == "Warned"
+
+    dialog.spin_x.setValue(0.0)
+    assert dialog.label_warning.isHidden()
+
+
+def test_the_popup_is_laid_out_to_grow_with_its_warning(channels_window: MainWindow) -> None:
+    """Check the popup's layout resizes the dialog to its content, so a shown warning is not cut off.
+
+    Fails if the layout's size constraint is not SetFixedSize. The warning appears after the
+    popup is open, and without that constraint the running app kept the popup's first size
+    and clipped the sentence to its first line, which a run of the real window showed.
+    Offscreen, Qt resizes the dialog by itself and cannot reproduce the clipping, so this
+    pins the setting that cures it and is not a measurement of the pixels.
+    """
+    from PySide6.QtWidgets import QLayout
+
+    from windows.views.channels_view import MoveChannelDialog
+
+    dialog = MoveChannelDialog("Applicator2", (0.0, 0.0, 0.0))
+
+    assert dialog.layout().sizeConstraint() == QLayout.SizeConstraint.SetFixedSize
+
+
+def test_a_move_out_of_the_cylinder_warns_in_the_view_and_the_row_tooltip(channels_window: MainWindow) -> None:
+    """Check the view warns for a 100 mm move and not for none, and the moved row's tooltip carries it.
+
+    Fails if the warning is empty for the 100 mm move, is not empty for no move, or the
+    tooltip of a channel moved that far lacks it. A moved needle's problem has to be readable
+    from the list, without opening the popup again.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    label = channel_label(channels_window, 3)
+
+    assert view.warning_for(label, (0.0, 0.0, 0.0)) == ""
+    assert view.warning_for(label, (100.0, 0.0, 0.0)) == "This needle no longer reaches the base inside the cylinder, so the reference sheet will not list it."
+
+    channels_window.channelsmodel.move_channel(label, 100.0, 0.0, 0.0)
+    row = view.ui.listwidget_channels.findItems(label, Qt.MatchFlag.MatchExactly)[0]
+    assert "no longer reaches the base inside the cylinder" in row.toolTip()
+
+
 def test_importing_a_plan_again_clears_every_move(channels_window: MainWindow) -> None:
     """Check a fresh load of the plan gives channels at their DICOM positions.
 
