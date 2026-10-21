@@ -113,6 +113,18 @@ class ChannelsModel(QObject):
     def has_own_diameter(self, label: str) -> bool:
         return label in self.own_diameters
 
+    def move_channel(self, label: str, dx: float, dy: float, dz: float) -> None:
+        channel = self.channels[label]  # a missing label raises KeyError before anything is stored
+        if not all(isfinite(value) for value in (dx, dy, dz)):
+            raise ValueError(f"{label} cannot move by {dx}, {dy}, {dz}")
+        if self.is_channel_tandem(label):
+            raise ValueError(f"{label} is the tandem channel and cannot be moved")
+        channel.set_translation((dx, dy, dz))
+        self.update()
+
+    def is_channel_moved(self, label: str) -> bool:
+        return self.channels[label].translation != (0.0, 0.0, 0.0)
+
     def set_selected_channels(self, *args):
         log.debug(f"setting selected channels")
         self.selected_channels =[]
