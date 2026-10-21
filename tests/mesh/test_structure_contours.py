@@ -45,3 +45,16 @@ def test_closed_outline_has_all_edges_and_no_filled_faces():
         edges.Next()
     assert count == 3
     assert not TopExp_Explorer(shape, TopAbs_FACE).More()
+
+
+def test_point_array_alignment_preserves_input_and_patient_registration():
+    """Align mesh vertices directly without modifying cached patient coordinates.
+
+    Incorrect rotation, tip translation or an in-place edit fails these literal
+    coordinates and could move anatomy relative to the probe on later redraws.
+    """
+    points = np.array(((10., 20., 30.), (10., 22., 32.)))
+    alignment = structure_contours.ContourAlignment((10., 20., 30.), (10., 0., 0.), 20., 'frame')
+    aligned = structure_contours.transform_points(points, alignment)
+    np.testing.assert_allclose(aligned, ((0., 0., 10.), (-2., 2., 10.)), atol=1e-10)
+    np.testing.assert_array_equal(points, ((10., 20., 30.), (10., 22., 32.)))
