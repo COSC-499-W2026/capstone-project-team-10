@@ -32,7 +32,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Review and design
 
 - When I reviewed the **`NavigationModel.views` append** for this functionality, I noticed **inserting after Import would shift Cylinder**. Therefore, I did **append at index 5**.
-- The PR does not contain any temporary workaround because **the sixth page is added in `NavigationModel` until the `.ui` file lists it**.
+- The PR does not contain any temporary workaround because **the sixth page is added in `NavigationModel`, the same way `ImportView.structure_list` is added in code rather than in a `.ui` file**.
 - The PR only contains small functions that are **33 lines** long (`NavigationModel.__init__`).
 - I did **read `navigation_model.py` and run anti-slop `review --base main`** to ensure that my feature contribution does not contain any of the following:
   - hardcoded values
