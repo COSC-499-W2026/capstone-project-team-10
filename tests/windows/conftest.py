@@ -38,7 +38,7 @@ def brachify_app(tmp_path_factory: pytest.TempPathFactory) -> Iterator[QCoreAppl
 
 @pytest.fixture
 def fresh_window(brachify_app: QCoreApplication) -> Iterator[MainWindow]:
-    """Build brachify's real main window, models and six views, with no plan and no cylinder.
+    """Build brachify's real main window, models and five views, with no plan and no cylinder.
 
     A fixture, not a test. It does what RadiotherapyApp.gui() and MainWindow.initViews() do,
     except that the 3D canvas is created but never initialised and the window is never shown,

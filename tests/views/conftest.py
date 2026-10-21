@@ -41,7 +41,7 @@ def units_app(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Radiotherapy
 
 @pytest.fixture(scope="module")
 def channels_window(units_app: RadiotherapyApp) -> Iterator[MainWindow]:
-    """Build brachify's real main window, models and six views, with the Ex1 plan imported.
+    """Build brachify's real main window, models and five views, with the Ex1 plan imported.
 
     A fixture, not a test. It does what RadiotherapyApp.gui() and MainWindow.initViews() do,
     except that the 3D canvas is created but never initialised and the window is never shown.
