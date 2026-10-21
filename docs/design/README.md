@@ -61,6 +61,14 @@ list. Every colour has its own bold and italic pair, so colour is never the only
 the system highlight instead of its colour, and keeps its font. *Verified* by offscreen tests
 and a render. A screenshot of it is linked from Ahab's week 6 log.
 
+Double-clicking a Channels row opens a small popup that moves that channel from its plan position,
+with X, Y and Z in mm, Reset to plan position, Cancel and OK. It starts at the channel's current move,
+so OK with nothing edited changes nothing, and the tandem's row opens nothing. A moved row is
+underlined and its tooltip says how far it moved, so colour is still not the only cue. The legend
+under the list does not mention the underline yet, and there is no Move button yet. *Verified* by
+offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked
+from Ahab's week 7 log.
+
 The Selected Channel group also holds the needle templates: a name field with *Save as
 Template*, a list of saved templates with *Apply Template*, and a status line. A refused save
 or an unreadable template file is explained in the status line beside the controls rather
