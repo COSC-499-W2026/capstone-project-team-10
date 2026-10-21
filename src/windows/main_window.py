@@ -96,6 +96,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_structures_view = button
         import_index = self.ui.verticalLayout_31.indexOf(self.ui.btn_import_view)
         self.ui.verticalLayout_31.insertWidget(import_index + 1, button)
+        self.ui.top_menu_bar.setMinimumHeight(len(self._nav_buttons()) * 33)
 
     def _nav_buttons(self):
         return [
