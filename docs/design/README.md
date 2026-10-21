@@ -66,7 +66,9 @@ with X, Y and Z in mm, Reset to plan position, Cancel and OK. It starts at the c
 so OK with nothing edited changes nothing, and the tandem's row opens nothing. A moved row is
 underlined and its tooltip says how far it moved, so colour is still not the only cue. The legend
 under the list says underlined has been moved, and *Move...* in the Selected Channel group opens the
-same popup for the selected channel. It is off with nothing selected and for the tandem. *Verified* by
+same popup for the selected channel. It is off with nothing selected and for the tandem. If the typed
+move would take a needle off the reference sheet, a line in the popup and the row's tooltip say so, and
+nothing stops OK. *Verified* by
 offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked
 from Ahab's week 7 log.
 
