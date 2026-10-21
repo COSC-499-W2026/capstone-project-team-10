@@ -67,3 +67,49 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   ![1, Ex1 on macOS, Applicator3 moved by X 6, Y -4, Z 3 mm: top view before and after, the popup, and the underlined row](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/74590f7c41937d2d609813ef1f05dde740700771/docs/logs/ahab/screenshots/week-7/pr-118-1-move-channel.png)
 
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**119**
+
+- As part of requirement **FR-CN-02, the interface lets users edit the selected needle with move controls, disabled when nothing is selected**, the user needs
+  to do **select Applicator5, press Move..., type X -5, Y 5, Z 0, press OK**.
+- Therefore, I implemented/generated code so that **physicists find the move without knowing about double-click, and can read the underline from the legend**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 3.3.2, Labels or Instructions**. The aspects that demonstrate this principle in the system include **the legend now says "Underlined has been moved", and Move... is off with nothing selected and for the tandem (screenshot 1)**.
+- The frontend is designed using **Qt Designer `.ui` files compiled by `pyside6-uic`** with design components for **the Selected Channel group's push buttons, which share one group stylesheet**. Therefore, changing the design of **a push button there** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the text lives in the `.ui` strings and the style in the group's stylesheet**.
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-02 (interface) → `test_the_move_button_is_enabled_only_for_a_channel_that_can_be_moved`, `test_pressing_the_move_button_moves_the_selected_channel`, `test_the_legend_explains_the_underline`**
+- Not applicable: **data caching (none), restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **regenerated `channels_view_ui.py`** for this functionality, I did not find any problems with it because **`git diff` shows only the new button, the renumbered grid rows and the legend text, all from `pyside6-uic` and none hand-edited**.
+- The PR does not contain any temporary workaround because **the button and the double-click share one method, `ask_and_move`**.
+- The PR only contains small functions that are **at most 9 lines (`ask_and_move`)** long.
+- I did **`anti_slop review --base feat/channel-move-popup src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does
+  not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`channels_view.py` and `channels_view.ui`** because **the button is a widget of the Channels tab**.
+- This work belongs in **3 Channels** in the DFD because **it is another way to start the same move**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_pressing_the_move_button_moves_the_selected_channel` and `test_the_legend_explains_the_underline` (15 passed in the file)** passed.
+- I wrote tests to cover abnormal situations involving **no selection and the tandem channel, which leave Move... disabled** and they passed.
+- I checked that these negative cases involving **two deliberate breaks (the tandem not excluded, the button not connected)** failed as expected.
+- Among these tests, **none** are unit tests and **the three new tests** are integration tests through the real window.
+- These tests are included in the directory **`tests/views/test_move_channel.py`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (260 passed), `build.py --check` and `session-start.sh` (exit 0), and brachify run on macOS with Ex1, driven by a script that pressed the real Move... button and answered the real popup (screenshot 1)**.
+
+  ![1, Ex1 on macOS, the Move... button in Selected Channel, the popup it opens, and the legend with the underlined Applicator5](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/af0780ddb710cd23af1190fd0f2107e0a79e4fd2/docs/logs/ahab/screenshots/week-7/pr-119-1-move-button.png)
+
+- Not applicable: **generated-test review (no problem found)**.
