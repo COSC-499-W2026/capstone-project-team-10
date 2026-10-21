@@ -80,7 +80,7 @@ libraries and disk. Two arrows point back up: outputs leave through the Export v
 | Layer | Contents | Source |
 |---|---|---|
 | External | TPS DICOM export, config JSON, tandem STEP file, STL and STEP out, PDF out | outside the repo |
-| Presentation | `MainWindow`, the five views, `LengthField` and `LengthUnit`, the OpenCASCADE canvas | `src/windows/` |
+| Presentation | `MainWindow`, the six views, `LengthField` and `LengthUnit`, the OpenCASCADE canvas | `src/windows/` |
 | Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel` and `ShapeModel` | `src/classes/app.py`, `src/windows/models/` |
 | Domain services | DICOM readers, OpenCASCADE geometry, PDF sheet, config load and reset | `src/classes/dicom/`, `mesh/`, `pdf/`, `src/settings/` |
 | Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib | conda environment |
@@ -94,7 +94,7 @@ itself.
 
 ### UML
 
-Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `CylinderModel.values_changed` also reaches `MainWindow`, which enables the Export tab once a cylinder exists. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 4. Do not reorder them.
+Who owns what. A solid arrow means the class creates and holds the other. A dashed arrow is a Qt signal, labelled with its name. `CylinderModel.values_changed` also reaches `MainWindow`, which enables the Export tab once a cylinder exists. `RadiotherapyApp.signals` announces changes. `RadiotherapyApp.values` holds the shared settings dict. `MainWindow.initModels()` creates every model, and `NavigationModel` holds only the views, reached by index 0 through 5. Structures is 5 so Cylinder stays 1. Do not reorder them.
 
 ![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, from CylinderModel to MainWindow, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
@@ -108,11 +108,11 @@ The app as one process.
 
 ### DFD level 1
 
-The same process opened into the five tabs. The viewport is not a sixth process. It paints shapes. That path is the UML, from the geometry models to `ShapeModel` to `DisplayModel`.
+The same process opened into the five tabs that already move data. The viewport is not a sixth process. It paints shapes. That path is the UML, from the geometry models to `ShapeModel` to `DisplayModel`. The Structures nav page is `views[5]` and is empty, so it is not a sixth process here.
 
 ![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them. Import also reads a config JSON. Tandem takes the tandem channel from channels and the length and diameter from cylinder. Export reads the plan for the PDF and writes STL or STEP.](diagrams/existing-framework/dfd-1.svg)
 
-Five tabs, in this fixed order. The code addresses them by index. Do not reorder them.
+Five data-flow tabs, plus an empty Structures nav page at index 5. The code addresses them by index. Do not reorder them.
 
 | Tab | What it does |
 |---|---|
@@ -121,6 +121,7 @@ Five tabs, in this fixed order. The code addresses them by index. Do not reorder
 | Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter, directly or from a saved needle template. The list shows each channel's status. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
+| Structures | Empty page at `views[5]`. No nav button, organ list or 3D yet. |
 
 A view method that changes geometry must use `@display_action`, or the model updates and the viewport does not. The shape path is in the UML above.
 
@@ -129,7 +130,9 @@ A view method that changes geometry must use `@display_action`, or the model upd
 Mostly course scaffolding. The changes to application behaviour are three Channels view fixes,
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
 An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`, and the Import
-tab lists each structure.
+tab lists each structure. An empty Structures page is `views[5]` so Cylinder stays index 1.
+The system architecture names `Structures`. DFD level 1 is unchanged, because the page has
+no data flow yet.
 
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
