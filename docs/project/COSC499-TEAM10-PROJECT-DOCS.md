@@ -1996,9 +1996,10 @@ below the base is listed with a made-up point at `z = 0` although it cuts nothin
 limit, by the team's decision.
 
 **Addressed 2026-10-20 (the third PR for issue 115).** The popup and a moved row's tooltip now warn
-`This needle no longer reaches the base inside the cylinder, so the reference sheet will not list it.`
-The warning never blocks OK. The sheet names every moved needle it leaves off in one line under the
-table, written by `left_off_note`, and `channels_inside_cylinder` now also drops a needle with no
+`This move takes the channel outside the base circle of the cylinder, so the reference sheet will not list it.`
+The warning never blocks OK. The sheet names every moved channel it leaves off in one line under the
+table (`Moved channels left off this sheet because they no longer pass through the base circle of the
+cylinder, Applicator3.`), written by `left_off_note`, and `channels_inside_cylinder` now also drops a needle with no
 point above the base, which the sheet used to list with a made-up point and 0.0 cm. The cut is
 unchanged: it still cuts a groove for such a needle, so the sheet and the cut still differ, but the
 sheet says so. *Verified* by `tests/views/test_move_channel.py` and in a driven run of the real window
