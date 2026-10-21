@@ -150,3 +150,54 @@ def test_opening_structures_by_signal_shows_page_five(fresh_window: MainWindow) 
     assert fresh_window.navigationmodel.current_page == STRUCTURES_TAB
     assert fresh_window.ui.viewswidget.currentIndex() == STRUCTURES_TAB
     assert type(fresh_window.navigationmodel.views[STRUCTURES_TAB]) is StructuresView
+
+
+def test_structures_button_sits_directly_under_import(fresh_window: MainWindow) -> None:
+    """Check that Structures is the nav button immediately under Import.
+
+    Fails if the button is missing, not labelled Structures, or sits anywhere else in the
+    left bar. FR-SV needs its own page under Import, and a physicist looking for organs
+    would open Cylinder if this button were below that instead.
+    """
+    layout = fresh_window.ui.verticalLayout_31
+    import_index = layout.indexOf(fresh_window.ui.btn_import_view)
+    structures_index = layout.indexOf(fresh_window.ui.btn_structures_view)
+
+    assert fresh_window.ui.btn_structures_view.text() == "Structures"
+    assert structures_index == import_index + 1
+
+
+def test_clicking_structures_opens_the_structures_page_and_leaves_cylinder_at_one(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures opens its own page and Cylinder stays views[1].
+
+    Fails if the click does not show page 5, if that page is not a StructuresView, or if
+    Cylinder or Export moved. Inserting Structures at index 1 would shift every later tab
+    and send cylinder length and tandem caps to the wrong widgets.
+    """
+    from windows.views.cylinder_view import CylinderView
+    from windows.views.export_view import Export_View
+    from windows.views.structures_view import StructuresView
+
+    click(fresh_window.ui.btn_structures_view)
+
+    assert fresh_window.navigationmodel.current_page == STRUCTURES_TAB
+    assert fresh_window.ui.viewswidget.currentIndex() == STRUCTURES_TAB
+    assert type(fresh_window.navigationmodel.views[STRUCTURES_TAB]) is StructuresView
+    assert type(fresh_window.navigationmodel.views[CYLINDER_TAB]) is CylinderView
+    assert type(fresh_window.navigationmodel.views[EXPORT_TAB]) is Export_View
+
+
+def test_clicking_cylinder_after_structures_still_opens_cylinder(fresh_window: MainWindow) -> None:
+    """Check that Cylinder still opens after visiting Structures.
+
+    Fails if the Cylinder click leaves the Structures page showing, or if views[1] is no
+    longer Cylinder. A shifted index would make Apply Settings write into the wrong tab.
+    """
+    click(fresh_window.ui.btn_structures_view)
+    click(fresh_window.ui.btn_cylinder_view)
+
+    assert fresh_window.navigationmodel.current_page == CYLINDER_TAB
+    assert fresh_window.ui.viewswidget.currentIndex() == CYLINDER_TAB
+    assert fresh_window.ui.btn_cylinder_view.grab().toImage().pixelColor(2, 2) == SELECTED_TAB_BACKGROUND
