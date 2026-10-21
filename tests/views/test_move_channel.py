@@ -52,10 +52,12 @@ class StubbedAnswer:
     """
 
     def __init__(self, answer: tuple[float, float, float] | None) -> None:
+        """Remember the answer to give, None meaning Cancel. A helper, not a test."""
         self.answer = answer
         self.asked: list[tuple[str, tuple[float, float, float]]] = []
 
     def __call__(self, label: str, translation: tuple[float, float, float]) -> tuple[float, float, float] | None:
+        """Record the question the view asks and return the chosen answer. A helper, not a test."""
         self.asked.append((label, translation))
         return self.answer
 
@@ -104,6 +106,7 @@ def test_a_move_reaches_the_pdf_points_and_the_3d_shape(channels_window: MainWin
     from classes.pdf.template_reference import extract_points_from_channels2
 
     def x_bounds(shape) -> tuple[float, float]:
+        """Return a shape's lowest and highest X from its OpenCASCADE bounding box. A helper, not a test."""
         box = Bnd_Box()
         brepbndlib.Add(shape, box)
         low_x, _, _, high_x, _, _ = box.Get()
