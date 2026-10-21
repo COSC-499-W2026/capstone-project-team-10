@@ -1234,6 +1234,8 @@ that has news **emits** it, with a value. Every connected function then runs, in
 were connected, before `emit` returns. The code that emits does not need to know who is
 listening.
 
+**Out of date.** Team 10's Structures button also emits `viewChanged(5)`. See §4.4 of the source of truth.
+
 | Signal | Carries | Emitted by | Connected to |
 |---|---|---|---|
 | `viewChanged` | a whole number: the tab to show, 0 to 4 | the five tab buttons; the Import tab after a successful import (4, the Export tab) | `NavigationModel.set_page`, which switches tabs |
@@ -3834,6 +3836,8 @@ real window: 770 × 472 pixels when it opens.
  └───────────────────────────────────────────────────────────────────────┘
 ```
 
+**Out of date.** Team 10 adds a sixth nav button, Structures, in code under Import, and raises `top_menu_bar` so six 33 px rows fit. See §4.3 of the source of truth.
+
 | Part | Name in the code | What it holds |
 |---|---|---|
 | the five tab buttons | `btn_import_view`, `btn_cylinder_view`, `btn_channels_view`, `btn_tandem_view`, `btn_export_view` | labels *Import*, *Cylinder*, *Channels*, *Tandem*, *Export*. Each is 290 × 33 pixels |
@@ -3883,6 +3887,8 @@ Each tab button, when **pressed** (the moment the mouse button goes down):
 
  the same for Cylinder (1), Channels (2), Tandem (3) and Export (4)
 ```
+
+**Out of date.** Structures emits 5. Recolouring is `_highlight_nav` over `_nav_buttons`. See §5.6 of the source of truth.
 
 The numbers 0 to 4 are the tabs' positions. They must match the order of the pages in the design
 file and the order the tabs are created in `NavigationModel`, and nothing checks that they do.
