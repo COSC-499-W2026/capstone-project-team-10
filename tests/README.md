@@ -174,6 +174,10 @@ mocked.
 `views/test_channels_view.py` drives the Channels tab through the real window and models. §8.2
 of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes it fail.
 
+`views/test_move_channel.py` moves channels of the shared Ex1 window by X, Y and Z and checks the points, the 3D
+shape, the PDF's point reader, the tandem rotation, the popup and the underlined row. It answers the popup through
+`ChannelsView.ask_translation`, so no dialog opens. §8.2 says what makes it fail.
+
 `views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
 and widgets. It covers the mm/cm selector across all four dimensions, precision, limits, Apply,
 configuration reset and Ex1 import with needle offsets, and the settings round trip: every

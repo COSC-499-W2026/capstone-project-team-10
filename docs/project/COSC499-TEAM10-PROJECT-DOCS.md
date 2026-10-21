@@ -744,6 +744,11 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
   `starting_length` is captured at import time. Channels and tandem shift themselves by that
   offset. This is why `NeedleChannel` keeps both `points` and `_offset` and applies the offset
   only in `get_points()` / `shape()`.
+- **A channel moved by hand keeps the plan too.** `points_raw` is the DICOM plan and is never
+  changed. `NeedleChannel.set_translation` rebuilds `points` from it as plan plus the move, so
+  `shape()`, `get_points()` and the PDF's point readers all follow a move. `get_rotation()` reads
+  `points_raw`, so a move cannot turn the tandem. *Verified* by `tests/views/test_move_channel.py`
+  for the shape and the PDF's point reader. The PDF's drawn pages were not inspected.
 - In the PDF cross-section diagram the view is **from the base looking up**, so the y-axis is
   drawn negated: `Anterior` is `-y`, `Posterior` is `+y`.
 
@@ -1070,7 +1075,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD. `move_channel(label, dx, dy, dz)` shifts a whole channel from its plan position. An unknown label raises `KeyError`. NaN, infinity or the tandem channel raise `ValueError` and keep the earlier move. `is_channel_moved` is true for any non-zero move, and `load_data` builds new channels, so a new plan clears every move |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `NavigationModel` | the five views | not a `QObject`; plain class |
@@ -1249,6 +1254,16 @@ Its tooltip names the status and the diameter it is cut at. `mark_channel_status
 every row on each `ChannelsModel.values_changed` and after `create_channels_list`, looking rows
 up by label. The selected row's highlight hides its colour but not its font. *Verified* by
 offscreen tests and a render.
+
+Double-clicking a row moves its channel. `action_move_channel` asks `ChannelsView.ask_translation`
+for X, Y and Z in mm, which by default opens `MoveChannelDialog`. The dialog has no parent, starts at
+the channel's current move, allows ±300 mm, and has Reset to plan position, Cancel and OK. Cancel,
+or OK with unchanged values, does nothing, and the tandem's row opens nothing. A moved row is
+underlined and its tooltip adds `Moved by X 6, Y -4, Z 3 mm from the plan`. The legend label does
+not mention the underline yet. *Verified* 2026-10-20 by `tests/views/test_move_channel.py` and in
+a driven run of the real window on macOS (Ex1, Applicator3 moved by 6, -4, 3 mm: the top view showed
+its tip shifted by that much, and the PDF and the STL both exported). Not verified: Windows, and the
+PDF's drawn pages.
 
 **Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
 
@@ -1966,6 +1981,16 @@ destroys the left-over windows' Qt objects in an order Qt does not expect. The w
 the whole of `tests/views`, exit 0 (three runs each on `main`). Not fixed. When you run a subset,
 read the dots and the exit code, or add `-p no:unraisableexception`, which skips that collection.
 
+### 7.14 MEDIUM — a channel moved out of the cylinder is cut but may be missing from the PDF
+
+*Reasoned from code, found in a review on 2026-10-20. Not fixed.* The Export cut removes every
+visible channel's shape, but `channels_inside_cylinder` in
+[template_reference.py](../../src/classes/pdf/template_reference.py) keeps a needle on the reference
+sheet only if the point where it reaches `z = 0` is inside the cylinder. A needle moved sideways
+out of the cylinder still cuts a groove in the wall but is left off the sheet. A needle moved wholly
+below the base is listed with a made-up point at `z = 0` although it cuts nothing. A move has no
+limit, by the team's decision, and the Channels tab does not warn about either case yet.
+
 ---
 
 ## 8. Testing
@@ -2061,6 +2086,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
 | `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
 | `views/test_cylinder_template_exports.py` | after a flat, notch-off, 3 by 10 mm collar template is loaded and applied, the reference sheet's cylinder table or the Export tab's mesh volume (π·15²·160 + π·(18²−15²)·10 mm³, worked by hand) is not the template's, or a 180 mm template applied to Ex1, imported at 160 mm, does not raise every needle 20 mm or changes its stored DICOM points (§5.6, §5.8) |
+| `views/test_move_channel.py` | a move does not shift every point of a channel by exactly (dx, dy, dz), changes the plan's `points_raw`, is ignored by the channel's 3D shape or the PDF's point reader, or changes `get_rotation()`. Or NaN, infinity, an unknown channel or the tandem channel is accepted, or a rejected move loses the earlier one. Or double-clicking a row does not ask the popup, moves on Cancel, rebuilds the shape when nothing changed, does not underline the moved row, or opens for the tandem. Or the popup does not start at the current move, refuses -12.5 or 300 mm, or Reset leaves a value. Or a new plan keeps a move (§5.5, §5.6) |
 | `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
