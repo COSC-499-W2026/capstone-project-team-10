@@ -18,6 +18,7 @@ EXPORT_TAB = 4
 STRUCTURES_TAB = 5
 SAMPLE_PLAN = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
 SELECTED_TAB_BACKGROUND = QColor(28, 44, 81)
+UNSELECTED_TAB_BACKGROUND = QColor(199, 219, 237)
 
 
 def click(button: QPushButton) -> None:
@@ -201,3 +202,71 @@ def test_clicking_cylinder_after_structures_still_opens_cylinder(fresh_window: M
     assert fresh_window.navigationmodel.current_page == CYLINDER_TAB
     assert fresh_window.ui.viewswidget.currentIndex() == CYLINDER_TAB
     assert fresh_window.ui.btn_cylinder_view.grab().toImage().pixelColor(2, 2) == SELECTED_TAB_BACKGROUND
+
+
+def test_nav_buttons_do_not_overlap_after_show(fresh_window: MainWindow) -> None:
+    """Check that the six nav buttons sit in separate rectangles inside the bar.
+
+    Fails if any two button geometries overlap, or if a button extends past top_menu_bar,
+    after show(). The bar's 165 px minimum is five 33 px rows, so a sixth button was drawn
+    over Export and clipped. A physicist then cannot click Export cleanly.
+    """
+    from PySide6.QtWidgets import QApplication
+
+    fresh_window.show()
+    QApplication.processEvents()
+
+    bar_rect = fresh_window.ui.top_menu_bar.rect()
+    rectangles = [
+        fresh_window.ui.btn_import_view.geometry(),
+        fresh_window.ui.btn_structures_view.geometry(),
+        fresh_window.ui.btn_cylinder_view.geometry(),
+        fresh_window.ui.btn_channels_view.geometry(),
+        fresh_window.ui.btn_tandem_view.geometry(),
+        fresh_window.ui.btn_export_view.geometry(),
+    ]
+
+    for rectangle in rectangles:
+        assert bar_rect.contains(rectangle)
+    for index, first in enumerate(rectangles):
+        for second in rectangles[index + 1 :]:
+            assert not first.intersects(second)
+
+
+def test_clicking_structures_highlights_structures_not_import(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures is drawn selected and Import is not, after a Structures click.
+
+    Fails if Structures's pixel is not rgb(28, 44, 81), or Import's still is. Dropping
+    Structures from `_nav_buttons` left it unhighlighted and every other test still passed,
+    so a physicist could be on the organs page with Import still looking current.
+    """
+    click(fresh_window.ui.btn_structures_view)
+
+    assert (
+        fresh_window.ui.btn_structures_view.grab().toImage().pixelColor(2, 2)
+        == SELECTED_TAB_BACKGROUND
+    )
+    assert (
+        fresh_window.ui.btn_import_view.grab().toImage().pixelColor(2, 2)
+        != SELECTED_TAB_BACKGROUND
+    )
+
+
+def test_clicking_cylinder_after_structures_unhighlights_structures(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures goes back to the unselected colour after Cylinder is clicked.
+
+    Fails if Structures's pixel is not rgb(199, 219, 237). Disconnecting its colour slot
+    left the previous tab highlighted, so the bar would still show Structures as current
+    after the physicist had moved on.
+    """
+    click(fresh_window.ui.btn_structures_view)
+    click(fresh_window.ui.btn_cylinder_view)
+
+    assert (
+        fresh_window.ui.btn_structures_view.grab().toImage().pixelColor(2, 2)
+        == UNSELECTED_TAB_BACKGROUND
+    )
