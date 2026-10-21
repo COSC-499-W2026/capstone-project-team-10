@@ -670,9 +670,10 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 | 4 | `Export_View` | [export_view.py](../../src/windows/views/export_view.py) | — (composes all) |
 | 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | — (empty page, issue #106) |
 
-The view is appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export
-stays 4. There is no Structures nav button yet. *Reasoned from code*;
-`tests/windows/test_main_window.py`.
+The Structures nav button sits directly under Import in `verticalLayout_31`. The view itself is
+appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export stays 4.
+`MainWindow` creates `btn_structures_view` in code after `setupUi`; it is not in `main_window.ui`.
+*Reasoned from code*; `tests/windows/test_main_window.py`.
 
 **Reordering this list breaks call sites scattered across `settings/reset.py`, every view, and
 `main_window.py`.** There is no symbolic lookup. Treat the order as frozen.
@@ -689,7 +690,7 @@ Three application-wide signals live on `AppSignals` ([signals.py](../../src/clas
 
 | Signal | Emitted by | Received by |
 |---|---|---|
-| `viewChanged(int)` | the five nav buttons in `MainWindow.__init__` | `NavigationModel.set_page` |
+| `viewChanged(int)` | the six nav buttons in `MainWindow.__init__` | `NavigationModel.set_page` |
 | `height_changed(float)` | `CylinderView.action_apply_settings`, offset in mm regardless of display unit | `ChannelsModel.update_height_offset`, `TandemModel.update_height_offset` |
 | `exportFile(str)` | *nobody* | *nobody* — declared and unused |
 
@@ -1133,9 +1134,10 @@ import, `ImportView` also shows a read-only `structure_list` (`QListWidget` adde
 not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 (*Reasoned from code*; `tests/views/test_import_view.py`).
 
-**Structures** — no `.ui`. `StructuresView` is an empty `CustomView`. The stacked page is added
-in `NavigationModel` when `viewswidget` has fewer pages than `views`. No nav button, list,
-colour, opacity or hide controls yet. *Reasoned from code*;
+**Structures** — no `.ui`. `StructuresView` is an empty `CustomView`. The nav button is created
+in `MainWindow._add_structures_nav_button` and inserted under Import. The stacked page is added
+in `NavigationModel` when `viewswidget` has fewer pages than `views`. No list, colour, opacity
+or hide controls yet (issues #107 and #111). *Reasoned from code*;
 `tests/windows/test_main_window.py`.
 
 **Cylinder** (`cylinder_view.ui`)
@@ -2084,7 +2086,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
-| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or `views[5]` is not a `StructuresView`, Cylinder moves off index 1 or Export off index 4, or `viewChanged(5)` does not show page 5 (§4.3) |
+| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or the Structures button is missing, is not labelled Structures, or is not immediately under Import, or clicking it does not open `views[5]` as `StructuresView`, or Cylinder moves off index 1 or Export off index 4 (§4.3) |
 
 The `windows/` tests drive the real `MainWindow`, models and six views offscreen, through the
 `fresh_window` fixture in [tests/windows/conftest.py](../../tests/windows/conftest.py). The 3D

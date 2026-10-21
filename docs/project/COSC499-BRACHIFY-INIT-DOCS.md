@@ -4375,6 +4375,9 @@ Channels tab's rotation warning is answered No and no channel was the tandem bef
 
 ### 15.9 `navigation_model.py`, the five tabs
 
+**Out of date.** Team 10 appended `StructuresView` as `views[5]`. Cylinder is still index 1.
+The Structures nav button sits under Import. See §4.3 of the source of truth.
+
 `NavigationModel` is not a Qt model and holds no data about the plan. It creates the five tabs,
 in a fixed order, puts each in its page of the window, and switches between them.
 

@@ -377,7 +377,7 @@ User state lives in `~/brachify/` (`classes.info.USER_PATH`): `app.log` (rotatin
 
 Models ([src/windows/models/](src/windows/models/)) are `QObject`s owning domain state and emitting change signals; they hold no widgets. Views ([src/windows/views/](src/windows/views/)) subclass `CustomView` and own the generated Qt UI object.
 
-`NavigationModel` constructs the six views in a fixed, index-significant order and the whole codebase addresses them positionally. Structures is `views[5]` so Cylinder stays 1 and Export stays 4.
+`NavigationModel` constructs the six views in a fixed, index-significant order and the whole codebase addresses them positionally. The Structures nav button sits under Import; the view is `views[5]` so Cylinder stays 1 and Export stays 4.
 
 | index | view | model |
 |---|---|---|

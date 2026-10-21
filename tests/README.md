@@ -129,7 +129,7 @@ pydicom datasets. It covers ROI joins, all contour slices, metadata defaults, co
 semantics, input preservation, and malformed input.
 
 `windows/` and `views/` hold the widget tests. Both fixtures build the real `MainWindow`,
-models and five views offscreen, with the 3D canvas never initialised and `HOME` and
+models and six views offscreen, with the 3D canvas never initialised and `HOME` and
 `USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
 started it first, and disconnects application signals in its teardown. No application module is
 mocked. The pure functions below still have no tests.
@@ -140,7 +140,8 @@ templates against every Cylinder tab range edge, and their library, including up
 against files in `tmp_path`, with no Qt either.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
-the window shows.
+the window shows. It also checks that the Structures button sits under Import and opens
+`views[5]` without moving Cylinder off index 1.
 
 `mesh/test_notch.py` and `mesh/test_cylinder.py` build real solids and compare their bounding
 boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
@@ -162,7 +163,7 @@ imports no Qt or conda-only package.
 `views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
 QApplication per process, so the two window fixtures share it rather than each making their
-own. `channels_window` builds the real `MainWindow`, models and five views once per module
+own. `channels_window` builds the real `MainWindow`, models and six views once per module
 and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
 in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
 builds a fresh window with default settings for each test and restores the previous app

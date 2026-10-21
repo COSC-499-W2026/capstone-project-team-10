@@ -121,7 +121,7 @@ Five data-flow tabs, plus an empty Structures nav page at index 5. The code addr
 | Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter, directly or from a saved needle template. The list shows each channel's status. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
-| Structures | Empty page at `views[5]`. No nav button, organ list or 3D yet. |
+| Structures | Empty page under Import in the left bar, `views[5]`. No organ list or 3D yet. |
 
 A view method that changes geometry must use `@display_action`, or the model updates and the viewport does not. The shape path is in the UML above.
 
@@ -130,9 +130,9 @@ A view method that changes geometry must use `@display_action`, or the model upd
 Mostly course scaffolding. The changes to application behaviour are three Channels view fixes,
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
 An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`, and the Import
-tab lists each structure. An empty Structures page is `views[5]` so Cylinder stays index 1.
-The system architecture names `Structures`. DFD level 1 is unchanged, because the page has
-no data flow yet.
+tab lists each structure. An empty Structures tab sits under Import in the nav; the view is
+`views[5]` so Cylinder stays index 1. The system architecture names `Structures`. DFD level 1
+is unchanged, because the page has no data flow yet.
 
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
