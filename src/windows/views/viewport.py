@@ -1,7 +1,10 @@
+from OCC.Core.Poly import Poly_Triangulation
+from OCC.Core.Prs3d import Prs3d_ShadingAspect
+from windows.models.structures_model import StructureDisplayMode
 from dataclasses import dataclass
 from math import ceil, floor, isfinite, log10
 
-from OCC.Core.AIS import AIS_InteractiveObject, AIS_Shape, AIS_TextLabel
+from OCC.Core.AIS import AIS_InteractiveObject, AIS_Shape, AIS_TextLabel, AIS_Triangulation
 from OCC.Core.Bnd import Bnd_Box
 from OCC.Core.BRep import BRep_Builder
 from OCC.Core.BRepBndLib import brepbndlib
@@ -171,6 +174,19 @@ class qtBaseViewer(QtWidgets.QWidget):
 
 # ref   https://github.com/tpaviot/pythonocc-core/blob/master/src/Display/OCCViewer.py
 #       https://github.com/tpaviot/pythonocc-core/blob/master/src/Display/qtDisplay.py
+def anatomy_surface_presentation(mesh: Poly_Triangulation, rgb: tuple[int, int, int],
+                                 opacity: float) -> AIS_Triangulation:
+    """Use the triangulation renderer's mode and its own shaded colour/material."""
+    surface = AIS_Triangulation(mesh)
+    surface.SetDisplayMode(0)
+    color = Quantity_Color(*(component / 255 for component in rgb), Quantity_TOC_sRGB)
+    surface.Attributes().SetShadingAspect(Prs3d_ShadingAspect())
+    surface.Attributes().ShadingAspect().SetColor(color)
+    surface.SetColor(color)
+    surface.SetTransparency(1 - opacity)
+    return surface
+
+
 class OrbitCameraViewer3d(qtBaseViewer):
     # emit signal when selection is changed
     # is a list of TopoDS_*
@@ -211,21 +227,29 @@ class OrbitCameraViewer3d(qtBaseViewer):
         log.info(loggedinfo)
 
     def refresh_structure_outlines(self):
-        """Draw unselectable anatomy wires without adding export geometry."""
+        """Draw unselectable anatomy outlines and surfaces without export geometry."""
         if not self._inited:
             return
         context = self._display.Context
         for presentation in self._structure_presentations:
             context.Remove(presentation, False)
         self._structure_presentations.clear()
-        for structure in get_app().window.structuresmodel.presentations():
-            presentation = AIS_Shape(structure.outline)
+        model = get_app().window.structuresmodel
+        for structure in model.presentations():
             red, green, blue = structure.color
-            presentation.SetColor(Quantity_Color(red / 255, green / 255, blue / 255, Quantity_TOC_sRGB))
-            presentation.SetWidth(1.5)
-            context.Display(presentation, False)
-            context.Deactivate(presentation)
-            self._structure_presentations.append(presentation)
+            color = Quantity_Color(red / 255, green / 255, blue / 255, Quantity_TOC_sRGB)
+            if model.mode != StructureDisplayMode.OUTLINES and structure.surface is not None:
+                surface = anatomy_surface_presentation(structure.surface, structure.color, model.opacity)
+                context.Display(surface, False)
+                context.Deactivate(surface)
+                self._structure_presentations.append(surface)
+            if model.mode != StructureDisplayMode.SURFACE and structure.outline is not None:
+                outline = AIS_Shape(structure.outline)
+                outline.SetColor(color)
+                outline.SetWidth(1.)
+                context.Display(outline, False)
+                context.Deactivate(outline)
+                self._structure_presentations.append(outline)
         self._display.Repaint()
 
     def __init__(self, *kargs):
@@ -249,7 +273,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_available = False
         self._grid_definition: ReferenceGrid | None = None
         self._grid_presentations: list[AIS_InteractiveObject] = []
-        self._structure_presentations: list[AIS_Shape] = []
+        self._structure_presentations: list[AIS_InteractiveObject] = []
         self.grid_button = QtWidgets.QToolButton(self)
         self.grid_button.setText("XYZ grid (mm)")
         self.grid_button.setToolTip("Outer bounding-box grid; model XYZ coordinates in millimetres")

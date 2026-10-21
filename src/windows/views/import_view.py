@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QFileDialog, QListWidget, QListWidgetItem
+from PySide6.QtWidgets import QFileDialog, QListWidget, QListWidgetItem, QComboBox, QSlider, QLabel, QHBoxLayout
 from PySide6.QtCore import Qt, QSignalBlocker
 from PySide6.QtGui import QColor, QIcon, QPixmap
 
@@ -7,6 +7,7 @@ from classes.logger import log
 from classes.dicom.fileio import read_dicom_folder
 from classes.dicom.structure_list import structure_list_rows
 from windows.models.shape_model import ShapeTypes
+from windows.models.structures_model import StructureDisplayMode
 from windows.ui.import_view_ui import Ui_Import_View
 from windows.views.custom_view import display_action, CustomView
 
@@ -186,6 +187,10 @@ class ImportView(CustomView):
     def action_update_structure_list(self):
         """Show ROI visibility controls and explain unavailable contours."""
         model = get_app().window.structuresmodel
+        with QSignalBlocker(self.surface_mode), QSignalBlocker(self.surface_opacity):
+            self.surface_mode.setCurrentText(model.mode.value)
+            self.surface_opacity.setValue(round(model.opacity * 100))
+        self.opacity_label.setText(f"Opacity {round(model.opacity * 100)}%")
         structures = tuple(model.structures.values())
         with QSignalBlocker(self.structure_list):
             self.structure_list.clear()
@@ -200,7 +205,9 @@ class ImportView(CustomView):
                     item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                     item.setToolTip(reason)
                 else:
-                    item.setToolTip("Show or hide this DICOM contour outline")
+                    surface_error = model.surface_errors.get(roi)
+                    item.setToolTip(f"Surface unavailable: {surface_error}. Select Outlines or Both to view contours."
+                                    if surface_error else "Show or hide this structure; surfaces are approximate previews")
                 swatch = QPixmap(12, 12)
                 swatch.fill(QColor(*row.color))
                 item.setIcon(QIcon(swatch))
@@ -222,6 +229,25 @@ class ImportView(CustomView):
         super().__init__()
         self.ui = Ui_Import_View()
         self.ui.setupUi(self)
+
+        model = get_app().window.structuresmodel
+        controls = QHBoxLayout()
+        self.surface_mode = QComboBox(self)
+        self.surface_mode.addItems([mode.value for mode in StructureDisplayMode])
+        self.surface_mode.setCurrentText(model.mode.value)
+        self.surface_mode.setToolTip("Approximate surface sampled at 1 mm; original outlines remain available")
+        self.opacity_label = QLabel(f"Opacity {round(model.opacity * 100)}%", self)
+        self.surface_opacity = QSlider(Qt.Horizontal, self)
+        self.surface_opacity.setRange(0, 100)
+        self.surface_opacity.setValue(round(model.opacity * 100))
+        self.surface_opacity.setToolTip("Surface opacity; does not change outline opacity")
+        controls.addWidget(self.surface_mode)
+        controls.addWidget(self.opacity_label)
+        controls.addWidget(self.surface_opacity)
+        self.ui.verticalLayout_3.addLayout(controls)
+        self.surface_mode.currentTextChanged.connect(
+            lambda text: model.set_mode(StructureDisplayMode(text)))
+        self.surface_opacity.valueChanged.connect(lambda value: model.set_opacity(value / 100))
 
         self.structure_list = QListWidget(self)
         self.structure_list.setObjectName("structure_list")
