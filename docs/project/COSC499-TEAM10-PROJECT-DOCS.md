@@ -1235,7 +1235,8 @@ the default window: every spin box is 22 px and nothing scrolls sideways (§7.12
 | `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
 | `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
 | `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
-| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours |
+| `btn_move_channel` | Move... | opens the move popup for the selected channel. Enabled only while a channel that is not the tandem is selected |
+| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours, and for the underline of a moved row |
 | `le_template_name` | Template name (placeholder) | the name to save the Channel Diameter under |
 | `btn_save_template` | Save as Template | writes `~/brachify/needle_templates.json` |
 | `cb_needle_templates` | | every saved template, as `name  2.000 mm` |
@@ -1259,8 +1260,9 @@ Double-clicking a row moves its channel. `action_move_channel` asks `ChannelsVie
 for X, Y and Z in mm, which by default opens `MoveChannelDialog`. The dialog has no parent, starts at
 the channel's current move, allows ±300 mm, and has Reset to plan position, Cancel and OK. Cancel,
 or OK with unchanged values, does nothing, and the tandem's row opens nothing. A moved row is
-underlined and its tooltip adds `Moved by X 6, Y -4, Z 3 mm from the plan`. The legend label does
-not mention the underline yet. *Verified* 2026-10-20 by `tests/views/test_move_channel.py` and in
+underlined and its tooltip adds `Moved by X 6, Y -4, Z 3 mm from the plan`. The legend says
+underlined has been moved, and *Move...* in the Selected Channel group opens the same popup for the
+selected channel through `action_move_selected_channel`. *Verified* 2026-10-20 by `tests/views/test_move_channel.py` and in
 a driven run of the real window on macOS (Ex1, Applicator3 moved by 6, -4, 3 mm: the top view showed
 its tip shifted by that much, and the PDF and the STL both exported). Not verified: Windows, and the
 PDF's drawn pages.
