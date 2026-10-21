@@ -1282,7 +1282,7 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 
 **Main window** (`main_window.ui`) — `display_view_widget` (hosts the OCC canvas),
 `top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
-`page_import` … `page_export`.
+`page_import` … `page_export` plus a sixth page added by `NavigationModel`.
 
 The shared `display_view_widget` also hosts the grid and central-axis controls (§5.7).
 
