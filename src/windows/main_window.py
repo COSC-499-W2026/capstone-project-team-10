@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QMainWindow, QMessageBox
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import QMainWindow, QMessageBox, QPushButton
 
 from classes.logger import log
 from classes.app import get_app
@@ -55,6 +56,7 @@ class MainWindow(QMainWindow):
 
         self.ui = main_window_ui.Ui_MainWindow()
         self.ui.setupUi(self)
+        self._add_structures_nav_button()
 
         # TODO set keyboard shortcuts
         # TODO set theme
@@ -68,6 +70,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_channels_view.pressed.connect(lambda: app.signals.viewChanged.emit(2))
         self.ui.btn_tandem_view.pressed.connect(lambda: app.signals.viewChanged.emit(3))
         self.ui.btn_export_view.pressed.connect(lambda: app.signals.viewChanged.emit(4))
+        self.ui.btn_structures_view.pressed.connect(lambda: app.signals.viewChanged.emit(5))
 
         
         self.ui.btn_import_view.pressed.connect(self.change_color_import)
@@ -75,6 +78,7 @@ class MainWindow(QMainWindow):
         self.ui.btn_channels_view.pressed.connect(self.change_color_channels)
         self.ui.btn_tandem_view.pressed.connect(self.change_color_tandem)
         self.ui.btn_export_view.pressed.connect(self.change_color_export)
+        self.ui.btn_structures_view.pressed.connect(self.change_color_structures)
 
         # Export cuts the channels out of the cylinder, so it stays off until a cylinder exists
         self.ui.btn_export_view.setStyleSheet(NAV_BUTTON_STYLE)
@@ -82,41 +86,46 @@ class MainWindow(QMainWindow):
 
         #app.signals.viewChanged.connect(self.ui.viewswidget.setCurrentIndex)
 
+    def _add_structures_nav_button(self):
+        button = QPushButton(self.ui.top_menu_bar)
+        button.setObjectName("btn_structures_view")
+        button.setMinimumSize(QSize(290, 33))
+        button.setMaximumSize(QSize(290, 33))
+        button.setText("Structures")
+        button.setStyleSheet(NAV_BUTTON_STYLE)
+        self.ui.btn_structures_view = button
+        import_index = self.ui.verticalLayout_31.indexOf(self.ui.btn_import_view)
+        self.ui.verticalLayout_31.insertWidget(import_index + 1, button)
+
+    def _nav_buttons(self):
+        return [
+            self.ui.btn_import_view,
+            self.ui.btn_structures_view,
+            self.ui.btn_cylinder_view,
+            self.ui.btn_channels_view,
+            self.ui.btn_tandem_view,
+            self.ui.btn_export_view,
+        ]
+
+    def _highlight_nav(self, selected):
+        for button in self._nav_buttons():
+            if button is selected:
+                button.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
+            else:
+                button.setStyleSheet(NAV_BUTTON_STYLE)
+
     def change_color_import(self):
-        views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
-        for v in views:
-            if(v != self.ui.btn_import_view):
-                v.setStyleSheet(NAV_BUTTON_STYLE)
-            else:
-                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
+        self._highlight_nav(self.ui.btn_import_view)
     def change_color_cylinder(self):
-        views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
-        for v in views:
-            if(v != self.ui.btn_cylinder_view):
-                v.setStyleSheet(NAV_BUTTON_STYLE)
-            else:
-                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
+        self._highlight_nav(self.ui.btn_cylinder_view)
     def change_color_channels(self):
-        views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
-        for v in views:
-            if(v != self.ui.btn_channels_view):
-                v.setStyleSheet(NAV_BUTTON_STYLE)
-            else:
-                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
+        self._highlight_nav(self.ui.btn_channels_view)
     def change_color_tandem(self):
-        views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
-        for v in views:
-            if(v != self.ui.btn_tandem_view):
-                v.setStyleSheet(NAV_BUTTON_STYLE)
-            else:
-                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
+        self._highlight_nav(self.ui.btn_tandem_view)
     def change_color_export(self):
-        views = [self.ui.btn_import_view, self.ui.btn_cylinder_view, self.ui.btn_channels_view, self.ui.btn_tandem_view, self.ui.btn_export_view]
-        for v in views:
-            if(v != self.ui.btn_export_view):
-                v.setStyleSheet(NAV_BUTTON_STYLE)
-            else:
-                v.setStyleSheet(SELECTED_NAV_BUTTON_STYLE)
+        self._highlight_nav(self.ui.btn_export_view)
+    def change_color_structures(self):
+        self._highlight_nav(self.ui.btn_structures_view)
         
         
     def initModels(self):
