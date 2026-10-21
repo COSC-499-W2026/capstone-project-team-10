@@ -118,7 +118,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 - As part of requirement **FR-CN-07, edited needles are reflected in the 3D export and the PDF reference sheet**, the user needs
   to do **move Applicator3 by X 40, read the warning in the popup, press OK, then export the PDF and read its note**.
-- Therefore, I implemented/generated code so that **physicists are told when a moved needle will not be on the sheet, and the sheet names it instead of dropping it silently**.
+- Therefore, I implemented/generated code so that **physicists are told when a moved channel will not be on the sheet, and the sheet names it instead of dropping it silently**.
 
 #### Backend
 
@@ -127,14 +127,14 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   structure has high cohesion because **the sheet's rule stays in `template_reference.py`**. This design is
   scalable because **a later limit on moves can call the same function**.
 
-  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/c74d24211c1a80e288138e8bd3236a749b5bf4b9/docs/architecture/diagrams/system-architecture.svg)**
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/fca79ed110a614a375526c189ee072e9d98c0778/docs/architecture/diagrams/system-architecture.svg)**
 - The Level 0 DFD consists of the following major components: **medical physicist, treatment
-  planning system, brachify and printer or CAD**. **A needle moved out of the cylinder comes out named in the PDF**
+  planning system, brachify and printer or CAD**. **A channel moved out of the base circle comes out named in the PDF**
 
-  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/c74d24211c1a80e288138e8bd3236a749b5bf4b9/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
-- The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **Channels checks the typed move against the sheet's rule and warns, and Export writes the note under the needle table**. **A needle wholly below the base is dropped from the table, and the note names it only if it was moved**.
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/fca79ed110a614a375526c189ee072e9d98c0778/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **Channels checks the typed move against the sheet's rule and warns, and Export writes the note under the needle table**. **A channel wholly below the base is dropped from the table, and the note names it only if it was moved**.
 
-  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/c74d24211c1a80e288138e8bd3236a749b5bf4b9/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/fca79ed110a614a375526c189ee072e9d98c0778/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
 - The following traceability matrix shows the list of requirements completed in this
   milestone and their associated tests: **FR-CN-07 → `test_a_needle_moved_out_of_the_cylinder_is_left_off_the_sheet_and_named`, `test_every_unmoved_needle_of_the_plan_stays_on_the_sheet`**
 - Not applicable: **architectural pattern (unchanged), database (none), state management (pure functions added), data processing
@@ -142,13 +142,14 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 #### Frontend
 
-- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification**. The aspects that demonstrate this principle in the system include **the popup says in words that the needle will not be listed, and the moved row's tooltip repeats it (screenshot 1)**.
+- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification**. The aspects that demonstrate this principle in the system include **the popup says in words that the channel will not be listed, and the moved row's tooltip repeats it (screenshot 1)**.
 - Not applicable: **data caching (none), restricted pages (no logins), design components (plain Qt widgets), usability evaluation (none run), test coverage (no coverage tool)**.
 
 #### Review and design
 
 - When I reviewed the **popup in the running app**, I noticed **the warning sentence was cut to its first line because the dialog kept its opening size**. Therefore, I did **set the layout to `SetFixedSize`, pinned by `test_the_popup_is_laid_out_to_grow_with_its_warning`, which checks the setting because offscreen Qt cannot reproduce the clipping**.
 - When I reviewed **`channels_inside_cylinder`**, I noticed **it listed a needle wholly below the base with a made-up point and 0.0 cm**. Therefore, I did **drop a needle with no point above the base, with `test_a_needle_moved_wholly_below_the_base_is_not_listed_with_a_zero_length`**.
+- The review by **Ariq** identified **that the warning was unclear and said needle where the Channels tab says channel**. Therefore, I did **reword the popup, the tooltip and the sheet note to "This move takes the channel outside the base circle of the cylinder"**.
 - The PR does not contain any temporary workaround because **the warning calls the sheet's own `channels_inside_cylinder`, and the one gap left, that the cut still carves such a needle, is recorded in §7.14**.
 - The PR only contains small functions that are **at most 6 lines** long.
 - I did **`anti_slop review --base feat/channel-move-button src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does
@@ -174,6 +175,6 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - These tests are included in the directory **`tests/views/test_move_channel.py`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` (267 passed), `build.py --check` and `session-start.sh` (exit 0), and brachify run on macOS with Ex1, driven by a script, then the PDF's own text read back to show the note and 11 listed needles (screenshot 1)**.
 
-  ![1, Ex1 on macOS, Applicator3 moved 40 mm in X: the popup warning, the underlined row, and the sheet's note under the needle table](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c74d24211c1a80e288138e8bd3236a749b5bf4b9/docs/logs/ahab/screenshots/week-7/pr-120-1-out-of-cylinder.png)
+  ![1, Ex1 on macOS, Applicator3 moved 40 mm in X: the popup warning, the underlined row, and the sheet's note under the channel table](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fca79ed110a614a375526c189ee072e9d98c0778/docs/logs/ahab/screenshots/week-7/pr-120-1-out-of-cylinder.png)
 
 - Not applicable: **generated-test review (no problem found)**.
