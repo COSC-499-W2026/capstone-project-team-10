@@ -54,3 +54,39 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **`test_structures_view_is_appended_so_cylinder_and_export_keep_their_indexes`, `test_opening_structures_by_signal_shows_page_five`** are integration tests.
 - These tests are included in the directory **`tests/windows/`**.
 - This new test PR did not break anything else in the system because **`tests/windows/test_main_window.py` is 7 passed**. Four tests already fail on `main` on this Windows machine (`test_the_default_dome_tandem_cut_out_is_unchanged` 3875.269 vs 3875.268, and three Cylinder/Channels 20 px layout cases at 19 px).
+
+### For PR #**117**
+
+- As part of requirement **FR-SV frontend, Structures tab**, the user needs to do **click Structures under Import and see its empty page**.
+- Therefore, I implemented/generated code so that **the medical physicist gets a Structures button that opens `views[5]` without moving Cylinder**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6** with design components for **left-bar `QPushButton`s and `QStackedWidget` pages**. Therefore, changing the design of **`NAV_BUTTON_STYLE`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the label is `setText("Structures")` on one button**.
+- Not applicable: **data caching (no backend fetch), restricted pages (no logins), usability evaluation (none run), accessibility (no new colon or em dash copy), traceability matrix (FR-SV not complete), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **five `change_color_*` methods** for this functionality, I noticed **a sixth button would stay selected unless every method listed it**. Therefore, I did **`_nav_buttons` and `_highlight_nav`**.
+- The PR does not contain any temporary workaround because **the button is created in `MainWindow` after `setupUi` instead of regenerating `main_window.ui`**.
+- The PR only contains small functions that are **10 lines** long (`_add_structures_nav_button`).
+- I did **read `main_window.py` and run anti-slop `review --base feat/structures-tab-page`** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`main_window.py`** because **nav buttons are wired there**.
+- This work belongs in **Import's follow-on page, not a sixth DFD process** in the DFD because **the page still has no data flow**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_structures_button_sits_directly_under_import`, `test_clicking_structures_opens_the_structures_page_and_leaves_cylinder_at_one`, `test_clicking_cylinder_after_structures_still_opens_cylinder` (10 passed in `tests/windows/test_main_window.py`)** passed.
+- I wrote tests to cover abnormal situations involving **Cylinder after Structures** and they passed.
+- Not applicable: **negative cases (no invalid input), generated-test review (no generated tests)**.
+- Among these tests, **none** are unit tests and **the three Structures click tests** are integration tests.
+- These tests are included in the directory **`tests/windows/`**.
+- This new test PR did not break anything else in the system because **`tests/windows/test_main_window.py` is 10 passed**. Four tests already fail on `main` on this Windows machine, named in #116.
