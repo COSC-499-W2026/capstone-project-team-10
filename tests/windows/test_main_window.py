@@ -15,8 +15,10 @@ if TYPE_CHECKING:
 IMPORT_TAB = 0
 CYLINDER_TAB = 1
 EXPORT_TAB = 4
+STRUCTURES_TAB = 5
 SAMPLE_PLAN = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
 SELECTED_TAB_BACKGROUND = QColor(28, 44, 81)
+UNSELECTED_TAB_BACKGROUND = QColor(199, 219, 237)
 
 
 def click(button: QPushButton) -> None:
@@ -115,3 +117,156 @@ def test_export_button_is_highlighted_after_opening_export_with_applied_settings
     click(export_button)
 
     assert export_button.grab().toImage().pixelColor(2, 2) == SELECTED_TAB_BACKGROUND
+
+
+def test_structures_view_is_appended_so_cylinder_and_export_keep_their_indexes(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures is views[5] and Cylinder and Export did not move.
+
+    Fails if views[5] is missing or is not a StructuresView, or if Cylinder left index 1 or
+    Export left index 4. Inserting Structures after Import would shift every later tab and
+    send cylinder length and tandem caps to the wrong widgets.
+    """
+    from windows.views.cylinder_view import CylinderView
+    from windows.views.export_view import Export_View
+    from windows.views.structures_view import StructuresView
+
+    assert type(fresh_window.navigationmodel.views[STRUCTURES_TAB]) is StructuresView
+    assert type(fresh_window.navigationmodel.views[CYLINDER_TAB]) is CylinderView
+    assert type(fresh_window.navigationmodel.views[EXPORT_TAB]) is Export_View
+
+
+def test_opening_structures_by_signal_shows_page_five(fresh_window: MainWindow) -> None:
+    """Check that viewChanged(5) shows the Structures page.
+
+    Fails if the stacked widget stays on Import, or if page 5 is not a StructuresView. There
+    is no nav button yet, so a later tab that emits 5 is how a physicist will reach organs.
+    """
+    from classes.app import get_app
+    from windows.views.structures_view import StructuresView
+
+    get_app().signals.viewChanged.emit(STRUCTURES_TAB)
+
+    assert fresh_window.navigationmodel.current_page == STRUCTURES_TAB
+    assert fresh_window.ui.viewswidget.currentIndex() == STRUCTURES_TAB
+    assert type(fresh_window.navigationmodel.views[STRUCTURES_TAB]) is StructuresView
+
+
+def test_structures_button_sits_directly_under_import(fresh_window: MainWindow) -> None:
+    """Check that Structures is the nav button immediately under Import.
+
+    Fails if the button is missing, not labelled Structures, or sits anywhere else in the
+    left bar. FR-SV needs its own page under Import, and a physicist looking for organs
+    would open Cylinder if this button were below that instead.
+    """
+    layout = fresh_window.ui.verticalLayout_31
+    import_index = layout.indexOf(fresh_window.ui.btn_import_view)
+    structures_index = layout.indexOf(fresh_window.ui.btn_structures_view)
+
+    assert fresh_window.ui.btn_structures_view.text() == "Structures"
+    assert structures_index == import_index + 1
+
+
+def test_clicking_structures_opens_the_structures_page_and_leaves_cylinder_at_one(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures opens its own page and Cylinder stays views[1].
+
+    Fails if the click does not show page 5, if that page is not a StructuresView, or if
+    Cylinder or Export moved. Inserting Structures at index 1 would shift every later tab
+    and send cylinder length and tandem caps to the wrong widgets.
+    """
+    from windows.views.cylinder_view import CylinderView
+    from windows.views.export_view import Export_View
+    from windows.views.structures_view import StructuresView
+
+    click(fresh_window.ui.btn_structures_view)
+
+    assert fresh_window.navigationmodel.current_page == STRUCTURES_TAB
+    assert fresh_window.ui.viewswidget.currentIndex() == STRUCTURES_TAB
+    assert type(fresh_window.navigationmodel.views[STRUCTURES_TAB]) is StructuresView
+    assert type(fresh_window.navigationmodel.views[CYLINDER_TAB]) is CylinderView
+    assert type(fresh_window.navigationmodel.views[EXPORT_TAB]) is Export_View
+
+
+def test_clicking_cylinder_after_structures_still_opens_cylinder(fresh_window: MainWindow) -> None:
+    """Check that Cylinder still opens after visiting Structures.
+
+    Fails if the Cylinder click leaves the Structures page showing, or if views[1] is no
+    longer Cylinder. A shifted index would make Apply Settings write into the wrong tab.
+    """
+    click(fresh_window.ui.btn_structures_view)
+    click(fresh_window.ui.btn_cylinder_view)
+
+    assert fresh_window.navigationmodel.current_page == CYLINDER_TAB
+    assert fresh_window.ui.viewswidget.currentIndex() == CYLINDER_TAB
+    assert fresh_window.ui.btn_cylinder_view.grab().toImage().pixelColor(2, 2) == SELECTED_TAB_BACKGROUND
+
+
+def test_nav_buttons_do_not_overlap_after_show(fresh_window: MainWindow) -> None:
+    """Check that the six nav buttons sit in separate rectangles inside the bar.
+
+    Fails if any two button geometries overlap, or if a button extends past top_menu_bar,
+    after show(). The bar's 165 px minimum is five 33 px rows, so a sixth button was drawn
+    over Export and clipped. A physicist then cannot click Export cleanly.
+    """
+    from PySide6.QtWidgets import QApplication
+
+    fresh_window.show()
+    QApplication.processEvents()
+
+    bar_rect = fresh_window.ui.top_menu_bar.rect()
+    rectangles = [
+        fresh_window.ui.btn_import_view.geometry(),
+        fresh_window.ui.btn_structures_view.geometry(),
+        fresh_window.ui.btn_cylinder_view.geometry(),
+        fresh_window.ui.btn_channels_view.geometry(),
+        fresh_window.ui.btn_tandem_view.geometry(),
+        fresh_window.ui.btn_export_view.geometry(),
+    ]
+
+    for rectangle in rectangles:
+        assert bar_rect.contains(rectangle)
+    for index, first in enumerate(rectangles):
+        for second in rectangles[index + 1 :]:
+            assert not first.intersects(second)
+
+
+def test_clicking_structures_highlights_structures_not_import(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures is drawn selected and Import is not, after a Structures click.
+
+    Fails if Structures's pixel is not rgb(28, 44, 81), or Import's still is. Dropping
+    Structures from `_nav_buttons` left it unhighlighted and every other test still passed,
+    so a physicist could be on the organs page with Import still looking current.
+    """
+    click(fresh_window.ui.btn_structures_view)
+
+    assert (
+        fresh_window.ui.btn_structures_view.grab().toImage().pixelColor(2, 2)
+        == SELECTED_TAB_BACKGROUND
+    )
+    assert (
+        fresh_window.ui.btn_import_view.grab().toImage().pixelColor(2, 2)
+        != SELECTED_TAB_BACKGROUND
+    )
+
+
+def test_clicking_cylinder_after_structures_unhighlights_structures(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures goes back to the unselected colour after Cylinder is clicked.
+
+    Fails if Structures's pixel is not rgb(199, 219, 237). Disconnecting its colour slot
+    left the previous tab highlighted, so the bar would still show Structures as current
+    after the physicist had moved on.
+    """
+    click(fresh_window.ui.btn_structures_view)
+    click(fresh_window.ui.btn_cylinder_view)
+
+    assert (
+        fresh_window.ui.btn_structures_view.grab().toImage().pixelColor(2, 2)
+        == UNSELECTED_TAB_BACKGROUND
+    )

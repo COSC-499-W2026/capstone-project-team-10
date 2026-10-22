@@ -1,6 +1,7 @@
 import numpy as np
 from pathlib import Path
 import pydicom
+from pydicom.dataset import Dataset
 from classes.logger import log
 from classes.dicom.data import DicomData
 from classes.dicom.load_structures import load_structures
@@ -53,7 +54,17 @@ def is_rs_file(filepath: str) -> bool:
     return True
 
 
+def probe_frame_uid(dataset: Dataset, roi_number: int | None) -> str | None:
+    """Read the frame from the dataset that actually supplies the probe geometry."""
+    for definition in dataset.get('StructureSetROISequence', ()):
+        if int(definition.ROINumber) == roi_number:
+            uid = str(definition.get('ReferencedFrameOfReferenceUID', '')).strip()
+            return uid or None
+    return None
+
+
 def load_central_axis_varian(data: DicomData, rs_dataset):
+    data.probe_frame_uid = probe_frame_uid(rs_dataset, data.central_channel_roi)
 
     for sequence in rs_dataset.ROIContourSequence:
         if sequence.ReferencedROINumber == data.central_channel_roi:
@@ -71,6 +82,7 @@ def load_central_axis_varian(data: DicomData, rs_dataset):
     data.cylinder_direction = data.cylinder_tip - data.cylinder_base   
 
 def load_central_axis_nucletron(data: DicomData, channels_data):
+    data.probe_frame_uid = probe_frame_uid(channels_data[0], data.central_channel_roi)
     central_channel = None
     # central_channel = rp_dataset.ApplicationSetupSequence[0].ChannelSequence[data.central_channel_roi].BrachyControlPointSequence
     for contoursequence in channels_data[0].ROIContourSequence:
@@ -245,6 +257,7 @@ def load_channels_nucletron(data: DicomData, channels_data, center_index):
 def load_cylinder_contour(data: DicomData, rs_dataset):
     data.cylinder_roi = list(filter(lambda s: ("surface" in s.ROIObservationLabel.lower()),
                                     rs_dataset.RTROIObservationsSequence))[0].ReferencedROINumber
+    data.probe_frame_uid = probe_frame_uid(rs_dataset, data.cylinder_roi)
     cylinder_contour = list(filter(lambda s: (s.ReferencedROINumber == data.cylinder_roi),
                                     rs_dataset.ROIContourSequence))[0]
 

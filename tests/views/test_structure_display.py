@@ -18,11 +18,12 @@ def anatomy_model(units_app):
     plan.cylinder_base = (0., 0., 0.)
     plan.cylinder_direction = (0., 0., 10.)
     plan.central_channel_roi = 1
+    plan.probe_frame_uid = '1.2.3'
     plan.structures = (
-        Structure(1, 'Axis', 'frame', (255, 255, 255), None, StructureType.OTHER, ()),
-        Structure(2, 'Organ', 'frame', (0, 255, 0), 'ORGAN', StructureType.ORGAN,
+        Structure(1, 'Axis', '1.2.3', (255, 255, 255), None, StructureType.OTHER, ()),
+        Structure(2, 'Organ', '1.2.3', (0, 255, 0), 'ORGAN', StructureType.ORGAN,
                   (Contour('CLOSED_PLANAR', ((0., 0., 5.), (2., 0., 5.), (0., 2., 5.))),)),
-        Structure(3, 'Wrong frame', 'different', (255, 0, 0), 'ORGAN', StructureType.ORGAN,
+        Structure(3, 'Wrong frame', '1.2.4', (255, 0, 0), 'ORGAN', StructureType.ORGAN,
                   (Contour('CLOSED_PLANAR', ((0., 0., 5.), (2., 0., 5.), (0., 2., 5.))),)),
     )
     model.load_plan(plan, 20.)
@@ -63,14 +64,14 @@ def test_anatomy_length_change_and_hide_preserve_geometry(anatomy_model):
     assert anatomy_model.structures == {}
 
 
-def test_import_list_checkboxes_control_anatomy_and_failed_import_clears_it(channels_window, tmp_path: Path):
-    """Use real Import checkboxes and verify a failed new import clears old anatomy.
+def test_structures_checkboxes_control_anatomy_and_failed_import_clears_it(channels_window, tmp_path: Path):
+    """Use real Structures checkboxes and verify a failed new import clears old anatomy.
 
     A missing checkbox update or remaining preview after failure fails; the previous
     patient's contours must not survive an import attempt.
     """
     from PySide6.QtCore import Qt
-    view = channels_window.navigationmodel.views[0]
+    view = channels_window.navigationmodel.views[5]
     model = channels_window.structuresmodel
     view.action_update_structure_list()
     item = view.structure_list.item(0)
@@ -81,7 +82,60 @@ def test_import_list_checkboxes_control_anatomy_and_failed_import_clears_it(chan
     assert model.presentations()
     view.structure_list.item(0).setCheckState(Qt.Unchecked)
     assert roi not in model.visible
-    assert all(not label.startswith('structure:') for label in channels_window.displaymodel.shapes)
-    view.import_dicom_from_folder(str(tmp_path))
+    import_view = channels_window.navigationmodel.views[0]
+    assert not import_view.structure_list.item(0).flags() & Qt.ItemIsUserCheckable
+    import_view.import_dicom_from_folder(str(tmp_path))
+    assert not model.structures
+    assert not model.presentations()
+
+
+@pytest.mark.parametrize('probe_frame', ['1.2.3', '1.2.4', None])
+def test_nucletron_uses_embedded_probe_frame_not_colliding_rs_roi(anatomy_model, probe_frame):
+    """Compare anatomy against the actual private RTPLAN probe coordinate frame.
+
+    A colliding external ROI number must not authorize a mismatched or missing
+    embedded frame; otherwise anatomy can appear falsely aligned to the needle.
+    """
+    from pydicom.dataset import Dataset
+    from classes.dicom.fileio import load_central_axis_nucletron
+    plan = DicomData()
+    plan.central_channel_roi = 1
+    plan.structures = tuple(anatomy_model.structures.values())
+    definition = Dataset()
+    definition.ROINumber = 1
+    if probe_frame is not None:
+        definition.ReferencedFrameOfReferenceUID = probe_frame
+    contour = Dataset()
+    contour.ContourData = [0., 0., 10., 0., 0., 0.]
+    geometry = Dataset()
+    geometry.ReferencedROINumber = 1
+    geometry.ContourSequence = [contour]
+    embedded = Dataset()
+    embedded.StructureSetROISequence = [definition]
+    embedded.ROIContourSequence = [geometry]
+    load_central_axis_nucletron(plan, [embedded])
+    anatomy_model.load_plan(plan, 20.)
+    assert (2 in anatomy_model.visible) == (probe_frame == '1.2.3')
+    if probe_frame != '1.2.3':
+        assert 2 in anatomy_model.unavailable
+
+
+def test_empty_display_refresh_preserves_anatomy_until_explicit_reset(cylinder_window, anatomy_model):
+    """Separate a transient empty printable scene from clearing the imported plan.
+
+    Losing the organ on an empty refresh, or keeping it after reset, fails; a
+    display update must neither erase anatomy nor retain the previous patient.
+    """
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.central_channel_roi = 1
+    plan.structures = tuple(anatomy_model.structures.values())
+    model = cylinder_window.structuresmodel
+    model.load_plan(plan, 20.)
+    cylinder_window.displaymodel.show_shapes([])
+    assert model.visible == {2}
+    cylinder_window.displaymodel.reset()
     assert not model.structures
     assert not model.presentations()
