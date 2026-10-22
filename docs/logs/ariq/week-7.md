@@ -321,3 +321,50 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 245 passed (242 after #101), exit 0, and both exported STLs measured: z 0 to 170 mm, flat top 15 mm in radius, notch on the collar 19.83 mm out (screenshot 1)**.
 
   ![1, Ex1's Export tab and reference sheet after loading and applying the flat 170 mm collared template, then the tests on this branch, 3 and 245 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/08a2f0eb7fbb8abba317ac56f6c24acc5dcc7b74/docs/logs/ariq/screenshots/week-7/pr-102-1-ex1-export-and-sheet.png)
+
+## Stack #130, at a glance
+
+Stacked documentation PRs that apply the week 6 traceability feedback. A row's counts are that
+PR's own diff only, against the PR it is on. No code changed, so the suite stayed at 245 tests.
+
+| PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
+|---|---|---|---|---|---|---|
+| [#130](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/130) | `main` | #127 | week 7 log consolidated; `/make-pr` stack, issue and screenshot rules | 6, +298/−136 | none, markdown only | 245 |
+
+### Shared by every PR in this stack
+
+- Only markdown changed in each PR (`git diff --name-only`), so these receipts do not apply to
+  any of them: **temporary workaround, function length, DFD process, abnormal cases, negative
+  cases, generated-test review, unit and integration tests, test directory (no code changed,
+  the checks are shell commands)**.
+- Code quality checklist. Each section names the check run on that PR's files to ensure that
+  my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- Every PR's regression check is **`python -m pytest` (245 passed) on the stack's top commit,
+  which holds all three PRs' markdown, and `build.py --check` and `session-start.sh` (both
+  exit 0)**.
+
+### For PR #**130** (1 of 3, on `main`)
+
+- As part of requirement **the course's weekly individual log, where week 6 lost a mark for not "clearly identifying the unique changes and test evidence associated with each PR"**, the user needs to do **read my week 7 log and see what each of the stacked PRs #93 to #102 added, and run `/make-pr` on a stacked PR and get the same structure, an issue link and its screenshots**.
+- Therefore, I implemented/generated code so that **graders get a stack table and per-PR new-test counts in `docs/logs/ariq/week-7.md`, and Team 10 students get the stack, issue and screenshot rules in `docs/workflows/make-pr.md`**.
+
+#### Review and design
+
+- When I reviewed the **generated week 7 log** for this functionality, I noticed **its test counts were file and suite totals, so #94's "37 passed" included #93's 18**. Therefore, I did **collect the tests at each merge commit with `pytest --collect-only` and write the new ones apart (18, 19, 7, 2, 7, 4, 7, 3; 178 to 245)**.
+- When I reviewed the **generated stacked-PR rule**, I noticed **a Shared block kept only in the log would make each PR's Part A differ from its log section**. Therefore, I did **put the Shared block above the `For PR` heading in every PR description, outside the copied Part A**.
+- When I reviewed the **documentation set against this diff**, I noticed **AGENTS.md's list of `/make-pr` traps lacked the issue and stack rules**. Therefore, I did **add both in this PR**.
+- Code quality checklist: **see Shared; for this PR, all 213 relative links and anchors in its six files resolve (a script over `git show`)**.
+- This work is written in **`docs/workflows/make-pr.md` and `docs/logs/ariq/week-7.md`** because **`make-pr.md` is the canonical PR procedure and the log is the graded file**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **this Part A and the stack block above it in my week 7 log, written under the new rules (`1 of 3, on main`, the Shared block, `Closes #127`)** passed.
+- This new test PR did not break anything else in the system because **only markdown changed, and the Shared checks passed**.
