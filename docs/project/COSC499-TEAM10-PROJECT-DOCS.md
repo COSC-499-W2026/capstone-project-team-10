@@ -774,7 +774,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
-│   └── workflows/             tool-agnostic procedures (commit, make-pr)
+│   └── workflows/             tool-agnostic procedures (commit, make-pr, make-weekly-log)
 ├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle and cylinder template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
@@ -2326,6 +2326,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 | [docs/workflows/README.md](../workflows/README.md) | index of the tool-agnostic workflows |
 | [docs/workflows/commit.md](../workflows/commit.md) | the canonical commit procedure |
 | [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure, including the weekly log entry |
+| [docs/workflows/make-weekly-log.md](../workflows/make-weekly-log.md) | the canonical team log (Part B) procedure, and the grader's comments on team logs |
 | [tests/README.md](../../tests/README.md) | TDD policy, `tests/` scoping rule, what to test first |
 | [utils/README.md](../../utils/README.md) | `utils/` scoping rule and what belongs there |
 | [README.md](../../README.md) | repository entry point |
@@ -2334,7 +2335,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 | [agent-skills/README.md](../../agent-skills/README.md) | the skills every agent loads at session start |
 | [pull_request_template.md](../../pull_request_template.md) | Team 10's PR template: the course's Part A receipts, and the checklists that enforce this set |
 | [.claude/README.md](../../.claude/README.md) | Claude Code configuration: commands, skills, session-start hook |
-| [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md` | pointers to `docs/workflows/` |
+| [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md`, `make-weekly-log.md` | pointers to `docs/workflows/` |
 | [.claude/skills/](../../.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` |
 
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking

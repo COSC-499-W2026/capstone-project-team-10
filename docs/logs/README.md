@@ -81,7 +81,8 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
 ## Team log: Part B
 
 `team/week-<K>.md` is written once per week by the team, covering everyone's merged work. It
-is not written by `/make-pr`, and it does not go in any PR description. It uses the course's
+is written by [make-weekly-log](../workflows/make-weekly-log.md) (`/make-weekly-log <week> <PRs>`),
+not by `/make-pr`, and it does not go in any PR description. It uses the course's
 Part B template below. Replace each `[...]` with the answer in **bold**, keep one side of each
 _or_, and delete the italic guidance lines, the same way as Part A.
 
