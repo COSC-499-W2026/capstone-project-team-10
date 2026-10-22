@@ -1,6 +1,11 @@
-from PySide6.QtWidgets import QWidget
+from collections.abc import Callable
+from datetime import datetime, timezone
+from uuid import uuid4
+
+from PySide6.QtWidgets import QFrame, QLayout, QListWidgetItem, QMessageBox, QScrollArea, QVBoxLayout, QWidget
 
 from classes.app import get_app
+from classes.info import USER_PATH
 from classes.logger import log
 from classes.mesh.cylinder import BrachyCylinder, TipShape, tip_shape_from_config
 from classes.mesh.notch import NotchSettings, notch_settings_from_config
@@ -10,6 +15,10 @@ from windows.ui.cylinder_view_ui import Ui_Cylinder_View
 from windows.views.custom_view import display_action, CustomView
 from windows.length_field import LengthField, LengthUnit
 
+from settings.cylinder_templates import (
+    LIBRARY_FILE_NAME, CylinderDesign, CylinderTemplate, CylinderTemplateError, add_template, delete_template,
+    load_templates, make_template, update_template,
+)
 from settings.reset import getCurrentValues
 from OCC.Core.gp import gp_Dir, gp_Ax2, gp_Pnt
 
@@ -19,6 +28,32 @@ materials = {
     ShapeTypes.TANDEM: {"rgb": [0.8, 0.8, 0.8], "transparent": True},
     ShapeTypes.SELECTED: {"rgb": [0.2, 0.55, 0.55], "transparent": True}
 }
+
+
+def template_summary(template: CylinderTemplate) -> str:
+    """A saved template's tooltip: its note, its dates and its cylinder in one line, with no colons."""
+    design = template.design
+    tip = TipShape.FLAT if design.flat_tip else TipShape.DOME
+    lines = [template.note] if template.note else []
+    lines += [f"Created {template.created.astimezone():%d %b %Y}",
+              f"Modified {template.modified.astimezone():%d %b %Y}",
+              f"{design.diameter_mm:.2f} mm by {design.length_mm:g} mm, {tip.value}"]
+    return "\n".join(lines)
+
+
+def template_change_dialog(title: str, question: str) -> QMessageBox:
+    """The dialog Update and Delete ask with. Cancel is the default, so pressing Return changes nothing.
+
+    It has no parent, like the app's other dialogs: parented to the tab it inherited the main
+    window's light stylesheet, and its dark-mode white text could not be read.
+    """
+    dialog = QMessageBox()
+    dialog.setIcon(QMessageBox.Icon.Question)
+    dialog.setWindowTitle(title)
+    dialog.setText(question)
+    dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+    dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+    return dialog
 
 
 class CylinderView(CustomView):
@@ -124,6 +159,102 @@ class CylinderView(CustomView):
                         self.ui.spinbox_notch_depth, self.ui.spinbox_notch_height):
             spinbox.setEnabled(enabled)
 
+    def cylinder_design(self) -> CylinderDesign:
+        """Read the tab's 11 settings, lengths in mm whatever Units shows."""
+        notch = self.notch_settings()
+        return CylinderDesign(
+            diameter_mm=self.diameter_field.millimetres,
+            length_mm=self.length_field.millimetres,
+            collar_enabled=self.ui.cb_add_base.isChecked(),
+            collar_thickness_mm=self.base_thickness_field.millimetres,
+            collar_height_mm=self.base_height_field.millimetres,
+            notch_enabled=notch.enabled,
+            notch_angle_deg=notch.angle,
+            notch_width_mm=notch.width,
+            notch_depth_mm=notch.depth,
+            notch_height_mm=notch.height,
+            flat_tip=self.selected_tip() is TipShape.FLAT)
+
+    def action_load_templates(self) -> None:
+        """Show every saved template, or none, with the reason, if the library cannot be read."""
+        try:
+            self.show_templates(load_templates(self.templates_path))
+        except CylinderTemplateError as error:
+            self.show_templates(())
+            self.ui.label_template_status.setText(str(error))
+
+    def show_templates(self, templates: tuple[CylinderTemplate, ...]) -> None:
+        self.templates = templates
+        self.ui.list_templates.clear()
+        for template in templates:
+            row = QListWidgetItem(template.name)
+            row.setToolTip(template_summary(template))
+            self.ui.list_templates.addItem(row)
+        self.action_select_template(self.ui.list_templates.currentRow())
+
+    def set_cylinder_design(self, design: CylinderDesign) -> None:
+        """Show a design in the controls without applying it, lengths given in mm."""
+        self.set_dimensions_mm(design.diameter_mm, design.length_mm)
+        self.ui.cb_add_base.setChecked(design.collar_enabled)
+        self.base_thickness_field.set_millimetres(design.collar_thickness_mm)
+        self.base_height_field.set_millimetres(design.collar_height_mm)
+        self.set_notch_settings(NotchSettings(
+            enabled=design.notch_enabled, angle=design.notch_angle_deg, width=design.notch_width_mm,
+            depth=design.notch_depth_mm, height=design.notch_height_mm))
+        self.set_tip(TipShape.FLAT if design.flat_tip else TipShape.DOME)
+
+    def action_select_template(self, row: int) -> None:
+        """Load, Update and Delete need a selected template."""
+        for button in (self.ui.btn_load_template, self.ui.btn_update_template, self.ui.btn_delete_template):
+            button.setEnabled(row >= 0)
+
+    def ask(self, title: str, question: str) -> bool:
+        """Ask the physicist to confirm, with Cancel the default."""
+        return template_change_dialog(title, question).exec() == QMessageBox.StandardButton.Yes
+
+    def action_update_template(self) -> None:
+        """Once confirmed, write the tab's name, note and settings to the selected template."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        if not self.confirm("Update Template", f"Replace {template.name} with the settings on this tab?"):
+            return
+        try:
+            self.show_templates(update_template(self.templates_path, template.template_id, self.ui.le_template_name.text(),
+                                                self.ui.le_template_note.text(), self.cylinder_design(),
+                                                datetime.now(timezone.utc)))
+            self.ui.label_template_status.setText(f"Updated {self.ui.le_template_name.text().strip()}")
+        except CylinderTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
+    def action_delete_template(self) -> None:
+        """Once confirmed, remove the selected template."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        if not self.confirm("Delete Template", f"Delete the template {template.name}?"):
+            return
+        try:
+            self.show_templates(delete_template(self.templates_path, template.template_id))
+            self.ui.label_template_status.setText(f"Deleted {template.name}")
+        except CylinderTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
+    def action_load_template(self) -> None:
+        """Put the selected template on the tab. Apply Settings builds it."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        self.set_cylinder_design(template.design)
+        self.ui.le_template_name.setText(template.name)
+        self.ui.le_template_note.setText(template.note)
+        self.ui.label_template_status.setText(f"Loaded {template.name}. Press Apply Settings to build it.")
+
+    def action_save_template(self) -> None:
+        """Save the tab's settings under the typed name and note, or say in the status line why not."""
+        now = datetime.now(timezone.utc)
+        try:
+            template = make_template(uuid4().hex, self.ui.le_template_name.text(), self.ui.le_template_note.text(),
+                                     self.cylinder_design(), now, now)
+            self.show_templates(add_template(self.templates_path, template))
+            self.ui.label_template_status.setText(f"Saved {template.name}")
+        except CylinderTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
     def action_change_units(self, unit_name: str) -> None:
         """Render pending dimensions in the selected unit without applying the design."""
         unit = LengthUnit(unit_name)
@@ -139,7 +270,19 @@ class CylinderView(CustomView):
     def __init__(self):
         super().__init__()
         self.ui = Ui_Cylinder_View()  # the converted python file from the ui file
-        self.ui.setupUi(self)
+        # the tab's rows do not fit brachify's default window, so they scroll rather than squeeze
+        content = QWidget()
+        self.ui.setupUi(content)
+        # the .ui's 290 px minimum would let the scroll area squeeze the rows, so the layout sets it
+        self.ui.verticalLayout.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        scroll = QScrollArea(self)
+        scroll.setObjectName("scroll_cylinder")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(content)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
 
         self.diameter_field = LengthField(self.ui.spinbox_diameter)
         self.length_field = LengthField(self.ui.spinbox_length)
@@ -160,8 +303,17 @@ class CylinderView(CustomView):
         self.base_height_field.set_millimetres(config.get("CONFIG_BASE_HEIGHT", 0.0))
         self.set_notch_settings(notch_settings_from_config(config))
         self.set_tip(tip_shape_from_config(config))
+        self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
+        # Update and Delete ask through this, so a test can answer for the physicist
+        self.confirm: Callable[[str, str], bool] = self.ask
+        self.action_load_templates()
 
         # signals and slots
+        self.ui.btn_save_template.pressed.connect(self.action_save_template)
+        self.ui.btn_load_template.pressed.connect(self.action_load_template)
+        self.ui.btn_update_template.pressed.connect(self.action_update_template)
+        self.ui.btn_delete_template.pressed.connect(self.action_delete_template)
+        self.ui.list_templates.currentRowChanged.connect(self.action_select_template)
         self.ui.cb_add_notch.toggled.connect(self.action_enable_notch_fields)
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
         self.ui.combobox_units.currentTextChanged.connect(self.action_change_units)

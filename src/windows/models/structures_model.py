@@ -38,21 +38,20 @@ class StructuresModel(QObject):
     def load_plan(self, plan: DicomData, length: float):
         self.clear()
         self.structures = {roi.roi_number: roi for roi in plan.structures or ()}
-        reference = self.structures.get(plan.central_channel_roi) or self.structures.get(plan.cylinder_roi)
         try:
-            if reference is None or plan.cylinder_base is None or plan.cylinder_direction is None:
+            if not plan.probe_frame_uid or plan.cylinder_base is None or plan.cylinder_direction is None:
                 raise ValueError('No probe frame is available for alignment')
             base = tuple(float(v) for v in plan.cylinder_base)
             direction = tuple(float(v) for v in plan.cylinder_direction)
             if len(base) != 3 or len(direction) != 3:
                 raise ValueError('Probe coordinates need three components')
-            self.alignment = ContourAlignment(base, direction, length, reference.frame_of_reference_uid)
+            self.alignment = ContourAlignment(base, direction, length, plan.probe_frame_uid)
         except ValueError as error:
             self.unavailable = {roi: str(error) for roi in self.structures}
             self.changed.emit()
             return
         for roi, structure in self.structures.items():
-            if structure.frame_of_reference_uid != reference.frame_of_reference_uid:
+            if structure.frame_of_reference_uid != plan.probe_frame_uid:
                 self.unavailable[roi] = 'Different frame of reference from the probe'
             elif not structure.contours:
                 self.unavailable[roi] = 'No contour geometry'
@@ -71,7 +70,7 @@ class StructuresModel(QObject):
             self._outlines[roi] = StructurePresentation(roi, structure.color, contour_outline(contours))
             self.visible.add(roi)
         except (ValueError, RuntimeError) as error:
-            self.unavailable[roi] = f'Outline unavailable: {error}'
+            self.unavailable[roi] = f'Outline unavailable. {error}'
             self.visible.discard(roi)
 
     def set_visible(self, roi: int, visible: bool):

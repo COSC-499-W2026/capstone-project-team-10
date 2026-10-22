@@ -22,6 +22,7 @@ default_materials = {
 class DisplayModel(QObject):
 
     shapes_changed = Signal(list, bool)
+    reset_completed = Signal()
 
     def add_shape(self, shape: ShapeModel):
         log.debug(f"adding {shape.label}")
@@ -107,6 +108,7 @@ class DisplayModel(QObject):
     def reset(self):
         self.visibility = {}  # label: bool where True is visible
         self.shapes = {}  # each entry stored as (ShapeModel)
+        self.reset_completed.emit()
         self.shapes_changed.emit([], False)
 
     def __init__(self):
