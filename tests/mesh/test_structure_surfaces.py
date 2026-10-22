@@ -69,3 +69,16 @@ def test_dense_slice_stacks_respect_the_memory_budget():
     from classes.mesh.structure_surfaces import sample_contours
     with pytest.raises(ValueError, match='size limit'):
         sample_contours(tuple(square(index * 0.02, 0., 1000.) for index in range(30)))
+
+
+def test_surface_triangles_face_outward():
+    """Orient a closed square stack away from the tissue interior.
+
+    Negative signed volume fails when marching cubes reverses the winding;
+    inward normals incorrectly light the organ preview from inside the tissue.
+    """
+    from classes.mesh.structure_surfaces import reconstruct_surface
+    mesh = reconstruct_surface(tuple(square(z) for z in (10., 12., 14.)), spacing=0.5)
+    a, b, c = np.moveaxis(mesh.vertices[mesh.triangles], 1, 0)
+    signed_volume = np.einsum('ij,ij->i', a, np.cross(b, c)).sum() / 6
+    assert signed_volume > 0

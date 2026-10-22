@@ -99,7 +99,7 @@ def reconstruct_surface(contours: tuple[Contour, ...], spacing: float = 1.) -> A
     volume = sample_contours(contours, spacing)
     vertices, triangles, _, _ = marching_cubes(volume.values, level=0.,
                                               spacing=(spacing, spacing, spacing),
-                                              allow_degenerate=False)
+                                              allow_degenerate=False, gradient_direction='ascent')
     return AnatomySurface(np.asarray(vertices + volume.origin, dtype=np.float64),
                           np.asarray(triangles, dtype=np.int32))
 
