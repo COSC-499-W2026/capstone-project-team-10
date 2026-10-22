@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QFileDialog, QListWidget, QListWidgetItem
-from PySide6.QtCore import Qt, QSignalBlocker
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPixmap
 
 from classes.app import get_app
@@ -184,32 +184,15 @@ class ImportView(CustomView):
         print("")
 
     def action_update_structure_list(self):
-        """Show ROI visibility controls and explain unavailable contours."""
-        model = get_app().window.structuresmodel
-        structures = tuple(model.structures.values())
-        with QSignalBlocker(self.structure_list):
-            self.structure_list.clear()
-            for structure, row in zip(structures, structure_list_rows(structures)):
-                item = QListWidgetItem(f"{row.label}  {row.category}")
-                roi = structure.roi_number
-                item.setData(Qt.UserRole, roi)
-                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                item.setCheckState(Qt.Checked if roi in model.visible else Qt.Unchecked)
-                reason = model.unavailable.get(roi)
-                if reason:
-                    item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
-                    item.setToolTip(reason)
-                else:
-                    item.setToolTip("Show or hide this DICOM contour outline")
-                swatch = QPixmap(12, 12)
-                swatch.fill(QColor(*row.color))
-                item.setIcon(QIcon(swatch))
-                self.structure_list.addItem(item)
-
-    def action_toggle_structure(self, item: QListWidgetItem):
-        """Keep anatomy visibility separate from printable shapes."""
-        get_app().window.structuresmodel.set_visible(
-            item.data(Qt.UserRole), item.checkState() == Qt.Checked)
+        """Fill Import's read-only inventory from the current anatomy state."""
+        self.structure_list.clear()
+        for row in structure_list_rows(tuple(get_app().window.structuresmodel.structures.values())):
+            item = QListWidgetItem(f"{row.label}  {row.category}")
+            item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+            swatch = QPixmap(12, 12)
+            swatch.fill(QColor(*row.color))
+            item.setIcon(QIcon(swatch))
+            self.structure_list.addItem(item)
 
     @display_action
     def on_open(self):
@@ -233,7 +216,6 @@ class ImportView(CustomView):
         self.ui.verticalLayout_3.addWidget(self.structure_list)
 
         # signals and slots
-        self.structure_list.itemChanged.connect(self.action_toggle_structure)
         get_app().window.structuresmodel.changed.connect(self.action_update_structure_list)
         self.ui.btn_import_folder.pressed.connect(self.action_import_dicom_folder)
         self.ui.btn_config_file.pressed.connect(self.action_import_config_file)

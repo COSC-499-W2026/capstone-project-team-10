@@ -18,6 +18,21 @@ Apply, DICOM import and config files retain mm internally. The choice is not sav
 provided in chat and was not saved as a repository artifact.
 See [source of truth §5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 for the controls and precision.
+Since 2026-10-19 the Cylinder tab scrolls up and down, as the Channels tab does: at the default
+770 × 472 window its spin boxes had been squeezed to 16 px, with the bottoms of the values cut off.
+Nothing scrolls sideways. *Verified* by offscreen tests and in the running app (§7.12).
+
+Below *Apply Settings*, a Templates group saves the tab's settings under a name: a name field, a
+note field, the list of saved templates and *Save as Template*. Hovering a template shows its
+note, dates and a one-line summary. As with the needle templates, a refused save or an unreadable
+file is explained in a status line beside the controls, not a dialog. *Load* fills the tab from
+the selected template but builds nothing: the status line says to press *Apply Settings*, so the
+physicist checks the values first, and loading never moves an imported plan's needles by itself.
+*Update* and *Delete* each ask first, naming the template, with Cancel the default. The question
+is a system dialog, so it follows the system's light or dark colours; parented to the tab it had
+inherited the tab's light background under dark-mode white text and could not be read. The group's colours match
+the tab's, and its buttons look like *Apply Settings*. *Verified* by offscreen tests and in the
+running app.
 
 *Reasoned from viewport code, PRs #78/#79/#81:* left-drag rotates, right/middle-drag pans,
 and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
