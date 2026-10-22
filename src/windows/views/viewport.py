@@ -219,6 +219,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
             context.Remove(presentation, False)
         self._structure_presentations.clear()
         for structure in get_app().window.structuresmodel.presentations():
+            if structure.outline is None:
+                continue
             presentation = AIS_Shape(structure.outline)
             red, green, blue = structure.color
             presentation.SetColor(Quantity_Color(red / 255, green / 255, blue / 255, Quantity_TOC_sRGB))

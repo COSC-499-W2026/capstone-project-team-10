@@ -1,8 +1,31 @@
 """Anatomy preview state and its Import controls without a native canvas."""
+from __future__ import annotations
+from typing import TYPE_CHECKING
 from pathlib import Path
 import pytest
 from classes.dicom.data import DicomData
 from classes.dicom.structures import Contour, Structure, StructureType
+
+
+if TYPE_CHECKING:
+    from windows.models.structures_model import StructuresModel
+
+
+def wait_for_surfaces(model: StructuresModel):
+    """Helper that delivers worker results through the real Qt event loop.
+
+    A stalled task fails after ten seconds; consuming queued results prevents tests
+    from mistaking scheduled work for a completed, visible organ.
+    """
+    from time import sleep
+    from PySide6.QtCore import QElapsedTimer
+    from PySide6.QtTest import QTest
+    timer = QElapsedTimer()
+    timer.start()
+    while model.pending and timer.elapsed() < 10000:
+        QTest.qWait(5)
+        sleep(0.001)
+    assert not model.pending, 'Surface reconstruction did not complete'
 
 
 @pytest.fixture
@@ -12,8 +35,9 @@ def anatomy_model(units_app):
     Import errors fail this helper; literal coordinates allow bounds checks to catch
     misplaced anatomy without relying on the production transform for expectations.
     """
-    from windows.models.structures_model import StructuresModel
+    from windows.models.structures_model import StructuresModel, StructureDisplayMode
     model = StructuresModel()
+    model.set_mode(StructureDisplayMode.SURFACE)
     plan = DicomData()
     plan.cylinder_base = (0., 0., 0.)
     plan.cylinder_direction = (0., 0., 10.)
@@ -27,6 +51,7 @@ def anatomy_model(units_app):
                   (Contour('CLOSED_PLANAR', ((0., 0., 5.), (2., 0., 5.), (0., 2., 5.))),)),
     )
     model.load_plan(plan, 20.)
+    wait_for_surfaces(model)
     return model
 
 
@@ -41,6 +66,7 @@ def test_organs_show_by_default_but_unregistered_geometry_is_unavailable(anatomy
     assert 'frame' in anatomy_model.unavailable[3].lower()
     with pytest.raises(ValueError):
         anatomy_model.set_visible(3, True)
+        wait_for_surfaces(anatomy_model)
 
 
 def test_anatomy_length_change_and_hide_preserve_geometry(anatomy_model):
@@ -51,13 +77,18 @@ def test_anatomy_length_change_and_hide_preserve_geometry(anatomy_model):
     """
     from OCC.Core.Bnd import Bnd_Box
     from OCC.Core.BRepBndLib import brepbndlib
+    from windows.models.structures_model import StructureDisplayMode
+    anatomy_model.set_mode(StructureDisplayMode.OUTLINES)
     anatomy_model.set_length(30.)
+    wait_for_surfaces(anatomy_model)
     bounds = Bnd_Box()
     brepbndlib.AddOptimal(anatomy_model.presentations()[0].outline, bounds)
     assert bounds.Get()[2] == pytest.approx(25., abs=1e-6)
     anatomy_model.set_visible(2, False)
+    wait_for_surfaces(anatomy_model)
     assert anatomy_model.presentations() == ()
     anatomy_model.set_visible(2, True)
+    wait_for_surfaces(anatomy_model)
     assert len(anatomy_model.presentations()) == 1
     anatomy_model.clear()
     assert anatomy_model.presentations() == ()
@@ -78,6 +109,7 @@ def test_structures_checkboxes_control_anatomy_and_failed_import_clears_it(chann
     roi = item.data(Qt.UserRole)
     assert roi == 1
     item.setCheckState(Qt.Checked)
+    wait_for_surfaces(model)
     assert roi in model.visible
     assert model.presentations()
     view.structure_list.item(0).setCheckState(Qt.Unchecked)
@@ -115,6 +147,7 @@ def test_nucletron_uses_embedded_probe_frame_not_colliding_rs_roi(anatomy_model,
     embedded.ROIContourSequence = [geometry]
     load_central_axis_nucletron(plan, [embedded])
     anatomy_model.load_plan(plan, 20.)
+    wait_for_surfaces(anatomy_model)
     assert (2 in anatomy_model.visible) == (probe_frame == '1.2.3')
     if probe_frame != '1.2.3':
         assert 2 in anatomy_model.unavailable
@@ -134,8 +167,243 @@ def test_empty_display_refresh_preserves_anatomy_until_explicit_reset(cylinder_w
     plan.structures = tuple(anatomy_model.structures.values())
     model = cylinder_window.structuresmodel
     model.load_plan(plan, 20.)
+    wait_for_surfaces(model)
     cylinder_window.displaymodel.show_shapes([])
     assert model.visible == {2}
     cylinder_window.displaymodel.reset()
     assert not model.structures
     assert not model.presentations()
+
+
+def test_single_slice_outlines_are_available_on_request(anatomy_model):
+    """Keep an outline available on request when there are too few slices for a surface.
+
+    Losing the ROI or silently presenting an invented volume fails; users must see
+    why a surface is unavailable while retaining the actual DICOM outline.
+    """
+    from windows.models.structures_model import StructureDisplayMode
+    anatomy_model.set_mode(StructureDisplayMode.SURFACE)
+    presentation = anatomy_model.presentations()[0]
+    assert presentation.surface is None
+    assert 'two contour slices' in anatomy_model.surface_errors[2]
+    assert presentation.outline is None
+    anatomy_model.set_mode(StructureDisplayMode.OUTLINES)
+    assert not anatomy_model.presentations()[0].outline.IsNull()
+
+
+def test_surface_follows_probe_length_and_opacity_rejects_invalid_values(anatomy_model):
+    """Keep reconstructed vertices aligned through length and visibility changes.
+
+    A stale surface Z coordinate or accepted invalid opacity fails and could hide
+    anatomy or leave it at a different position from its contour outlines.
+    """
+    from dataclasses import replace
+    from windows.models.structures_model import StructureDisplayMode
+    plan = DicomData()
+    plan.central_channel_roi = 1
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    organ = anatomy_model.structures[2]
+    plan.structures = (anatomy_model.structures[1], replace(organ, contours=tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (4., 0., z), (0., 4., z))) for z in (2., 4., 6.))))
+    anatomy_model.load_plan(plan, 20.)
+    wait_for_surfaces(anatomy_model)
+    anatomy_model.set_mode(StructureDisplayMode.BOTH)
+    mesh = anatomy_model.presentations()[0].surface
+    assert mesh is not None
+    before = mesh.Node(1).Z()
+    anatomy_model.set_length(30.)
+    wait_for_surfaces(anatomy_model)
+    assert anatomy_model.presentations()[0].surface.Node(1).Z() == pytest.approx(before + 10.)
+    anatomy_model.set_opacity(2, 0.6)
+    assert anatomy_model.opacity_for(2) == 0.6
+    for invalid in (-0.1, 1.1, float('nan')):
+        with pytest.raises(ValueError):
+            anatomy_model.set_opacity(2, invalid)
+    anatomy_model.set_mode(StructureDisplayMode.OUTLINES)
+    assert anatomy_model.visible == {2}
+
+
+def test_large_external_body_can_be_selected_as_a_surface(anatomy_model):
+    """Reconstruct a large external envelope when selected in Surface mode.
+
+    A 400 by 200 by 400 mm body exceeds the fine-grid budget; a missing surface
+    fails and catches the silently invisible BODY reported during import.
+    """
+    from dataclasses import replace
+    plan = DicomData()
+    plan.central_channel_roi = 1
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    body = replace(anatomy_model.structures[2], name='BODY', interpreted_type='EXTERNAL',
+                   category=StructureType.OTHER, contours=tuple(
+                       Contour('CLOSED_PLANAR', ((0., 0., z), (400., 0., z),
+                                                (400., 200., z), (0., 200., z)))
+                       for z in (0., 400.)))
+    plan.structures = (anatomy_model.structures[1], body)
+    anatomy_model.load_plan(plan, 20.)
+    wait_for_surfaces(anatomy_model)
+    anatomy_model.set_visible(2, True)
+    wait_for_surfaces(anatomy_model)
+    assert anatomy_model.presentations()[0].surface is not None
+    assert not anatomy_model.surface_errors
+
+
+def test_surface_mode_defers_outlines_and_mode_switch_reuses_them(anatomy_model):
+    """Build outlines only when requested, preserving cached geometry on toggles.
+
+    An eagerly built outline or a replaced cached outline fails; this avoids paying
+    the CAD wire construction cost when the user only wants surfaces.
+    """
+    from windows.models.structures_model import StructureDisplayMode
+    assert anatomy_model.presentations()[0].outline is None
+    anatomy_model.set_mode(StructureDisplayMode.OUTLINES)
+    outline = anatomy_model.presentations()[0].outline
+    assert outline is not None and not outline.IsNull()
+    anatomy_model.set_mode(StructureDisplayMode.SURFACE)
+    anatomy_model.set_visible(2, False)
+    wait_for_surfaces(anatomy_model)
+    anatomy_model.set_visible(2, True)
+    wait_for_surfaces(anatomy_model)
+    anatomy_model.set_mode(StructureDisplayMode.BOTH)
+    assert anatomy_model.presentations()[0].outline is outline
+
+
+def test_hidden_anatomy_gets_current_alignment_when_shown(anatomy_model):
+    """Regenerate deferred outlines after a hidden structure's probe length changes.
+
+    Old Z bounds fail after hide, length change and show; cached anatomy must not
+    reappear in the wrong position relative to the patient's needle paths.
+    """
+    from OCC.Core.Bnd import Bnd_Box
+    from OCC.Core.BRepBndLib import brepbndlib
+    from windows.models.structures_model import StructureDisplayMode
+    anatomy_model.set_visible(2, False)
+    wait_for_surfaces(anatomy_model)
+    anatomy_model.set_length(30.)
+    wait_for_surfaces(anatomy_model)
+    anatomy_model.set_visible(2, True)
+    wait_for_surfaces(anatomy_model)
+    assert anatomy_model.presentations()[0].outline is None
+    anatomy_model.set_mode(StructureDisplayMode.OUTLINES)
+    bounds = Bnd_Box()
+    brepbndlib.AddOptimal(anatomy_model.presentations()[0].outline, bounds)
+    assert bounds.Get()[2] == pytest.approx(25., abs=1e-6)
+
+
+def test_opacity_does_not_rebuild_geometry_or_change_other_organs(anatomy_model):
+    """Change only the selected ROI's opacity without a structural refresh.
+
+    A geometry-change signal or changing another ROI's alpha fails; slider movement
+    must not rebuild BODY meshes or silently change a neighbouring organ.
+    """
+    from PySide6.QtTest import QSignalSpy
+    geometry_changes = QSignalSpy(anatomy_model.changed)
+    anatomy_model.set_opacity(2, 0.7)
+    assert anatomy_model.opacity_for(2) == 0.7
+    assert anatomy_model.opacity_for(1) == 0.45
+    assert geometry_changes.count() == 0
+
+
+def test_outline_failure_does_not_disable_a_valid_surface(anatomy_model):
+    """Keep a surface usable when a redundant degenerate loop cannot form a wire.
+
+    Permanent ROI disablement fails after Outlines then Surface; an error in one
+    presentation mode must not make the other representation inaccessible.
+    """
+    from dataclasses import replace
+    from windows.models.structures_model import StructureDisplayMode
+    organ = anatomy_model.structures[2]
+    contours = tuple(Contour('CLOSED_PLANAR', ((0., 0., z), (4., 0., z), (0., 4., z)))
+                     for z in (2., 4., 6.))
+    degenerate = Contour('CLOSED_PLANAR', ((0., 0., 2.),) * 3)
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (replace(organ, contours=contours + (degenerate,)),)
+    anatomy_model.load_plan(plan, 20.)
+    wait_for_surfaces(anatomy_model)
+    anatomy_model.set_mode(StructureDisplayMode.OUTLINES)
+    anatomy_model.set_mode(StructureDisplayMode.SURFACE)
+    anatomy_model.set_visible(2, True)
+    wait_for_surfaces(anatomy_model)
+    assert anatomy_model.presentations()[0].surface is not None
+    assert 2 not in anatomy_model.unavailable
+
+
+def test_surface_work_returns_to_the_event_loop_and_reset_discards_its_result(anatomy_model, units_app):
+    """Leave reconstruction pending and reject late work after clearing the plan.
+
+    Synchronous construction or a stale worker restoring anatomy fails; the UI
+    must stay usable and never redisplay a previous patient's organ.
+    """
+    from dataclasses import replace
+    organ = anatomy_model.structures[2]
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (replace(organ, contours=tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (40., 0., z), (0., 40., z)))
+        for z in (2., 4., 6.))),)
+    anatomy_model.load_plan(plan, 20.)
+    assert 'Building' in anatomy_model.status_message(2)
+    anatomy_model.clear()
+    assert anatomy_model.surface_pool.waitForDone(10000)
+    units_app.processEvents()
+    assert not anatomy_model.structures
+    assert not anatomy_model.presentations()
+    assert not anatomy_model.surface_errors
+
+
+def test_late_surface_cannot_supply_a_new_plan_with_the_same_roi(anatomy_model, units_app):
+    """Reject an old plan's completed mesh before showing a reused ROI number.
+
+    A 40 mm mesh in the new 4 mm organ fails; import/reset must invalidate queued
+    results, even when both plans use the same ROI number and reference frame.
+    """
+    from dataclasses import replace
+    organ = anatomy_model.structures[2]
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (replace(organ, contours=tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (40., 0., z), (0., 40., z)))
+        for z in (2., 4., 6.))),)
+    anatomy_model.load_plan(plan, 20.)
+    assert anatomy_model.surface_pool.waitForDone(10000)
+    plan.structures = (replace(organ, category=StructureType.OTHER, contours=tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (4., 0., z), (0., 4., z)))
+        for z in (2., 4., 6.))),)
+    anatomy_model.load_plan(plan, 20.)
+    units_app.processEvents()
+    anatomy_model.set_visible(2, True)
+    wait_for_surfaces(anatomy_model)
+    mesh = anatomy_model.presentations()[0].surface
+    assert max(mesh.Node(i).X() for i in range(1, mesh.NbNodes() + 1)) == pytest.approx(4.5)
+
+
+def test_pending_surface_uses_latest_probe_length(anatomy_model):
+    """Realign a completed background mesh when the probe length changes mid-job.
+
+    A stale maximum Z fails after changing length before event delivery; anatomy
+    must move with the needles even when reconstruction started earlier.
+    """
+    from dataclasses import replace
+    organ = anatomy_model.structures[2]
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (replace(organ, contours=tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (4., 0., z), (0., 4., z)))
+        for z in (2., 4., 6.))),)
+    anatomy_model.load_plan(plan, 20.)
+    anatomy_model.set_length(30.)
+    wait_for_surfaces(anatomy_model)
+    mesh = anatomy_model.presentations()[0].surface
+    assert max(mesh.Node(i).Z() for i in range(1, mesh.NbNodes() + 1)) == pytest.approx(26.5)
