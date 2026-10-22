@@ -272,3 +272,57 @@ def test_importing_a_plan_again_clears_every_move(channels_window: MainWindow) -
 
     assert all(not model.is_channel_moved(name) for name in model.channels)
     assert [list(point) for point in model.channels[label].points] == plan_points(channels_window, label)
+
+
+def test_a_moved_channel_cannot_be_set_as_the_tandem(channels_window: MainWindow) -> None:
+    """Check set_tandem refuses a moved channel with ValueError and leaves the tandem alone.
+
+    Fails if the moved channel becomes the tandem. The tandem is aimed from its plan path and
+    its Move controls are disabled, so the clinician would keep a move they can no longer see
+    or undo, and the tandem would point away from where the channel was placed.
+    """
+    model = channels_window.channelsmodel
+    label = channel_label(channels_window, 9)
+    tandem_before = channels_window.dicommodel.data.tandem_channel
+    model.move_channel(label, 10.0, 0.0, 0.0)
+
+    with pytest.raises(ValueError):
+        model.set_tandem(label)
+
+    assert channels_window.dicommodel.data.tandem_channel == tandem_before
+    model.move_channel(label, 0.0, 0.0, 0.0)
+
+
+def test_set_as_tandem_is_disabled_for_a_moved_channel(channels_window: MainWindow) -> None:
+    """Check the Set as Tandem button is off, with a reason, while a moved channel is selected.
+
+    Fails if the button stays enabled. The clinician would press it and nothing would happen,
+    with no hint that the move has to be reset first.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    label = channel_label(channels_window, 10)
+    model.move_channel(label, 10.0, 0.0, 0.0)
+    model.set_selected_channels(label)
+
+    view.action_update_settings()
+
+    assert not view.ui.btn_set_tandem.isEnabled()
+    assert "Reset" in view.ui.btn_set_tandem.toolTip()
+    model.move_channel(label, 0.0, 0.0, 0.0)
+
+
+def test_every_movable_row_tells_the_clinician_to_double_click(channels_window: MainWindow) -> None:
+    """Check a needle row's tooltip says double clicking moves it, and the tandem row's does not.
+
+    Fails if the hint is missing. The move popup has no visible control, so a clinician may never
+    find it, which is how the reviewer first met it.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    view.mark_channel_statuses()
+    lister = view.ui.listwidget_channels
+    label = channel_label(channels_window, 3)
+
+    item = lister.findItems(label, Qt.MatchFlag.MatchExactly)[0]
+
+    assert "Double click to move" in item.toolTip()

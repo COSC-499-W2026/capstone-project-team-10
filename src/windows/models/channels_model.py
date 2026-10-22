@@ -174,6 +174,8 @@ class ChannelsModel(QObject):
             log.critical(f"error while setting selected shapes from viewport:\n{error_message}")
 
     def set_tandem(self, label:str) -> None:
+        if label and self.is_channel_moved(label):
+            raise ValueError(f"{label} has been moved and cannot be the tandem, reset its move first")
         data = get_app().window.dicommodel.data
         old_label = data.tandem_channel
         if old_label and old_label in self.disabled_channels:
