@@ -1,0 +1,432 @@
+"""Exercise the cylinder template controls in the Cylinder tab's Templates group."""
+from __future__ import annotations
+
+from collections.abc import Iterator
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+import pytest
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QPushButton
+
+    from windows.main_window import MainWindow
+    from windows.views.cylinder_view import CylinderView
+
+CYLINDER_TAB = 1
+
+
+def click(button: QPushButton) -> None:
+    """Click a button with the left mouse button, the way a physicist does.
+
+    A helper, not a test. QTest sends a real press and release, so every slot the view
+    connected to the button runs, and a disabled button ignores the click.
+    """
+    QTest.mouseClick(button, Qt.MouseButton.LeftButton)
+
+
+def library_path() -> Path:
+    """Return the cylinder template library inside this run's temporary home folder.
+
+    A helper, not a test. units_app points HOME at a temporary folder before brachify is
+    imported, so this never touches the developer's own ~/brachify.
+    """
+    from classes.info import USER_PATH
+    from settings.cylinder_templates import LIBRARY_FILE_NAME
+
+    return USER_PATH / LIBRARY_FILE_NAME
+
+
+@pytest.fixture
+def cylinder_tab(cylinder_window: MainWindow) -> Iterator[CylinderView]:
+    """Give each test the real Cylinder tab with an empty template library.
+
+    A fixture, not a test. The library file outlives a window, so it is deleted before and
+    after each test, and the tab rereads it, so no test sees another test's templates.
+    """
+    library_path().unlink(missing_ok=True)
+    view = cylinder_window.navigationmodel.views[CYLINDER_TAB]
+    view.action_load_templates()
+    yield view
+    library_path().unlink(missing_ok=True)
+
+
+def save_as(view: CylinderView, name: str, note: str = "") -> None:
+    """Type a name and a note and press Save as Template, as a helper and not a test."""
+    view.ui.le_template_name.setText(name)
+    view.ui.le_template_note.setText(note)
+    click(view.ui.btn_save_template)
+
+
+def test_save_as_template_lists_the_template_and_writes_it(cylinder_tab: CylinderView) -> None:
+    """Check that Save as Template adds the tab's settings to the list and to the library file.
+
+    The tab shows the default 30 mm by 160 mm dome cylinder. Fails if "Standard 30" is not
+    listed, the file does not hold the 11 default settings with its name and note, the row's
+    tooltip does not summarise it, or the status line does not confirm the save. A template
+    that is only listed is lost when brachify closes, and FR-CN-05 asks for one the physicist
+    can use later.
+    """
+    from settings.cylinder_templates import CylinderDesign, load_templates
+
+    save_as(cylinder_tab, "Standard 30", "Clinic default")
+
+    [saved] = load_templates(library_path())
+    assert (saved.name, saved.note) == ("Standard 30", "Clinic default")
+    assert saved.design == CylinderDesign(30.0, 160.0, False, 0.0, 0.0, True, 0.0, 2.0, 1.8, 10.0, False)
+    row = cylinder_tab.ui.list_templates.item(0)
+    assert row.text() == "Standard 30"
+    assert "Clinic default" in row.toolTip() and "30.00 mm by 160 mm, Dome" in row.toolTip()
+    assert cylinder_tab.ui.label_template_status.text() == "Saved Standard 30"
+
+
+def test_every_setting_on_the_tab_is_saved_in_its_own_field(cylinder_tab: CylinderView) -> None:
+    """Check that each of the 11 settings is saved from its own control, all set to different values.
+
+    The tab is set to 31.25 by 173 mm, a 3 by 12 mm collar, the notch off at 90 degrees, 3.5 by
+    2.5 by 15 mm, and a flat tip. Fails if any value is missing, left at its default, or read
+    from the wrong control, such as the collar thickness saved as its height, which with the
+    defaults (both 0) no other test would notice. A template that swaps two settings prints a
+    different device from the one the physicist designed.
+    """
+    from settings.cylinder_templates import CylinderDesign, load_templates
+
+    view = cylinder_tab
+    view.ui.spinbox_diameter.setValue(31.25)
+    view.ui.spinbox_length.setValue(173)
+    view.ui.cb_add_base.setChecked(True)
+    view.ui.spinbox_base_thickness.setValue(3)
+    view.ui.spinbox_base_height.setValue(12)
+    view.ui.spinbox_notch_angle.setValue(90.0)
+    view.ui.spinbox_notch_width.setValue(3.5)
+    view.ui.spinbox_notch_depth.setValue(2.5)
+    view.ui.spinbox_notch_height.setValue(15)
+    view.ui.cb_add_notch.setChecked(False)
+    view.ui.combobox_tip.setCurrentText("Flat")
+
+    save_as(view, "Flat collar")
+
+    [saved] = load_templates(library_path())
+    assert saved.design == CylinderDesign(31.25, 173.0, True, 3.0, 12.0, False, 90.0, 3.5, 2.5, 15.0, True)
+
+
+def test_a_value_typed_in_centimetres_is_saved_in_millimetres(cylinder_tab: CylinderView) -> None:
+    """Check that 3.125 cm by 17.3 cm, typed with Units set to cm, is saved as 31.25 by 173 mm.
+
+    Fails if the displayed numbers are saved instead, which would store a cylinder ten times
+    too small, and loading it would print the wrong device for the patient.
+    """
+    from settings.cylinder_templates import load_templates
+
+    cylinder_tab.ui.combobox_units.setCurrentText("cm")
+    cylinder_tab.ui.spinbox_diameter.setValue(3.125)
+    cylinder_tab.ui.spinbox_length.setValue(17.3)
+
+    save_as(cylinder_tab, "Typed in cm")
+
+    [saved] = load_templates(library_path())
+    assert (saved.design.diameter_mm, saved.design.length_mm) == (31.25, 173.0)
+
+
+@pytest.mark.parametrize("name, reason", [
+    ("   ", "A cylinder template needs a name"),
+    ("STANDARD 30", "A cylinder template named STANDARD 30 already exists. Use Update to change it"),
+])
+def test_a_blank_or_taken_name_says_why_and_saves_nothing(cylinder_tab: CylinderView, name: str, reason: str) -> None:
+    """Check that a blank name, or "STANDARD 30" next to "Standard 30", is refused in the status line.
+
+    Fails if the list grows, the file changes, or the status line does not say why. A silent
+    refusal would leave the physicist believing the template was saved.
+    """
+    save_as(cylinder_tab, "Standard 30")
+    before = library_path().read_text(encoding="utf-8")
+
+    save_as(cylinder_tab, name)
+
+    assert cylinder_tab.ui.list_templates.count() == 1
+    assert library_path().read_text(encoding="utf-8") == before
+    assert cylinder_tab.ui.label_template_status.text() == reason
+
+
+def test_an_unreadable_library_empties_the_list_and_names_the_file(cylinder_tab: CylinderView) -> None:
+    """Check that a corrupt library file empties the list, names the file, and raises nothing.
+
+    Fails if reading it raises, or the list still offers templates. The library is read when
+    the window is built, so an exception would stop brachify starting, and startup failures
+    only reach app.log.
+    """
+    save_as(cylinder_tab, "Standard 30")
+    library_path().write_text("not json", encoding="utf-8")
+
+    cylinder_tab.action_load_templates()
+
+    assert cylinder_tab.ui.list_templates.count() == 0
+    assert "cylinder_templates.json could not be read" in cylinder_tab.ui.label_template_status.text()
+
+
+def test_the_template_ranges_match_the_cylinder_tabs_spin_boxes(cylinder_tab: CylinderView) -> None:
+    """Check that every template range is the matching Cylinder tab spin box's range in mm.
+
+    Fails if a spin box limit changes in cylinder_view.ui without RANGES, or the other way
+    round. A template could then hold a value the box clamps silently on loading, or the tab
+    could build a cylinder its template refuses. The diameter box allows 0, which builds
+    nothing, so its template minimum is the box's smallest step, 0.01 mm.
+    """
+    from settings.cylinder_templates import RANGES
+
+    view = cylinder_tab
+    fields = {
+        "length_mm": view.length_field, "collar_thickness_mm": view.base_thickness_field,
+        "collar_height_mm": view.base_height_field, "notch_width_mm": view.notch_width_field,
+        "notch_depth_mm": view.notch_depth_field, "notch_height_mm": view.notch_height_field,
+    }
+    for key, field in fields.items():
+        assert (RANGES[key].minimum, RANGES[key].maximum) == (field.minimum_mm, field.maximum_mm), key
+    angle = view.ui.spinbox_notch_angle
+    assert (RANGES["notch_angle_deg"].minimum, RANGES["notch_angle_deg"].maximum) == (angle.minimum(), angle.maximum())
+    assert (view.diameter_field.minimum_mm, view.diameter_field.maximum_mm) == (0.0, RANGES["diameter_mm"].maximum)
+    assert RANGES["diameter_mm"].minimum == 0.01
+
+
+FLAT_COLLAR_VALUES = (31.25, 173.0, True, 3.0, 12.0, False, 90.0, 3.5, 2.5, 15.0, True)
+
+
+def saved_flat_collar(view: CylinderView) -> None:
+    """Write a "Flat collar" template straight to the library and reread it, as a helper and not a test.
+
+    Its 11 values all differ from the tab's defaults, so a setting Load skips stays visible.
+    """
+    from datetime import datetime, timezone
+
+    from settings.cylinder_templates import CylinderDesign, add_template, make_template
+
+    saved_at = datetime(2026, 10, 19, 17, 5, tzinfo=timezone.utc)
+    design = CylinderDesign(*FLAT_COLLAR_VALUES)
+    add_template(library_path(), make_template("a1", "Flat collar", "Long cases", design, saved_at, saved_at))
+    view.action_load_templates()
+
+
+def load_first_template(view: CylinderView) -> None:
+    """Select the first saved template and press Load, as a helper and not a test."""
+    view.ui.list_templates.setCurrentRow(0)
+    click(view.ui.btn_load_template)
+
+
+def test_load_fills_every_control_and_the_name_and_note_without_applying(
+    cylinder_window: MainWindow, cylinder_tab: CylinderView,
+) -> None:
+    """Check that Load puts the template's 11 settings, name and note on the tab, and builds nothing.
+
+    Fails if any control keeps its old value, the name or note box is not filled, the status
+    line does not say to press Apply Settings, or a cylinder is built or the live settings
+    change. Load only fills the tab: Apply Settings builds the cylinder, so loading the wrong
+    template never moves an imported plan's needles by itself.
+    """
+    from classes.app import get_app
+
+    view = cylinder_tab
+    live_settings = dict(get_app().values.config_values)
+    saved_flat_collar(view)
+
+    load_first_template(view)
+
+    shown = (view.diameter_field.millimetres, view.length_field.millimetres, view.ui.cb_add_base.isChecked(),
+             view.base_thickness_field.millimetres, view.base_height_field.millimetres,
+             view.ui.cb_add_notch.isChecked(), view.ui.spinbox_notch_angle.value(),
+             view.notch_width_field.millimetres, view.notch_depth_field.millimetres,
+             view.notch_height_field.millimetres, view.ui.combobox_tip.currentText() == "Flat")
+    assert shown == FLAT_COLLAR_VALUES
+    assert (view.ui.le_template_name.text(), view.ui.le_template_note.text()) == ("Flat collar", "Long cases")
+    assert view.ui.label_template_status.text() == "Loaded Flat collar. Press Apply Settings to build it."
+    assert cylinder_window.cylindermodel.cylinder is None
+    assert get_app().values.config_values == live_settings
+
+
+def test_load_then_apply_settings_builds_the_templates_cylinder(
+    cylinder_window: MainWindow, cylinder_tab: CylinderView,
+) -> None:
+    """Check that Load followed by Apply Settings builds the template's cylinder.
+
+    Fails if the built cylinder's diameter, length, collar, notch or tip is not the template's.
+    That is the point of a template: the device printed matches the design saved.
+    """
+    from classes.mesh.cylinder import TipShape
+    from classes.mesh.notch import NotchSettings
+
+    saved_flat_collar(cylinder_tab)
+    load_first_template(cylinder_tab)
+
+    click(cylinder_tab.ui.btn_apply_settings)
+
+    cylinder = cylinder_window.cylindermodel.cylinder
+    assert (cylinder.diameter, cylinder.length, cylinder.expand_base, cylinder.tip) == (31.25, 173.0, True, TipShape.FLAT)
+    assert cylinder.notch_settings == NotchSettings(enabled=False, angle=90.0, width=3.5, depth=2.5, height=15.0)
+
+
+def test_a_template_loaded_while_showing_cm_is_displayed_in_cm(cylinder_tab: CylinderView) -> None:
+    """Check that loading the 31.25 by 173 mm template with Units set to cm shows 3.125 and 17.3 cm.
+
+    Fails if the mm values are written into the boxes as they are, which would show 31.25 cm,
+    and Apply would build a cylinder ten times too large.
+    """
+    cylinder_tab.ui.combobox_units.setCurrentText("cm")
+    saved_flat_collar(cylinder_tab)
+
+    load_first_template(cylinder_tab)
+
+    assert (cylinder_tab.ui.spinbox_diameter.value(), cylinder_tab.ui.spinbox_length.value()) == (3.125, 17.3)
+
+
+def test_load_is_disabled_until_a_template_is_selected(cylinder_tab: CylinderView) -> None:
+    """Check that Load cannot be pressed while no template is selected, and can once one is.
+
+    Fails if Load starts enabled after the list is filled, or stays disabled after a selection.
+    With nothing selected, Load would have no template to put on the tab.
+    """
+    saved_flat_collar(cylinder_tab)
+
+    assert not cylinder_tab.ui.btn_load_template.isEnabled()
+    cylinder_tab.ui.list_templates.setCurrentRow(0)
+    assert cylinder_tab.ui.btn_load_template.isEnabled()
+
+
+class Answers:
+    """Stand in for the physicist answering the confirmation dialog, as a helper and not a test.
+
+    Assigned to CylinderView.confirm, the view's seam for its dialog, so no module is patched.
+    It records each title and question asked and gives the chosen answer.
+    """
+
+    def __init__(self, answer: bool) -> None:
+        self.answer = answer
+        self.asked: list[tuple[str, str]] = []
+
+    def __call__(self, title: str, question: str) -> bool:
+        self.asked.append((title, question))
+        return self.answer
+
+
+def test_update_after_confirming_saves_the_tabs_name_note_and_settings(cylinder_tab: CylinderView) -> None:
+    """Check that Update, once confirmed, writes the tab's name, note and settings to the selected template.
+
+    "Flat collar" is loaded, renamed "Flat collar long", its note cleared and its length set to
+    180 mm. Fails if the question does not name the template, the file still holds the old
+    values, the ID or created date changes, or the list and status line do not show the new
+    name. Update is how a template is renamed or corrected (FR-CN-06).
+    """
+    from datetime import datetime, timezone
+
+    from settings.cylinder_templates import load_templates
+
+    saved_flat_collar(cylinder_tab)
+    load_first_template(cylinder_tab)
+    cylinder_tab.ui.le_template_name.setText("Flat collar long")
+    cylinder_tab.ui.le_template_note.setText("")
+    cylinder_tab.ui.spinbox_length.setValue(180)
+    cylinder_tab.confirm = answers = Answers(True)
+
+    click(cylinder_tab.ui.btn_update_template)
+
+    [updated] = load_templates(library_path())
+    assert answers.asked == [("Update Template", "Replace Flat collar with the settings on this tab?")]
+    assert (updated.template_id, updated.name, updated.note, updated.design.length_mm) == ("a1", "Flat collar long", "", 180.0)
+    assert updated.created == datetime(2026, 10, 19, 17, 5, tzinfo=timezone.utc)
+    assert cylinder_tab.ui.list_templates.item(0).text() == "Flat collar long"
+    assert cylinder_tab.ui.label_template_status.text() == "Updated Flat collar long"
+
+
+def test_delete_after_confirming_removes_the_template(cylinder_tab: CylinderView) -> None:
+    """Check that Delete, once confirmed, removes the selected template from the file and the list.
+
+    Fails if the question does not name the template, or the template is still saved or listed.
+    """
+    from settings.cylinder_templates import load_templates
+
+    saved_flat_collar(cylinder_tab)
+    cylinder_tab.ui.list_templates.setCurrentRow(0)
+    cylinder_tab.confirm = answers = Answers(True)
+
+    click(cylinder_tab.ui.btn_delete_template)
+
+    assert answers.asked == [("Delete Template", "Delete the template Flat collar?")]
+    assert load_templates(library_path()) == ()
+    assert cylinder_tab.ui.list_templates.count() == 0
+    assert cylinder_tab.ui.label_template_status.text() == "Deleted Flat collar"
+
+
+@pytest.mark.parametrize("button", ["btn_update_template", "btn_delete_template"])
+def test_cancelling_update_or_delete_changes_nothing(cylinder_tab: CylinderView, button: str) -> None:
+    """Check that answering Cancel to Update or Delete leaves the library file byte for byte as it was.
+
+    Fails if the template is changed or removed after Cancel. Both overwrite a saved design for
+    good, so the physicist must be able to back out of a click on the wrong template.
+    """
+    saved_flat_collar(cylinder_tab)
+    before = library_path().read_text(encoding="utf-8")
+    load_first_template(cylinder_tab)
+    cylinder_tab.ui.spinbox_length.setValue(180)
+    cylinder_tab.confirm = Answers(False)
+
+    click(cylinder_tab.ui.btn_update_template if button == "btn_update_template" else cylinder_tab.ui.btn_delete_template)
+
+    assert library_path().read_text(encoding="utf-8") == before
+
+
+def test_update_to_a_taken_name_says_why_and_changes_nothing(cylinder_tab: CylinderView) -> None:
+    """Check that renaming one template to another's name is refused in the status line.
+
+    "Flat collar" is renamed "Standard 30", which another template already uses. Fails if the
+    file changes or the status line does not say why, which would leave two templates the
+    physicist cannot tell apart.
+    """
+    saved_flat_collar(cylinder_tab)
+    save_as(cylinder_tab, "Standard 30")
+    before = library_path().read_text(encoding="utf-8")
+    load_first_template(cylinder_tab)
+    cylinder_tab.ui.le_template_name.setText("Standard 30")
+    cylinder_tab.confirm = Answers(True)
+
+    click(cylinder_tab.ui.btn_update_template)
+
+    assert library_path().read_text(encoding="utf-8") == before
+    assert cylinder_tab.ui.label_template_status.text() == "A cylinder template named Standard 30 already exists"
+
+
+def test_update_and_delete_are_disabled_until_a_template_is_selected(cylinder_tab: CylinderView) -> None:
+    """Check that Update and Delete cannot be pressed with nothing selected, and can once a template is.
+
+    Fails if either starts enabled after the list is filled, or stays disabled after a selection.
+    With nothing selected there is no template for them to change.
+    """
+    saved_flat_collar(cylinder_tab)
+    buttons = (cylinder_tab.ui.btn_update_template, cylinder_tab.ui.btn_delete_template)
+
+    assert [button.isEnabled() for button in buttons] == [False, False]
+    cylinder_tab.ui.list_templates.setCurrentRow(0)
+    assert [button.isEnabled() for button in buttons] == [True, True]
+
+
+def test_the_confirmation_dialog_offers_yes_and_cancel_with_cancel_the_default(cylinder_tab: CylinderView) -> None:
+    """Check the dialog Update and Delete ask with: its question, buttons and default.
+
+    Fails if it does not offer exactly Yes and Cancel, or if Yes is the default, so pressing
+    Return would overwrite or delete a template the physicist did not mean to change. Also fails
+    if the dialog has a parent widget: it would inherit the main window's light stylesheet, and
+    in macOS dark mode its white text and button labels became unreadable on it, seen in the
+    running app. Without a parent it takes the system's colours, like the app's other dialogs.
+    The title is not checked: Qt drops message box titles on macOS, as Apple's guidelines ask,
+    so the question itself names the action and the template.
+    """
+    from PySide6.QtWidgets import QMessageBox
+
+    from windows.views.cylinder_view import template_change_dialog
+
+    dialog = template_change_dialog("Delete Template", "Delete the template Flat collar?")
+
+    assert dialog.parent() is None
+
+    assert dialog.text() == "Delete the template Flat collar?"
+    assert dialog.standardButtons() == QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+    assert dialog.defaultButton() == dialog.button(QMessageBox.StandardButton.Cancel)

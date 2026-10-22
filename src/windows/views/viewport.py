@@ -198,6 +198,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._display.Context.RemoveAll(True)
         self._grid_presentations.clear()
         self._structure_presentations.clear()
+        self._structure_actors.clear()
         self._axis_presentation = None
         bounds = Bnd_Box()
 
@@ -234,22 +235,35 @@ class OrbitCameraViewer3d(qtBaseViewer):
         for presentation in self._structure_presentations:
             context.Remove(presentation, False)
         self._structure_presentations.clear()
+        self._structure_actors.clear()
         model = get_app().window.structuresmodel
         for structure in model.presentations():
+            self._structure_actors[structure.roi_number] = []
             red, green, blue = structure.color
             color = Quantity_Color(red / 255, green / 255, blue / 255, Quantity_TOC_sRGB)
             if model.mode != StructureDisplayMode.OUTLINES and structure.surface is not None:
-                surface = anatomy_surface_presentation(structure.surface, structure.color, model.opacity)
+                surface = anatomy_surface_presentation(structure.surface, structure.color, model.opacity_for(structure.roi_number))
                 context.Display(surface, False)
                 context.Deactivate(surface)
                 self._structure_presentations.append(surface)
+                self._structure_actors[structure.roi_number].append(surface)
             if model.mode != StructureDisplayMode.SURFACE and structure.outline is not None:
                 outline = AIS_Shape(structure.outline)
                 outline.SetColor(color)
                 outline.SetWidth(1.)
+                outline.SetTransparency(1 - model.opacity_for(structure.roi_number))
                 context.Display(outline, False)
                 context.Deactivate(outline)
                 self._structure_presentations.append(outline)
+                self._structure_actors[structure.roi_number].append(outline)
+        self._display.Repaint()
+
+    def update_structure_opacity(self, roi: int, opacity: float):
+        """Change existing actors in place without rebuilding anatomy or its list."""
+        if not self._inited:
+            return
+        for actor in self._structure_actors.get(roi, ()):
+            self._display.Context.SetTransparency(actor, 1 - opacity, False)
         self._display.Repaint()
 
     def __init__(self, *kargs):
@@ -274,6 +288,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_definition: ReferenceGrid | None = None
         self._grid_presentations: list[AIS_InteractiveObject] = []
         self._structure_presentations: list[AIS_InteractiveObject] = []
+        self._structure_actors: dict[int, list[AIS_InteractiveObject]] = {}
         self.grid_button = QtWidgets.QToolButton(self)
         self.grid_button.setText("XYZ grid (mm)")
         self.grid_button.setToolTip("Outer bounding-box grid; model XYZ coordinates in millimetres")

@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QFileDialog, QListWidget, QListWidgetItem, QComboBox, QSlider, QLabel, QHBoxLayout
-from PySide6.QtCore import Qt, QSignalBlocker
+from PySide6.QtWidgets import QFileDialog, QListWidget, QListWidgetItem
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPixmap
 
 from classes.app import get_app
@@ -7,7 +7,6 @@ from classes.logger import log
 from classes.dicom.fileio import read_dicom_folder
 from classes.dicom.structure_list import structure_list_rows
 from windows.models.shape_model import ShapeTypes
-from windows.models.structures_model import StructureDisplayMode
 from windows.ui.import_view_ui import Ui_Import_View
 from windows.views.custom_view import display_action, CustomView
 
@@ -185,38 +184,15 @@ class ImportView(CustomView):
         print("")
 
     def action_update_structure_list(self):
-        """Show ROI visibility controls and explain unavailable contours."""
-        model = get_app().window.structuresmodel
-        with QSignalBlocker(self.surface_mode), QSignalBlocker(self.surface_opacity):
-            self.surface_mode.setCurrentText(model.mode.value)
-            self.surface_opacity.setValue(round(model.opacity * 100))
-        self.opacity_label.setText(f"Opacity {round(model.opacity * 100)}%")
-        structures = tuple(model.structures.values())
-        with QSignalBlocker(self.structure_list):
-            self.structure_list.clear()
-            for structure, row in zip(structures, structure_list_rows(structures)):
-                item = QListWidgetItem(f"{row.label}  {row.category}")
-                roi = structure.roi_number
-                item.setData(Qt.UserRole, roi)
-                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                item.setCheckState(Qt.Checked if roi in model.visible else Qt.Unchecked)
-                reason = model.unavailable.get(roi)
-                if reason:
-                    item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
-                    item.setToolTip(reason)
-                else:
-                    surface_error = model.surface_errors.get(roi)
-                    item.setToolTip(f"Surface unavailable: {surface_error}. Select Outlines or Both to view contours."
-                                    if surface_error else "Show or hide this structure; surfaces are approximate previews")
-                swatch = QPixmap(12, 12)
-                swatch.fill(QColor(*row.color))
-                item.setIcon(QIcon(swatch))
-                self.structure_list.addItem(item)
-
-    def action_toggle_structure(self, item: QListWidgetItem):
-        """Keep anatomy visibility separate from printable shapes."""
-        get_app().window.structuresmodel.set_visible(
-            item.data(Qt.UserRole), item.checkState() == Qt.Checked)
+        """Fill Import's read-only inventory from the current anatomy state."""
+        self.structure_list.clear()
+        for row in structure_list_rows(tuple(get_app().window.structuresmodel.structures.values())):
+            item = QListWidgetItem(f"{row.label}  {row.category}")
+            item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+            swatch = QPixmap(12, 12)
+            swatch.fill(QColor(*row.color))
+            item.setIcon(QIcon(swatch))
+            self.structure_list.addItem(item)
 
     @display_action
     def on_open(self):
@@ -230,25 +206,6 @@ class ImportView(CustomView):
         self.ui = Ui_Import_View()
         self.ui.setupUi(self)
 
-        model = get_app().window.structuresmodel
-        controls = QHBoxLayout()
-        self.surface_mode = QComboBox(self)
-        self.surface_mode.addItems([mode.value for mode in StructureDisplayMode])
-        self.surface_mode.setCurrentText(model.mode.value)
-        self.surface_mode.setToolTip("Approximate surface sampled at 1 mm; original outlines remain available")
-        self.opacity_label = QLabel(f"Opacity {round(model.opacity * 100)}%", self)
-        self.surface_opacity = QSlider(Qt.Horizontal, self)
-        self.surface_opacity.setRange(0, 100)
-        self.surface_opacity.setValue(round(model.opacity * 100))
-        self.surface_opacity.setToolTip("Surface opacity; does not change outline opacity")
-        controls.addWidget(self.surface_mode)
-        controls.addWidget(self.opacity_label)
-        controls.addWidget(self.surface_opacity)
-        self.ui.verticalLayout_3.addLayout(controls)
-        self.surface_mode.currentTextChanged.connect(
-            lambda text: model.set_mode(StructureDisplayMode(text)))
-        self.surface_opacity.valueChanged.connect(lambda value: model.set_opacity(value / 100))
-
         self.structure_list = QListWidget(self)
         self.structure_list.setObjectName("structure_list")
         self.structure_list.setSelectionMode(QListWidget.SelectionMode.NoSelection)
@@ -259,7 +216,6 @@ class ImportView(CustomView):
         self.ui.verticalLayout_3.addWidget(self.structure_list)
 
         # signals and slots
-        self.structure_list.itemChanged.connect(self.action_toggle_structure)
         get_app().window.structuresmodel.changed.connect(self.action_update_structure_list)
         self.ui.btn_import_folder.pressed.connect(self.action_import_dicom_folder)
         self.ui.btn_config_file.pressed.connect(self.action_import_config_file)
