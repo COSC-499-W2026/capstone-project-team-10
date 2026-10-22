@@ -146,8 +146,7 @@ class MainWindow(QMainWindow):
             lambda plan: self.structuresmodel.load_plan(plan, self.cylindermodel.cylinder.length))
         self.cylindermodel.values_changed.connect(
             lambda cylinder: self.structuresmodel.set_length(cylinder.length))
-        self.displaymodel.shapes_changed.connect(
-            lambda shapes, resize: self.structuresmodel.clear() if not shapes else None)
+        self.displaymodel.reset_completed.connect(self.structuresmodel.clear)
         # fires on an import and on the Cylinder tab's Apply Settings, the two ways to get a cylinder
         self.cylindermodel.values_changed.connect(self.enable_export_view)
 
