@@ -648,7 +648,7 @@ src/launch.py  main()
        ├─ MainWindow.initModels()             # models first...
        ├─ MainWindow.initViews()              # ...then views, which connect to them
        │    ├─ OrbitCameraViewer3d()          # the OCC canvas widget
-       │    └─ NavigationModel()              # constructs the 5 views in fixed order
+       │    └─ NavigationModel()              # constructs the 6 views in fixed order
        └─ showWithCanvas()                    # resize -1px, show, resize back (canvas fit hack)
   └─ app.exec()                               # Qt event loop
 ```
@@ -656,7 +656,7 @@ src/launch.py  main()
 The `__init__` → `initModels()` → `initViews()` split is deliberate: models must exist before
 views try to connect signals to them. **Preserve that ordering when adding either.**
 
-### 4.3 The five views are addressed by index
+### 4.3 The views are addressed by index
 
 `NavigationModel.views` is a plain list, and the entire codebase reaches across views
 positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_height.setMaximum(...)`.
@@ -668,6 +668,11 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 | 2 | `ChannelsView` | [channels_view.py](../../src/windows/views/channels_view.py) | `ChannelsModel` |
 | 3 | `TandemView` | [tandem_view.py](../../src/windows/views/tandem_view.py) | `TandemModel` |
 | 4 | `Export_View` | [export_view.py](../../src/windows/views/export_view.py) | — (composes all) |
+| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | — (empty page, issue #106) |
+
+The view is appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export
+stays 4. There is no Structures nav button yet. *Reasoned from code*;
+`tests/windows/test_main_window.py`.
 
 **Reordering this list breaks call sites scattered across `settings/reset.py`, every view, and
 `main_window.py`.** There is no symbolic lookup. Treat the order as frozen.
@@ -801,7 +806,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
         ├── palettes.py        colour definitions (unused)
         ├── length_field.py    LengthField and LengthUnit, mm-backed Cylinder controls
         ├── models/            six QObject models
-        ├── views/             five views + custom_view.py + viewport.py
+        ├── views/             six views + custom_view.py + viewport.py
         └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
 ```
 
@@ -1073,7 +1078,7 @@ emitting change signals. They hold no widgets.
 | `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
-| `NavigationModel` | the five views | not a `QObject`; plain class |
+| `NavigationModel` | the six views | not a `QObject`; plain class |
 
 `TandemModel` deserves attention. It distinguishes **imported** from **generated** tandems
 (`is_shape_imported`) and tracks two independent vertical offsets:
@@ -1127,6 +1132,11 @@ Complete control inventory, extracted from the `.ui` sources:
 import, `ImportView` also shows a read-only `structure_list` (`QListWidget` added in code,
 not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 (*Reasoned from code*; `tests/views/test_import_view.py`).
+
+**Structures** — no `.ui`. `StructuresView` is an empty `CustomView`. The stacked page is added
+in `NavigationModel` when `viewswidget` has fewer pages than `views`. No nav button, list,
+colour, opacity or hide controls yet. *Reasoned from code*;
+`tests/windows/test_main_window.py`.
 
 **Cylinder** (`cylinder_view.ui`)
 
@@ -1270,7 +1280,7 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 
 **Main window** (`main_window.ui`) — `display_view_widget` (hosts the OCC canvas),
 `top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
-`page_import` … `page_export`.
+`page_import` … `page_export` plus a sixth page added by `NavigationModel`.
 
 The shared `display_view_widget` also hosts the grid and central-axis controls (§5.7).
 
@@ -2074,9 +2084,9 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
-| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6) |
+| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or `views[5]` is not a `StructuresView`, Cylinder moves off index 1 or Export off index 4, or `viewChanged(5)` does not show page 5 (§4.3) |
 
-The `windows/` tests drive the real `MainWindow`, models and five views offscreen, through the
+The `windows/` tests drive the real `MainWindow`, models and six views offscreen, through the
 `fresh_window` fixture in [tests/windows/conftest.py](../../tests/windows/conftest.py). The 3D
 canvas is created but never initialised, because OpenCASCADE's viewer segfaults without a
 display, and `HOME` points at a temporary folder so `~/brachify` is never touched. Two traps

@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 IMPORT_TAB = 0
 CYLINDER_TAB = 1
 EXPORT_TAB = 4
+STRUCTURES_TAB = 5
 SAMPLE_PLAN = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
 SELECTED_TAB_BACKGROUND = QColor(28, 44, 81)
 
@@ -115,3 +116,37 @@ def test_export_button_is_highlighted_after_opening_export_with_applied_settings
     click(export_button)
 
     assert export_button.grab().toImage().pixelColor(2, 2) == SELECTED_TAB_BACKGROUND
+
+
+def test_structures_view_is_appended_so_cylinder_and_export_keep_their_indexes(
+    fresh_window: MainWindow,
+) -> None:
+    """Check that Structures is views[5] and Cylinder and Export did not move.
+
+    Fails if views[5] is missing or is not a StructuresView, or if Cylinder left index 1 or
+    Export left index 4. Inserting Structures after Import would shift every later tab and
+    send cylinder length and tandem caps to the wrong widgets.
+    """
+    from windows.views.cylinder_view import CylinderView
+    from windows.views.export_view import Export_View
+    from windows.views.structures_view import StructuresView
+
+    assert type(fresh_window.navigationmodel.views[STRUCTURES_TAB]) is StructuresView
+    assert type(fresh_window.navigationmodel.views[CYLINDER_TAB]) is CylinderView
+    assert type(fresh_window.navigationmodel.views[EXPORT_TAB]) is Export_View
+
+
+def test_opening_structures_by_signal_shows_page_five(fresh_window: MainWindow) -> None:
+    """Check that viewChanged(5) shows the Structures page.
+
+    Fails if the stacked widget stays on Import, or if page 5 is not a StructuresView. There
+    is no nav button yet, so a later tab that emits 5 is how a physicist will reach organs.
+    """
+    from classes.app import get_app
+    from windows.views.structures_view import StructuresView
+
+    get_app().signals.viewChanged.emit(STRUCTURES_TAB)
+
+    assert fresh_window.navigationmodel.current_page == STRUCTURES_TAB
+    assert fresh_window.ui.viewswidget.currentIndex() == STRUCTURES_TAB
+    assert type(fresh_window.navigationmodel.views[STRUCTURES_TAB]) is StructuresView

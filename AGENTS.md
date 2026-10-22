@@ -210,7 +210,7 @@ Anything that is a pure function of its inputs. In this codebase that is most of
 
 The OpenCASCADE viewport cannot be tested here: without a display, initialising it segfaults. Full solid booleans are too slow to run per commit.
 
-Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and five views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. `cylinder_window` builds the same window with default settings and no plan, fresh for each test. Both build on `units_app`, the one QApplication for the run, because Qt allows only one per process. `fresh_window` in [tests/windows/conftest.py](tests/windows/conftest.py) also builds a window with no plan for each test, on `brachify_app`, which reuses that QApplication when `units_app` started it first. A test clicks buttons with `QTest` or sets widget values, then asserts what the window shows. Use them when the behaviour is the widgets' own state, such as which list row is highlighted. Building the thirteen Ex1 channels takes several seconds.
+Qt widget state can be tested, headless. The `channels_window` fixture in [tests/views/conftest.py](tests/views/conftest.py) builds the real `MainWindow`, models and six views offscreen, with the 3D canvas created but never initialised, and imports `SI_C_D30 Brachify_Ex1/`. `cylinder_window` builds the same window with default settings and no plan, fresh for each test. Both build on `units_app`, the one QApplication for the run, because Qt allows only one per process. `fresh_window` in [tests/windows/conftest.py](tests/windows/conftest.py) also builds a window with no plan for each test, on `brachify_app`, which reuses that QApplication when `units_app` started it first. A test clicks buttons with `QTest` or sets widget values, then asserts what the window shows. Use them when the behaviour is the widgets' own state, such as which list row is highlighted. Building the thirteen Ex1 channels takes several seconds.
 
 Do not paper over the rest with a test that merely constructs a view and asserts it does not raise. That stays green for visibly broken geometry. Instead:
 
@@ -377,7 +377,7 @@ User state lives in `~/brachify/` (`classes.info.USER_PATH`): `app.log` (rotatin
 
 Models ([src/windows/models/](src/windows/models/)) are `QObject`s owning domain state and emitting change signals; they hold no widgets. Views ([src/windows/views/](src/windows/views/)) subclass `CustomView` and own the generated Qt UI object.
 
-`NavigationModel` constructs the five views in a fixed, index-significant order and the whole codebase addresses them positionally:
+`NavigationModel` constructs the six views in a fixed, index-significant order and the whole codebase addresses them positionally. Structures is `views[5]` so Cylinder stays 1 and Export stays 4.
 
 | index | view | model |
 |---|---|---|
@@ -386,6 +386,7 @@ Models ([src/windows/models/](src/windows/models/)) are `QObject`s owning domain
 | 2 | `ChannelsView` | `ChannelsModel` |
 | 3 | `TandemView` | `TandemModel` |
 | 4 | `Export_View` | — |
+| 5 | `StructuresView` | — |
 
 Cross-view mutation is done by index — `get_app().window.navigationmodel.views[3].ui.sb_tandem_height.setMaximum(...)`. Reordering `NavigationModel.views` breaks call sites scattered across [settings/reset.py](src/settings/reset.py), the views, and `main_window.py`.
 
