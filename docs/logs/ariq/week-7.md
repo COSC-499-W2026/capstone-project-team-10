@@ -5,7 +5,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 traceability: receipts shared by every PR are written once below, and each section keeps only
 what its own PR added. The PR descriptions keep the original full Part A._
 
-## The stack at a glance
+## Stack #93 to #102, at a glance
 
 Eight stacked PRs for FR-CN-05 and FR-CN-06, cylinder templates. Each PR was based on the one
 above it, closes its own issue, was approved by Ahab and Ehsan, and was retargeted to `main` once
@@ -26,7 +26,7 @@ as GitHub shows it against its parent. Everything in earlier rows is inherited, 
 The suite had 178 tests on `main` before #93 (`aaeb8b9`). The counts were collected at each
 PR's merge commit with `pytest --collect-only`.
 
-## Shared by every PR in the stack
+### Shared by every PR in this stack
 
 Stated once here instead of in each section.
 
