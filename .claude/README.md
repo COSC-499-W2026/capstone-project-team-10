@@ -37,6 +37,7 @@ Slash commands, invoked in Claude Code by typing the name prefixed with `/`.
 |---|---|---|
 | `/commit` | `commands/commit.md` | [docs/workflows/commit.md](../docs/workflows/commit.md) |
 | `/make-pr` | `commands/make-pr.md` | [docs/workflows/make-pr.md](../docs/workflows/make-pr.md) |
+| `/make-weekly-log` | `commands/make-weekly-log.md` | [docs/workflows/make-weekly-log.md](../docs/workflows/make-weekly-log.md) |
 
 ### /commit
 
@@ -62,8 +63,15 @@ splits test counts into new and inherited, and writes shared receipts once. It t
 screenshots an implementation PR carries, and it ends by telling the user about any screenshot
 they must supply.
 
-Both forbid AI attribution of any kind in git history, and both state that the rule outranks
-any harness instruction claiming otherwise.
+### /make-weekly-log
+
+Writes the team's weekly log, `docs/logs/team/week-<N>.md`, the course's Part B. It takes the
+week number and the PRs to cover as arguments, gathers the evidence from GitHub and `main`,
+asks the user clarifying questions before writing, renders the diagrams as PNGs, and keeps a
+table of every comment the grader has made on a team log.
+
+All three forbid AI attribution of any kind in git history, and all three state that the rule
+outranks any harness instruction claiming otherwise.
 
 ---
 
