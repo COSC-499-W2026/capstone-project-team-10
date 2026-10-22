@@ -322,7 +322,7 @@ Stated once here instead of in each section.
 
   ![1, Ex1's Export tab and reference sheet after loading and applying the flat 170 mm collared template, then the tests on this branch, 3 and 245 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/08a2f0eb7fbb8abba317ac56f6c24acc5dcc7b74/docs/logs/ariq/screenshots/week-7/pr-102-1-ex1-export-and-sheet.png)
 
-## Stack #130 to #131, at a glance
+## Stack #130 to #132, at a glance
 
 Stacked documentation PRs that apply the week 6 traceability feedback. A row's counts are that
 PR's own diff only, against the PR it is on. No code changed, so the suite stayed at 245 tests.
@@ -331,6 +331,7 @@ PR's own diff only, against the PR it is on. No code changed, so the suite staye
 |---|---|---|---|---|---|---|
 | [#130](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/130) | `main` | #127 | week 7 log consolidated; `/make-pr` stack, issue and screenshot rules | 6, +298/−136 | none, markdown only | 245 |
 | [#131](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/131) | #130 | #128 | `make-weekly-log` workflow and `/make-weekly-log` command | 5, +224/−7 | none, markdown only | 245 |
+| [#132](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/132) | #131 | #129 | `make-weekly-log` listed across the documentation set | 6, +36/−12 | none, markdown only | 245 |
 
 ### Shared by every PR in this stack
 
@@ -385,4 +386,20 @@ PR's own diff only, against the PR it is on. No code changed, so the suite staye
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **Claude Code listing `make-weekly-log` among its skills once the pointer existed, and the PNG render (exit 0)** passed.
+- This new test PR did not break anything else in the system because **only markdown changed, and the Shared checks passed**.
+
+### For PR #**132** (3 of 3, on #131)
+
+- As part of requirement **AGENTS.md's documentation set rule, that a file stating a rule or a list is updated with it**, the user needs to do **find the team log workflow from AGENTS.md, `docs/README.md`, `docs/logs/README.md`, the source of truth or the PR template's documentation gate**.
+- Therefore, I implemented/generated code so that **every agent and teammate who starts from those files finds `make-weekly-log`, and the PR gate asks reviewers to check it**.
+
+#### Review and design
+
+- When I reviewed the **documentation set against #131's diff** for this functionality, I noticed **`docs/README.md` still said team logs had no workflow and that the workflows were only commit and PR**. Therefore, I did **update both rows**.
+- Code quality checklist: **see Shared; for this PR, all 370 relative links and anchors in its six files resolve, and `git grep -l make-weekly-log` finds every file that lists the workflows**.
+- This work is written in **the five files that list the workflows or the documentation set** because **AGENTS.md asks the set to stay consistent with itself**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`git grep -l make-weekly-log`, which lists AGENTS.md, `docs/README.md`, `docs/logs/README.md`, the source of truth and `pull_request_template.md`** passed.
 - This new test PR did not break anything else in the system because **only markdown changed, and the Shared checks passed**.
