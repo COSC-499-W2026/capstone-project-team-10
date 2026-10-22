@@ -16,8 +16,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
-    QGridLayout, QLabel, QLayout, QPushButton,
-    QSizePolicy, QSpacerItem, QVBoxLayout, QWidget)
+    QGridLayout, QGroupBox, QHBoxLayout, QLabel,
+    QLayout, QLineEdit, QListWidget, QListWidgetItem,
+    QPushButton, QSizePolicy, QSpacerItem, QVBoxLayout,
+    QWidget)
 
 class Ui_Cylinder_View(object):
     def setupUi(self, Cylinder_View):
@@ -30,7 +32,7 @@ class Ui_Cylinder_View(object):
         sizePolicy.setHeightForWidth(Cylinder_View.sizePolicy().hasHeightForWidth())
         Cylinder_View.setSizePolicy(sizePolicy)
         Cylinder_View.setMinimumSize(QSize(290, 290))
-        Cylinder_View.setMaximumSize(QSize(16777215, 600))
+        Cylinder_View.setMaximumSize(QSize(16777215, 16777215))
         Cylinder_View.setStyleSheet(u"background-color: rgb(250,250,250);")
         self.verticalLayout = QVBoxLayout(Cylinder_View)
         self.verticalLayout.setObjectName(u"verticalLayout")
@@ -306,7 +308,74 @@ class Ui_Cylinder_View(object):
 
         self.verticalLayout.addWidget(self.btn_apply_settings)
 
-        self.verticalSpacer = QSpacerItem(280, 270, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        self.group_templates = QGroupBox(Cylinder_View)
+        self.group_templates.setObjectName(u"group_templates")
+        self.group_templates.setStyleSheet(u"QGroupBox, QLabel { color: rgb(0, 0, 0); }\n"
+"QLineEdit, QListWidget { background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); }\n"
+"QPushButton { color: rgb(0, 0, 0); background-color: rgb(199, 219, 237); border: 0px solid; padding: 6px; }\n"
+"QPushButton:hover { color: rgb(250, 250, 250); background-color: rgb(48, 88, 162); }\n"
+"QPushButton:disabled { color: rgb(150, 150, 150); }")
+        self.layout_templates = QVBoxLayout(self.group_templates)
+        self.layout_templates.setObjectName(u"layout_templates")
+        self.le_template_name = QLineEdit(self.group_templates)
+        self.le_template_name.setObjectName(u"le_template_name")
+
+        self.layout_templates.addWidget(self.le_template_name)
+
+        self.le_template_note = QLineEdit(self.group_templates)
+        self.le_template_note.setObjectName(u"le_template_note")
+
+        self.layout_templates.addWidget(self.le_template_note)
+
+        self.list_templates = QListWidget(self.group_templates)
+        self.list_templates.setObjectName(u"list_templates")
+        self.list_templates.setMaximumSize(QSize(16777215, 90))
+
+        self.layout_templates.addWidget(self.list_templates)
+
+        self.layout_template_buttons = QHBoxLayout()
+        self.layout_template_buttons.setObjectName(u"layout_template_buttons")
+        self.btn_save_template = QPushButton(self.group_templates)
+        self.btn_save_template.setObjectName(u"btn_save_template")
+
+        self.layout_template_buttons.addWidget(self.btn_save_template)
+
+        self.btn_load_template = QPushButton(self.group_templates)
+        self.btn_load_template.setObjectName(u"btn_load_template")
+        self.btn_load_template.setEnabled(False)
+
+        self.layout_template_buttons.addWidget(self.btn_load_template)
+
+
+        self.layout_templates.addLayout(self.layout_template_buttons)
+
+        self.layout_template_changes = QHBoxLayout()
+        self.layout_template_changes.setObjectName(u"layout_template_changes")
+        self.btn_update_template = QPushButton(self.group_templates)
+        self.btn_update_template.setObjectName(u"btn_update_template")
+        self.btn_update_template.setEnabled(False)
+
+        self.layout_template_changes.addWidget(self.btn_update_template)
+
+        self.btn_delete_template = QPushButton(self.group_templates)
+        self.btn_delete_template.setObjectName(u"btn_delete_template")
+        self.btn_delete_template.setEnabled(False)
+
+        self.layout_template_changes.addWidget(self.btn_delete_template)
+
+
+        self.layout_templates.addLayout(self.layout_template_changes)
+
+        self.label_template_status = QLabel(self.group_templates)
+        self.label_template_status.setObjectName(u"label_template_status")
+        self.label_template_status.setWordWrap(True)
+
+        self.layout_templates.addWidget(self.label_template_status)
+
+
+        self.verticalLayout.addWidget(self.group_templates)
+
+        self.verticalSpacer = QSpacerItem(0, 270, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout.addItem(self.verticalSpacer)
 
@@ -359,5 +428,12 @@ class Ui_Cylinder_View(object):
         self.combobox_tip.setItemText(1, QCoreApplication.translate("Cylinder_View", u"Flat", None))
 
         self.btn_apply_settings.setText(QCoreApplication.translate("Cylinder_View", u"Apply Settings", None))
+        self.group_templates.setTitle(QCoreApplication.translate("Cylinder_View", u"Templates", None))
+        self.le_template_name.setPlaceholderText(QCoreApplication.translate("Cylinder_View", u"Template name", None))
+        self.le_template_note.setPlaceholderText(QCoreApplication.translate("Cylinder_View", u"Note", None))
+        self.btn_save_template.setText(QCoreApplication.translate("Cylinder_View", u"Save as Template", None))
+        self.btn_load_template.setText(QCoreApplication.translate("Cylinder_View", u"Load", None))
+        self.btn_update_template.setText(QCoreApplication.translate("Cylinder_View", u"Update", None))
+        self.btn_delete_template.setText(QCoreApplication.translate("Cylinder_View", u"Delete", None))
     # retranslateUi
 

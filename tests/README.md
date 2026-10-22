@@ -52,7 +52,8 @@ tests/
 ├── models/
 ├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
-├── settings/              exists: config file loading and the needle template library
+├── settings/              exists: config file loading, the needle template library and cylinder templates
+│   ├── test_cylinder_templates.py
 │   ├── test_needle_templates.py
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
@@ -66,6 +67,8 @@ tests/
 │   ├── test_central_axis.py     reference geometry and toggle/reset state
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
+│   ├── test_cylinder_template_controls.py
+│   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   └── test_tandem_view.py
@@ -74,7 +77,8 @@ tests/
     └── test_main_window.py
 ```
 
-`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`, `dicom/test_data.py`,
+`tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`,
+`settings/test_cylinder_templates.py`, `dicom/test_data.py`,
 `dicom/test_structures.py`, `dicom/test_load_structures.py`, `dicom/test_structure_list.py`
 and `views/test_import_view.py` exist. The rest of the tree shows where tests will go.
 
@@ -125,16 +129,20 @@ pydicom datasets. It covers ROI joins, all contour slices, metadata defaults, co
 semantics, input preservation, and malformed input.
 
 `windows/` and `views/` hold the widget tests. Both fixtures build the real `MainWindow`,
-models and five views offscreen, with the 3D canvas never initialised and `HOME` and
+models and six views offscreen, with the 3D canvas never initialised and `HOME` and
 `USERPROFILE` pointed at a temporary folder. Each reuses the one QApplication if the other
 started it first, and disconnects application signals in its teardown. No application module is
 mocked. The pure functions below still have no tests.
 
 `settings/test_needle_templates.py` tests the needle template library against files in `tmp_path`.
-It imports no Qt and no `classes` module.
+It imports no Qt and no `classes` module. `settings/test_cylinder_templates.py` checks cylinder
+templates against every Cylinder tab range edge, and their library, including update and delete,
+against files in `tmp_path`, with no Qt either.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
-the window shows.
+the window shows. It also checks that the Structures button sits under Import and opens
+`views[5]` without moving Cylinder off index 1, that the six nav buttons do not overlap after
+`show()`, and that Structures highlights on click and unhighlights when Cylinder is clicked.
 
 `mesh/test_notch.py` and `mesh/test_cylinder.py` build real solids and compare their bounding
 boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
@@ -156,7 +164,7 @@ imports no Qt or conda-only package.
 `views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
 QApplication per process, so the two window fixtures share it rather than each making their
-own. `channels_window` builds the real `MainWindow`, models and five views once per module
+own. `channels_window` builds the real `MainWindow`, models and six views once per module
 and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
 in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
 builds a fresh window with default settings for each test and restores the previous app
@@ -173,7 +181,19 @@ and widgets. It covers the mm/cm selector across all four dimensions, precision,
 configuration reset and Ex1 import with needle offsets, and the settings round trip: every
 default key is in the exported snapshot, and the collar is exported and loaded back. The notch
 controls are applied, grey out when *Add Notch* is unticked, follow the units, and are filled
-by a config import.
+by a config import. The tab's spin boxes keep 20 px and nothing scrolls sideways in the default
+window.
+
+`views/test_cylinder_template_controls.py` checks the Cylinder tab's Templates group: *Save as
+Template* writes every setting from its own control, in mm, a blank or taken name or an unreadable
+library is explained in the status line, and the library's ranges match the tab's spin boxes.
+*Load* fills every control, the name and the note, in the displayed unit, without applying.
+*Update* and *Delete* change the file only after Yes, through `CylinderView.confirm`, and the
+confirmation dialog defaults to Cancel and has no parent.
+Run alone, a small `tests/views` file can crash at exit after passing (§7.13 of the project docs).
+
+`views/test_cylinder_template_exports.py` checks that a loaded and applied template reaches the
+reference sheet's cylinder table and the Export tab's mesh, and moves Ex1's needles with the tip.
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.

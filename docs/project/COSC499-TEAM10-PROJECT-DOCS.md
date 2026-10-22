@@ -588,7 +588,10 @@ settings began to round-trip through config files, and *Generate Tandem* stopped
 settings (§7.1). `ChannelsModel` began keeping a channel's own
 diameter through the Channels tab's Apply (FR-CN-08, §5.5). It is set in the Channels tab's Selected Channel group (§5.6). The Channels list
 shows each channel's status in colour (§5.6). The Selected Channel group also saves a
-channel's diameter as a named needle template and applies one (§5.2, §6.3).
+channel's diameter as a named needle template and applies one (§5.2, §6.3). On 2026-10-19
+`settings/cylinder_templates.py` began modelling a named cylinder template, the Cylinder tab's
+settings checked against its own limits, and saving them to `~/brachify/cylinder_templates.json`
+(§5.2, §6.3). The Cylinder tab's Templates group saves the tab's settings to it (§5.6).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -645,7 +648,7 @@ src/launch.py  main()
        ├─ MainWindow.initModels()             # models first...
        ├─ MainWindow.initViews()              # ...then views, which connect to them
        │    ├─ OrbitCameraViewer3d()          # the OCC canvas widget
-       │    └─ NavigationModel()              # constructs the 5 views in fixed order
+       │    └─ NavigationModel()              # constructs the 6 views in fixed order
        └─ showWithCanvas()                    # resize -1px, show, resize back (canvas fit hack)
   └─ app.exec()                               # Qt event loop
 ```
@@ -653,7 +656,7 @@ src/launch.py  main()
 The `__init__` → `initModels()` → `initViews()` split is deliberate: models must exist before
 views try to connect signals to them. **Preserve that ordering when adding either.**
 
-### 4.3 The five views are addressed by index
+### 4.3 The views are addressed by index
 
 `NavigationModel.views` is a plain list, and the entire codebase reaches across views
 positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_height.setMaximum(...)`.
@@ -665,6 +668,12 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 | 2 | `ChannelsView` | [channels_view.py](../../src/windows/views/channels_view.py) | `ChannelsModel` |
 | 3 | `TandemView` | [tandem_view.py](../../src/windows/views/tandem_view.py) | `TandemModel` |
 | 4 | `Export_View` | [export_view.py](../../src/windows/views/export_view.py) | — (composes all) |
+| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | — (empty page, issue #106) |
+
+The Structures nav button sits directly under Import in `verticalLayout_31`. The view itself is
+appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export stays 4.
+`MainWindow` creates `btn_structures_view` in code after `setupUi`; it is not in `main_window.ui`.
+*Reasoned from code*; `tests/windows/test_main_window.py`.
 
 **Reordering this list breaks call sites scattered across `settings/reset.py`, every view, and
 `main_window.py`.** There is no symbolic lookup. Treat the order as frozen.
@@ -681,7 +690,7 @@ Three application-wide signals live on `AppSignals` ([signals.py](../../src/clas
 
 | Signal | Emitted by | Received by |
 |---|---|---|
-| `viewChanged(int)` | the five nav buttons in `MainWindow.__init__` | `NavigationModel.set_page` |
+| `viewChanged(int)` | the six nav buttons in `MainWindow.__init__` | `NavigationModel.set_page` |
 | `height_changed(float)` | `CylinderView.action_apply_settings`, offset in mm regardless of display unit | `ChannelsModel.update_height_offset`, `TandemModel.update_height_offset` |
 | `exportFile(str)` | *nobody* | *nobody* — declared and unused |
 
@@ -772,7 +781,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr)
-├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle template tests in settings/ (§8)
+├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle and cylinder template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -792,13 +801,13 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
     │   └── pdf/               template_reference.py, canvas.py
-    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py
+    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py, cylinder_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
         ├── length_field.py    LengthField and LengthUnit, mm-backed Cylinder controls
         ├── models/            six QObject models
-        ├── views/             five views + custom_view.py + viewport.py
+        ├── views/             six views + custom_view.py + viewport.py
         └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
 ```
 
@@ -872,6 +881,33 @@ of the same name, writes the library to a `.tmp` file beside it and swaps that i
 it could not read. The module imports nothing from
 `classes` or `windows`, and the caller passes the path. Its error messages are written for
 clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
+
+**[`settings/cylinder_templates.py`](../../src/settings/cylinder_templates.py)** — cylinder
+template library, added 2026-10-19. The Cylinder tab's *Save as Template* calls `add_template`
+(§5.6). A `CylinderTemplate` is a frozen dataclass of
+`template_id`, `name`, `note`, `created`, `modified` and a `CylinderDesign`, which holds the
+Cylinder tab's 11 settings with lengths in mm and the notch angle in degrees: diameter, length,
+collar on or off, collar thickness and height, notch on or off, notch angle, width, depth and
+height, and `flat_tip`. The Units choice is not stored. `make_template` trims the name and
+note, and refuses an empty name or ID, a timestamp with no time zone, a modified time before the
+created one, and any value outside the Cylinder tab's spin box range in mm (`RANGES`, copied
+from `cylinder_view.ui`, with 0.01 mm as the smallest diameter since that box allows 0), NaN and
+infinity included. The caller passes the ID and the times, so the module stays deterministic.
+It imports nothing from `classes` or `windows`, because `classes.mesh.cylinder` cannot be
+imported before the app exists (§7.6), so it stores the tip as `flat_tip` rather than as a
+`TipShape`. Its error messages are shown to clinicians, so they follow the UI copy rule.
+`load_templates(path)` decodes `{"version": 1, "templates": [...]}` at the boundary, all or
+none: a missing file is an empty library, and another version, a missing or mistyped value (a
+boolean as a number, or 1 as a flag), an unreadable date, two templates sharing an ID or a name
+ignoring case, an `OSError` or a number too large for a float all raise `CylinderTemplateError`,
+with the reason after the file name. `add_template` refuses a name already used in any case,
+pointing the clinician to Update, then writes through a `.tmp` file and `os.replace` as the
+needle library does, and never overwrites a file it could not read. `update_template` replaces
+a template's name, note and design, keeps its ID, created date and place in the list, sets the
+modified date, and refuses a name another template uses in any case (its own name in another
+case is allowed). `delete_template` removes one template. Both refuse an unknown ID with "That
+cylinder template no longer exists", and both read and write the file the same way as
+`add_template`. *Verified* by `tests/settings/test_cylinder_templates.py` (§8.2).
 
 ### 5.3 DICOM ingest
 
@@ -1043,7 +1079,7 @@ emitting change signals. They hold no widgets.
 | `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
-| `NavigationModel` | the five views | not a `QObject`; plain class |
+| `NavigationModel` | the six views | not a `QObject`; plain class |
 
 `TandemModel` deserves attention. It distinguishes **imported** from **generated** tandems
 (`is_shape_imported`) and tracks two independent vertical offsets:
@@ -1098,6 +1134,12 @@ import, `ImportView` also shows a read-only `structure_list` (`QListWidget` adde
 not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 (*Reasoned from code*; `tests/views/test_import_view.py`).
 
+**Structures** — no `.ui`. `StructuresView` is an empty `CustomView`. The nav button is created
+in `MainWindow._add_structures_nav_button` and inserted under Import. The stacked page is added
+in `NavigationModel` when `viewswidget` has fewer pages than `views`. No list, colour, opacity
+or hide controls yet (issues #107 and #111). *Reasoned from code*;
+`tests/windows/test_main_window.py`.
+
 **Cylinder** (`cylinder_view.ui`)
 
 | Widget | Label | Range |
@@ -1115,6 +1157,15 @@ not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 | `spinbox_notch_height` | Notch Height | 1–60 mm or 0.1–6 cm |
 | `combobox_tip` | Tip Shape | Dome or Flat, the `TipShape` values. Not affected by Units |
 | `btn_apply_settings` | Apply Settings | |
+| `group_templates` | Templates | below *Apply Settings* |
+| `le_template_name` | Template name (placeholder) | the name to save the tab's settings under |
+| `le_template_note` | Note (placeholder) | an optional note saved with them |
+| `list_templates` | | every saved cylinder template by name. Its tooltip gives the note, the created and modified dates, and a summary such as `30.00 mm by 160 mm, Dome` |
+| `btn_save_template` | Save as Template | writes `~/brachify/cylinder_templates.json` |
+| `btn_load_template` | Load | fills the tab from the selected template, without applying it. Disabled while no template is selected |
+| `btn_update_template` | Update | after a confirmation, writes the name, note and 11 settings on the tab to the selected template. Disabled while none is selected |
+| `btn_delete_template` | Delete | after a confirmation, removes the selected template. Disabled while none is selected |
+| `label_template_status` | | which template was saved, or why a save or a read failed |
 
 The notch ranges are Team 10's choice, added 2026-10-15. No clinical document sets them.
 *Tip Shape* was added the same day, below the notch rows. `set_tip` fills it from the model or a
@@ -1138,6 +1189,43 @@ integration cases, watched failing before implementation. Ahab supplied a GUI sc
 showing 3.125, 17.3, 0.3 and 1.2 cm with Add Collar selected, and terminal output
 showing Ex1 import and a 13 mm height offset on Apply. The original image was not saved;
 Ex2/tandem GUI regression was not verified. The stacked test PR supplies the cases.
+
+*Save as Template* (added 2026-10-19) reads the tab's 11 settings with `CylinderView.cylinder_design()`,
+lengths from the `LengthField` mm values so a value shown in cm is saved in mm, and saves them
+with a new random ID through `settings.cylinder_templates`. A blank or taken name, or a library
+that cannot be read, is explained in `label_template_status` rather than a dialog, as on the
+Channels tab, and the tab reads the library when it is built without ever stopping brachify
+starting. `RANGES` in that module is checked against these spin boxes' limits by a test. The
+group's one stylesheet colours its labels, fields and buttons. *Verified* by offscreen tests
+(§8.2) and in the running app on macOS.
+
+*Load* (added 2026-10-19) puts the selected template's 11 settings on the tab through
+`CylinderView.set_cylinder_design()`, which writes mm through the `LengthField`s as
+`set_dimensions_mm` does, so a template loaded while the tab shows cm is shown in cm. It also
+fills the name and note fields, which is how a template is renamed with *Update*. It does not
+apply: the status line says to press *Apply Settings*, which builds the cylinder, so loading the
+wrong template never moves an imported plan's needles by itself. *Verified* by offscreen tests and
+in the running app on macOS.
+
+*Update* and *Delete* (added 2026-10-19) act on the selected template once the physicist answers
+Yes to "Replace 30 mm standard with the settings on this tab?" or "Delete the template 30 mm
+standard?". *Update* is also how a template is renamed: *Load* fills the name and note, the
+physicist edits them, and *Update* saves them with the settings, keeping the template's ID and
+created date. The question is asked by `template_change_dialog` in `cylinder_view.py`, not in
+`main_window.py` with the app's other dialogs, to keep that change under the size limit. It offers
+Yes and Cancel with Cancel the default, so Return changes nothing, and it has no parent widget
+(§7.6). Qt drops a message box's title on macOS, so the question names the action itself. The view
+asks through `CylinderView.confirm`, which tests replace to answer for the physicist without
+patching a module. *Verified* by offscreen tests and, for the dialog in dark mode, in the running app.
+
+Since 2026-10-19 the Cylinder tab's controls sit in a scroll area, `scroll_cylinder`, which
+`CylinderView.__init__` builds in code around the generated UI, so the tab scrolls up and down
+rather than squeezing its rows. Its layout sets the content's minimum size, because the `.ui`'s
+290 px minimum would otherwise let the scroll area squeeze the rows, and the empty spacer under
+*Apply Settings* no longer asks for 280 px of width, which had made the content wider than the
+panel and added a sideways scroll bar. The `.ui` itself is not wrapped, which would have rewritten
+the whole file. *Verified* 2026-10-19 by two offscreen tests and in the running app on macOS at
+the default window: every spin box is 22 px and nothing scrolls sideways (§7.12).
 
 **Channels** (`channels_view.ui`)
 
@@ -1193,8 +1281,11 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 `btn_export_current_config`.
 
 **Main window** (`main_window.ui`) — `display_view_widget` (hosts the OCC canvas),
-`top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
-`page_import` … `page_export`.
+`top_menu_bar` with the five nav buttons from the `.ui` plus `btn_structures_view`
+added in `MainWindow._add_structures_nav_button` under Import, and `viewswidget`
+(`QStackedWidget`) with `page_import` … `page_export` plus a sixth page added by
+`NavigationModel`. `_add_structures_nav_button` raises `top_menu_bar`'s minimum
+height to `len(_nav_buttons()) * 33` so six 33 px rows fit.
 
 The shared `display_view_widget` also hosts the grid and central-axis controls (§5.7).
 
@@ -1204,11 +1295,11 @@ Cylinder tab's *Apply Settings* (§7.6).
 
 Styling for the nav buttons is **two stylesheet strings** in `main_window.py`:
 `NAV_BUTTON_STYLE` for every tab not on screen, with a grey `:disabled` rule, and
-`SELECTED_NAV_BUTTON_STYLE` for the one on screen. Each of the five near-identical
-`change_color_*` methods rewrites all five buttons with them on every tab click, so a style set
-on one button anywhere else is lost on the next click.
-[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it. The five
-methods are still the most obvious refactor target in the UI layer.
+`SELECTED_NAV_BUTTON_STYLE` for the one on screen. `_highlight_nav` rewrites every
+button in `_nav_buttons` on each tab click, so a style set on one button anywhere
+else is lost on the next click. Each `change_color_*` is a one-liner that names the
+selected button.
+[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it.
 ([notes/style guide.txt](../../notes/style%20guide.txt) is about Python naming, `lower_case`
 functions and `CapWords` classes, not colours.)
 
@@ -1407,6 +1498,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 | `app.log` | `logger.py` | rotating, 25 MB × 3 backups |
 | `filepaths.json` | `MainWindow.closeEvent` | `most_recently_opened_config_file`, `most_recently_saved_config_file` |
 | `needle_templates.json` | `settings.needle_templates.save_template`, from the Channels tab's *Save as Template* | a JSON list of `{"name", "diameter_mm"}` objects |
+| `cylinder_templates.json` | `settings.cylinder_templates.add_template`, from the Cylinder tab's *Save as Template* (§5.6) | `{"version": 1, "templates": [...]}`, each template an `id`, `name`, `note`, ISO 8601 `created` and `modified`, and the 11 Cylinder tab settings in mm |
 
 `most_recently_saved_config_file` is stored but never read — it is reserved for future use.
 
@@ -1695,6 +1787,11 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 - **The two tandem rotation spin boxes** must be written together (§5.6).
 - **Varian and Nucletron readers are parallel** — a fix in one usually needs a mirror fix
   (§5.3).
+- **A dialog parented to a view is unreadable in macOS dark mode.** Found 2026-10-19: a
+  `QMessageBox` with a view as its parent inherits the main window's light stylesheets, while dark
+  mode draws its text and button labels white, so they vanish. Create dialogs with no parent, as
+  `main_window.py` and `template_change_dialog` do. *Verified* in the running app on macOS. The
+  offscreen tests cannot see it, since that platform has no dark mode.
 - **Bare `except:` is pervasive.** When debugging, expect failures to be swallowed; add a
   temporary `log.exception()` rather than trusting the absence of an error message.
 - **Fixed 2026-09-25: the anti-slop plugin did not lint the Python app.** It was an oxlint
@@ -1863,6 +1960,27 @@ outline 10 mm larger than the cylinder, centred 1 mm below the dome's centre. A 
 flat tip until the Cylinder tab gains the control. The tandem fix is the next change in the
 same stack of pull requests.
 
+### 7.12 LOW — the Cylinder tab squeezed its spin boxes in the default window
+
+**Fixed 2026-10-19.** At brachify's default 770 × 472 window the Cylinder tab's 13 rows did not
+fit, so Qt squeezed every spin box to 15 or 16 px, below the 20 px the Channels tab's test sets
+as the least that shows a value, and cut the bottoms off the values and labels. *Verified*
+offscreen (16 px) and in the running app on macOS. The tab now scrolls instead (§5.6), guarded
+by `test_cylinder_spin_boxes_keep_their_height_in_the_default_window` and
+`test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`. Found while adding the
+cylinder template controls, which would have squeezed the rows further. *Not verified:* Windows.
+
+### 7.13 Trap — a small `tests/views` run can crash after every test has passed
+
+*Verified 2026-10-19 on macOS.* Running only one or a few tests that build a window, such as
+`python -m pytest tests/views/test_cylinder_view.py -k test_a_new_window_starts_in_mm`, often
+ends with exit 138 or 139 (a bus error or segfault) after the line of dots, so pytest prints no
+summary. On `main` that one test exited 0, 138 and 138 in three runs. The crash is in the garbage
+collection pytest runs while it shuts down (`gc_collect_harder` in `pytest_unconfigure`), which
+destroys the left-over windows' Qt objects in an order Qt does not expect. The whole suite, and
+the whole of `tests/views`, exit 0 (three runs each on `main`). Not fixed. When you run a subset,
+read the dots and the exit code, or add `-p no:unraisableexception`, which skips that collection.
+
 ---
 
 ## 8. Testing
@@ -1950,14 +2068,17 @@ Repository tooling tests, first added 2026-09-30, live in
 | Test | Fails when |
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
+| `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
 | `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
+| `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
+| `views/test_cylinder_template_exports.py` | after a flat, notch-off, 3 by 10 mm collar template is loaded and applied, the reference sheet's cylinder table or the Export tab's mesh volume (π·15²·160 + π·(18²−15²)·10 mm³, worked by hand) is not the template's, or a 180 mm template applied to Ex1, imported at 160 mm, does not raise every needle 20 mm or changes its stored DICOM points (§5.6, §5.8) |
 | `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
-| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6) |
+| `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
@@ -1968,9 +2089,9 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
-| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6) |
+| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or the Structures button is missing, is not labelled Structures, or is not immediately under Import, or clicking it does not open `views[5]` as `StructuresView`, or Cylinder moves off index 1 or Export off index 4, or the six nav buttons overlap or stick out of `top_menu_bar` after `show()`, or Structures is not highlighted after a click or stays highlighted after Cylinder (§4.3) |
 
-The `windows/` tests drive the real `MainWindow`, models and five views offscreen, through the
+The `windows/` tests drive the real `MainWindow`, models and six views offscreen, through the
 `fresh_window` fixture in [tests/windows/conftest.py](../../tests/windows/conftest.py). The 3D
 canvas is created but never initialised, because OpenCASCADE's viewer segfaults without a
 display, and `HOME` points at a temporary folder so `~/brachify` is never touched. Two traps
@@ -2115,6 +2236,59 @@ python -m pytest
   `test_needle_template_controls.py`. All four failed before the view was wired. Four deliberate breaks were
   each caught: a template listed but not written, applied to the wrong channel, and a save or a
   load error escaping. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 196 passed, with `tests/settings/test_cylinder_templates.py`
+  added (18 cases). It failed to import before the module existed. Six deliberate breaks were
+  each caught: no range check, a 0 mm diameter allowed, no trimming, and no ID, time zone or
+  modified-time check. The empty-ID test was added after its check, when this change was split
+  from the file library, so it was watched failing by removing the check. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 215 passed, with 19 library file cases added to
+  `test_cylinder_templates.py` (37 in all). They failed to import before `load_templates` and
+  `add_template` existed. Eight deliberate breaks were each caught: names compared with case,
+  `true` read as a number, 1 read as a flag, the file written in place, an `OverflowError`
+  escaping a read, a shared ID or another version accepted, and a missing file refused. The
+  `true` case sits in the collar thickness, whose range includes 1, so only the type check can
+  refuse it. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 222 passed, with seven update and delete cases added to
+  `test_cylinder_templates.py` (44 in all). They failed to import before `update_template` and
+  `delete_template` existed. Six deliberate breaks were each caught: the created date replaced,
+  the updated template moved to the end, its own name counted as taken, a rename onto another
+  name allowed, a delete dropping the templates after it, and an unknown ID treated as the
+  first. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 224 passed, with two Cylinder tab layout tests added to
+  `test_cylinder_view.py`. The height test failed at 16 px on the code before the scroll area,
+  and again at 16 px with the scroll area but without the layout's size constraint. The
+  sideways test failed with an 18 px sideways range when the spacer's 280 px width was put back.
+  *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 231 passed, exit 0, with `tests/views/test_cylinder_template_controls.py`
+  added (six tests, seven cases). All failed with `AttributeError` before the controls existed.
+  Seven deliberate breaks were each caught: the displayed number saved, the collar fields
+  swapped, a save not listed, a refusal not shown, a read error escaping, the tooltip's length
+  wrong, and `RANGES` drifting from the `.ui`. The collar swap first survived, because the
+  default collar is 0 by 0, so a test sets all 11 values differently. Run alone, this file
+  crashed at exit after passing (§7.13). Saving two templates was also checked in the running
+  app. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 235 passed, exit 0, with four *Load* tests added to
+  `test_cylinder_template_controls.py` (11 cases). All four failed with `AttributeError` before
+  `btn_load_template` existed. Six deliberate breaks were each caught: the collar tick, the tip or
+  the note not loaded, mm written into the boxes as shown, *Load* also applying, and *Load* always
+  enabled. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 242 passed, exit 0, with six *Update* and *Delete* tests
+  added to `test_cylinder_template_controls.py` (18 cases). All failed with `AttributeError` or
+  `ImportError` before the buttons existed. Six deliberate breaks were each caught: Update ignoring
+  Cancel, Delete never asking, Yes the default, Update keeping the old note, the buttons never
+  enabled, and a deleted template still listed. The running app showed the first dialog unreadable
+  in dark mode; the no-parent check was added for it and fails when the dialog is given the main
+  window as its parent. *Not verified:* Windows.
+- *Verified* 2026-10-19 on macOS: 245 passed, exit 0, with `tests/views/test_cylinder_template_exports.py`
+  added (three tests). They test behaviour already merged, so they passed at once. Five deliberate
+  breaks were each caught: *Load* dropping the flat tip or the collar tick, swapping the collar
+  sizes or turning the notch on, and *Apply Settings* no longer moving the needles. In the running
+  app, Ex1 and Ex2 were each imported, a flat 170 mm template with a 3 by 10 mm collar was saved,
+  the tab changed back, the template loaded and applied, and the STL and reference sheet exported.
+  Both STLs run from z 0 to 170 mm with a flat top 15 mm in radius and the notch on the collar wall
+  19.83 mm out, and both sheets list Length 170.0 mm, Tip Flat and the collar. OpenCASCADE printed
+  its known "2 faces have been skipped due to null triangulation" while writing the STL (§7.9).
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
