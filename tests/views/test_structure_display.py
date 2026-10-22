@@ -35,8 +35,9 @@ def anatomy_model(units_app):
     Import errors fail this helper; literal coordinates allow bounds checks to catch
     misplaced anatomy without relying on the production transform for expectations.
     """
-    from windows.models.structures_model import StructuresModel
+    from windows.models.structures_model import StructuresModel, StructureDisplayMode
     model = StructuresModel()
+    model.set_mode(StructureDisplayMode.SURFACE)
     plan = DicomData()
     plan.cylinder_base = (0., 0., 0.)
     plan.cylinder_direction = (0., 0., 10.)
@@ -402,7 +403,6 @@ def test_outline_failure_does_not_disable_a_valid_surface(anatomy_model):
     wait_for_surfaces(anatomy_model)
     assert anatomy_model.presentations()[0].surface is not None
     assert 2 not in anatomy_model.unavailable
-
 
 
 def test_surface_work_returns_to_the_event_loop_and_reset_discards_its_result(anatomy_model, units_app):
