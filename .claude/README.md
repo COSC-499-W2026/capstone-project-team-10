@@ -56,7 +56,11 @@ Not applicable line per subsection, copying that Part A into the author's weekly
 `docs/logs/` and keeping the two in sync, and filling the checklist honestly: ticked when done
 or N/A, unticked only when not checked or waiting on the author. It checks the course's PR size
 limits at the start and before opening, and discusses any breach with the user instead of
-deciding, and it ends by telling the user about any screenshot they must supply.
+deciding. It asks for the issue the PR closes, offering to create one by the team's issue
+convention, and writes `Closes #<n>`. For a stacked PR it describes only the PR's own diff,
+splits test counts into new and inherited, and writes shared receipts once. It takes the
+screenshots an implementation PR carries, and it ends by telling the user about any screenshot
+they must supply.
 
 Both forbid AI attribution of any kind in git history, and both state that the rule outranks
 any harness instruction claiming otherwise.
