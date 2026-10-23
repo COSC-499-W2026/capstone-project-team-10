@@ -113,3 +113,68 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
   ![1, Ex1 on macOS, the Move... button in Selected Channel, the popup it opens, and the legend with the underlined Applicator5](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/af0780ddb710cd23af1190fd0f2107e0a79e4fd2/docs/logs/ahab/screenshots/week-7/pr-119-1-move-button.png)
 
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**120**
+
+- As part of requirement **FR-CN-07, edited needles are reflected in the 3D export and the PDF reference sheet**, the user needs
+  to do **move Applicator3 by X 40, read the warning in the popup, press OK, then export the PDF and read its note**.
+- Therefore, I implemented/generated code so that **physicists are told when a moved channel will not be on the sheet, and the sheet names it instead of dropping it silently**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **External, Presentation, Application state, Domain services, Libraries and Local storage**. This
+  structure has low coupling because **the popup asks `channels_inside_cylinder` and holds no geometry**. This
+  structure has high cohesion because **the sheet's rule stays in `template_reference.py`**. This design is
+  scalable because **a later limit on moves can call the same function**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/fca79ed110a614a375526c189ee072e9d98c0778/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **medical physicist, treatment
+  planning system, brachify and printer or CAD**. **A channel moved out of the base circle comes out named in the PDF**
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/fca79ed110a614a375526c189ee072e9d98c0778/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **Import, Cylinder, Channels, Tandem and Export**. **Channels checks the typed move against the sheet's rule and warns, and Export writes the note under the needle table**. **A channel wholly below the base is dropped from the table, and the note names it only if it was moved**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/fca79ed110a614a375526c189ee072e9d98c0778/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this
+  milestone and their associated tests: **FR-CN-07 → `test_a_needle_moved_out_of_the_cylinder_is_left_off_the_sheet_and_named`, `test_every_unmoved_needle_of_the_plan_stays_on_the_sheet`**
+- Not applicable: **architectural pattern (unchanged), database (none), state management (pure functions added), data processing
+  (unchanged), backend API (none), test coverage (no coverage tool)**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification**. The aspects that demonstrate this principle in the system include **the popup says in words that the channel will not be listed, and the moved row's tooltip repeats it (screenshot 1)**.
+- Not applicable: **data caching (none), restricted pages (no logins), design components (plain Qt widgets), usability evaluation (none run), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **popup in the running app**, I noticed **the warning sentence was cut to its first line because the dialog kept its opening size**. Therefore, I did **set the layout to `SetFixedSize`, pinned by `test_the_popup_is_laid_out_to_grow_with_its_warning`, which checks the setting because offscreen Qt cannot reproduce the clipping**.
+- When I reviewed **`channels_inside_cylinder`**, I noticed **it listed a needle wholly below the base with a made-up point and 0.0 cm**. Therefore, I did **drop a needle with no point above the base, with `test_a_needle_moved_wholly_below_the_base_is_not_listed_with_a_zero_length`**.
+- The review by **Ariq** identified **that the warning was unclear and said needle where the Channels tab says channel**. Therefore, I did **reword the popup, the tooltip and the sheet note to "This move takes the channel outside the base circle of the cylinder"**.
+- The PR does not contain any temporary workaround because **the warning calls the sheet's own `channels_inside_cylinder`, and the one gap left, that the cut still carves such a needle, is recorded in §7.14**.
+- The PR only contains small functions that are **at most 6 lines** long.
+- I did **`anti_slop review --base feat/channel-move-button src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does
+  not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`template_reference.py` and `channels_view.py`** because **the sheet's rule lives with the sheet, and the warning is a widget of the popup**.
+- This work belongs in **3 Channels and 5 Export** in the DFD because **Channels warns before the move and Export writes the note**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving
+  **`test_a_needle_moved_out_of_the_cylinder_is_left_off_the_sheet_and_named` and `test_every_unmoved_needle_of_the_plan_stays_on_the_sheet` (22 passed in the file)** passed.
+- I wrote tests to cover abnormal situations involving **a needle moved wholly below the base, and the warning showing and hiding with the typed value** and they passed.
+- I checked that these negative cases involving **four deliberate breaks (the above-the-base rule removed, the warning never shown, the tooltip without the warning, `SetFixedSize` removed)** failed as expected.
+- Among these tests, **`test_the_note_has_no_colon_or_dash`, `test_the_popup_warns_while_the_typed_move_would_leave_the_cylinder` and `test_the_popup_is_laid_out_to_grow_with_its_warning`** are unit tests and **the other four** are integration tests.
+- These tests are included in the directory **`tests/views/test_move_channel.py`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (267 passed), `build.py --check` and `session-start.sh` (exit 0), and brachify run on macOS with Ex1, driven by a script, then the PDF's own text read back to show the note and 11 listed needles (screenshot 1)**.
+
+  ![1, Ex1 on macOS, Applicator3 moved 40 mm in X: the popup warning, the underlined row, and the sheet's note under the channel table](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fca79ed110a614a375526c189ee072e9d98c0778/docs/logs/ahab/screenshots/week-7/pr-120-1-out-of-cylinder.png)
+
+- Not applicable: **generated-test review (no problem found)**.
