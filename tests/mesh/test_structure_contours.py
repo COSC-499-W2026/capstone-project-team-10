@@ -19,17 +19,17 @@ def test_contour_transform_keeps_tip_alignment_and_closed_boundary():
 
 
 def test_alignment_rejects_missing_frame_and_degenerate_axis():
-    """Reject registration without an identified frame or usable probe axis.
+    """Reject registration without an identified frame or an importer-supported axis.
 
     Accepting either case fails and could display anatomy in an unrelated frame.
     """
-    for direction, frame in [((0., 0., 0.), 'frame'), ((0., 0., 1.), '')]:
+    for direction, frame in [((0., 0., 0.), 'frame'), ((0., 0., -1.), 'frame'), ((0., 0., 1.), '')]:
         with pytest.raises(ValueError):
             structure_contours.ContourAlignment((0., 0., 0.), direction, 160., frame)
 
 
 def test_closed_outline_has_all_edges_and_no_filled_faces():
-    """Build a closed triangular outline, removing an explicit duplicate endpoint.
+    """Build a closed triangular outline even when its endpoint is repeated.
 
     Missing the final edge or creating a filled face fails; this preview must show
     the supplied contour boundary without claiming a reconstructed organ surface.
@@ -45,3 +45,15 @@ def test_closed_outline_has_all_edges_and_no_filled_faces():
         edges.Next()
     assert count == 3
     assert not TopExp_Explorer(shape, TopAbs_FACE).More()
+
+
+@pytest.mark.parametrize('kind', ['OPEN_PLANAR', 'OPEN_NONPLANAR'])
+def test_open_contours_cannot_be_closed_into_anatomy(kind):
+    """Reject open paths instead of inventing a closed tissue boundary.
+
+    Removing the type guard fails the expected ValueError and could make an
+    applicator path look like an organ outline.
+    """
+    contour = Contour(kind, ((0., 0., 0.), (2., 0., 0.), (0., 2., 0.)))
+    with pytest.raises(ValueError, match='Only closed'):
+        structure_contours.contour_outline((contour,))
