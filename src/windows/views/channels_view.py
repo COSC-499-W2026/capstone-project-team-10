@@ -281,6 +281,7 @@ class ChannelsView(CustomView):
                 item.setFont(font)
                 item.setBackground(style.background)
                 tooltip = channel_status_text(status, channel.get_diameter())
+                if status is not ChannelStatus.TANDEM: tooltip += "\nDouble click to move"
                 if self.channelsmodel.is_channel_moved(label): tooltip += "\n" + moved_text(channel.translation)
                 item.setToolTip(tooltip)
     
@@ -297,7 +298,9 @@ class ChannelsView(CustomView):
         # enable/disable buttons if any channel is selected
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
-        self.ui.btn_set_tandem.setEnabled(any_selected)
+        selected_is_moved = any_selected and self.channelsmodel.is_channel_moved(selected_channel)
+        self.ui.btn_set_tandem.setEnabled(any_selected and not selected_is_moved)
+        self.ui.btn_set_tandem.setToolTip("Reset this channel's move to make it the tandem" if selected_is_moved else "")
         self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
         if any_selected:
