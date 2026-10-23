@@ -1258,7 +1258,7 @@ offscreen tests and a render.
 Double-clicking a row moves its channel. `action_move_channel` asks `ChannelsView.ask_translation`
 for X, Y and Z in mm, which by default opens `MoveChannelDialog`. The dialog has no parent, starts at
 the channel's current move, allows ±300 mm, and has Reset to plan position, Cancel and OK. Cancel,
-or OK with unchanged values, does nothing, and the tandem's row opens nothing. Every needle row's tooltip ends with `Double click to move`, since the popup has no visible control. The Set as Tandem button is disabled, with a tooltip, while a moved channel is selected. A moved row is
+or OK with unchanged values, does nothing, and the tandem's row opens nothing. Every needle row's tooltip carries `Double click to move`, since the popup has no visible control. The Set as Tandem button is disabled, with a tooltip, while a moved channel is selected. A moved row is
 underlined and its tooltip adds `Moved by X 6, Y -4, Z 3 mm from the plan`. The legend label does
 not mention the underline yet. *Verified* 2026-10-20 by `tests/views/test_move_channel.py` and in
 a driven run of the real window on macOS (Ex1, Applicator3 moved by 6, -4, 3 mm: the top view showed
