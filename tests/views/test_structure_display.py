@@ -66,7 +66,6 @@ def test_organs_show_by_default_but_unregistered_geometry_is_unavailable(anatomy
     assert 'frame' in anatomy_model.unavailable[3].lower()
     with pytest.raises(ValueError):
         anatomy_model.set_visible(3, True)
-        wait_for_surfaces(anatomy_model)
 
 
 def test_anatomy_length_change_and_hide_preserve_geometry(anatomy_model):
@@ -478,3 +477,48 @@ def test_pending_surface_uses_latest_probe_length(anatomy_model):
     wait_for_surfaces(anatomy_model)
     mesh = anatomy_model.presentations()[0].surface
     assert max(mesh.Node(i).Z() for i in range(1, mesh.NbNodes() + 1)) == pytest.approx(26.5)
+
+
+@pytest.mark.parametrize('failure', [IndexError, TypeError, MemoryError])
+def test_unexpected_surface_failure_still_emits_a_result(anatomy_model, failure):
+    """Report unexpected library failures instead of leaving reconstruction pending.
+
+    A raised exception or absent error result fails; the UI must stop showing
+    Building when the worker has already stopped.
+    """
+    from PySide6.QtTest import QSignalSpy
+    from windows.models.structures_model import SurfaceTask
+    class FailingSurfaceTask(SurfaceTask):
+        def reconstruct(self):
+            """Helper raising a library failure to exercise the worker's error boundary."""
+            raise failure('library failure')
+    task = FailingSurfaceTask(anatomy_model._generation, anatomy_model.structures[2], anatomy_model.alignment, None)
+    finished = QSignalSpy(task.signals.finished)
+    anatomy_model.pending.add(2)
+    task.signals.finished.connect(anatomy_model._accept_surface)
+    task.run()
+    assert finished.count() == 1
+    assert finished.at(0)[0].error == 'Surface reconstruction failed. library failure'
+    assert not anatomy_model.pending
+    assert 'library failure' in anatomy_model.status_message(2)
+
+
+def test_failed_outline_row_cannot_claim_visible_geometry(cylinder_window, anatomy_model):
+    """Show an unchecked unavailable outline when a requested organ has no wire.
+
+    A checked row or missing failure tooltip fails; an invisible organ must not
+    appear successfully displayed beside the patient's probe.
+    """
+    from dataclasses import replace
+    from PySide6.QtCore import Qt
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    plan = DicomData()
+    plan.probe_frame_uid, plan.cylinder_base, plan.cylinder_direction = '1.2.3', (0., 0., 0.), (0., 0., 10.)
+    plan.structures = (replace(anatomy_model.structures[2], contours=(Contour('CLOSED_PLANAR', ((0., 0., 2.),) * 3),)),)
+    model.load_plan(plan, 20.)
+    item = cylinder_window.navigationmodel.views[5].structure_list.item(0)
+    assert item.checkState() == Qt.Unchecked
+    assert not item.flags() & Qt.ItemIsUserCheckable or not item.flags() & Qt.ItemIsEnabled
+    assert item.toolTip().startswith('Outline unavailable.')
