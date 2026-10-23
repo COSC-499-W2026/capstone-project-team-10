@@ -64,7 +64,7 @@ and a render. A screenshot of it is linked from Ahab's week 6 log.
 Double-clicking a Channels row opens a small popup that moves that channel from its plan position,
 with X, Y and Z in mm, Reset to plan position, Cancel and OK. It starts at the channel's current move,
 so OK with nothing edited changes nothing, and the tandem's row opens nothing. A moved row is
-underlined and its tooltip says how far it moved, so colour is still not the only cue. Each needle row's tooltip ends with `Double click to move`, and a moved channel cannot be set as the tandem until its move is reset, so the button is disabled with a tooltip saying so. The legend
+underlined and its tooltip says how far it moved, so colour is still not the only cue. Each needle row's tooltip carries `Double click to move`, and a moved channel cannot be set as the tandem until its move is reset, so the button is disabled with a tooltip saying so. The legend
 under the list says underlined has been moved, and *Move...* in the Selected Channel group opens the
 same popup for the selected channel. It is off with nothing selected and for the tandem. *Verified* by
 offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked
