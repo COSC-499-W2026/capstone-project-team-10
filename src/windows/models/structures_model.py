@@ -57,20 +57,27 @@ class SurfaceTask(QRunnable):
         self.sampled = sampled
         self.signals = SurfaceSignals()
 
+    def reconstruct(self) -> AnatomySurface:
+        """Sample this ROI when no cached patient-space surface is available."""
+        from classes.mesh.structure_surfaces import reconstruct_surface
+        spacing = 2. if self.structure.interpreted_type == 'EXTERNAL' else 1.
+        return reconstruct_surface(self.structure.contours, spacing=spacing)
+
     def run(self):
         result = SurfaceResult(self.generation, self.structure.roi_number, self.alignment)
         try:
-            from classes.mesh.structure_surfaces import reconstruct_surface, surface_triangulation
+            from classes.mesh.structure_surfaces import surface_triangulation
             sampled = self.sampled
             if sampled is None:
-                spacing = 2. if self.structure.interpreted_type == 'EXTERNAL' else 1.
-                sampled = reconstruct_surface(self.structure.contours, spacing=spacing)
+                sampled = self.reconstruct()
             result = replace(result, sampled=sampled,
                              mesh=surface_triangulation(sampled, self.alignment))
         except ImportError:
             result = replace(result, error='Install scipy and scikit-image to enable surface previews')
         except (ValueError, RuntimeError) as error:
             result = replace(result, error=str(error))
+        except Exception as error:
+            result = replace(result, error=f'Surface reconstruction failed. {error}')
         self.signals.finished.emit(result)
 
 
