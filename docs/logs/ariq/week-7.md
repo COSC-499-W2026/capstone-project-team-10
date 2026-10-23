@@ -322,7 +322,7 @@ Stated once here instead of in each section.
 
   ![1, Ex1's Export tab and reference sheet after loading and applying the flat 170 mm collared template, then the tests on this branch, 3 and 245 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/08a2f0eb7fbb8abba317ac56f6c24acc5dcc7b74/docs/logs/ariq/screenshots/week-7/pr-102-1-ex1-export-and-sheet.png)
 
-## Stack #130, at a glance
+## Stack #130 to #131, at a glance
 
 Stacked documentation PRs that apply the week 6 traceability feedback. A row's counts are that
 PR's own diff only, against the PR it is on. No code changed, so the suite stayed at 245 tests.
@@ -330,6 +330,7 @@ PR's own diff only, against the PR it is on. No code changed, so the suite staye
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#130](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/130) | `main` | #127 | week 7 log consolidated; `/make-pr` stack, issue and screenshot rules | 6, +298/−136 | none, markdown only | 245 |
+| [#131](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/131) | #130 | #128 | `make-weekly-log` workflow and `/make-weekly-log` command | 5, +224/−7 | none, markdown only | 245 |
 
 ### Shared by every PR in this stack
 
@@ -367,4 +368,21 @@ PR's own diff only, against the PR it is on. No code changed, so the suite staye
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **this Part A and the stack block above it in my week 7 log, written under the new rules (`1 of 3, on main`, the Shared block, `Closes #127`)** passed.
+- This new test PR did not break anything else in the system because **only markdown changed, and the Shared checks passed**.
+
+### For PR #**131** (2 of 3, on #130)
+
+- As part of requirement **the course's weekly team log, Part B, where week 5 lost a mark for length and diagram access and week 6 for traceability**, the user needs to do **run `/make-weekly-log <week> <PRs>`, answer the agent's questions, and get `docs/logs/team/week-<N>.md` filled from GitHub and `main`**.
+- Therefore, I implemented/generated code so that **Team 10 members get a tool-agnostic team log procedure, `docs/workflows/make-weekly-log.md`, holding every grader comment on team logs and the rule each implies, and a `/make-weekly-log` command in Claude Code**.
+
+#### Review and design
+
+- When I reviewed the **generated PNG step** for this functionality, I did not find any problems with it because **its command rendered `existing-framework/dfd-0.mmd` to a 1568 × 346 PNG, exit 0**.
+- When I reviewed the **generated split of this change**, I noticed **listing the workflow in every file that lists workflows made this PR 10 files with its log**. Therefore, I did **move those listings to #132**.
+- Code quality checklist: **see Shared; for this PR, all 44 relative links and anchors in its five files resolve**.
+- This work is written in **new `docs/workflows/make-weekly-log.md`** because **workflows are tool-agnostic files in `docs/workflows/`, with only a pointer in `.claude/commands/`**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **Claude Code listing `make-weekly-log` among its skills once the pointer existed, and the PNG render (exit 0)** passed.
 - This new test PR did not break anything else in the system because **only markdown changed, and the Shared checks passed**.
