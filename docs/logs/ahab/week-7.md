@@ -57,12 +57,12 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving
-  **`test_moving_a_channel_shifts_every_point_and_leaves_the_dicom_points` and `test_a_move_reaches_the_pdf_points_and_the_3d_shape` (12 passed)** passed.
-- I wrote tests to cover abnormal situations involving **NaN or infinity, an unknown channel, the tandem, Cancel and a new plan** and they passed.
-- I checked that these negative cases involving **three deliberate breaks (`get_rotation` on moved points, a stale shape, no underline)** failed as expected.
-- Among these tests, **`test_the_popup_is_filled_with_the_current_move_and_reset_zeroes_it`** is a unit test and **the other ten** are integration tests.
+  **`test_moving_a_channel_shifts_every_point_and_leaves_the_dicom_points` and `test_a_move_reaches_the_pdf_points_and_the_3d_shape` (15 passed)** passed.
+- I wrote tests to cover abnormal situations involving **NaN or infinity, an unknown channel, the tandem, a moved channel set as the tandem, Cancel and a new plan** and they passed.
+- I checked that these negative cases involving **six deliberate breaks (`get_rotation` on moved points, a stale shape, no underline, no `set_tandem` guard, Set as Tandem left on for a moved channel, no Double click to move hint)** failed as expected.
+- Among these tests, **`test_the_popup_is_filled_with_the_current_move_and_reset_zeroes_it`** is a unit test and **the other thirteen** are integration tests.
 - These tests are included in the directory **`tests/views/test_move_channel.py`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (257 passed), `build.py --check` and `session-start.sh` (exit 0), and brachify run on macOS with Ex1, driven by a script, then a PDF and an STL exported with the move (screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (260 passed), `build.py --check` and `session-start.sh` (exit 0), and brachify run on macOS with Ex1, driven by a script, then a PDF and an STL exported with the move (screenshot 1)**.
 
   ![1, Ex1 on macOS, Applicator3 moved by X 6, Y -4, Z 3 mm: top view before and after, the popup, and the underlined row](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/74590f7c41937d2d609813ef1f05dde740700771/docs/logs/ahab/screenshots/week-7/pr-118-1-move-channel.png)
 
