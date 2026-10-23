@@ -54,3 +54,29 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **`test_structures_view_is_appended_so_cylinder_and_export_keep_their_indexes`, `test_opening_structures_by_signal_shows_page_five`** are integration tests.
 - These tests are included in the directory **`tests/windows/`**.
 - This new test PR did not break anything else in the system because **`tests/windows/test_main_window.py` is 7 passed**. Four tests already fail on `main` on this Windows machine (`test_the_default_dome_tandem_cut_out_is_unchanged` 3875.269 vs 3875.268, and three Cylinder/Channels 20 px layout cases at 19 px).
+
+### For PR #**126**
+
+- As part of requirement **FR-SV frontend, empty Structures page only**, the user needs to do **read the UML as views index 0 to 5**.
+- Therefore, I implemented/generated code so that **the picture matches `StructuresView` at `views[5]`**.
+
+#### Review and design
+
+- When I reviewed the **existing-framework UML** for this functionality, I noticed **the label still said 0 to 4 after #116 made it 0 to 5**. Therefore, I did **change the label and run `python docs/architecture/build.py`**.
+- I did **run `python docs/architecture/build.py --check` (exit 0)** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- This work is written in **`existing-framework/uml.mmd`** because **that file is the UML source**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0)** passed.
+- This new test PR did not break anything else in the system because **`--check` exits 0 and the DFD sources are unchanged**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
