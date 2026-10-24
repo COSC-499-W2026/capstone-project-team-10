@@ -383,7 +383,7 @@ User state lives in `~/brachify/` (`classes.info.USER_PATH`): `app.log` (rotatin
 
 Models ([src/windows/models/](src/windows/models/)) are `QObject`s owning domain state and emitting change signals; they hold no widgets. Views ([src/windows/views/](src/windows/views/)) subclass `CustomView` and own the generated Qt UI object.
 
-`NavigationModel` constructs the six views in a fixed, index-significant order and the whole codebase addresses them positionally. Structures is `views[5]` so Cylinder stays 1 and Export stays 4.
+`NavigationModel` constructs the six views in a fixed, index-significant order and the whole codebase addresses them positionally. The Structures nav button sits under Import; the view is `views[5]` so Cylinder stays 1 and Export stays 4.
 
 | index | view | model |
 |---|---|---|
@@ -448,7 +448,7 @@ Config loading is lenient by design: `load_config_file` keeps any key that is pr
 pyside6-uic src/windows/ui/<name>.ui -o src/windows/ui/<name>_ui.py
 ```
 
-Nav button styling is two stylesheet strings in `main_window.py`, `NAV_BUTTON_STYLE` and `SELECTED_NAV_BUTTON_STYLE`, which the five near-duplicate `change_color_*` methods apply to every nav button on each tab click. A style set on one nav button anywhere else is overwritten by the next click. The Export button stays disabled until `CylinderModel.values_changed` fires. [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
+Nav button styling is two stylesheet strings in `main_window.py`, `NAV_BUTTON_STYLE` and `SELECTED_NAV_BUTTON_STYLE`. `_highlight_nav` applies them to every button in `_nav_buttons` on each tab click, through six `change_color_*` one-liners. A style set on one nav button anywhere else is overwritten by the next click. `_add_structures_nav_button` inserts Structures under Import and raises `top_menu_bar`'s minimum height so six 33 px rows fit. The Export button stays disabled until `CylinderModel.values_changed` fires. [src/windows/palettes.py](src/windows/palettes.py) exists but nothing uses it. ([notes/style guide.txt](notes/style%20guide.txt) is about Python naming, not colours.)
 
 ## Sample data
 

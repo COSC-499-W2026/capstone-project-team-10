@@ -670,9 +670,10 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 | 4 | `Export_View` | [export_view.py](../../src/windows/views/export_view.py) | — (composes all) |
 | 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | — (empty page, issue #106) |
 
-The view is appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export
-stays 4. There is no Structures nav button yet. *Reasoned from code*;
-`tests/windows/test_main_window.py`.
+The Structures nav button sits directly under Import in `verticalLayout_31`. The view itself is
+appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export stays 4.
+`MainWindow` creates `btn_structures_view` in code after `setupUi`; it is not in `main_window.ui`.
+*Reasoned from code*; `tests/windows/test_main_window.py`.
 
 **Reordering this list breaks call sites scattered across `settings/reset.py`, every view, and
 `main_window.py`.** There is no symbolic lookup. Treat the order as frozen.
@@ -689,7 +690,7 @@ Three application-wide signals live on `AppSignals` ([signals.py](../../src/clas
 
 | Signal | Emitted by | Received by |
 |---|---|---|
-| `viewChanged(int)` | the five nav buttons in `MainWindow.__init__` | `NavigationModel.set_page` |
+| `viewChanged(int)` | the six nav buttons in `MainWindow.__init__` | `NavigationModel.set_page` |
 | `height_changed(float)` | `CylinderView.action_apply_settings`, offset in mm regardless of display unit | `ChannelsModel.update_height_offset`, `TandemModel.update_height_offset` |
 | `exportFile(str)` | *nobody* | *nobody* — declared and unused |
 
@@ -1133,9 +1134,10 @@ import, `ImportView` also shows a read-only `structure_list` (`QListWidget` adde
 not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 (*Reasoned from code*; `tests/views/test_import_view.py`).
 
-**Structures** — no `.ui`. `StructuresView` is an empty `CustomView`. The stacked page is added
-in `NavigationModel` when `viewswidget` has fewer pages than `views`. No nav button, list,
-colour, opacity or hide controls yet. *Reasoned from code*;
+**Structures** — no `.ui`. `StructuresView` is an empty `CustomView`. The nav button is created
+in `MainWindow._add_structures_nav_button` and inserted under Import. The stacked page is added
+in `NavigationModel` when `viewswidget` has fewer pages than `views`. No list, colour, opacity
+or hide controls yet (issues #107 and #111). *Reasoned from code*;
 `tests/windows/test_main_window.py`.
 
 **Cylinder** (`cylinder_view.ui`)
@@ -1279,8 +1281,11 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 `btn_export_current_config`.
 
 **Main window** (`main_window.ui`) — `display_view_widget` (hosts the OCC canvas),
-`top_menu_bar` with the five nav buttons, and `viewswidget` (`QStackedWidget`) with
-`page_import` … `page_export` plus a sixth page added by `NavigationModel`.
+`top_menu_bar` with the five nav buttons from the `.ui` plus `btn_structures_view`
+added in `MainWindow._add_structures_nav_button` under Import, and `viewswidget`
+(`QStackedWidget`) with `page_import` … `page_export` plus a sixth page added by
+`NavigationModel`. `_add_structures_nav_button` raises `top_menu_bar`'s minimum
+height to `len(_nav_buttons()) * 33` so six 33 px rows fit.
 
 The shared `display_view_widget` also hosts the grid and central-axis controls (§5.7).
 
@@ -1290,11 +1295,11 @@ Cylinder tab's *Apply Settings* (§7.6).
 
 Styling for the nav buttons is **two stylesheet strings** in `main_window.py`:
 `NAV_BUTTON_STYLE` for every tab not on screen, with a grey `:disabled` rule, and
-`SELECTED_NAV_BUTTON_STYLE` for the one on screen. Each of the five near-identical
-`change_color_*` methods rewrites all five buttons with them on every tab click, so a style set
-on one button anywhere else is lost on the next click.
-[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it. The five
-methods are still the most obvious refactor target in the UI layer.
+`SELECTED_NAV_BUTTON_STYLE` for the one on screen. `_highlight_nav` rewrites every
+button in `_nav_buttons` on each tab click, so a style set on one button anywhere
+else is lost on the next click. Each `change_color_*` is a one-liner that names the
+selected button.
+[`palettes.py`](../../src/windows/palettes.py) exists but the nav buttons do not use it.
 ([notes/style guide.txt](../../notes/style%20guide.txt) is about Python naming, `lower_case`
 functions and `CapWords` classes, not colours.)
 
@@ -2084,7 +2089,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
-| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or `views[5]` is not a `StructuresView`, Cylinder moves off index 1 or Export off index 4, or `viewChanged(5)` does not show page 5 (§4.3) |
+| `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or the Structures button is missing, is not labelled Structures, or is not immediately under Import, or clicking it does not open `views[5]` as `StructuresView`, or Cylinder moves off index 1 or Export off index 4, or the six nav buttons overlap or stick out of `top_menu_bar` after `show()`, or Structures is not highlighted after a click or stays highlighted after Cylinder (§4.3) |
 
 The `windows/` tests drive the real `MainWindow`, models and six views offscreen, through the
 `fresh_window` fixture in [tests/windows/conftest.py](../../tests/windows/conftest.py). The 3D
