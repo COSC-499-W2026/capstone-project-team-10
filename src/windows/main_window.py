@@ -166,6 +166,7 @@ class MainWindow(QMainWindow):
 
         self.displaymodel.shapes_changed.connect(self.canvas.update_display)
         self.structuresmodel.changed.connect(self.canvas.refresh_structure_outlines)
+        self.structuresmodel.opacity_changed.connect(self.canvas.update_structure_opacity)
 
         # TODO views
         self.navigationmodel = NavigationModel()

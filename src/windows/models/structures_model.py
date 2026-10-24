@@ -94,7 +94,7 @@ class StructuresModel(QObject):
         self._outlines: dict[int, StructurePresentation] = {}
         self._surfaces: dict[int, AnatomySurface] = {}
         self.surface_errors: dict[int, str] = {}
-        self.mode = StructureDisplayMode.OUTLINES
+        self.mode = StructureDisplayMode.SURFACE
         self._opacities: dict[int, float] = {}
         self.outline_errors: dict[int, str] = {}
         self.pending: set[int] = set()
