@@ -5,6 +5,7 @@ from classes.logger import log
 from classes.app import get_app
 from windows.ui import main_window_ui
 from windows.views.viewport import OrbitCameraViewer3d
+from windows.models.structures_model import StructuresModel
 from windows.models.display_model import DisplayModel
 from windows.models.dicom_model import DicomModel
 from windows.models.channels_model import ChannelsModel
@@ -136,10 +137,16 @@ class MainWindow(QMainWindow):
         self.cylindermodel = CylinderModel()
         self.channelsmodel = ChannelsModel()
         self.tandemmodel = TandemModel()
+        self.structuresmodel = StructuresModel()
 
         # TODO connect models to signals
         self.dicommodel.values_changed.connect(self.cylindermodel.load_data)
         self.dicommodel.values_changed.connect(self.channelsmodel.load_data)
+        self.dicommodel.values_changed.connect(
+            lambda plan: self.structuresmodel.load_plan(plan, self.cylindermodel.cylinder.length))
+        self.cylindermodel.values_changed.connect(
+            lambda cylinder: self.structuresmodel.set_length(cylinder.length))
+        self.displaymodel.reset_completed.connect(self.structuresmodel.clear)
         # fires on an import and on the Cylinder tab's Apply Settings, the two ways to get a cylinder
         self.cylindermodel.values_changed.connect(self.enable_export_view)
 
@@ -158,6 +165,7 @@ class MainWindow(QMainWindow):
         self.display.FitAll()
 
         self.displaymodel.shapes_changed.connect(self.canvas.update_display)
+        self.structuresmodel.changed.connect(self.canvas.refresh_structure_outlines)
 
         # TODO views
         self.navigationmodel = NavigationModel()

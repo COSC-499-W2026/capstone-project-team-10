@@ -181,6 +181,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         # clear all the shapes
         self._display.Context.RemoveAll(True)
         self._grid_presentations.clear()
+        self._structure_presentations.clear()
         self._axis_presentation = None
         bounds = Bnd_Box()
 
@@ -200,6 +201,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
 
         self._grid_definition = None if bounds.IsVoid() else reference_grid(bounds.Get())
         self.set_grid_available(self._grid_definition is not None)
+        self.refresh_structure_outlines()
         if resize:
             self._display.View.ZFitAll()
             self._display.View.FitAll(0.2, False)
@@ -207,6 +209,24 @@ class OrbitCameraViewer3d(qtBaseViewer):
         cylinder = get_app().window.cylindermodel.cylinder
         self.set_axis_length(cylinder.length if shapes and cylinder is not None else None)
         log.info(loggedinfo)
+
+    def refresh_structure_outlines(self):
+        """Draw unselectable anatomy wires without adding export geometry."""
+        if not self._inited:
+            return
+        context = self._display.Context
+        for presentation in self._structure_presentations:
+            context.Remove(presentation, False)
+        self._structure_presentations.clear()
+        for structure in get_app().window.structuresmodel.presentations():
+            presentation = AIS_Shape(structure.outline)
+            red, green, blue = structure.color
+            presentation.SetColor(Quantity_Color(red / 255, green / 255, blue / 255, Quantity_TOC_sRGB))
+            presentation.SetWidth(1.5)
+            context.Display(presentation, False)
+            context.Deactivate(presentation)
+            self._structure_presentations.append(presentation)
+        self._display.Repaint()
 
     def __init__(self, *kargs):
         qtBaseViewer.__init__(self, *kargs)
@@ -229,6 +249,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_available = False
         self._grid_definition: ReferenceGrid | None = None
         self._grid_presentations: list[AIS_InteractiveObject] = []
+        self._structure_presentations: list[AIS_Shape] = []
         self.grid_button = QtWidgets.QToolButton(self)
         self.grid_button.setText("XYZ grid (mm)")
         self.grid_button.setToolTip("Outer bounding-box grid; model XYZ coordinates in millimetres")
