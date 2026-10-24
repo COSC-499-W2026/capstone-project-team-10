@@ -48,7 +48,7 @@ def test_channel_with_its_own_diameter_is_bold_on_amber_in_the_list(channels_win
     assert marked.font().bold() and not marked.font().italic()
     assert not reference.font().bold()
     assert marked.background() != reference.background()
-    assert marked.toolTip() == "Own diameter 3.000 mm"
+    assert marked.toolTip() == "Own diameter 3.000 mm\nDouble click to move"
 
 
 def test_clearing_a_channels_own_diameter_removes_its_mark(channels_window: MainWindow) -> None:
@@ -88,7 +88,7 @@ def test_a_disabled_channel_reads_disabled_and_stays_in_the_list(channels_window
     disabled = channel_item(channels_window, DISABLED_CHANNEL)
 
     assert model.channel_status(DISABLED_CHANNEL) is ChannelStatus.DISABLED
-    assert disabled.toolTip() == "Disabled, not cut into the cylinder"
+    assert disabled.toolTip() == "Disabled, not cut into the cylinder\nDouble click to move"
     assert disabled.font().italic() and not disabled.font().bold()
     assert disabled.background() != channel_item(channels_window, MARKED_CHANNEL).background()
 
