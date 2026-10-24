@@ -114,7 +114,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**120**
+### For PR #**138** (replaces #120)
 
 - As part of requirement **FR-CN-07, edited needles are reflected in the 3D export and the PDF reference sheet**, the user needs
   to do **move Applicator3 by X 40, read the warning in the popup, press OK, then export the PDF and read its note**.
