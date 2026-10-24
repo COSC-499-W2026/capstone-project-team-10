@@ -13,6 +13,8 @@ from classes.app import get_app
 
 TIP_LENGTH = 2.5
 
+type Translation = tuple[float, float, float]  # mm shift in x, y, z from the plan position
+
 
 def generate_cylinder_points(cylinder, spacing: float):
 
@@ -129,6 +131,13 @@ class NeedleChannel:
         self._shape = None
         self.shape()
 
+    def set_translation(self, translation: Translation) -> None:
+        """Shift the whole channel from its plan position. points_raw, the plan, is never changed."""
+        self.translation = translation
+        dx, dy, dz = translation
+        self.points = [[x + dx, y + dy, z + dz] for x, y, z in self.points_raw]
+        self._shape = None
+
     def set_offset(self, height: float = 0.0) -> None:
         self._offset = height
         self._shape = None
@@ -151,11 +160,11 @@ class NeedleChannel:
     # https://stackoverflow.com/questions/42258637/how-to-know-the-angle-between-two-vectors
     def get_rotation(self):
         # calculate the sin angle on the xy plane using 0,0 and the highest point in the list of points
-        v1 = [1.0, 0.0, self.points[0][2]]
-        v2 = self.points[0]
+        v1 = [1.0, 0.0, self.points_raw[0][2]]
+        v2 = self.points_raw[0]
         angle = math.atan2(v2[1] - v1[1], v2[0] - v1[0]) * \
             (180 / 3.14159)  # convert to degrees
-        log.debug(f"needle channel angle: {self.points[0]} : {angle}")
+        log.debug(f"needle channel angle: {self.points_raw[0]} : {angle}")
 
         # ensuring the angle stays between 0 and 360 degrees
         while angle < 0:
@@ -183,6 +192,7 @@ class NeedleChannel:
         self.points = points
         self.points_raw = points
         self._shape = None
+        self.translation: Translation = (0.0, 0.0, 0.0)
 
         self._offset = 0.0
         self._diameter = get_app().values.config_values.get("CONFIG_CHANNELS_DIAMETER")

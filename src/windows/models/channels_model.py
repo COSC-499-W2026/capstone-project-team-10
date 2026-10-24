@@ -113,6 +113,18 @@ class ChannelsModel(QObject):
     def has_own_diameter(self, label: str) -> bool:
         return label in self.own_diameters
 
+    def move_channel(self, label: str, dx: float, dy: float, dz: float) -> None:
+        channel = self.channels[label]  # a missing label raises KeyError before anything is stored
+        if not all(isfinite(value) for value in (dx, dy, dz)):
+            raise ValueError(f"{label} cannot move by {dx}, {dy}, {dz}")
+        if self.is_channel_tandem(label):
+            raise ValueError(f"{label} is the tandem channel and cannot be moved")
+        channel.set_translation((dx, dy, dz))
+        self.update()
+
+    def is_channel_moved(self, label: str) -> bool:
+        return self.channels[label].translation != (0.0, 0.0, 0.0)
+
     def set_selected_channels(self, *args):
         log.debug(f"setting selected channels")
         self.selected_channels =[]
@@ -162,6 +174,8 @@ class ChannelsModel(QObject):
             log.critical(f"error while setting selected shapes from viewport:\n{error_message}")
 
     def set_tandem(self, label:str) -> None:
+        if label and self.is_channel_moved(label):
+            raise ValueError(f"{label} has been moved and cannot be the tandem, reset its move first")
         data = get_app().window.dicommodel.data
         old_label = data.tandem_channel
         if old_label and old_label in self.disabled_channels:
