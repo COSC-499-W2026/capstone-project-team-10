@@ -34,8 +34,8 @@ class StructuresView(CustomView):
                 roi = structure.roi_number
                 item.setData(Qt.UserRole, roi)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                item.setCheckState(Qt.Checked if roi in model.visible else Qt.Unchecked)
-                reason = model.unavailable.get(roi)
+                item.setCheckState(Qt.Checked if model.is_displayed(roi) else Qt.Unchecked)
+                reason = model.status_message(roi)
                 if reason:
                     item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                     item.setToolTip(reason)
