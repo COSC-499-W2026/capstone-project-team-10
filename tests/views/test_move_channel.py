@@ -257,6 +257,60 @@ def test_the_popup_is_filled_with_the_current_move_and_reset_zeroes_it(channels_
     assert dialog.translation() == (0.0, 0.0, 0.0)
 
 
+def test_the_move_button_is_enabled_only_for_a_channel_that_can_be_moved(channels_window: MainWindow) -> None:
+    """Check Move... is off with nothing selected, on for a needle, and off for the tandem channel.
+
+    Fails if the button is enabled with no selection, disabled for an ordinary needle, or
+    enabled for the tandem. With nothing selected it would open a popup for no channel, and
+    for the tandem it would offer a move the model refuses.
+    """
+    model = channels_window.channelsmodel
+    button = channels_window.navigationmodel.views[CHANNELS_TAB].ui.btn_move_channel
+    label = channel_label(channels_window, 9)
+
+    model.clear_selected_channels()
+    assert not button.isEnabled()
+
+    model.set_selected_channels(label)
+    assert button.isEnabled()
+
+    with marked_as_tandem(channels_window, label):
+        model.update()
+        assert not button.isEnabled()
+    model.clear_selected_channels()
+
+
+def test_pressing_the_move_button_moves_the_selected_channel(channels_window: MainWindow) -> None:
+    """Check Move... asks the popup about the selected channel and applies its answer.
+
+    Fails if the popup is not asked with the selected label and its current move, or the
+    channel does not end up moved by the answer. The button is the discoverable way in for a
+    physicist who does not know the row can be double-clicked.
+    """
+    label = channel_label(channels_window, 10)
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    channels_window.channelsmodel.set_selected_channels(label)
+    stub = view.ask_translation = StubbedAnswer((2.0, 0.0, -1.5))
+
+    QTest.mouseClick(view.ui.btn_move_channel, Qt.MouseButton.LeftButton)
+
+    assert stub.asked == [(label, (0.0, 0.0, 0.0))]
+    assert channels_window.channelsmodel.channels[label].translation == (2.0, 0.0, -1.5)
+    channels_window.channelsmodel.clear_selected_channels()
+
+
+def test_the_legend_explains_the_underline(channels_window: MainWindow) -> None:
+    """Check the legend under the list says an underlined row has been moved, in copy a clinician can read.
+
+    Fails if the legend does not say it, or contains a colon or an em dash, which the UI copy
+    rule in AGENTS.md forbids. Without the line, the underline is a mark nobody can decode.
+    """
+    legend = channels_window.navigationmodel.views[CHANNELS_TAB].ui.label_channel_status_legend.text()
+
+    assert "Underlined has been moved." in legend
+    assert ":" not in legend and "—" not in legend
+
+
 def test_importing_a_plan_again_clears_every_move(channels_window: MainWindow) -> None:
     """Check a fresh load of the plan gives channels at their DICOM positions.
 
