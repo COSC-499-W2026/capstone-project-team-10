@@ -40,7 +40,8 @@ Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134
 
 - When I reviewed the **documentation against the feature branch** for this functionality, I noticed **the architecture check rejected structure_contours**. Therefore, I did **name the module and document its transform, guards and tests**.
 - This work is written in **system-architecture.mmd, project docs, tests/README.md and week-7.md** because **these files own the architecture and implementation reference**.
-- Not applicable: **temporary workaround, function length, code quality checklist, DFD process (no code changed)**.
+- I did **a base-relative file-list and diff check confirming documentation-only changes** to ensure that my feature contribution does not contain any of the following: **hardcoded values, duplicate or dead code, unnecessary calls, excessive conditionals, deep nesting, high cyclomatic complexity or unrelated implementation responsibilities (no executable code added)**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
 
 #### Testing receipts
 
