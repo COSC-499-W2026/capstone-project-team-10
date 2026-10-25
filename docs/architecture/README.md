@@ -22,7 +22,10 @@ the Cylinder mm/cm display selector, where `LengthField` keeps dimensions in mm 
 controls display either unit, and an Export tab that stays disabled until a cylinder exists. Team 10 has also added
 `classes/dicom/structures.py`, a tested standalone RTSTRUCT decoder, attached onto
 `DicomData` at import by `load_structures`, and a read-only Import-tab structure list
-from `structure_list` (still no hide/show, opacity, or 3D display), and
+from `structure_list`. Structures now owns per-ROI outline visibility through
+`StructuresModel` and `mesh/structure_contours.py`. PR #134 adds background surface state
+and `mesh/structure_surfaces.py`; Surface/Both APIs and opacity state have no UI consumers
+until PR #125, and
 `settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from,
 and `settings/cylinder_templates.py`, a tested cylinder template library saved to `~/brachify/cylinder_templates.json`.
 
@@ -81,12 +84,12 @@ libraries and disk. Two arrows point back up: outputs leave through the Export v
 |---|---|---|
 | External | TPS DICOM export, config JSON, tandem STEP file, STL and STEP out, PDF out | outside the repo |
 | Presentation | `MainWindow`, the six views, `LengthField` and `LengthUnit`, the OpenCASCADE canvas | `src/windows/` |
-| Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel` and `ShapeModel` | `src/classes/app.py`, `src/windows/models/` |
+| Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel`, `ShapeModel`, `StructuresModel` and its single surface worker | `src/classes/app.py`, `src/windows/models/` |
 | Domain services | DICOM readers, OpenCASCADE geometry, PDF sheet, config load and reset | `src/classes/dicom/`, `mesh/`, `pdf/`, `src/settings/` |
-| Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib | conda environment |
+| Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib, NumPy, SciPy and scikit-image (surface worker imports) | conda environment |
 | Local storage | `app.log`, `filepaths.json`, `needle_templates.json` and `cylinder_templates.json` in `~/brachify` | `src/classes/info.py`, `src/settings/needle_templates.py`, `src/settings/cylinder_templates.py` |
 
-It is a single process desktop app. There is no server, database or network call. Views reach
+It is a single process desktop app, with a single QThreadPool worker for anatomy surfaces. There is no server, database or network call. Views reach
 other views by index and reach the models through `get_app().window`, so the layering above is the
 intended direction of dependency, not one the code enforces. Export is the exception that shows it:
 `Export_View` reads the cylinder, channel and tandem models directly and runs the boolean cut
@@ -98,7 +101,13 @@ Who owns what. A solid arrow means the class creates and holds the other. A dash
 
 ![UML. RadiotherapyApp owns signals, values, and the window. MainWindow creates the navigation, display, DICOM, cylinder, channels and tandem models and the canvas. Dashed signal arrows run from DicomModel to the cylinder and channel models, from those two to TandemModel, from CylinderModel to MainWindow, and from DisplayModel to the canvas. The geometry models wrap ShapeModel.](diagrams/existing-framework/uml.svg)
 
-`DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder and channel models.
+`DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder,
+channel and structures models. `MainWindow` supplies the current length to Structures;
+`DisplayModel.reset_completed` clears anatomy. `StructuresModel.changed` refreshes the
+Structures list and nonselectable outline actors, outside printable `ShapeModel` inputs.
+The worker returns `SurfaceResult` through a queued signal. A generation tag rejects old
+plans; a changed length realigns cached patient meshes. `opacity_changed` is separate from
+geometry changes and has no UI connection in this layer. *Reasoned from code, PR #134.*
 
 ### DFD level 0
 
@@ -108,11 +117,14 @@ The app as one process.
 
 ### DFD level 1
 
-The same process opened into the five tabs that already move data. The viewport is not a sixth process. It paints shapes. That path is the UML, from the geometry models to `ShapeModel` to `DisplayModel`. The Structures nav page is `views[5]` and is empty, so it is not a sixth process here.
+The six tabs now include Structures at `views[5]`. Printable shapes still flow through
+`ShapeModel` and `DisplayModel`. Anatomy has its own visibility, alignment and cache state;
+no anatomy edge enters Export. Dashed worker flows describe the Surface/Both model API,
+exercised by tests in PR #134 and exposed in the UI by PR #125.
 
-![DFD level 1. Import, cylinder, channels, tandem, and export, with the plan and the shapes stored between them. Import also reads a config JSON. Tandem takes the tandem channel from channels and the length and diameter from cylinder. Export reads the plan for the PDF and writes STL or STEP.](diagrams/existing-framework/dfd-1.svg)
+![DFD level 1. Import, cylinder, channels, tandem, export and structures, with the plan and the shapes stored between them. Import also reads a config JSON. Tandem takes the tandem channel from channels and the length and diameter from cylinder. Export reads the plan for the PDF and writes STL or STEP.](diagrams/existing-framework/dfd-1.svg)
 
-Five data-flow tabs, plus an empty Structures nav page at index 5. The code addresses them by index. Do not reorder them.
+Six tabs, with Structures appended at index 5. The code addresses them by index. Do not reorder them.
 
 | Tab | What it does |
 |---|---|
@@ -121,7 +133,7 @@ Five data-flow tabs, plus an empty Structures nav page at index 5. The code addr
 | Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter, directly or from a saved needle template. The list shows each channel's status. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
-| Structures | Empty page under Import in the left bar, `views[5]`. No organ list or 3D yet. |
+| Structures | Per-ROI outline visibility, DICOM colours and availability tooltips. Default mode is Outlines; surface and opacity controls arrive in PR #125. |
 
 A view method that changes geometry must use `@display_action`, or the model updates and the viewport does not. The shape path is in the UML above.
 
@@ -130,9 +142,9 @@ A view method that changes geometry must use `@display_action`, or the model upd
 Mostly course scaffolding. The changes to application behaviour are three Channels view fixes,
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
 An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`, and the Import
-tab lists each structure. An empty Structures tab sits under Import in the nav; the view is
-`views[5]` so Cylinder stays index 1. The system architecture names `Structures`. DFD level 1
-is unchanged, because the page has no data flow yet.
+tab lists each structure read-only. The Structures tab at `views[5]` controls aligned
+outlines; Cylinder remains index 1. The system architecture names both anatomy services and
+StructuresModel, and the UML/DFDs show its separate preview path and background worker.
 
 The Cylinder selector is a display preference for this window. It preserves pending
 edits and exact mm values across switches; config files and exports use mm.
@@ -140,11 +152,11 @@ edits and exact mm values across switches; config files and exports use mm.
 
 | In the repo | Not in the repo |
 |---|---|
-| This documentation set, agent rules, commit and PR workflows | Tests of the pure geometry and settings functions |
+| This documentation set, agent rules, commit and PR workflows | Comprehensive coverage of the remaining geometry and settings functions |
 | Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
 | macOS setup notes and Cylinder display units | Server or database |
-| `DicomData` reset tests, RTSTRUCT decode at import, and the Import structure list with tests in `tests/dicom/` and `tests/views/` | Structure 3D rendering, hide/show and opacity |
-| The Channels list selection fix in `channels_view.py` | Shared widget fixture across test scopes |
+| `DicomData` reset tests, RTSTRUCT decode at import, and the Import structure list with tests in `tests/dicom/` and `tests/views/` | Native surface rendering and opacity controls (follow in PR #125), clinical reconstruction validation |
+| The Channels list selection fix in `channels_view.py` | |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
 | A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, saved and applied on the Channels tab. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
 | A cylinder template library in `settings/cylinder_templates.py`, saved to `~/brachify/cylinder_templates.json`. The system architecture names the module and the file. The other three diagrams are unchanged, because it is local state, like `needle_templates.json`, inside the DFD level 1 Plan and settings store | |
@@ -177,8 +189,10 @@ reasoned from the proposal, not implemented APIs or verified clinical behaviour.
 The build recursively discovers diagrams in both `existing-framework/` and
 `projected-framework/`, as well as the top-level system architecture. Run the commands
 above to regenerate the viewer and stale SVGs; `--check` covers all seven diagrams.
-The RTSTRUCT reader and Import structure list are listed in the system architecture
-diagram; import attaches them via `load_structures`. The
+The RTSTRUCT reader, anatomy services and StructuresModel are listed in the system
+architecture. Import attaches structures via `load_structures`; StructuresModel rejects
+missing or mismatched probe frames before displaying anatomy. The proposed diagrams still
+include unimplemented editing and validation responsibilities. The
 Channels list fix only changes widget state, and the Cylinder display-unit change keeps
 dimensions in mm, its widget conversion documented in prose, so neither changes a diagram.
 The Export tab fix adds one edge to the existing UML, `CylinderModel ..> MainWindow`, and
