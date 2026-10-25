@@ -1662,6 +1662,8 @@ silently take shape 39's points (see [10.8](#108-what-happens-if-a-value-in-the-
 
 ### 10.4 data.py, the form brachify fills in
 
+> Out of date after the anatomy changes through PR #134: The baseline container below predates `structures` and `probe_frame_uid`. The current reader records the frame from the dataset supplying the probe; see [current DICOM ingest](COSC499-TEAM10-PROJECT-DOCS.md#53-dicom-ingest).
+
 [`data.py`](../../src/classes/dicom/data.py) defines one thing, **`DicomData`**: a container
 with 21 named slots. Think of it as a paper form with blank boxes. Every box starts empty, which
 Python writes as `None`. The form does no work itself. `fileio.py` fills the boxes in, and the
@@ -2388,7 +2390,7 @@ y=  18.0 |                                                                      
 
 ### 11.4 The files
 
-> Out of date after PR #133: the inherited mesh inventory below predates `structure_contours.py`, which creates registered display-only wires. See the [current geometry reference](COSC499-TEAM10-PROJECT-DOCS.md#54-geometry).
+> Out of date after the anatomy changes through PR #134: The inherited mesh inventory below predates `structure_contours.py` and `structure_surfaces.py`. These create display-only anatomy; see [current geometry reference](COSC499-TEAM10-PROJECT-DOCS.md#54-geometry).
 
 | File | Size | Builds | Used by |
 |---|---|---|---|
@@ -4119,6 +4121,8 @@ Height taller than the cylinder shows five error messages and then fails.
 
 ### 15.2 How the models connect
 
+> Out of date after the anatomy changes through PR #134: The wiring below predates `StructuresModel`, its single-thread surface worker and queued results. See the [current signal graph](COSC499-TEAM10-PROJECT-DOCS.md#44-signal-graph) and [model reference](COSC499-TEAM10-PROJECT-DOCS.md#55-models).
+
 All the connections, as `MainWindow.initModels` and `TandemModel.__init__` set them up
 ([14.3](#143-main_windowpy-building-the-window)):
 
@@ -4188,6 +4192,8 @@ written so that it skips every shape, so it always answers no. *Verified*: given
 its own shape, it answered `False`. Nothing calls it.
 
 ### 15.4 `display_model.py`, what the 3D view shows
+
+> Out of date after the anatomy changes through PR #134: Anatomy bypasses `ShapeModel`. `reset_completed` clears it explicitly; an empty shape refresh alone does not. See the [current display pipeline](COSC499-TEAM10-PROJECT-DOCS.md#45-the-display-pipeline).
 
 > Update after PR #79: `reset()` now emits `shapes_changed([], False)` so the viewport
 > clears model geometry and reference overlays. See
@@ -4638,6 +4644,8 @@ same model looked different in each tab's screenshot.
 
 ### 17.3 `import_view.py`, the Import tab
 
+> Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
+
 | Widget | Label | Does |
 |---|---|---|
 | `btn_import_folder` | *Import Dicom* | `action_import_dicom_folder`: import a plan |
@@ -4846,6 +4854,8 @@ again. The collet boxes save themselves into the live settings every time their 
 > building the solid, after the tabs had already recorded the switch. See [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
 
 ### 17.8 `viewport.py`, the 3D view
+
+> Out of date after the anatomy changes through PR #134: The viewport now draws nonselectable anatomy wires independently of printable shapes. The #134 layer still renders outlines only; see the [current anatomy display path](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
 > Out of date after PRs #78/#79/#81: the upstream bindings below have been replaced by
 > left-drag rotation, right/middle-drag pan and proportional zoom. The viewport now has
