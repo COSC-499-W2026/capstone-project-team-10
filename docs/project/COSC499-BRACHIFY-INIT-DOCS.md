@@ -4119,7 +4119,7 @@ Height taller than the cylinder shows five error messages and then fails.
 
 ### 15.2 How the models connect
 
-> Out of date after the anatomy changes through PR #134: The wiring below predates `StructuresModel`, its single-thread surface worker and queued results. See the [current signal graph](COSC499-TEAM10-PROJECT-DOCS.md#44-signal-graph) and [model reference](COSC499-TEAM10-PROJECT-DOCS.md#55-models).
+> Out of date after the anatomy changes through PR #134: The wiring below predates `StructuresModel`, its single-thread surface worker and queued results. PR #125 also connects per-ROI opacity to existing viewport actors. See the [current signal graph](COSC499-TEAM10-PROJECT-DOCS.md#44-signal-graph) and [model reference](COSC499-TEAM10-PROJECT-DOCS.md#55-models).
 
 All the connections, as `MainWindow.initModels` and `TandemModel.__init__` set them up
 ([14.3](#143-main_windowpy-building-the-window)):
@@ -4642,7 +4642,7 @@ same model looked different in each tab's screenshot.
 
 ### 17.3 `import_view.py`, the Import tab
 
-> Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
+> Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. PR #125 adds Surface/Outlines/Both and selected-ROI opacity controls. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
 
 | Widget | Label | Does |
 |---|---|---|
@@ -4853,7 +4853,7 @@ again. The collet boxes save themselves into the live settings every time their 
 
 ### 17.8 `viewport.py`, the 3D view
 
-> Out of date after the anatomy changes through PR #134: The viewport now draws nonselectable anatomy wires independently of printable shapes. The #134 layer still renders outlines only; see the [current anatomy display path](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+> Out of date after the anatomy changes through PR #134: The viewport now draws nonselectable anatomy surfaces and wires independently of printable shapes. PR #125 supplies surface rendering and opacity updates; see the [current anatomy display path](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
 > Out of date after PRs #78/#79/#81: the upstream bindings below have been replaced by
 > left-drag rotation, right/middle-drag pan and proportional zoom. The viewport now has
