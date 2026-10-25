@@ -1,12 +1,18 @@
+import copy
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import QWidget, QListWidgetItem, QMessageBox
+from PySide6.QtWidgets import (
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QListWidgetItem, QMessageBox, QPushButton, QWidget,
+)
 
 from classes.app import get_app
 from classes.info import USER_PATH
 from classes.logger import log
+from classes.mesh.channel import NeedleChannel, Translation
+from classes.pdf.template_reference import channels_inside_cylinder
 from windows.models.channels_model import ChannelStatus
 from windows.models.shape_model import ShapeTypes
 from windows.ui import arrows_rc  # registers the :/arrows/ images used below
@@ -59,7 +65,106 @@ def channel_status_text(status: ChannelStatus, diameter: float) -> str:
     return f"Channels diameter {diameter:.3f} mm"
 
 
+OUTSIDE_WARNING = "This move takes the channel outside the base circle of the cylinder, so the reference sheet will not list it."
+
+
+def no_warning(translation: Translation) -> str:
+    return ""
+
+
+def leaves_cylinder(channel: NeedleChannel, translation: Translation, diameter: float) -> bool:
+    """Whether the channel, moved by translation, is dropped by the sheet's rule. The channel itself is not moved."""
+    candidate = copy.copy(channel)  # shares points_raw, and set_translation gives the copy its own points
+    candidate.set_translation(translation)
+    return not channels_inside_cylinder([candidate], diameter)
+
+
+def moved_text(translation: Translation) -> str:
+    dx, dy, dz = translation
+    return f"Moved by X {dx:g}, Y {dy:g}, Z {dz:g} mm from the plan"
+
+
+class MoveChannelDialog(QDialog):
+    """Asks how far to move one channel from its plan position, with X, Y and Z in mm.
+
+    It has no parent, like the app's other dialogs: parented to the tab it would inherit the
+    tab's spin box stylesheet. The fields start at the channel's current move, so OK with
+    nothing edited changes nothing, and Reset to plan position zeroes all three.
+    """
+    RANGE_MM = 300.0  # the longest cylinder the Cylinder tab allows
+
+    def __init__(self, label: str, translation: Translation, warn: Callable[[Translation], str] = no_warning):
+        super().__init__()
+        self.warn = warn
+        self.setWindowTitle(f"Move {label}")
+        form = QFormLayout(self)
+        form.setSizeConstraint(QFormLayout.SizeConstraint.SetFixedSize)  # the dialog grows to fit the warning
+        self.spin_x, self.spin_y, self.spin_z = (self.make_spin_box(value) for value in translation)
+        for axis, spin_box in (("X", self.spin_x), ("Y", self.spin_y), ("Z", self.spin_z)):
+            form.addRow(axis, spin_box)
+        self.btn_reset = QPushButton("Reset to plan position")
+        self.btn_reset.setAutoDefault(False)  # Return must press OK, never Reset
+        self.btn_reset.clicked.connect(self.reset)
+        form.addRow(self.btn_reset)
+        self.label_warning = QLabel()
+        self.label_warning.setWordWrap(True)
+        self.label_warning.setMinimumWidth(360)
+        form.addRow(self.label_warning)
+        for spin_box in (self.spin_x, self.spin_y, self.spin_z):
+            spin_box.valueChanged.connect(self.show_warning)
+        self.show_warning()
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
+
+    def make_spin_box(self, value: float) -> QDoubleSpinBox:
+        spin_box = QDoubleSpinBox()
+        spin_box.setRange(-self.RANGE_MM, self.RANGE_MM)
+        spin_box.setDecimals(3)
+        spin_box.setSuffix(" mm")
+        spin_box.setValue(value)
+        return spin_box
+
+    def show_warning(self) -> None:
+        text = self.warn(self.translation())
+        self.label_warning.setText(text)
+        self.label_warning.setHidden(not text)
+
+    def reset(self) -> None:
+        for spin_box in (self.spin_x, self.spin_y, self.spin_z):
+            spin_box.setValue(0.0)
+
+    def translation(self) -> Translation:
+        return (self.spin_x.value(), self.spin_y.value(), self.spin_z.value())
+
+
 class ChannelsView(CustomView):
+
+    @display_action
+    def action_move_channel(self, item: QListWidgetItem) -> None:
+        self.ask_and_move(item.text())
+
+    @display_action
+    def action_move_selected_channel(self) -> None:
+        self.ask_and_move(self.channelsmodel.get_selected_channel())
+
+    def ask_and_move(self, label: str) -> None:
+        if self.channelsmodel.is_channel_tandem(label): return
+        current = self.channelsmodel.channels[label].translation
+        translation = self.ask_translation(label, current)
+        if translation is None or translation == current: return
+        log.info(f"moving {label} by {translation} mm from the plan")
+        self.channelsmodel.move_channel(label, *translation)
+
+    def warning_for(self, label: str, translation: Translation) -> str:
+        diameter = get_app().window.cylindermodel.cylinder.diameter
+        return OUTSIDE_WARNING if leaves_cylinder(self.channelsmodel.channels[label], translation, diameter) else ""
+
+    def ask_move(self, label: str, translation: Translation) -> Translation | None:
+        dialog = MoveChannelDialog(label, translation, lambda move: self.warning_for(label, move))
+        if dialog.exec() != QDialog.DialogCode.Accepted: return None
+        return dialog.translation()
 
     @display_action
     def action_select_channel(self, item: QListWidgetItem, *args):
@@ -206,9 +311,15 @@ class ChannelsView(CustomView):
                 font = item.font()
                 font.setBold(style.bold)
                 font.setItalic(style.italic)
+                font.setUnderline(self.channelsmodel.is_channel_moved(label))
                 item.setFont(font)
                 item.setBackground(style.background)
-                item.setToolTip(channel_status_text(status, channel.get_diameter()))
+                tooltip = channel_status_text(status, channel.get_diameter())
+                if status is not ChannelStatus.TANDEM: tooltip += "\nDouble click to move"
+                if self.channelsmodel.is_channel_moved(label):
+                    tooltip += "\n" + moved_text(channel.translation)
+                    tooltip += "\n" + self.warning_for(label, channel.translation)
+                item.setToolTip(tooltip)
     
     def action_update_settings(self):
         log.debug(f"updating channels view")
@@ -223,7 +334,10 @@ class ChannelsView(CustomView):
         # enable/disable buttons if any channel is selected
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
-        self.ui.btn_set_tandem.setEnabled(any_selected)
+        selected_is_moved = any_selected and self.channelsmodel.is_channel_moved(selected_channel)
+        self.ui.btn_set_tandem.setEnabled(any_selected and not selected_is_moved)
+        self.ui.btn_set_tandem.setToolTip("Reset this channel's move to make it the tandem" if selected_is_moved else "")
+        self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
         if any_selected:
             self.ui.sb_channel_diameter.setValue(self.channelsmodel.channels[selected_channel].get_diameter())
@@ -281,6 +395,7 @@ class ChannelsView(CustomView):
         self.ui.setupUi(self)
         self.setStyleSheet(spin_box_arrows)
         self.is_active = False
+        self.ask_translation: Callable[[str, Translation], Translation | None] = self.ask_move
 
         #sets default needle length
         config_values = get_app().values.config_values
@@ -295,10 +410,12 @@ class ChannelsView(CustomView):
         # signals and slots
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
         self.ui.btn_apply_channel_diameter.pressed.connect(self.action_apply_channel_diameter)
+        self.ui.btn_move_channel.pressed.connect(self.action_move_selected_channel)
         self.ui.btn_clear_channel_diameter.pressed.connect(self.action_clear_channel_diameter)
         self.ui.btn_save_template.pressed.connect(self.action_save_template)
         self.ui.btn_apply_template.pressed.connect(self.action_apply_template)
         self.ui.listwidget_channels.currentItemChanged.connect(self.action_select_channel)
+        self.ui.listwidget_channels.itemDoubleClicked.connect(self.action_move_channel)
         self.ui.btn_enable.pressed.connect(self.action_toggle_channel_disable)
         self.ui.btn_set_tandem.pressed.connect(self.action_set_tandem)
 
