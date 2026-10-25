@@ -31,7 +31,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134 → #125. Retarget each remaining PR after its parent merges; these are dependency PRs, not independent changes.
 
-### For PR #**DOC_CONTOURS**
+### For PR #**139**
 
 - As part of requirement **FR-SV-01/02 documentation**, the user needs to do **find the registered contour service and its tests**.
 - Therefore, I implemented/generated code so that **the documentation describes the implemented anatomy layer**.
