@@ -224,6 +224,54 @@ def test_surface_follows_probe_length_and_opacity_rejects_invalid_values(anatomy
     assert anatomy_model.visible == {2}
 
 
+def test_structures_surface_controls_change_selected_organ_opacity(cylinder_window, anatomy_model):
+    """Drive real mode and opacity widgets without initialising the native canvas.
+
+    Missing connections or stale model values fail; the visible controls must govern
+    the same anatomy state used by the viewport.
+    """
+    from windows.models.structures_model import StructureDisplayMode
+    view = cylinder_window.navigationmodel.views[5]
+    model = cylinder_window.structuresmodel
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = tuple(anatomy_model.structures.values())
+    model.load_plan(plan, 20.)
+    wait_for_surfaces(model)
+    view.structure_list.setCurrentRow(1)
+    view.surface_mode.setCurrentText('Both')
+    assert cylinder_window.structuresmodel.mode == StructureDisplayMode.BOTH
+    view.surface_mode.setCurrentText('Surface')
+    view.surface_opacity.setValue(65)
+    assert cylinder_window.structuresmodel.mode == StructureDisplayMode.SURFACE
+    assert cylinder_window.structuresmodel.opacity_for(2) == 0.65
+
+
+def test_surface_presentation_uses_mesh_mode_and_dicom_colour(units_app):
+    """Configure the real triangulation actor independently of the shaded-solid mode.
+
+    Missing mesh display mode or shading colour fails; native inspection showed that
+    inheriting the solid viewer mode makes an otherwise valid surface invisible.
+    """
+    from OCC.Core.Poly import Poly_Triangulation, Poly_Triangle
+    from OCC.Core.gp import gp_Pnt
+    from windows.views.viewport import anatomy_surface_presentation
+    mesh = Poly_Triangulation(3, 1, False)
+    for index, point in enumerate(((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)), 1):
+        mesh.SetNode(index, gp_Pnt(*point))
+    mesh.SetTriangle(1, Poly_Triangle(1, 2, 3))
+    mesh.ComputeNormals()
+    actor = anatomy_surface_presentation(mesh, (0, 255, 0), 0.6)
+    assert actor.HasDisplayMode()
+    assert actor.DisplayMode() == 0
+    colour = actor.Attributes().ShadingAspect().Color()
+    assert colour.Green() == pytest.approx(1.)
+    assert colour.Red() == pytest.approx(0.)
+    assert actor.Transparency() == pytest.approx(0.4)
+
+
 def test_large_external_body_can_be_selected_as_a_surface(anatomy_model):
     """Reconstruct a large external envelope when selected in Surface mode.
 
@@ -304,6 +352,29 @@ def test_opacity_does_not_rebuild_geometry_or_change_other_organs(anatomy_model)
     assert anatomy_model.opacity_for(2) == 0.7
     assert anatomy_model.opacity_for(1) == 0.45
     assert geometry_changes.count() == 0
+
+
+def test_failed_surface_is_explained_in_visible_structure_row(cylinder_window, anatomy_model):
+    """Expose a failed surface directly in the list while keeping Surface-only mode.
+
+    A checked invisible ROI or a reason confined to a tooltip fails; users must not
+    mistake failed reconstruction for absent anatomy.
+    """
+    from PySide6.QtCore import Qt
+    model = cylinder_window.structuresmodel
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = tuple(anatomy_model.structures.values())
+    model.load_plan(plan, 20.)
+    wait_for_surfaces(model)
+    view = cylinder_window.navigationmodel.views[5]
+    item = view.structure_list.item(1)
+    assert 'Surface unavailable.' in item.text()
+    assert 'two contour slices' in item.text()
+    assert item.checkState() == Qt.Unchecked
+    assert model.presentations()[0].outline is None
 
 
 def test_outline_failure_does_not_disable_a_valid_surface(anatomy_model):
