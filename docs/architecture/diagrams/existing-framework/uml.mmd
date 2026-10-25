@@ -43,3 +43,31 @@ classDiagram
   ChannelsModel --> ShapeModel
   TandemModel --> ShapeModel
   DisplayModel o-- ShapeModel
+
+  class StructuresModel {
+    mode = Outlines
+    visible and pending ROI sets
+    generation and patient mesh cache
+    changed()
+    opacity_changed(roi, opacity)
+  }
+  class SurfaceTask {
+    run()
+    reconstruct()
+  }
+  class SurfaceSignals {
+    finished(SurfaceResult)
+  }
+  MainWindow --> StructuresModel
+  DicomModel ..> StructuresModel : values_changed via MainWindow
+  CylinderModel ..> StructuresModel : current length via MainWindow
+  DisplayModel ..> StructuresModel : reset_completed
+  StructuresView --> StructuresModel : set_visible
+  StructuresModel ..> StructuresView : changed
+  StructuresModel ..> OrbitCameraViewer3d : changed, outline refresh
+  StructuresModel --> SurfaceTask : QThreadPool, one worker
+  SurfaceTask --> SurfaceSignals
+  SurfaceSignals ..> StructuresModel : finished, queued to GUI thread
+  SurfaceTask --> AnatomySurface : reconstruct or reuse patient mesh
+  StructuresModel o-- AnatomySurface : cache by ROI
+  note for StructuresModel "Surface/Both and opacity APIs are exercised by tests here.<br/>PR 125 adds their controls and native surface rendering."

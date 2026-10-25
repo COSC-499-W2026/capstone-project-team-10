@@ -1,5 +1,5 @@
 %% title: DFD level 1
-%% alt: DFD level 1, the five tabs
+%% alt: DFD level 1, six tabs with separate display-only anatomy and background surface state
 flowchart TB
   tps["Treatment planning system"]
   physicist["Medical physicist"]
@@ -15,7 +15,7 @@ flowchart TB
 
   tps -->|"DICOM folder"| p1
   physicist -->|"config JSON"| p1
-  p1 -->|"needles, Central Axis, settings"| d1
+  p1 -->|"needles, Central Axis, structures, probe frame, settings"| d1
   physicist -->|"size and collar"| p2
   d1 --> p2
   p2 -->|"cylinder solid"| d2
@@ -30,3 +30,15 @@ flowchart TB
   d1 -->|"patient and plan"| p5
   p5 -->|"STL or STEP"| printer
   p5 -->|"PDF and JSON"| physicist
+
+  p6(("6 Structures preview"))
+  worker(("Surface worker API<br/>UI follows in PR 125"))
+  anatomy[("Anatomy state<br/>visibility, pending, generation,<br/>errors, opacity, cached meshes")]
+  d1 -->|"immutable patient contours and probe frame"| p6
+  physicist -->|"show or hide ROI"| p6
+  p2 -->|"current cylinder length"| p6
+  p6 <-->|"aligned wires and availability"| anatomy
+  p6 -->|"nonselectable outline preview and failure tooltip"| physicist
+  p1 -->|"new import clears state and invalidates old results"| anatomy
+  anatomy -.->|"Surface/Both API request; single worker"| worker
+  worker -.->|"generation-tagged mesh or error, queued result"| anatomy
