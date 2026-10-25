@@ -804,7 +804,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
-    │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio
+    │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio, structure_contours
     │   └── pdf/               template_reference.py, canvas.py
     ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py, cylinder_templates.py
     └── windows/
@@ -1071,6 +1071,19 @@ anywhere**. Collision detection between needles is not currently performed.
 **`fileio.py`** (mesh) — `read_3d_file` (STEP only; anything else raises and shows a dialog) and
 `write_3d_file` (STL binary with `linear_deflection=0.5`, `angular_deflection=0.3`; or STEP
 AP203).
+
+**[`structure_contours.py`](../../src/classes/mesh/structure_contours.py)** — registered
+contour geometry, introduced by PR #133. *Reasoned from code.* `ContourAlignment` holds
+the probe base, direction, current length in mm and frame UID. It rejects a missing UID,
+nonfinite values, a zero axis, nonpositive length and an exactly reversed Z axis, which the
+needle importer cannot rotate. `transform_contour` computes `R(point - base)` plus
+`(0, 0, length - |direction|)` without changing the patient-coordinate input. The caller
+must check that the ROI and probe share a frame; the geometry service does not compare UIDs.
+`contour_outline` accepts CLOSED_PLANAR and CLOSEDPLANAR_XOR loops, removes consecutive
+and closing duplicate endpoints, and builds separate closed OCC wires with no filled faces.
+It rejects open paths and loops with fewer than three distinct points. One invalid loop
+fails the entire call; it does not silently omit a slice. This service adds no GUI or
+printable solid; the Structures display integration belongs to PR #121.
 
 ### 5.5 Models
 
@@ -1583,6 +1596,10 @@ section numbers, which other files cite, stay stable. An entry that has since be
 `AIS_TextLabel.SetText` requires Python text in the installed pythonocc binding. Passing
 `TCollection_ExtendedString` caused a native `Standard_NullObject` abort. `grid_text_label`
 passes `str`; `test_grid_label_preserves_text_and_position` exercises this binding directly.
+
+*Contour preview limitation (PR #133, reasoned from code):* one degenerate contour
+causes `contour_outline` to reject the whole ROI. Callers must report that failure instead
+of presenting the remaining slices as a complete outline. See §5.4.
 
 ### 7.1 HIGH — the collar is never saved to, or loaded from, a settings file
 
@@ -2111,6 +2128,7 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
+| `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face (§5.4) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |

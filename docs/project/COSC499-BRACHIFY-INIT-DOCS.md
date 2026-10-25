@@ -2388,6 +2388,8 @@ y=  18.0 |                                                                      
 
 ### 11.4 The files
 
+> Out of date after PR #133: the inherited mesh inventory below predates `structure_contours.py`, which creates registered display-only wires. See the [current geometry reference](COSC499-TEAM10-PROJECT-DOCS.md#54-geometry).
+
 | File | Size | Builds | Used by |
 |---|---|---|---|
 | [`cylinder.py`](../../src/classes/mesh/cylinder.py) | 151 lines | the solid cylinder, dome, collar and notch | Cylinder model and view |
