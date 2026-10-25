@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QFileDialog, QListWidget, QListWidgetItem
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QIcon, QPixmap
 
 from classes.app import get_app
@@ -183,13 +184,13 @@ class ImportView(CustomView):
         print("")
 
     def action_update_structure_list(self):
-        """Fill the read-only structure list from DicomData.structures."""
+        """Fill Import's read-only inventory from the current anatomy state."""
         self.structure_list.clear()
-        structures = get_app().window.dicommodel.data.structures
-        for row in structure_list_rows(structures):
+        for row in structure_list_rows(tuple(get_app().window.structuresmodel.structures.values())):
             item = QListWidgetItem(f"{row.label}  {row.category}")
+            item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
             swatch = QPixmap(12, 12)
-            swatch.fill(QColor(row.color[0], row.color[1], row.color[2]))
+            swatch.fill(QColor(*row.color))
             item.setIcon(QIcon(swatch))
             self.structure_list.addItem(item)
 
@@ -215,5 +216,6 @@ class ImportView(CustomView):
         self.ui.verticalLayout_3.addWidget(self.structure_list)
 
         # signals and slots
+        get_app().window.structuresmodel.changed.connect(self.action_update_structure_list)
         self.ui.btn_import_folder.pressed.connect(self.action_import_dicom_folder)
         self.ui.btn_config_file.pressed.connect(self.action_import_config_file)
