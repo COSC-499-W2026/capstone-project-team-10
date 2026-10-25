@@ -66,3 +66,11 @@ Template*, a list of saved templates with *Apply Template*, and a status line. A
 or an unreadable template file is explained in the status line beside the controls rather
 than in a dialog, so the clinician sees why without leaving the tab, and a file brachify cannot
 read never stops it starting. *Verified* by offscreen widget tests. A screenshot of it is linked from Ahab's week 6 log.
+
+The Structures page (index 5, navigation button under Import) now lists checkable anatomy
+ROIs with their category and DICOM colour. Import's inventory remains read-only. Available
+ORGAN/TUMOUR outlines start visible; OTHER, including BODY, requires selection. A status
+message disables a row and explains the failure in its tooltip, and a failed outline is
+unchecked. *Reasoned from the #134 implementation and covered by offscreen widget tests*;
+no fresh native screenshot or usability evaluation is claimed. This layer has no surface
+mode dropdown or opacity control; #125 adds them. See [§5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
