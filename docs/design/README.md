@@ -67,10 +67,17 @@ or an unreadable template file is explained in the status line beside the contro
 than in a dialog, so the clinician sees why without leaving the tab, and a file brachify cannot
 read never stops it starting. *Verified* by offscreen widget tests. A screenshot of it is linked from Ahab's week 6 log.
 
-The Structures page (index 5, navigation button under Import) now lists checkable anatomy
-ROIs with their category and DICOM colour. Import's inventory remains read-only. Available
-ORGAN/TUMOUR outlines start visible; OTHER, including BODY, requires selection. A status
-message disables a row and explains the failure in its tooltip, and a failed outline is
-unchecked. *Reasoned from the #134 implementation and covered by offscreen widget tests*;
-no fresh native screenshot or usability evaluation is claimed. This layer has no surface
-mode dropdown or opacity control; #125 adds them. See [§5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
+The Structures page (index 5, navigation button under Import) lists checkable anatomy
+ROIs with their category and DICOM colour; Import's inventory remains read-only. The mode
+dropdown applies Surface/Outlines/Both to the whole list and defaults to Surface without
+automatic contour fallback. ORGAN/TUMOUR ROIs start requested visible; OTHER, including
+BODY, requires selection. A mode tooltip explains the approximate 1 mm / 2 mm EXTERNAL grid.
+
+Loading and failure reasons appear as wrapped row text and tooltips. Pending rows stay
+checkable for hiding. In Surface mode a failed surface is unchecked; permanent unavailability
+disables the row. The 0–100% opacity slider applies only to the selected ROI (default 45%) and commits
+a drag on release. Without selection it is disabled. Opacity updates retain actors and list
+items; model changes rebuild rows while restoring selection by ROI number.
+*Reasoned from #125 code and covered by offscreen widgets/native-actor tests; no fresh native
+screenshot or usability evaluation is claimed.* See [§5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
+and [§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
