@@ -250,7 +250,7 @@ Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0)** passed.
-- This new test PR did not break anything else in the system because **FULL_SUITE_RESULT; application code is unchanged**.
+- This new test PR did not break anything else in the system because **290 passed in 286.76s on the surface architecture branch (identical application/test tree); application code is unchanged**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
 
 ### For PR #**141**
@@ -286,5 +286,5 @@ Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134
 #### Testing receipts
 
 - The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0)** passed.
-- This new test PR did not break anything else in the system because **FULL_SUITE_RESULT; application code is unchanged**.
+- This new test PR did not break anything else in the system because **290 passed in 286.76s on the surface architecture branch (identical application/test tree); application code is unchanged**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
