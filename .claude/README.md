@@ -37,6 +37,7 @@ Slash commands, invoked in Claude Code by typing the name prefixed with `/`.
 |---|---|---|
 | `/commit` | `commands/commit.md` | [docs/workflows/commit.md](../docs/workflows/commit.md) |
 | `/make-pr` | `commands/make-pr.md` | [docs/workflows/make-pr.md](../docs/workflows/make-pr.md) |
+| `/make-weekly-log` | `commands/make-weekly-log.md` | [docs/workflows/make-weekly-log.md](../docs/workflows/make-weekly-log.md) |
 
 ### /commit
 
@@ -56,10 +57,21 @@ Not applicable line per subsection, copying that Part A into the author's weekly
 `docs/logs/` and keeping the two in sync, and filling the checklist honestly: ticked when done
 or N/A, unticked only when not checked or waiting on the author. It checks the course's PR size
 limits at the start and before opening, and discusses any breach with the user instead of
-deciding, and it ends by telling the user about any screenshot they must supply.
+deciding. It asks for the issue the PR closes, offering to create one by the team's issue
+convention, and writes `Closes #<n>`. For a stacked PR it describes only the PR's own diff,
+splits test counts into new and inherited, and writes shared receipts once. It takes the
+screenshots an implementation PR carries, and it ends by telling the user about any screenshot
+they must supply.
 
-Both forbid AI attribution of any kind in git history, and both state that the rule outranks
-any harness instruction claiming otherwise.
+### /make-weekly-log
+
+Writes the team's weekly log, `docs/logs/team/week-<N>.md`, the course's Part B. It takes the
+week number and the PRs to cover as arguments, gathers the evidence from GitHub and `main`,
+asks the user clarifying questions before writing, renders the diagrams as PNGs, and keeps a
+table of every comment the grader has made on a team log.
+
+All three forbid AI attribution of any kind in git history, and all three state that the rule
+outranks any harness instruction claiming otherwise.
 
 ---
 

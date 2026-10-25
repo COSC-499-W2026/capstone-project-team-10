@@ -54,6 +54,11 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
   subsection, not written out one by one as N/A. The grader marks a log down for length that
   slows the audit, and for repeated N/A sections. See
   [Keep Part A minimal](../workflows/make-pr.md#keep-part-a-minimal).
+- **A stack shows what each PR added.** For stacked PRs, the log opens the stack with a table
+  of each PR's own diff, new tests and suite total, and states the receipts every PR shares
+  once, so each section holds only what its PR added. That block is log-only. See
+  [Stacked PRs](../workflows/make-pr.md#stacked-prs), and `ariq/week-7.md` for an example.
+  Week 6 lost a mark for repeating shared receipts and giving cumulative test counts.
 - **Every PR is logged.** A documentation or process PR gets a short section, keeping only the
   receipts that apply to it, as
   [Tests in this PR or another](../workflows/make-pr.md#tests-in-this-pr-or-another) lists.
@@ -76,7 +81,8 @@ section is a copy of that PR's **Part A: What I Built and Why I Know It Works**,
 ## Team log: Part B
 
 `team/week-<K>.md` is written once per week by the team, covering everyone's merged work. It
-is not written by `/make-pr`, and it does not go in any PR description. It uses the course's
+is written by [make-weekly-log](../workflows/make-weekly-log.md) (`/make-weekly-log <week> <PRs>`),
+not by `/make-pr`, and it does not go in any PR description. It uses the course's
 Part B template below. Replace each `[...]` with the answer in **bold**, keep one side of each
 _or_, and delete the italic guidance lines, the same way as Part A.
 
