@@ -57,3 +57,16 @@ def test_open_contours_cannot_be_closed_into_anatomy(kind):
     contour = Contour(kind, ((0., 0., 0.), (2., 0., 0.), (0., 2., 0.)))
     with pytest.raises(ValueError, match='Only closed'):
         structure_contours.contour_outline((contour,))
+
+
+def test_point_array_alignment_preserves_input_and_patient_registration():
+    """Align mesh vertices directly without modifying cached patient coordinates.
+
+    Incorrect rotation, tip translation or an in-place edit fails these literal
+    coordinates and could move anatomy relative to the probe on later redraws.
+    """
+    points = np.array(((10., 20., 30.), (10., 22., 32.)))
+    alignment = structure_contours.ContourAlignment((10., 20., 30.), (10., 0., 0.), 20., 'frame')
+    aligned = structure_contours.transform_points(points, alignment)
+    np.testing.assert_allclose(aligned, ((0., 0., 10.), (-2., 2., 10.)), atol=1e-10)
+    np.testing.assert_array_equal(points, ((10., 20., 30.), (10., 22., 32.)))

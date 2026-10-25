@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from math import isfinite
 
 import numpy as np
+from numpy.typing import NDArray
 from OCC.Core.BRep import BRep_Builder
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakePolygon
 from OCC.Core.TopoDS import TopoDS_Compound
@@ -33,11 +34,17 @@ class ContourAlignment:
 
 def transform_contour(contour: Contour, alignment: ContourAlignment) -> Contour:
     """Rotate around the probe base and preserve its tip at the current length."""
+    points = transform_points(np.asarray(contour.points), alignment)
+    return Contour(contour.geometric_type, tuple((float(x), float(y), float(z)) for x, y, z in points))
+
+
+def transform_points(vertices: NDArray[np.float64], alignment: ContourAlignment) -> NDArray[np.float64]:
+    """Align patient vertices without modifying the cached source coordinates."""
     direction = np.asarray(alignment.direction)
     axis_length = np.linalg.norm(direction)
     source = direction / axis_length
     target = np.array((0., 0., 1.))
-    points = np.asarray(contour.points) - np.asarray(alignment.base)
+    points = vertices - np.asarray(alignment.base)
     cross = np.cross(source, target)
     sine = np.linalg.norm(cross)
     if sine:
@@ -45,7 +52,7 @@ def transform_contour(contour: Contour, alignment: ContourAlignment) -> Contour:
         cosine = np.clip(np.dot(source, target), -1., 1.)
         points = points * cosine + np.cross(axis, points) * sine + np.outer(points @ axis, axis) * (1 - cosine)
     points[:, 2] += alignment.length - axis_length
-    return Contour(contour.geometric_type, tuple((float(x), float(y), float(z)) for x, y, z in points))
+    return points
 
 
 def contour_outline(contours: tuple[Contour, ...]) -> TopoDS_Compound:
