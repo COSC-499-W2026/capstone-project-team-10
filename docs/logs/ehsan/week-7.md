@@ -90,3 +90,21 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **none** are unit tests and **the three Structures click tests** are integration tests.
 - These tests are included in the directory **`tests/windows/`**.
 - This new test PR did not break anything else in the system because **`tests/windows/test_main_window.py` is 10 passed**. Four tests already fail on `main` on this Windows machine, named in #116.
+
+### For PR #**126**
+
+- As part of requirement **FR-SV frontend, empty Structures page only**, the user needs to do **read the UML as views index 0 to 5**.
+- Therefore, I implemented/generated code so that **the picture matches `StructuresView` at `views[5]`**.
+
+#### Review and design
+
+- When I reviewed the **existing-framework UML** for this functionality, I noticed **the label still said 0 to 4 after #116 made it 0 to 5**. Therefore, I did **change the label and run `python docs/architecture/build.py`**.
+- Not applicable: **code-quality checklist (no code changed)**.
+- This work is written in **`existing-framework/uml.mmd`** because **that file is the UML source**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0)** passed.
+- This new test PR did not break anything else in the system because **`--check` exits 0 and the DFD sources are unchanged**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
