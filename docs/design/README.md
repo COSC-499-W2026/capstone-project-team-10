@@ -61,8 +61,27 @@ list. Every colour has its own bold and italic pair, so colour is never the only
 the system highlight instead of its colour, and keeps its font. *Verified* by offscreen tests
 and a render. A screenshot of it is linked from Ahab's week 6 log.
 
+Double-clicking a Channels row opens a small popup that moves that channel from its plan position,
+with X, Y and Z in mm, Reset to plan position, Cancel and OK. It starts at the channel's current move,
+so OK with nothing edited changes nothing, and the tandem's row opens nothing. A moved row is
+underlined and its tooltip says how far it moved, so colour is still not the only cue. Each needle row's tooltip carries `Double click to move`, and a moved channel cannot be set as the tandem until its move is reset, so the button is disabled with a tooltip saying so. The legend
+under the list says underlined has been moved, and *Move...* in the Selected Channel group opens the
+same popup for the selected channel. It is off with nothing selected and for the tandem. If the typed
+move would take a needle off the reference sheet, a line in the popup and the row's tooltip say so, and
+nothing stops OK. *Verified* by
+offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked
+from Ahab's week 7 log.
+
 The Selected Channel group also holds the needle templates: a name field with *Save as
 Template*, a list of saved templates with *Apply Template*, and a status line. A refused save
 or an unreadable template file is explained in the status line beside the controls rather
 than in a dialog, so the clinician sees why without leaving the tab, and a file brachify cannot
 read never stops it starting. *Verified* by offscreen widget tests. A screenshot of it is linked from Ahab's week 6 log.
+
+The Structures page (index 5, navigation button under Import) now lists checkable anatomy
+ROIs with their category and DICOM colour. Import's inventory remains read-only. Available
+ORGAN/TUMOUR outlines start visible; OTHER, including BODY, requires selection. A status
+message disables a row and explains the failure in its tooltip, and a failed outline is
+unchecked. *Reasoned from the #134 implementation and covered by offscreen widget tests*;
+no fresh native screenshot or usability evaluation is claimed. This layer has no surface
+mode dropdown or opacity control; #125 adds them. See [§5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).

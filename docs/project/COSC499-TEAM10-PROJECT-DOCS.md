@@ -69,6 +69,8 @@ them, and that is accepted. The list is written in three places that must agree:
 | `pyside6` | the Qt GUI |
 | `matplotlib` | the PDF reference sheet plots |
 | `numpy` | geometry and DICOM maths |
+| `scipy` | signed-distance calculations for organ surface reconstruction |
+| `scikit-image` | contour rasterisation and marching-cubes surface reconstruction |
 | `reportlab` | the PDF reference sheet |
 | `pydicom` | DICOM import |
 | `pyinstaller` | building the `.exe` (§1.7), and the hidden-import test (§8.2) |
@@ -114,7 +116,7 @@ second table, and regenerate `spec-file.txt`.
 > the viewport. DICOM import and the Export tab were not exercised in that run.
 
 `spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and most of
-its 185 pinned package URLs are Windows binaries.
+its pinned package URLs are Windows binaries.
 
 **PySide6 must be named explicitly on macOS.** On Windows, conda-forge's `matplotlib`
 meta-package depends on `pyside6 >=6.7.2`, which is why PySide6 appeared in the Windows
@@ -138,6 +140,8 @@ conda create -n brachify -c conda-forge \
   pyside6 \
   matplotlib \
   numpy \
+  scipy \
+  scikit-image \
   reportlab \
   pydicom \
   pyinstaller \
@@ -156,6 +160,16 @@ with `conda install -n brachify -c conda-forge pytest pyinstaller`, or recreate 
 command above. `pyinstaller` is listed so the build's hidden imports can be tested (§8.2). The
 `.exe` itself is still built only on Windows (§1.7).
 
+**Surface dependencies (PR #122).** SciPy 1.17.1 and scikit-image 0.26.0 are installed in
+the macOS arm64 development environment; their imports were verified on 2026-10-24. For an
+existing environment, run `conda install -n brachify -c conda-forge scipy scikit-image`. The
+command above and `environment.yml` now name both packages for all operating systems.
+*Not verified:* a fresh installation using this updated command, or installing and running
+these additions on Windows or Linux. The Windows lockfile includes their exact builds;
+listing those builds does not establish runtime verification.
+The worker imports these libraries only when a surface is requested; an import failure
+becomes an ROI status message. Windows executable packaging remains unverified.
+
 **Linux.** Use the same `conda create` command. Install Miniforge with its Linux installer
 instead of Homebrew, and run `conda init` for your shell. `pythonocc-core` 7.7.2 is built for
 `linux-64` on conda-forge (*Verified* 2026-09-30 with `conda search --platform linux-64`).
@@ -170,14 +184,31 @@ python src/launch.py
 ```
 
 `spec-file.txt` is the canonical, fully pinned lockfile. Prefer it on Windows.
+Its PR #122 additions include SciPy, scikit-image and supporting packages. The file mixes
+conda-forge and defaults packages; a successful URL lookup alone does not establish binary
+compatibility. *Not verified:* a fresh Windows install and reconstruction run with this
+expanded lockfile, or a channel migration. Regenerate on Windows after validating the full
+environment; this documentation change does not rewrite the dependency files.
 
-The six `pytest` lines at the end of `spec-file.txt` (`iniconfig`, `pluggy`, `pygments`,
+The six `pytest` package lines added to `spec-file.txt` (`iniconfig`, `pluggy`, `pygments`,
 `tomli`, `exceptiongroup`, `pytest`) were not written by `conda list --explicit` on Windows.
 They were solved from macOS on 2026-09-30 with `CONDA_SUBDIR=win-64 conda create --dry-run`,
 pinning all 179 existing packages. The solve kept every one of them unchanged and added only
 those six, and each URL returned HTTP 200. *Not verified:* creating the environment from this
 file on a Windows machine. The next Windows teammate to do so should confirm it, and may
 regenerate the file there.
+
+**PR #122 channel-migration blocker (2026-10-24).** The requested conda-forge
+`noarch/tifffile-2026.3.3-pyhd8ed1ab_0.conda` exists, but replacing only the defaults
+URL is insufficient: its metadata requires `imagecodecs >=2025.11.11`, which this lockfile
+does not contain. A Windows dry-run with the other builds pinned failed. A further solve
+using `imagecodecs=2025.11.11` and relaxing selected codec pins still failed: that build
+requires `lz4-c >=1.10,<1.11`, while the pinned `vtk-base` 9.2.6 requires
+`lz4-c >=1.9.3,<1.10`. The defaults `tifffile` pin is retained pending a compatible full
+solve and Windows validation; do not replace its URL without resolving the dependencies.
+The existing `libhwloc` URL also comes from defaults, so this is not an entirely
+conda-forge lockfile. These are solver and metadata observations, not a Windows runtime
+test.
 
 To do the same for a new dependency from macOS or Linux, turn every URL in `spec-file.txt`
 into a `name==version=build` pin, add the new package, and ask conda for a Windows solve:
@@ -631,7 +662,7 @@ The build discovers both folders recursively and generates the shared viewer.
 | DICOM parsing | `pydicom` |
 | PDF generation | `reportlab` |
 | Diagram rendering | `matplotlib` |
-| Numerics | `numpy` |
+| Numerics | `numpy`; anatomy sampling uses `scipy.ndimage` and `skimage` |
 | Packaging | PyInstaller (Windows only) |
 | Repository tooling | anti-slop-py (Python, vendored, run by hand, §1.9) |
 
@@ -668,7 +699,7 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 | 2 | `ChannelsView` | [channels_view.py](../../src/windows/views/channels_view.py) | `ChannelsModel` |
 | 3 | `TandemView` | [tandem_view.py](../../src/windows/views/tandem_view.py) | `TandemModel` |
 | 4 | `Export_View` | [export_view.py](../../src/windows/views/export_view.py) | — (composes all) |
-| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | — (empty page, issue #106) |
+| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | `StructuresModel` |
 
 The Structures nav button sits directly under Import in `verticalLayout_31`. The view itself is
 appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export stays 4.
@@ -699,19 +730,29 @@ Model-to-model wiring, all established in `MainWindow.initModels()` / `TandemMod
 ```
 DicomModel.values_changed(DicomData)
     ├─→ CylinderModel.load_data
-    └─→ ChannelsModel.load_data
+    ├─→ ChannelsModel.load_data
+    └─→ StructuresModel.load_plan(plan, cylinder.length)  # after cylinder loading
 
 ChannelsModel.tandem_changed(NeedleChannel) ─→ TandemModel.set_tandem_channel
 CylinderModel.values_changed(BrachyCylinder) ─→ TandemModel.update_cylinder
                                              ├─→ CylinderView.action_update_settings
                                              └─→ MainWindow.enable_export_view
+CylinderModel.values_changed(BrachyCylinder) ─→ StructuresModel.set_length
+DisplayModel.reset_completed()              ─→ StructuresModel.clear
+StructuresModel.changed()                   ─→ StructuresView.action_update_structure_list
+                                             └─→ OrbitCameraViewer3d.refresh_structure_outlines
+SurfaceSignals.finished(SurfaceResult)      ─→ StructuresModel._accept_surface (queued to GUI)
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
                                                  (connected on_open, disconnected on_close)
 ```
 
 `DisplayModel.reset()` emits `shapes_changed([], False)` to clear the scene and its
-reference overlays without fitting the camera (*Reasoned from code*).
+reference overlays without fitting the camera, then emits `reset_completed` to clear anatomy.
+An ordinary `shapes_changed([], False)` refresh does not clear imported anatomy. The worker
+pool has one thread; it never manipulates viewport actors. `opacity_changed(int, float)` is
+declared and tested but has no UI/viewport consumer in the #134 layer; #125 adds that consumer.
+*Reasoned from code.*
 
 ### 4.5 The display pipeline
 
@@ -736,7 +777,11 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 
 The viewport owns reference overlays separately from `ShapeModel`: it derives grid bounds
 from displayed shapes and reads `CylinderModel.cylinder.length` for the axis. Neither
-overlay enters exports. See §5.7 (*Reasoned from code*).
+overlay enters exports. Anatomy is a second display-only path:
+`DicomData.structures → StructuresModel → StructurePresentation → viewport AIS outlines`.
+It bypasses `ShapeModel` and `DisplayModel.shapes`; visibility cannot add an organ to the
+probe's boolean operations, mesh exports or PDF calculations. Its own `changed` signal
+refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned from code*).
 
 ### 4.6 Coordinate conventions
 
@@ -750,6 +795,11 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
   `starting_length` is captured at import time. Channels and tandem shift themselves by that
   offset. This is why `NeedleChannel` keeps both `points` and `_offset` and applies the offset
   only in `get_points()` / `shape()`.
+- **A channel moved by hand keeps the plan too.** `points_raw` is the DICOM plan and is never
+  changed. `NeedleChannel.set_translation` rebuilds `points` from it as plan plus the move, so
+  `shape()`, `get_points()` and the PDF's point readers all follow a move. `get_rotation()` reads
+  `points_raw`, so a move cannot turn the tandem. *Verified* by `tests/views/test_move_channel.py`
+  for the shape and the PDF's point reader. The PDF's drawn pages were not inspected.
 - In the PDF cross-section diagram the view is **from the base looking up**, so the y-axis is
   drawn negated: `Anterior` is `-y`, `Posterior` is `+y`.
 
@@ -780,7 +830,7 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
-│   └── workflows/             tool-agnostic procedures (commit, make-pr)
+│   └── workflows/             tool-agnostic procedures (commit, make-pr, make-weekly-log)
 ├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle and cylinder template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
@@ -799,14 +849,14 @@ overlay enters exports. See §5.7 (*Reasoned from code*).
     │   ├── logger.py          rotating file + stderr logging
     │   ├── signals.py         AppSignals
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
-    │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio, structure_contours
+    │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio, structure_contours, structure_surfaces
     │   └── pdf/               template_reference.py, canvas.py
     ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py, cylinder_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
         ├── length_field.py    LengthField and LengthUnit, mm-backed Cylinder controls
-        ├── models/            six QObject models
+        ├── models/            six QObject models (including structures_model), NavigationModel and ShapeModel
         ├── views/             six views + custom_view.py + viewport.py
         └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
 ```
@@ -941,9 +991,10 @@ structures = read_structures(rs_dataset)
 
 *Verified 2026-10-11 on macOS:* both bundled sample RTSTRUCTs decode into 42 ROIs and
 152 contours each. This is a headless reader check, not a GUI or clinical validation.
-Synthetic tests are in `tests/dicom/test_structures.py`; Nucletron data remains unverified.
+Synthetic reader tests are in `tests/dicom/test_structures.py`; a synthetic embedded-frame
+case is in `tests/views/test_structure_display.py`. Neither is a real Oncentra import run.
 
-**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a flat mutable bag of 22
+**[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a mutable container of named
 fields, including `structures` (a `tuple[Structure, ...]` from `read_structures`, or `None`).
 There is a comment in the file stating the rule explicitly: **any field added to
 `__init__` must also be added to `reset()`**. Keep the rule, but know how narrow the leak is:
@@ -966,6 +1017,12 @@ aborting needle or cylinder loading (*Reasoned from code*; guarded by
 | `"Varian Medical Systems"` | `load_varian_dicom_data` |
 | `"Nucletron"` | `load_nucletron_dicom_data` |
 | anything else | falls through — raises `UnboundLocalError` (§7.2) |
+
+`probe_frame_uid` comes from the dataset supplying the probe: the central-axis ROI in
+Varian's RTSTRUCT, Nucletron's embedded RTPLAN structure sequence, or the RTSTRUCT cylinder
+ROI when the fallback cylinder contour is used. A matching ROI number in another dataset
+is not a matching frame. Missing or unequal ROI/probe frame UIDs disable anatomy display;
+there is no cross-frame registration. This does not block the separate probe import path.
 
 The two branches are near-parallel and must usually be fixed in tandem:
 `load_central_axis_varian` / `load_central_axis_nucletron`, `load_channels_varian` /
@@ -1078,7 +1135,28 @@ must check that the ROI and probe share a frame; the geometry service does not c
 and closing duplicate endpoints, and builds separate closed OCC wires with no filled faces.
 It rejects open paths and loops with fewer than three distinct points. One invalid loop
 fails the entire call; it does not silently omit a slice. This service adds no GUI or
-printable solid; the Structures display integration belongs to PR #121.
+printable solid; the Structures display integration was added by PR #121.
+`transform_points(vertices, alignment)` is the shared array transform added in #123;
+`transform_contour` delegates to it, and surfaces use it without mutating cached patient points.
+
+**[`structure_surfaces.py`](../../src/classes/mesh/structure_surfaces.py)** — approximate
+surface geometry, introduced in #124. *Reasoned from code.* `axial_slices` groups loops by
+mean patient Z rounded to 0.01 mm. Every contour must have at least three finite points,
+use the same closed geometric type, and span at most 0.01 mm in Z. It requires at least two
+slice heights and rejects a largest slice interval over 2.5 times the smallest.
+`slice_field` rasterises CLOSED_PLANAR loops as a union and CLOSEDPLANAR_XOR loops as XOR,
+then computes signed distances (positive inside); sub-resolution empty masks are rejected.
+
+`sample_contours` pads the patient bounds and linearly interpolates slice distance fields
+onto an isotropic grid, default 1 mm. Outside the first/last slice it uses negative distances.
+It rejects nonpositive/nonfinite spacing and budgets **volume cells plus all 2D slice-field
+cells**, together at most **32,000,000**. This is not a peak RAM guarantee: masks, temporary
+distance arrays, marching-cubes output and OCC triangles allocate additional memory.
+`reconstruct_surface` extracts the zero surface with marching cubes, omits degenerate
+triangles and requests outward winding; `AnatomySurface` retains patient-coordinate vertices
+and triangle indices. `surface_triangulation` transforms vertices through `transform_points`
+and creates an OCC `Poly_Triangulation` with normals. Sampling interpolates a visual preview;
+it does not recover missing clinical detail or produce an export solid.
 
 ### 5.5 Models
 
@@ -1089,9 +1167,10 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD. `move_channel(label, dx, dy, dz)` shifts a whole channel from its plan position. An unknown label raises `KeyError`. NaN, infinity or the tandem channel raise `ValueError` and keep the earlier move. `set_tandem` raises `ValueError` for a channel that has been moved, because the tandem is aimed from its plan path and its Move controls are off. `is_channel_moved` is true for any non-zero move, and `load_data` builds new channels, so a new plan clears every move |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
+| `StructuresModel` | imported ROIs, visibility, alignment, presentations, surface cache and worker state | display only; defaults to Outlines; details below |
 | `NavigationModel` | the six views | not a `QObject`; plain class |
 
 `TandemModel` deserves attention. It distinguishes **imported** from **generated** tandems
@@ -1108,6 +1187,31 @@ is that an invalid tandem parameter reverts itself rather than blocking the user
 `ShapeModel` ([shape_model.py](../../src/windows/models/shape_model.py)) is the transport
 object between models and the viewport: `label`, `shape`, `type`, plus `selected` /
 `transparent` / `enabled` flags and a `material` dict.
+
+**[`structures_model.py`](../../src/windows/models/structures_model.py)** — keyed by ROI
+number, so duplicate names are safe. `load_plan` clears previous state, validates alignment,
+and rejects missing/mismatched frames, empty geometry and unsupported contour types. Valid
+ORGAN/TUMOUR ROIs are requested visible by default; OTHER (including BODY) requires selection.
+`visible` records requested visibility; `is_displayed` additionally requires geometry for the
+current mode. Outline failures and surface failures are separate from permanent unavailability.
+
+`StructureDisplayMode` supports Outlines, Surface and Both, but this layer defaults to Outlines.
+The #134 view has no mode selector; tests exercise Surface/Both through `set_mode`.
+`_enable` creates outlines only when needed by the mode and queues missing surfaces.
+`SurfaceTask` samples EXTERNAL at 2 mm, other types at 1 mm, reuses cached patient-space meshes,
+and aligns them off the GUI thread. Its private single-thread `QThreadPool` limits concurrent
+work. A result contains the generation, ROI, alignment, sampled mesh/triangulation or error;
+missing dependencies and reconstruction exceptions become status messages, not stuck jobs.
+
+`_accept_surface` runs on the GUI thread, rejects earlier generations, clears `pending`,
+and caches successful patient geometry. A length change drops aligned presentations, retains
+patient surfaces, and realigns them; a result with an old alignment queues a new alignment
+when still visible in a surface mode. `clear` advances the generation and clears queued tasks,
+visibility, caches and errors. It cannot cancel the task already running, whose result is
+ignored. Hiding an ROI preserves its cache. `set_opacity` accepts a known ROI and a finite
+value in 0..1 (default 0.45), emits only `opacity_changed`, and never rebuilds geometry.
+Mode/opacity controls and visible surface actors arrive in #125, not in this state layer.
+*Reasoned from code; regression coverage is catalogued in §8.2.*
 
 ### 5.6 Views and the Qt UI layer
 
@@ -1147,11 +1251,14 @@ import, `ImportView` also shows a read-only `structure_list` (`QListWidget` adde
 not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 (*Reasoned from code*; `tests/views/test_import_view.py`).
 
-**Structures** — no `.ui`. `StructuresView` is an empty `CustomView`. The nav button is created
-in `MainWindow._add_structures_nav_button` and inserted under Import. The stacked page is added
-in `NavigationModel` when `viewswidget` has fewer pages than `views`. No list, colour, opacity
-or hide controls yet (issues #107 and #111). *Reasoned from code*;
-`tests/windows/test_main_window.py`.
+**Structures** — no `.ui`. `StructuresView` builds an instruction label and a checkable
+list in code. Rows show name/category, DICOM colour and ROI identity; checking a row calls
+`StructuresModel.set_visible`. Rebuilding the list blocks item signals. A row is checked
+only when `is_displayed` is true; any nonempty status disables it and becomes its tooltip.
+This includes outline failures; the row does not claim visible geometry after a failed build.
+The Import inventory remains read-only. The nav button sits under Import while the page
+remains `views[5]`. This branch has no mode dropdown or opacity slider; those are #125 work.
+*Reasoned from code; `tests/views/test_structure_display.py`.*
 
 **Cylinder** (`cylinder_view.ui`)
 
@@ -1255,7 +1362,8 @@ the default window: every spin box is 22 px and nothing scrolls sideways (§7.12
 | `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
 | `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
 | `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
-| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours |
+| `btn_move_channel` | Move... | opens the move popup for the selected channel. Enabled only while a channel that is not the tandem is selected |
+| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours, and for the underline of a moved row |
 | `le_template_name` | Template name (placeholder) | the name to save the Channel Diameter under |
 | `btn_save_template` | Save as Template | writes `~/brachify/needle_templates.json` |
 | `cb_needle_templates` | | every saved template, as `name  2.000 mm` |
@@ -1274,6 +1382,19 @@ Its tooltip names the status and the diameter it is cut at. `mark_channel_status
 every row on each `ChannelsModel.values_changed` and after `create_channels_list`, looking rows
 up by label. The selected row's highlight hides its colour but not its font. *Verified* by
 offscreen tests and a render.
+
+Double-clicking a row moves its channel. `action_move_channel` asks `ChannelsView.ask_translation`
+for X, Y and Z in mm, which by default opens `MoveChannelDialog`. The dialog has no parent, starts at
+the channel's current move, allows ±300 mm, and has Reset to plan position, Cancel and OK. Cancel,
+or OK with unchanged values, does nothing, and the tandem's row opens nothing. Every needle row's tooltip carries `Double click to move`. The Set as Tandem button is disabled, with a tooltip, while a moved channel is selected. A moved row is
+underlined and its tooltip adds `Moved by X 6, Y -4, Z 3 mm from the plan`. The legend says
+underlined has been moved, and *Move...* in the Selected Channel group opens the same popup for the
+selected channel through `action_move_selected_channel`. While the popup is open, a line under
+Reset to plan position warns when the typed move would leave the needle off the reference sheet (§7.14),
+and a moved row's tooltip carries the same warning. The popup resizes to fit it. *Verified* 2026-10-20 by `tests/views/test_move_channel.py` and in
+a driven run of the real window on macOS (Ex1, Applicator3 moved by 6, -4, 3 mm: the top view showed
+its tip shifted by that much, and the PDF and the STL both exported). Not verified: Windows, and the
+PDF's drawn pages.
 
 **Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
 
@@ -1372,6 +1493,13 @@ were inspected locally and are not archived in this PR.
 > process confirmed `OpenGL`, `QtGui`, `QtWidgets` and the full OpenCASCADE `libTK*` set
 > loaded, and the viewport rendered. This was the main porting risk and it is resolved.
 
+**Anatomy outlines (#121/#134).** `refresh_structure_outlines` removes its previous AIS
+presentations, skips missing outlines, and draws ROI-coloured `AIS_Shape` wires at width 1.5.
+It deactivates them for selection and repaints without fitting. A normal model redraw also
+recreates them. Anatomy stays outside export geometry and the grid's model-bounds calculation.
+The #134 viewport does not render `StructurePresentation.surface`; #125 supplies that path.
+*Reasoned from code; the documentation run did not initialise a native canvas.*
+
 ### 5.8 PDF reference sheet
 
 [`pdf/template_reference.py`](../../src/classes/pdf/template_reference.py) (806 lines) and
@@ -1386,7 +1514,7 @@ diagram. It is not always one page: with Ex1's 12 channels the diagram moves to 
 The substantive computation is **interstitial length** — how far each needle protrudes beyond
 the cylinder surface:
 
-1. `channels_inside_cylinder()` keeps only channels whose `z=0` point lies within the cylinder
+1. `channels_inside_cylinder()` keeps only channels that have a point above the base and whose `z=0` point lies within the cylinder
    radius.
 2. `extract_points_from_channels2()` normalises every needle to terminate exactly at `z = 0`,
    interpolating the crossing point if the needle passes through, or dropping a perpendicular
@@ -1701,6 +1829,10 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 7.5 LOW — cross-platform rough edges
 
+- **Open: PR #122 Windows `tifffile` channel migration.** The requested conda-forge
+  build adds an `imagecodecs` dependency. The pinned Windows solve fails, including an
+  incompatible `lz4-c` requirement with VTK in the constrained 2025.11.11 codec solve.
+  See §1.3 for the metadata and dry-run evidence; this is not a verified URL-only change.
 - `QIcon("resources\\brachify_splash-ico.ico")` in
   [app.py](../../src/classes/app.py) and [main_window.py](../../src/windows/main_window.py) uses
   a Windows path separator. On macOS/Linux this silently yields a null icon. Cosmetic.
@@ -1722,6 +1854,16 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   Windows, where the images replace the native arrows too.
 
 ### 7.6 Traps that are not bugs — know these before editing
+
+- **Anatomy previews have narrower support than DICOM decoding.** The reader retains open
+  and oblique contours, while outlines require closed loops and surfaces require axial stacks
+  (§5.4). A failed surface does not mean the RTSTRUCT failed to import. BODY is not shown by
+  default; selecting it requests an OTHER ROI, and EXTERNAL uses coarser 2 mm sampling. The
+  32-million-cell limit is not a total memory cap or a guarantee every BODY will reconstruct.
+- **Worker reset is invalidation, not interruption.** A running job can finish after reset;
+  only the generation check prevents a previous plan's ROI entering the new plan. Empty model
+  redraws must not be used as reset signals. The #134 UI only exposes outlines, even though
+  its model can compute surfaces; #125 is required to display those results.
 
 - **Fixed 2026-10-08 in PR #19: the Channels list kept a channel highlighted after leaving
   the tab.**
@@ -1998,6 +2140,29 @@ destroys the left-over windows' Qt objects in an order Qt does not expect. The w
 the whole of `tests/views`, exit 0 (three runs each on `main`). Not fixed. When you run a subset,
 read the dots and the exit code, or add `-p no:unraisableexception`, which skips that collection.
 
+### 7.14 MEDIUM — a channel moved out of the cylinder is cut but may be missing from the PDF
+
+*Reasoned from code, found in a review on 2026-10-20. Addressed the same day, see the end of this entry.* The Export cut removes every
+visible channel's shape, but `channels_inside_cylinder` in
+[template_reference.py](../../src/classes/pdf/template_reference.py) keeps a needle on the reference
+sheet only if the point where it reaches `z = 0` is inside the cylinder. A needle moved sideways
+out of the cylinder still cuts a groove in the wall but is left off the sheet. A needle moved wholly
+below the base is listed with a made-up point at `z = 0` although it cuts nothing. A move has no
+limit, by the team's decision.
+
+**Addressed 2026-10-20 (the third PR for issue 115).** The popup and a moved row's tooltip now warn
+`This move takes the channel outside the base circle of the cylinder, so the reference sheet will not list it.`
+The warning never blocks OK. The sheet names every moved channel it leaves off in one line under the
+table (`Moved channels left off this sheet because they no longer pass through the base circle of the
+cylinder, Applicator3.`), written by `left_off_note`, and `channels_inside_cylinder` now also drops a needle with no
+point above the base, which the sheet used to list with a made-up point and 0.0 cm. The cut is
+unchanged: it still cuts a groove for such a needle, so the sheet and the cut still differ, but the
+sheet says so. *Verified* by `tests/views/test_move_channel.py` and in a driven run of the real window
+(Applicator3 moved 40 mm in X: the sheet listed the other 11 needles and carried the note, read back
+from the PDF's own text). *Not addressed, not verified:* a review reported that the interstitial
+length reads only a needle's first segment, so a needle that leaves through the side wall on a later
+segment may read 0.
+
 ---
 
 ## 8. Testing
@@ -2023,6 +2188,14 @@ fails, and why that matters
 [utils/README.md](../../utils/README.md).
 
 ### 8.2 Current state
+
+*Verified in this documentation pass on macOS:* the contour documentation branch passed
+258 tests; the worker architecture branch passed 287. Both full runs used `pytest.main`
+with `Path.home` redirected to a temporary directory before collection, keeping logger
+initialisation away from real user files. Application modules were not mocked. The later
+flow/reference documentation branches have identical application/test trees; the flow
+update passed all 15 architecture tooling cases and `build.py --check`. No new native
+viewport or Windows reconstruction run is claimed by these receipts.
 
 The viewport regressions (*Reasoned from the test bodies*) are:
 
@@ -2086,7 +2259,9 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
-| `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face (§5.4) |
+| `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
+| `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
+| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; an outline failure must leave its row unchecked (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
@@ -2094,6 +2269,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
 | `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
 | `views/test_cylinder_template_exports.py` | after a flat, notch-off, 3 by 10 mm collar template is loaded and applied, the reference sheet's cylinder table or the Export tab's mesh volume (π·15²·160 + π·(18²−15²)·10 mm³, worked by hand) is not the template's, or a 180 mm template applied to Ex1, imported at 160 mm, does not raise every needle 20 mm or changes its stored DICOM points (§5.6, §5.8) |
+| `views/test_move_channel.py` | a move does not shift every point of a channel by exactly (dx, dy, dz), changes the plan's `points_raw`, is ignored by the channel's 3D shape or the PDF's point reader, or changes `get_rotation()`. Or NaN, infinity, an unknown channel or the tandem channel is accepted, or a rejected move loses the earlier one. Or double-clicking a row does not ask the popup, moves on Cancel, rebuilds the shape when nothing changed, does not underline the moved row, or opens for the tandem. Or a moved channel can be set as the tandem, its button stays enabled, or a needle row has no double click hint. Or *Move...* is enabled with nothing selected or for the tandem, pressing it does not move the selected channel, or the legend does not say underlined has been moved. Or the popup does not start at the current move, refuses -12.5 or 300 mm, or Reset leaves a value. Or a new plan keeps a move, or a needle moved out of the cylinder or below the base is still counted inside it, an unmoved plan needle is dropped, the sheet's note is missing, has a colon or a dash, or the popup or the row's tooltip does not warn (§5.5, §5.6, §7.14) |
 | `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
@@ -2359,6 +2535,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 | [docs/workflows/README.md](../workflows/README.md) | index of the tool-agnostic workflows |
 | [docs/workflows/commit.md](../workflows/commit.md) | the canonical commit procedure |
 | [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure, including the weekly log entry |
+| [docs/workflows/make-weekly-log.md](../workflows/make-weekly-log.md) | the canonical team log (Part B) procedure, and the grader's comments on team logs |
 | [tests/README.md](../../tests/README.md) | TDD policy, `tests/` scoping rule, what to test first |
 | [utils/README.md](../../utils/README.md) | `utils/` scoping rule and what belongs there |
 | [README.md](../../README.md) | repository entry point |
@@ -2367,7 +2544,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 | [agent-skills/README.md](../../agent-skills/README.md) | the skills every agent loads at session start |
 | [pull_request_template.md](../../pull_request_template.md) | Team 10's PR template: the course's Part A receipts, and the checklists that enforce this set |
 | [.claude/README.md](../../.claude/README.md) | Claude Code configuration: commands, skills, session-start hook |
-| [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md` | pointers to `docs/workflows/` |
+| [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md`, `make-weekly-log.md` | pointers to `docs/workflows/` |
 | [.claude/skills/](../../.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` |
 
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking

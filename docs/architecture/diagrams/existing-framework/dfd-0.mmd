@@ -10,3 +10,5 @@ flowchart LR
   physicist -->|"diameter, length, channels, tandem, config JSON"| brachify
   brachify -->|"STL or STEP"| printer
   brachify -->|"PDF sheet and JSON config"| physicist
+  physicist -->|"structure visibility"| brachify
+  brachify -->|"aligned contour preview and availability status"| physicist
