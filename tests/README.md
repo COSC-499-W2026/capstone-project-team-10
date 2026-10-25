@@ -47,6 +47,7 @@ tests/
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
 │   ├── test_cylinder.py
+│   ├── test_structure_contours.py  registered anatomy wires, PR #133
 │   ├── test_notch.py
 │   └── test_tandem.py
 ├── models/
@@ -202,6 +203,14 @@ Verified 2026-10-10: eight new cases watched red before implementation, 28 suite
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
 
 `benchmarks/` is **not** a test suite. It is stale, broken code kept only for reference.
+
+## Anatomy contour geometry
+
+`mesh/test_structure_contours.py` checks literal patient-to-probe coordinates and unchanged
+source points, rejects missing frames, zero and reversed-Z axes, and both open contour
+types, and counts three edges with no filled faces for a closed triangle. It uses real
+OpenCASCADE wire construction without a canvas. These tests cover the geometry service;
+they do not claim native rendering or clinical registration validation.
 
 ## What to test first
 
