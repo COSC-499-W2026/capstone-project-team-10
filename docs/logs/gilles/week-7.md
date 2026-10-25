@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-### For PR #**DOC_WORKER**
+### For PR #**140**
 
 - As part of requirement **FR-SV-01/02 documentation**, the user needs to do **locate the background worker and its libraries**.
 - Therefore, I implemented/generated code so that **the documentation describes the implemented anatomy layer**.
