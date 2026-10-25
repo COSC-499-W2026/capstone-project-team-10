@@ -235,7 +235,7 @@ Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134
 
 Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134 → #125. Retarget each remaining PR after its parent merges; these are dependency PRs, not independent changes.
 
-### For PR #**DOC_SURFACE_ARCH**
+### For PR #**143**
 
 - As part of requirement **FR-SV-01/04 documentation**, the user needs to do **find the surface controls and audit the five deferred feature receipts**.
 - Therefore, I implemented/generated code so that **the documentation describes the implemented anatomy layer**.
@@ -271,7 +271,7 @@ Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134
 - This new test PR did not break anything else in the system because **the unchanged #134 code passed 287 tests on the parent documentation branch; diagram checks pass here; application code is unchanged**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
 
-### For PR #**DOC_SURFACE_FLOWS**
+### For PR #**144**
 
 - As part of requirement **FR-SV-01/04 documentation**, the user needs to do **trace surface modes, status and selected-ROI opacity from controls to the viewport**.
 - Therefore, I implemented/generated code so that **the documentation describes the implemented anatomy layer**.
