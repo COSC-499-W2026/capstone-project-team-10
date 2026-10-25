@@ -646,11 +646,23 @@ def channels_inside_cylinder(channels: list[NeedleChannel], diameter: float):
     channels_inside = []
     # if the last point of the channel is within the cylinder radius,
     # then keep that channel.
+    # A needle wholly below the base cuts no hole, so it is not kept however its xy falls.
     for idx, point in enumerate(z0points):
-        if np.sqrt(point[0]**2 + point[1]**2) <= radius:
+        above_base = any(path_point[2] > 0 for path_point in channels[idx].get_points())
+        if above_base and np.sqrt(point[0]**2 + point[1]**2) <= radius:
             channels_inside.append(channels[idx])
 
     return channels_inside
+
+
+def moved_channels_left_off(channels: list[NeedleChannel], diameter: float) -> list[NeedleChannel]:
+    """The moved channels that channels_inside_cylinder drops, which the sheet must name."""
+    inside = channels_inside_cylinder(channels, diameter)
+    return [channel for channel in channels if channel.translation != (0.0, 0.0, 0.0) and channel not in inside]
+
+
+def left_off_note(labels: list[str]) -> str:
+    return f"Moved channels left off this sheet because they no longer pass through the base circle of the cylinder, {', '.join(labels)}."
 
 # Add Deadspace
 def add_deadspace(needles: list, deadspace_mm: float) -> list:
@@ -830,6 +842,11 @@ def generate_pdf(
     """
     table.setStyle(table_style)
     content.append(table)
+
+    left_off = moved_channels_left_off(channels, diameter)
+    if left_off:
+        content.append(Spacer(1, 0.1*inch))
+        content.append(Paragraph(left_off_note([channel.label for channel in left_off]), left_style))
 
     # Add the image to the PDF
     # Adjust width and height as needed

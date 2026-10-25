@@ -11,8 +11,10 @@ be filled in, on every PR, with minimal bold answers backed by evidence and neve
 something that did not happen, the same Part A must be written into the student's weekly log in
 `docs/logs/` and kept identical to the PR description, and a box that does not apply is ticked
 with **N/A**, not left blank. It also has the agent discuss the PR size limits with the user
-rather than decide how to meet them, and tell the user plainly about any screenshot they must
-supply.
+rather than decide how to meet them, ask for the issue the PR closes and offer to create one,
+describe only a stacked PR's own diff with new and inherited tests counted apart, take the
+screenshots an implementation PR needs, and tell the user plainly about any screenshot they
+must supply.
 
 PR diagram receipts use links rather than embedded diagrams. Follow the current
 `docs/workflows/make-pr.md` for the complete procedure.

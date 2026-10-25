@@ -252,7 +252,7 @@ I reviewed each of these and updated the ones this PR affects:
 - [ ] [docs/design/README.md](docs/design/README.md)
 - [ ] [docs/minutes/README.md](docs/minutes/README.md)
 - [ ] [docs/logs/README.md](docs/logs/README.md)
-- [ ] [docs/workflows/](docs/workflows/) — `README.md`, `commit.md`, `make-pr.md`
+- [ ] [docs/workflows/](docs/workflows/) — `README.md`, `commit.md`, `make-pr.md`, `make-weekly-log.md`
 - [ ] [tests/README.md](tests/README.md) — TDD policy and the `tests/` scoping rule
 - [ ] [utils/README.md](utils/README.md) — the `utils/` scoping rule
 - [ ] [README.md](README.md) — repository entry point

@@ -11,6 +11,7 @@ agent, and any person, can follow them directly. Nothing here depends on a parti
 |---|---|
 | [commit.md](commit.md) | Group changed files into logical commits and make them one at a time |
 | [make-pr.md](make-pr.md) | Open a pull request into `main` for the current branch, and record its Part A in the author's weekly log |
+| [make-weekly-log.md](make-weekly-log.md) | Write the team's weekly log, Part B, for a given week and list of PRs, after asking the user clarifying questions |
 
 ## How to run one
 
@@ -18,7 +19,7 @@ agent, and any person, can follow them directly. Nothing here depends on a parti
 plain markdown procedures with no tool-specific syntax, so "follow `docs/workflows/commit.md`"
 is a complete instruction.
 
-**Claude Code:** type `/commit` or `/make-pr`. The files in
+**Claude Code:** type `/commit`, `/make-pr` or `/make-weekly-log <week> <PRs>`. The files in
 [`.claude/commands/`](../../.claude/commands/) are thin pointers that tell the agent to read and
 follow the corresponding file here.
 
@@ -27,9 +28,9 @@ follow the corresponding file here.
 If yours supports its own command format, point it at the file here rather than copying the
 content, so there stays exactly one source of truth.
 
-The user may invoke `/make-pr` in any assistant. Read the current
-`docs/workflows/make-pr.md` and execute it; the routing is recorded in `AGENTS.md`,
-even when a native slash-command menu is unavailable.
+The user may invoke `/make-pr` or `/make-weekly-log` in any assistant. Read the current
+`docs/workflows/make-pr.md` or `docs/workflows/make-weekly-log.md` and execute it; the routing
+is recorded in `AGENTS.md`, even when a native slash-command menu is unavailable.
 
 ## Adding a workflow
 
