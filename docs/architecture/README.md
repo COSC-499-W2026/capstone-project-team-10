@@ -24,8 +24,8 @@ controls display either unit, and an Export tab that stays disabled until a cyli
 `DicomData` at import by `load_structures`, and a read-only Import-tab structure list
 from `structure_list`. Structures now owns per-ROI outline visibility through
 `StructuresModel` and `mesh/structure_contours.py`. PR #134 adds background surface state
-and `mesh/structure_surfaces.py`; Surface/Both APIs and opacity state have no UI consumers
-until PR #125, and
+and `mesh/structure_surfaces.py`; PR #125 connects Surface/Outlines/Both and selected-ROI
+opacity controls to native mesh/wire actors. Other additions include
 `settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from,
 and `settings/cylinder_templates.py`, a tested cylinder template library saved to `~/brachify/cylinder_templates.json`.
 
@@ -104,10 +104,12 @@ Who owns what. A solid arrow means the class creates and holds the other. A dash
 `DicomModel` does not build a `ShapeModel`. It loads the plan and notifies the cylinder,
 channel and structures models. `MainWindow` supplies the current length to Structures;
 `DisplayModel.reset_completed` clears anatomy. `StructuresModel.changed` refreshes the
-Structures list and nonselectable outline actors, outside printable `ShapeModel` inputs.
+Structures list and nonselectable surface/wire actors, outside printable `ShapeModel` inputs.
 The worker returns `SurfaceResult` through a queued signal. A generation tag rejects old
 plans; a changed length realigns cached patient meshes. `opacity_changed` is separate from
-geometry changes and has no UI connection in this layer. *Reasoned from code, PR #134.*
+geometry changes: it updates existing ROI actors and the selected ROI slider without
+rebuilding geometry or list rows. Surface is the default; failed reconstruction does not
+automatically fall back to outlines. *Reasoned from code, PRs #134/#125.*
 
 ### DFD level 0
 
@@ -119,8 +121,8 @@ The app as one process.
 
 The six tabs now include Structures at `views[5]`. Printable shapes still flow through
 `ShapeModel` and `DisplayModel`. Anatomy has its own visibility, alignment and cache state;
-no anatomy edge enters Export. Dashed worker flows describe the Surface/Both model API,
-exercised by tests in PR #134 and exposed in the UI by PR #125.
+no anatomy edge enters Export. Surface/Both modes request reconstruction from the worker;
+results update the preview or its visible status. Opacity affects existing actors only.
 
 ![DFD level 1. Import, cylinder, channels, tandem, export and structures, with the plan and the shapes stored between them. Import also reads a config JSON. Tandem takes the tandem channel from channels and the length and diameter from cylinder. Export reads the plan for the PDF and writes STL or STEP.](diagrams/existing-framework/dfd-1.svg)
 
@@ -133,7 +135,7 @@ Six tabs, with Structures appended at index 5. The code addresses them by index.
 | Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter, directly or from a saved needle template. The list shows each channel's status. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
-| Structures | Per-ROI outline visibility, DICOM colours and availability tooltips. Default mode is Outlines; surface and opacity controls arrive in PR #125. |
+| Structures | Surface/Outlines/Both, default Surface; per-ROI visibility and opacity, DICOM colours and visible loading/failure status. Pending ROIs can be hidden; failed surfaces do not fall back automatically. |
 
 A view method that changes geometry must use `@display_action`, or the model updates and the viewport does not. The shape path is in the UML above.
 
@@ -143,7 +145,7 @@ Mostly course scaffolding. The changes to application behaviour are three Channe
 the Cylinder mm/cm display selector, and the Export tab waiting for a cylinder.
 An RTSTRUCT reader decodes anatomy at import into `DicomData.structures`, and the Import
 tab lists each structure read-only. The Structures tab at `views[5]` controls aligned
-outlines; Cylinder remains index 1. The system architecture names both anatomy services and
+surfaces and outlines; Cylinder remains index 1. The system architecture names both anatomy services and
 StructuresModel, and the UML/DFDs show its separate preview path and background worker.
 
 The Cylinder selector is a display preference for this window. It preserves pending
@@ -155,7 +157,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | This documentation set, agent rules, commit and PR workflows | Comprehensive coverage of the remaining geometry and settings functions |
 | Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
 | macOS setup notes and Cylinder display units | Server or database |
-| `DicomData` reset tests, RTSTRUCT decode at import, and the Import structure list with tests in `tests/dicom/` and `tests/views/` | Native surface rendering and opacity controls (follow in PR #125), clinical reconstruction validation |
+| `DicomData` reset tests, RTSTRUCT decode at import, read-only Import inventory, and Structures surface/outline/opacity controls | Clinical reconstruction validation |
 | The Channels list selection fix in `channels_view.py` | |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
 | A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, saved and applied on the Channels tab. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
