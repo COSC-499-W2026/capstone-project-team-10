@@ -69,6 +69,8 @@ them, and that is accepted. The list is written in three places that must agree:
 | `pyside6` | the Qt GUI |
 | `matplotlib` | the PDF reference sheet plots |
 | `numpy` | geometry and DICOM maths |
+| `scipy` | signed-distance calculations for organ surface reconstruction |
+| `scikit-image` | contour rasterisation and marching-cubes surface reconstruction |
 | `reportlab` | the PDF reference sheet |
 | `pydicom` | DICOM import |
 | `pyinstaller` | building the `.exe` (§1.7), and the hidden-import test (§8.2) |
@@ -114,7 +116,7 @@ second table, and regenerate `spec-file.txt`.
 > the viewport. DICOM import and the Export tab were not exercised in that run.
 
 `spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and most of
-its 185 pinned package URLs are Windows binaries.
+its pinned package URLs are Windows binaries.
 
 **PySide6 must be named explicitly on macOS.** On Windows, conda-forge's `matplotlib`
 meta-package depends on `pyside6 >=6.7.2`, which is why PySide6 appeared in the Windows
@@ -138,6 +140,8 @@ conda create -n brachify -c conda-forge \
   pyside6 \
   matplotlib \
   numpy \
+  scipy \
+  scikit-image \
   reportlab \
   pydicom \
   pyinstaller \
@@ -156,6 +160,14 @@ with `conda install -n brachify -c conda-forge pytest pyinstaller`, or recreate 
 command above. `pyinstaller` is listed so the build's hidden imports can be tested (§8.2). The
 `.exe` itself is still built only on Windows (§1.7).
 
+**Surface dependencies (PR #122).** SciPy 1.17.1 and scikit-image 0.26.0 are installed in
+the macOS arm64 development environment; their imports were verified on 2026-10-24. For an
+existing environment, run `conda install -n brachify -c conda-forge scipy scikit-image`. The
+command above and `environment.yml` now name both packages for all operating systems.
+*Not verified:* a fresh installation using this updated command, or installing and running
+these additions on Windows or Linux. The Windows lockfile includes their exact builds;
+listing those builds does not establish runtime verification.
+
 **Linux.** Use the same `conda create` command. Install Miniforge with its Linux installer
 instead of Homebrew, and run `conda init` for your shell. `pythonocc-core` 7.7.2 is built for
 `linux-64` on conda-forge (*Verified* 2026-09-30 with `conda search --platform linux-64`).
@@ -171,13 +183,25 @@ python src/launch.py
 
 `spec-file.txt` is the canonical, fully pinned lockfile. Prefer it on Windows.
 
-The six `pytest` lines at the end of `spec-file.txt` (`iniconfig`, `pluggy`, `pygments`,
+The six `pytest` package lines added to `spec-file.txt` (`iniconfig`, `pluggy`, `pygments`,
 `tomli`, `exceptiongroup`, `pytest`) were not written by `conda list --explicit` on Windows.
 They were solved from macOS on 2026-09-30 with `CONDA_SUBDIR=win-64 conda create --dry-run`,
 pinning all 179 existing packages. The solve kept every one of them unchanged and added only
 those six, and each URL returned HTTP 200. *Not verified:* creating the environment from this
 file on a Windows machine. The next Windows teammate to do so should confirm it, and may
 regenerate the file there.
+
+**PR #122 channel-migration blocker (2026-10-24).** The requested conda-forge
+`noarch/tifffile-2026.3.3-pyhd8ed1ab_0.conda` exists, but replacing only the defaults
+URL is insufficient: its metadata requires `imagecodecs >=2025.11.11`, which this lockfile
+does not contain. A Windows dry-run with the other builds pinned failed. A further solve
+using `imagecodecs=2025.11.11` and relaxing selected codec pins still failed: that build
+requires `lz4-c >=1.10,<1.11`, while the pinned `vtk-base` 9.2.6 requires
+`lz4-c >=1.9.3,<1.10`. The defaults `tifffile` pin is retained pending a compatible full
+solve and Windows validation; do not replace its URL without resolving the dependencies.
+The existing `libhwloc` URL also comes from defaults, so this is not an entirely
+conda-forge lockfile. These are solver and metadata observations, not a Windows runtime
+test.
 
 To do the same for a new dependency from macOS or Linux, turn every URL in `spec-file.txt`
 into a `name==version=build` pin, add the new package, and ask conda for a Windows solve:
@@ -1720,6 +1744,10 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 7.5 LOW — cross-platform rough edges
 
+- **Open: PR #122 Windows `tifffile` channel migration.** The requested conda-forge
+  build adds an `imagecodecs` dependency. The pinned Windows solve fails, including an
+  incompatible `lz4-c` requirement with VTK in the constrained 2025.11.11 codec solve.
+  See §1.3 for the metadata and dry-run evidence; this is not a verified URL-only change.
 - `QIcon("resources\\brachify_splash-ico.ico")` in
   [app.py](../../src/classes/app.py) and [main_window.py](../../src/windows/main_window.py) uses
   a Windows path separator. On macOS/Linux this silently yields a null icon. Cosmetic.
