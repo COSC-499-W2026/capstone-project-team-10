@@ -362,7 +362,7 @@ Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134
 - This new test PR did not break anything else in the system because **290 passed in 286.76s on the surface architecture branch (identical application/test tree); application code is unchanged**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
 
-### For PR #**[number]**
+### For PR #**147**
 
 - As part of requirement **the course's week 7 team log**, the user needs to do **audit the merged work from PR #93 through #145**.
 - Therefore, I implemented/generated code so that **the team has a Part B with per-PR contributions, review and size evidence, current checks and pinned diagrams**.
