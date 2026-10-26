@@ -45,7 +45,7 @@ classDiagram
   DisplayModel o-- ShapeModel
 
   class StructuresModel {
-    mode = Outlines
+    mode = Surface
     visible and pending ROI sets
     generation and patient mesh cache
     changed()
@@ -62,12 +62,14 @@ classDiagram
   DicomModel ..> StructuresModel : values_changed via MainWindow
   CylinderModel ..> StructuresModel : current length via MainWindow
   DisplayModel ..> StructuresModel : reset_completed
-  StructuresView --> StructuresModel : set_visible
+  StructuresView --> StructuresModel : set_visible, set_mode, set_opacity
   StructuresModel ..> StructuresView : changed
-  StructuresModel ..> OrbitCameraViewer3d : changed, outline refresh
+  StructuresModel ..> OrbitCameraViewer3d : changed, surface and outline refresh
+  StructuresModel ..> OrbitCameraViewer3d : opacity_changed, update existing actors
+  StructuresModel ..> StructuresView : opacity_changed, selected ROI slider
   StructuresModel --> SurfaceTask : QThreadPool, one worker
   SurfaceTask --> SurfaceSignals
   SurfaceSignals ..> StructuresModel : finished, queued to GUI thread
   SurfaceTask --> AnatomySurface : reconstruct or reuse patient mesh
   StructuresModel o-- AnatomySurface : cache by ROI
-  note for StructuresModel "Surface/Both and opacity APIs are exercised by tests here.<br/>PR 125 adds their controls and native surface rendering."
+  note for StructuresModel "Surface is the default, without automatic outline fallback.<br/>Opacity changes reuse per-ROI actors; anatomy never enters exports."

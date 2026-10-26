@@ -325,3 +325,21 @@ Merge order: #116 → #117 → #133 → #121 → #122 → #123 → #124 → #134
 - The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0)** passed.
 - This new test PR did not break anything else in the system because **290 passed in 286.76s on the surface architecture branch (identical application/test tree); application code is unchanged**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
+
+### For PR #**144**
+
+- As part of requirement **FR-SV-01/04 documentation**, the user needs to do **trace surface modes, status and selected-ROI opacity from controls to the viewport**.
+- Therefore, I implemented/generated code so that **the documentation describes the implemented anatomy layer**.
+
+#### Review and design
+
+- When I reviewed the **documentation against the feature branch** for this functionality, I noticed **the existing diagrams stopped at outline rendering and an unconnected opacity signal**. Therefore, I did **connect mode/opacity controls, native mesh actors and visible worker status**.
+- This work is written in **architecture README, existing UML/DFD sources, generated diagrams and viewer** because **these files own the architecture and implementation reference**.
+- I did **a base-relative file-list and diff check confirming documentation-only changes** to ensure that my feature contribution does not contain any of the following: **hardcoded values, duplicate or dead code, unnecessary calls, excessive conditionals, deep nesting, high cyclomatic complexity or unrelated implementation responsibilities (no executable code added)**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0)** passed.
+- This new test PR did not break anything else in the system because **290 passed in 286.76s on the surface architecture branch (identical application/test tree); application code is unchanged**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
