@@ -85,6 +85,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | [docs/workflows/README.md](docs/workflows/README.md) | index of the tool-agnostic workflows | a workflow is added, removed or renamed |
 | [docs/workflows/commit.md](docs/workflows/commit.md) | the canonical commit procedure | the commit convention changes |
 | [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | the canonical pull request procedure | the PR process changes |
+| [docs/workflows/make-weekly-log.md](docs/workflows/make-weekly-log.md) | the canonical team log (Part B) procedure, and the grader's comments on team logs | the team log process changes, or the grader comments on a team log |
 | [tests/README.md](tests/README.md) | TDD policy, the `tests/` scoping rule, what to test first | a test scope folder is added, the runner config changes, or the priority list shifts |
 | [utils/README.md](utils/README.md) | the `utils/` scoping rule and what belongs there | a utility scope folder is added, or the rule for what lives there changes |
 | [README.md](README.md) | repository entry point | the top-level structure changes, or a newcomer would be misled by what it currently says |
@@ -93,7 +94,7 @@ The documentation set is **every markdown file the team owns**: every markdown f
 | [agent-skills/README.md](agent-skills/README.md) | the skills every agent loads at session start: source, version, licence, how each is used here | a skill is added, removed, updated to a new upstream version, or used differently. The session-start hook flags a skill with no row |
 | [pull_request_template.md](pull_request_template.md) | Team 10's PR template: the course's Part A receipts, and the checklists that enforce this set | the team's process changes, or a file is added to or removed from this set |
 | [.claude/README.md](.claude/README.md) | Claude Code configuration: commands, skills, the session-start hook, `settings.json` | a command, skill pointer, hook or setting is added, removed or changed |
-| [.claude/commands/](.claude/commands/) `commit.md`, `make-pr.md` | thin pointers to `docs/workflows/` | a workflow is added, removed or renamed |
+| [.claude/commands/](.claude/commands/) `commit.md`, `make-pr.md`, `make-weekly-log.md` | thin pointers to `docs/workflows/` | a workflow is added, removed or renamed |
 | [.claude/skills/](.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` | a pointed-to skill is renamed, moved or removed. Keep the frontmatter identical to the vendored file |
 
 **The system architecture diagram is yours to keep current.** If your change adds, removes or renames a module, package, model or view, or changes a layer, a library, a file the app reads or writes, or which layer calls which, edit [docs/architecture/diagrams/system-architecture.mmd](docs/architecture/diagrams/system-architecture.mmd) in the same change, then run `python docs/architecture/build.py`. `build.py --check` fails on a `src/` module the diagram does not name, so you will be stopped if you forget. Do this for the user and for their teammates without being asked. Rules for the diagram are in [docs/architecture/README.md](docs/architecture/README.md).
@@ -147,18 +148,23 @@ particular assistant.
 |---|---|
 | [docs/workflows/commit.md](docs/workflows/commit.md) | grouping changed files into logical commits |
 | [docs/workflows/make-pr.md](docs/workflows/make-pr.md) | opening a pull request into `main`, and recording its Part A in the author's weekly log |
+| [docs/workflows/make-weekly-log.md](docs/workflows/make-weekly-log.md) | writing the team's weekly log, Part B, for a week and its PRs |
 
-**Follow the file, not a remembered version of it.** Both procedures contain rules that are
+**Follow the file, not a remembered version of it.** These procedures contain rules that are
 easy to get wrong from memory: a PR must target this fork rather than upstream, the PR template
-must be appended to the body by hand, Part A is filled in on every PR with minimal bold answers
-backed by evidence and never with a claim about something that did not happen, the same Part A is
-kept identical in the student's weekly log in `docs/logs/`, a checkbox that does not apply is
-ticked with **N/A** rather than left blank, `git commit` commits
-the whole index rather than only the paths you just added, and neither commits nor PR
-descriptions may carry AI attribution.
+must be appended to the body by hand, every PR closes an issue that follows the team's issue
+convention, a stacked PR describes only its own diff with new and inherited tests counted
+apart, Part A is filled in on every PR with minimal bold answers backed by evidence and never
+with a claim about something that did not happen, the same Part A is kept identical in the
+student's weekly log in `docs/logs/`, a checkbox that does not apply is ticked with **N/A**
+rather than left blank, `git commit` commits the whole index rather than only the paths you
+just added, the team log asks the user clarifying questions before it is written, and neither
+commits nor PR descriptions may carry AI attribution.
 
 When the user invokes `/make-pr`, read and execute `docs/workflows/make-pr.md` on the
-current branch. This routing applies in every assistant, including one without native
+current branch. When the user invokes `/make-weekly-log`, read and execute
+`docs/workflows/make-weekly-log.md` with the week and PRs they gave. This routing applies in
+every assistant, including one without native
 slash commands; do not substitute a remembered procedure.
 
 The user prefers agents to perform GUI regression runs and capture screenshots themselves.
@@ -166,7 +172,7 @@ Use an available desktop session and isolate test configuration. If desktop acce
 screen capture is unavailable, report the observed limitation and ask only for the evidence
 that cannot be collected. Never claim a viewport run from offscreen widget tests.
 
-Claude Code users get `/commit` and `/make-pr`, which are thin pointers in
+Claude Code users get `/commit`, `/make-pr` and `/make-weekly-log`, which are thin pointers in
 [`.claude/commands/`](.claude/commands/). If your assistant has its own command format, point it
 at the file in `docs/workflows/` rather than copying the content, so there stays one source of
 truth. Adding a workflow is described in

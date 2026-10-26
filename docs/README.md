@@ -32,8 +32,8 @@ documentation.
 | [proposal/](proposal/) | Project proposal |
 | [design/](design/) | UI mocks and design artifacts |
 | [minutes/](minutes/) | Minutes from team meetings |
-| [logs/](logs/) | Weekly individual logs (Part A, written by `/make-pr`) and team logs (Part B) |
-| [workflows/](workflows/) | **Tool-agnostic procedures** any AI agent or person can follow: how to commit, how to open a PR |
+| [logs/](logs/) | Weekly individual logs (Part A, written by `/make-pr`) and team logs (Part B, written by `/make-weekly-log`) |
+| [workflows/](workflows/) | **Tool-agnostic procedures** any AI agent or person can follow: how to commit, how to open a PR, how to write the team's weekly log |
 
 ## Keeping it current
 

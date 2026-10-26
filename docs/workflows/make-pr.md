@@ -31,8 +31,59 @@ exactly.
 - Run `python -m pytest` from the repository root, in the conda environment. Every test must
   pass before you open the PR. There is no CI, so nothing else runs the suite. A failure you
   did not cause still goes in the PR description by name.
+- Find out whether the branch is part of a stack, that is, based on another PR's branch rather
+  than `main`. Ask the user, and check with
+  `gh pr list --repo COSC-499-W2026/capstone-project-team-10 --state open --json number,headRefName`
+  whether an open PR's branch is an ancestor of this one. If it is, follow
+  [Stacked PRs](#stacked-prs) from here on, and read the diff against the parent branch, not
+  `main`.
+- Ask for the issue this PR closes, as [Link the PR to an issue](#link-the-pr-to-an-issue)
+  describes.
 - Check the PR size limits now, as [Check the PR size limits](#check-the-pr-size-limits)
   describes, before any documentation or log work adds to the diff.
+
+## Link the PR to an issue
+
+Every PR closes an issue. The issue board is the team's record that the work was planned and
+done, so a PR with no issue is work with no record.
+
+1. **Ask the user for the issue number, every time.** Suggest candidates from
+   `gh issue list --repo COSC-499-W2026/capstone-project-team-10 --state open --assignee @me`,
+   but never pick one without their answer. Check it with `gh issue view <n>`: it is open, it
+   describes this branch's work, and it follows the convention below.
+2. **If there is no issue, offer to create one.** Draft the title, size, body, assignees and
+   week label from the branch diff, show the draft to the user, and run `gh issue create` only
+   once they confirm. Never open the PR without an issue.
+3. **Write `Closes #<n>`** on its own line at the end of the Summary, as
+   [Body](#body) describes, so GitHub closes the issue when the PR merges.
+
+### Issue convention
+
+- **Title:** `Size: Week N - Task`, such as `M: Week 4 - Implement needle move and rotate edits`.
+  - **Size** is the estimated effort: `S` is 1 to 3 hours, `M` 3 to 6 hours, `L` 6 to 8 hours.
+    A task over 8 hours is too large, so split it into several issues.
+  - **Week N** is the week the work is planned for. Ask the user, the same way as for the log
+    week in [Record Part A in the weekly log](#record-part-a-in-the-weekly-log). Do not work it
+    out from the date.
+  - **Task** is a short description of what is being done.
+- **Assignees:** everyone working on the issue, one or more people. Never unassigned.
+- **Label:** the week label matching the title, such as `Week 7`. If
+  `gh label list --repo COSC-499-W2026/capstone-project-team-10` has no label for that week, ask
+  the user before creating it.
+- **Body:** a brief description of what needs to be done and why.
+- **Project:** the team's board, *COSC 499 Team 10 Project Board*,
+  <https://github.com/orgs/COSC-499-W2026/projects/8>.
+
+```bash
+gh issue create --repo COSC-499-W2026/capstone-project-team-10 \
+  --title "S: Week <N> - <task>" --body "<what and why>" \
+  --assignee <login>[,<login>] --label "Week <N>" \
+  --project "COSC 499 Team 10 Project Board"
+```
+
+`--project` needs the `project` scope on the user's `gh` token. If it fails for that reason,
+create the issue without `--project`, and tell the user to run `gh auth refresh -s project` or
+add the issue on the board by hand. Never leave the issue off the board silently.
 
 ## Check the PR size limits
 
@@ -142,7 +193,10 @@ Short, imperative, describes the feature or change. Under 72 characters.
 Write in markdown. Include, in this order:
 
 1. **Summary** — 2 to 5 bullet points describing what changed and why, written for a human
-   reviewer who is about to read the diff.
+   reviewer who is about to read the diff. In a stack, the last bullet is
+   `<i> of <m> stacked PRs, based on #<parent>. Merge them in order, and retarget each to main
+   once the one below merges.` Then `Closes #<issue>` on its own line, as
+   [Link the PR to an issue](#link-the-pr-to-an-issue) describes.
 2. **Changes** — a bullet list of the specific files changed and what each one does.
 3. **The full contents of [pull_request_template.md](../../pull_request_template.md), appended
    after the Changes section.** That gives, in order:
@@ -189,8 +243,14 @@ audited. In week 4, two individual logs lost a mark for being "excessively long,
 the evidence less minimal and quick to audit". The log that got full marks gave one short answer
 per receipt. In week 5, a log lost marks because it "contains excessive documentation checklists
 and repeated sections marked N/A": every receipt was written out for documentation PRs, and each
-receipt that did not apply took its own `— N/A` line. Part A is the same text in the PR
-description and in the log, so keep it short in both.
+receipt that did not apply took its own `— N/A` line. In week 6, a log of eight stacked PRs
+(#49 to #58) got 5/6 with this comment: "Improve traceability by consolidating repetitive
+explanations and clearly identifying the unique changes and test evidence associated with each
+PR. The stacked PR structure should make it straightforward to distinguish incremental
+contributions from inherited changes." The same checklist and architecture sentences were
+repeated in every section, and test counts were totals that included the parent PRs' tests.
+[Stacked PRs](#stacked-prs) is the fix. Part A is the same text in the PR description and in
+the log, so keep it short in both.
 
 - **Write only the template's sentences.** Replace the bold placeholders and write nothing
   before, after or between them. A receipt ends where the template's sentence ends. Do not add
@@ -382,6 +442,56 @@ responsibilities and export formats stay the same.
     `Not applicable: **abnormal cases, negative cases, generated-test review, unit and
     integration tests, test directory (no code, the checks are shell commands)**.`
 
+### Stacked PRs
+
+A stack is a chain of PRs, each based on the branch of the one below it, merged in order and
+each retargeted to `main` once its parent merges. Week 7's #93 to #102 in
+[ariq/week-7.md](../logs/ariq/week-7.md) is the worked example. The grader must be able to
+tell, for each PR, what it added and what it inherited.
+
+- **Describe only this PR's own diff.** Read `git diff <parent branch>...HEAD`, count with
+  `git diff --shortstat <parent branch>...HEAD`, and run anti-slop with
+  `--base <parent branch>`. Never claim the parent's work. When a receipt needs inherited code,
+  name the PR it came from, such as "#94's `load_templates`".
+- **Say where it sits in the heading:**
+  `### For PR #**<n>** (<i> of <m>, on #<parent>)`, or `on main` for the first.
+- **Split every test count into new and inherited.** Count with
+  `python -m pytest --collect-only -q` on the parent branch and on this one. Write the happy
+  path as `(19 new; 37 in the file)` and the regression as
+  `python -m pytest, 215 passed (196 after #93)`. A bare "37 passed" reads as 37 new tests.
+- **Write what every PR in the stack shares once.** That is the code quality checklist and how
+  it was checked, the checks run on every PR (`build.py --check`, `session-start.sh`), and the
+  Not applicable receipts with the same reason in every PR. Put them in a short block headed
+  `### Shared by every PR in this stack`, directly above the `### For PR #` heading in each
+  PR description. In the log, write the block once, as
+  [Record Part A in the weekly log](#record-part-a-in-the-weekly-log) describes. Inside each
+  PR's section, the checklist receipt becomes `- Code quality checklist: **see Shared**.`, and
+  its Not applicable lines name only what is specific to that PR.
+- **Point back instead of repeating.** When a receipt would repeat a parent's answer word for
+  word, such as the same architecture components, write `as in #<parent>` inside the bold.
+
+### Screenshots an implementation PR carries
+
+A PR that changes `src/` or `tests/` carries screenshots as evidence, in the PR description and
+in the log. The course's regression receipt asks for a "screenshot as proof".
+
+- **Always:** the `python -m pytest` run on this branch, showing the new test file's result and
+  the suite total. Cite it in the happy path and regression receipts.
+- **When the PR changes what the clinician sees or what gets exported** (a view, a `.ui` file,
+  `main_window.py`, `mesh/`, `pdf/`): the running app showing the change. For a fix to
+  something visible, show `main` and this branch side by side. For geometry, show the Export
+  tab; for the reference sheet, the rendered PDF. Never claim an app run from offscreen tests.
+- **Take them yourself** when a desktop session is available, as
+  [AGENTS.md](../../AGENTS.md#workflows) asks. Isolate the test configuration, and magnify small
+  details such as an arrow or a tick box.
+- **One image per PR where possible.** Combine the app and the test run into one numbered
+  composite, since each image is a changed file toward the size limits.
+- **Save, commit and link them** as [Screenshots the author must supply](#screenshots-the-author-must-supply)
+  describes from step 3: in `docs/logs/<student>/screenshots/week-<K>/`, linked by a pinned
+  `raw.githubusercontent.com` URL in both the PR body and the log. If you cannot take one,
+  leave the `[author: attach a screenshot of ...]` placeholder and follow that section from
+  step 1.
+
 ### Every receipt needs evidence
 
 Base each claim on something a grader can check. That means a file and line, a test name,
@@ -435,6 +545,14 @@ The layout and rules are in [docs/logs/README.md](../logs/README.md).
 3. **Write the section.** Copy Part A from the PR body exactly, from the `For PR #` heading
    down to the line before `## Documentation gate`. If the file already has a section for this
    PR number, replace it rather than adding a second one.
+   - **In a stack**, the log also has a block for the stack, above its first PR's section, as
+     [ariq/week-7.md](../logs/ariq/week-7.md) shows. It is headed
+     `## Stack #<first> to #<last>, at a glance` and holds a table with one row per PR: the
+     PR, the PR it is on, the issue it closes, the one thing it adds, its own diff in files and
+     lines, its new tests, and the suite total after it. Under the table comes the
+     `### Shared by every PR in this stack` block, once. Add this PR's row, and update the
+     heading's last number, each time a PR of the stack is logged. The block is log-only: the
+     PR descriptions carry their own copy of the Shared block and no table.
 4. **Commit it on the PR's own branch** following [commit.md](commit.md), and push. Add the
    log file to the PR's **Changes** list, and push the updated body with `gh pr edit`.
 5. **Confirm the two match.** Compare the Part A in the file with the Part A in
@@ -495,7 +613,7 @@ Return:
 
 - first, if any `[author: attach a screenshot ...]` placeholder is left, the **Action needed**
   notice from [Screenshots the author must supply](#screenshots-the-author-must-supply)
-- the PR URL
+- the PR URL, and the issue it closes
 - the counts from the last size check, against the four limits
 - the log file the Part A was written to, and confirmation that it matches the PR description
 - every other Part A placeholder left for the author to fill in

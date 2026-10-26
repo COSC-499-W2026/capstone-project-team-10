@@ -2774,6 +2774,8 @@ One `NeedleChannel` is made for each needle when a plan is imported (in `Channel
 | `_offset` | how far to shift it up or down after a cylinder length change | `0.0` |
 | `_diameter` | tube width, setting `CONFIG_CHANNELS_DIAMETER` | `2.7` mm |
 
+> **Out of date.** Team 10 added `points_raw`, the plan, which is never changed, and `points` is now the plan plus a hand move set with `set_translation`. `get_rotation()` reads `points_raw`. See §4.6 and §5.5 of the [source of truth](COSC499-TEAM10-PROJECT-DOCS.md).
+
 | Method | What it does |
 |---|---|
 | `shape()` | builds the tube the first time, then **reuses** the saved copy. Unlike the cylinder, this one does cache |

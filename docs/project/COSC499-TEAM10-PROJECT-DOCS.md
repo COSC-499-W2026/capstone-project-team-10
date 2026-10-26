@@ -69,8 +69,8 @@ them, and that is accepted. The list is written in three places that must agree:
 | `pyside6` | the Qt GUI |
 | `matplotlib` | the PDF reference sheet plots |
 | `numpy` | geometry and DICOM maths |
-| `scipy` | signed distance fields for anatomy surfaces |
-| `scikit-image` | contour rasterisation and marching cubes |
+| `scipy` | signed-distance calculations for organ surface reconstruction |
+| `scikit-image` | contour rasterisation and marching-cubes surface reconstruction |
 | `reportlab` | the PDF reference sheet |
 | `pydicom` | DICOM import |
 | `pyinstaller` | building the `.exe` (§1.7), and the hidden-import test (§8.2) |
@@ -116,7 +116,7 @@ second table, and regenerate `spec-file.txt`.
 > the viewport. DICOM import and the Export tab were not exercised in that run.
 
 `spec-file.txt` **will not work on macOS.** Its line 3 reads `# platform: win-64` and most of
-its 185 pinned package URLs are Windows binaries.
+its pinned package URLs are Windows binaries.
 
 **PySide6 must be named explicitly on macOS.** On Windows, conda-forge's `matplotlib`
 meta-package depends on `pyside6 >=6.7.2`, which is why PySide6 appeared in the Windows
@@ -160,13 +160,15 @@ with `conda install -n brachify -c conda-forge pytest pyinstaller`, or recreate 
 command above. `pyinstaller` is listed so the build's hidden imports can be tested (§8.2). The
 `.exe` itself is still built only on Windows (§1.7).
 
-**Surface dependencies (PR #122).** `environment.yml` and the command above now name
-`scipy` and `scikit-image`. The earlier successful setup receipts predate those additions.
-The worker imports them only when a surface is requested; an import failure becomes an
-ROI status message, so outline-only use does not require their successful import.
-*Not verified:* a fresh environment created with this expanded command on each OS or a
-Windows executable containing the reconstruction dependencies. Do not treat the historical
-macOS launch receipt as validation of the changed install command.
+**Surface dependencies (PR #122).** SciPy 1.17.1 and scikit-image 0.26.0 are installed in
+the macOS arm64 development environment; their imports were verified on 2026-10-24. For an
+existing environment, run `conda install -n brachify -c conda-forge scipy scikit-image`. The
+command above and `environment.yml` now name both packages for all operating systems.
+*Not verified:* a fresh installation using this updated command, or installing and running
+these additions on Windows or Linux. The Windows lockfile includes their exact builds;
+listing those builds does not establish runtime verification.
+The worker imports these libraries only when a surface is requested; an import failure
+becomes an ROI status message. Windows executable packaging remains unverified.
 
 **Linux.** Use the same `conda create` command. Install Miniforge with its Linux installer
 instead of Homebrew, and run `conda init` for your shell. `pythonocc-core` 7.7.2 is built for
@@ -188,13 +190,25 @@ compatibility. *Not verified:* a fresh Windows install and reconstruction run wi
 expanded lockfile, or a channel migration. Regenerate on Windows after validating the full
 environment; this documentation change does not rewrite the dependency files.
 
-The six `pytest` lines added to `spec-file.txt` in September (`iniconfig`, `pluggy`, `pygments`,
+The six `pytest` package lines added to `spec-file.txt` (`iniconfig`, `pluggy`, `pygments`,
 `tomli`, `exceptiongroup`, `pytest`) were not written by `conda list --explicit` on Windows.
 They were solved from macOS on 2026-09-30 with `CONDA_SUBDIR=win-64 conda create --dry-run`,
 pinning all 179 existing packages. The solve kept every one of them unchanged and added only
 those six, and each URL returned HTTP 200. *Not verified:* creating the environment from this
 file on a Windows machine. The next Windows teammate to do so should confirm it, and may
 regenerate the file there.
+
+**PR #122 channel-migration blocker (2026-10-24).** The requested conda-forge
+`noarch/tifffile-2026.3.3-pyhd8ed1ab_0.conda` exists, but replacing only the defaults
+URL is insufficient: its metadata requires `imagecodecs >=2025.11.11`, which this lockfile
+does not contain. A Windows dry-run with the other builds pinned failed. A further solve
+using `imagecodecs=2025.11.11` and relaxing selected codec pins still failed: that build
+requires `lz4-c >=1.10,<1.11`, while the pinned `vtk-base` 9.2.6 requires
+`lz4-c >=1.9.3,<1.10`. The defaults `tifffile` pin is retained pending a compatible full
+solve and Windows validation; do not replace its URL without resolving the dependencies.
+The existing `libhwloc` URL also comes from defaults, so this is not an entirely
+conda-forge lockfile. These are solver and metadata observations, not a Windows runtime
+test.
 
 To do the same for a new dependency from macOS or Linux, turn every URL in `spec-file.txt`
 into a `name==version=build` pin, add the new package, and ask conda for a Windows solve:
@@ -784,6 +798,11 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
   `starting_length` is captured at import time. Channels and tandem shift themselves by that
   offset. This is why `NeedleChannel` keeps both `points` and `_offset` and applies the offset
   only in `get_points()` / `shape()`.
+- **A channel moved by hand keeps the plan too.** `points_raw` is the DICOM plan and is never
+  changed. `NeedleChannel.set_translation` rebuilds `points` from it as plan plus the move, so
+  `shape()`, `get_points()` and the PDF's point readers all follow a move. `get_rotation()` reads
+  `points_raw`, so a move cannot turn the tandem. *Verified* by `tests/views/test_move_channel.py`
+  for the shape and the PDF's point reader. The PDF's drawn pages were not inspected.
 - In the PDF cross-section diagram the view is **from the base looking up**, so the y-axis is
   drawn negated: `Anterior` is `-y`, `Posterior` is `+y`.
 
@@ -814,7 +833,7 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
 │   ├── logs/                  weekly individual (Part A) and team (Part B) logs
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
-│   └── workflows/             tool-agnostic procedures (commit, make-pr)
+│   └── workflows/             tool-agnostic procedures (commit, make-pr, make-weekly-log)
 ├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle and cylinder template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
@@ -1151,7 +1170,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD. `move_channel(label, dx, dy, dz)` shifts a whole channel from its plan position. An unknown label raises `KeyError`. NaN, infinity or the tandem channel raise `ValueError` and keep the earlier move. `set_tandem` raises `ValueError` for a channel that has been moved, because the tandem is aimed from its plan path and its Move controls are off. `is_channel_moved` is true for any non-zero move, and `load_data` builds new channels, so a new plan clears every move |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `StructuresModel` | imported ROIs, visibility, alignment, presentations, surface cache and worker state | display only; defaults to Surface; details below |
@@ -1362,7 +1381,8 @@ the default window: every spin box is 22 px and nothing scrolls sideways (§7.12
 | `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
 | `btn_apply_channel_diameter` | Apply to Channel | gives the selected channel its own diameter |
 | `btn_clear_channel_diameter` | Use Channels Diameter | enabled only when the selected channel has its own diameter |
-| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours |
+| `btn_move_channel` | Move... | opens the move popup for the selected channel. Enabled only while a channel that is not the tandem is selected |
+| `label_channel_status_legend` | Bold on amber has its own diameter… | legend for the list's status colours, and for the underline of a moved row |
 | `le_template_name` | Template name (placeholder) | the name to save the Channel Diameter under |
 | `btn_save_template` | Save as Template | writes `~/brachify/needle_templates.json` |
 | `cb_needle_templates` | | every saved template, as `name  2.000 mm` |
@@ -1381,6 +1401,19 @@ Its tooltip names the status and the diameter it is cut at. `mark_channel_status
 every row on each `ChannelsModel.values_changed` and after `create_channels_list`, looking rows
 up by label. The selected row's highlight hides its colour but not its font. *Verified* by
 offscreen tests and a render.
+
+Double-clicking a row moves its channel. `action_move_channel` asks `ChannelsView.ask_translation`
+for X, Y and Z in mm, which by default opens `MoveChannelDialog`. The dialog has no parent, starts at
+the channel's current move, allows ±300 mm, and has Reset to plan position, Cancel and OK. Cancel,
+or OK with unchanged values, does nothing, and the tandem's row opens nothing. Every needle row's tooltip carries `Double click to move`. The Set as Tandem button is disabled, with a tooltip, while a moved channel is selected. A moved row is
+underlined and its tooltip adds `Moved by X 6, Y -4, Z 3 mm from the plan`. The legend says
+underlined has been moved, and *Move...* in the Selected Channel group opens the same popup for the
+selected channel through `action_move_selected_channel`. While the popup is open, a line under
+Reset to plan position warns when the typed move would leave the needle off the reference sheet (§7.14),
+and a moved row's tooltip carries the same warning. The popup resizes to fit it. *Verified* 2026-10-20 by `tests/views/test_move_channel.py` and in
+a driven run of the real window on macOS (Ex1, Applicator3 moved by 6, -4, 3 mm: the top view showed
+its tip shifted by that much, and the PDF and the STL both exported). Not verified: Windows, and the
+PDF's drawn pages.
 
 **Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
 
@@ -1511,7 +1544,7 @@ diagram. It is not always one page: with Ex1's 12 channels the diagram moves to 
 The substantive computation is **interstitial length** — how far each needle protrudes beyond
 the cylinder surface:
 
-1. `channels_inside_cylinder()` keeps only channels whose `z=0` point lies within the cylinder
+1. `channels_inside_cylinder()` keeps only channels that have a point above the base and whose `z=0` point lies within the cylinder
    radius.
 2. `extract_points_from_channels2()` normalises every needle to terminate exactly at `z = 0`,
    interpolating the crossing point if the needle passes through, or dropping a perpendicular
@@ -1826,6 +1859,10 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 
 ### 7.5 LOW — cross-platform rough edges
 
+- **Open: PR #122 Windows `tifffile` channel migration.** The requested conda-forge
+  build adds an `imagecodecs` dependency. The pinned Windows solve fails, including an
+  incompatible `lz4-c` requirement with VTK in the constrained 2025.11.11 codec solve.
+  See §1.3 for the metadata and dry-run evidence; this is not a verified URL-only change.
 - `QIcon("resources\\brachify_splash-ico.ico")` in
   [app.py](../../src/classes/app.py) and [main_window.py](../../src/windows/main_window.py) uses
   a Windows path separator. On macOS/Linux this silently yields a null icon. Cosmetic.
@@ -2134,6 +2171,29 @@ destroys the left-over windows' Qt objects in an order Qt does not expect. The w
 the whole of `tests/views`, exit 0 (three runs each on `main`). Not fixed. When you run a subset,
 read the dots and the exit code, or add `-p no:unraisableexception`, which skips that collection.
 
+### 7.14 MEDIUM — a channel moved out of the cylinder is cut but may be missing from the PDF
+
+*Reasoned from code, found in a review on 2026-10-20. Addressed the same day, see the end of this entry.* The Export cut removes every
+visible channel's shape, but `channels_inside_cylinder` in
+[template_reference.py](../../src/classes/pdf/template_reference.py) keeps a needle on the reference
+sheet only if the point where it reaches `z = 0` is inside the cylinder. A needle moved sideways
+out of the cylinder still cuts a groove in the wall but is left off the sheet. A needle moved wholly
+below the base is listed with a made-up point at `z = 0` although it cuts nothing. A move has no
+limit, by the team's decision.
+
+**Addressed 2026-10-20 (the third PR for issue 115).** The popup and a moved row's tooltip now warn
+`This move takes the channel outside the base circle of the cylinder, so the reference sheet will not list it.`
+The warning never blocks OK. The sheet names every moved channel it leaves off in one line under the
+table (`Moved channels left off this sheet because they no longer pass through the base circle of the
+cylinder, Applicator3.`), written by `left_off_note`, and `channels_inside_cylinder` now also drops a needle with no
+point above the base, which the sheet used to list with a made-up point and 0.0 cm. The cut is
+unchanged: it still cuts a groove for such a needle, so the sheet and the cut still differ, but the
+sheet says so. *Verified* by `tests/views/test_move_channel.py` and in a driven run of the real window
+(Applicator3 moved 40 mm in X: the sheet listed the other 11 needles and carried the note, read back
+from the PDF's own text). *Not addressed, not verified:* a review reported that the interstitial
+length reads only a needle's first segment, so a needle that leaves through the side wall on a later
+segment may read 0.
+
 ---
 
 ## 8. Testing
@@ -2242,6 +2302,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
 | `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
 | `views/test_cylinder_template_exports.py` | after a flat, notch-off, 3 by 10 mm collar template is loaded and applied, the reference sheet's cylinder table or the Export tab's mesh volume (π·15²·160 + π·(18²−15²)·10 mm³, worked by hand) is not the template's, or a 180 mm template applied to Ex1, imported at 160 mm, does not raise every needle 20 mm or changes its stored DICOM points (§5.6, §5.8) |
+| `views/test_move_channel.py` | a move does not shift every point of a channel by exactly (dx, dy, dz), changes the plan's `points_raw`, is ignored by the channel's 3D shape or the PDF's point reader, or changes `get_rotation()`. Or NaN, infinity, an unknown channel or the tandem channel is accepted, or a rejected move loses the earlier one. Or double-clicking a row does not ask the popup, moves on Cancel, rebuilds the shape when nothing changed, does not underline the moved row, or opens for the tandem. Or a moved channel can be set as the tandem, its button stays enabled, or a needle row has no double click hint. Or *Move...* is enabled with nothing selected or for the tandem, pressing it does not move the selected channel, or the legend does not say underlined has been moved. Or the popup does not start at the current move, refuses -12.5 or 300 mm, or Reset leaves a value. Or a new plan keeps a move, or a needle moved out of the cylinder or below the base is still counted inside it, an unmoved plan needle is dropped, the sheet's note is missing, has a colon or a dash, or the popup or the row's tooltip does not warn (§5.5, §5.6, §7.14) |
 | `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
@@ -2507,6 +2568,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 | [docs/workflows/README.md](../workflows/README.md) | index of the tool-agnostic workflows |
 | [docs/workflows/commit.md](../workflows/commit.md) | the canonical commit procedure |
 | [docs/workflows/make-pr.md](../workflows/make-pr.md) | the canonical pull request procedure, including the weekly log entry |
+| [docs/workflows/make-weekly-log.md](../workflows/make-weekly-log.md) | the canonical team log (Part B) procedure, and the grader's comments on team logs |
 | [tests/README.md](../../tests/README.md) | TDD policy, `tests/` scoping rule, what to test first |
 | [utils/README.md](../../utils/README.md) | `utils/` scoping rule and what belongs there |
 | [README.md](../../README.md) | repository entry point |
@@ -2515,7 +2577,7 @@ already done and are never rewritten to match later code. `docs/logs/README.md` 
 | [agent-skills/README.md](../../agent-skills/README.md) | the skills every agent loads at session start |
 | [pull_request_template.md](../../pull_request_template.md) | Team 10's PR template: the course's Part A receipts, and the checklists that enforce this set |
 | [.claude/README.md](../../.claude/README.md) | Claude Code configuration: commands, skills, session-start hook |
-| [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md` | pointers to `docs/workflows/` |
+| [.claude/commands/](../../.claude/commands/) `commit.md`, `make-pr.md`, `make-weekly-log.md` | pointers to `docs/workflows/` |
 | [.claude/skills/](../../.claude/skills/) `*/SKILL.md` | pointers to skills vendored in `agent-skills/` |
 
 Reviewing a file and concluding it needs no change is a valid outcome. **Silently not looking
