@@ -227,13 +227,17 @@ reuse, length changes, EXTERNAL sampling, independent opacity and outline/surfac
 Controlled worker subclasses exercise the real thread pool and queued result path: reset,
 a new plan reusing an ROI, length changes during work and unexpected exceptions must not
 leave stale geometry or stuck pending state. No application module is mocked. The native
-canvas remains uninitialised, so these assertions do not prove surface rendering; #125
-supplies that viewport integration.
+canvas remains uninitialised, so these assertions do not prove native rendering. The #125
+cases drive the real mode dropdown and selected-ROI opacity slider, check visible failure
+text with unchecked state and no outline fallback, and inspect a real `AIS_Triangulation`
+actor's mode 0, shading colour and transparency. They do not initialise a native viewer;
+previous native observations are recorded separately in PR #125.
 
 The documentation pass ran full isolated suites: 258 passed for #133 and 287 for #134.
 `Path.home` was redirected before collection as well as fixture-level filesystem isolation,
 so early logger imports could not touch real user files. The flow documentation then passed
-15 architecture tooling cases on the identical application/test tree.
+15 architecture tooling cases on the identical application/test tree. The #125 follow-up
+ran the full isolated suite: **290 passed in 286.76s on the surface architecture branch (identical application/test tree)**, with architecture coverage passing.
 
 ## What to test first
 

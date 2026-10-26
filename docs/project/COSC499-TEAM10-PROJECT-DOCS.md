@@ -741,6 +741,8 @@ CylinderModel.values_changed(BrachyCylinder) ─→ StructuresModel.set_length
 DisplayModel.reset_completed()              ─→ StructuresModel.clear
 StructuresModel.changed()                   ─→ StructuresView.action_update_structure_list
                                              └─→ OrbitCameraViewer3d.refresh_structure_outlines
+StructuresModel.opacity_changed(int, float) ─→ OrbitCameraViewer3d.update_structure_opacity
+                                             └─→ StructuresView.update_opacity_controls
 SurfaceSignals.finished(SurfaceResult)      ─→ StructuresModel._accept_surface (queued to GUI)
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
@@ -751,7 +753,8 @@ OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_sel
 reference overlays without fitting the camera, then emits `reset_completed` to clear anatomy.
 An ordinary `shapes_changed([], False)` refresh does not clear imported anatomy. The worker
 pool has one thread; it never manipulates viewport actors. `opacity_changed(int, float)` is
-declared and tested but has no UI/viewport consumer in the #134 layer; #125 adds that consumer.
+connected separately to the viewport and slider in #125: it updates existing actors and
+selected-ROI controls without rebuilding geometry or the structure list.
 *Reasoned from code.*
 
 ### 4.5 The display pipeline
@@ -778,7 +781,7 @@ how the same cylinder renders opaque-grey on one tab and translucent-teal on ano
 The viewport owns reference overlays separately from `ShapeModel`: it derives grid bounds
 from displayed shapes and reads `CylinderModel.cylinder.length` for the axis. Neither
 overlay enters exports. Anatomy is a second display-only path:
-`DicomData.structures → StructuresModel → StructurePresentation → viewport AIS outlines`.
+`DicomData.structures → StructuresModel → StructurePresentation → viewport AIS surfaces/outlines`.
 It bypasses `ShapeModel` and `DisplayModel.shapes`; visibility cannot add an organ to the
 probe's boolean operations, mesh exports or PDF calculations. Its own `changed` signal
 refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned from code*).
@@ -1170,7 +1173,7 @@ emitting change signals. They hold no widgets.
 | `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD. `move_channel(label, dx, dy, dz)` shifts a whole channel from its plan position. An unknown label raises `KeyError`. NaN, infinity or the tandem channel raise `ValueError` and keep the earlier move. `set_tandem` raises `ValueError` for a channel that has been moved, because the tandem is aimed from its plan path and its Move controls are off. `is_channel_moved` is true for any non-zero move, and `load_data` builds new channels, so a new plan clears every move |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
-| `StructuresModel` | imported ROIs, visibility, alignment, presentations, surface cache and worker state | display only; defaults to Outlines; details below |
+| `StructuresModel` | imported ROIs, visibility, alignment, presentations, surface cache and worker state | display only; defaults to Surface; details below |
 | `NavigationModel` | the six views | not a `QObject`; plain class |
 
 `TandemModel` deserves attention. It distinguishes **imported** from **generated** tandems
@@ -1195,8 +1198,9 @@ ORGAN/TUMOUR ROIs are requested visible by default; OTHER (including BODY) requi
 `visible` records requested visibility; `is_displayed` additionally requires geometry for the
 current mode. Outline failures and surface failures are separate from permanent unavailability.
 
-`StructureDisplayMode` supports Outlines, Surface and Both, but this layer defaults to Outlines.
-The #134 view has no mode selector; tests exercise Surface/Both through `set_mode`.
+`StructureDisplayMode` supports Outlines, Surface and Both. PR #125 changes the initial mode
+to **Surface** and connects the Structures dropdown to `set_mode`. This one mode applies to
+all ROIs. Surface mode never automatically falls back to contour wires after an error.
 `_enable` creates outlines only when needed by the mode and queues missing surfaces.
 `SurfaceTask` samples EXTERNAL at 2 mm, other types at 1 mm, reuses cached patient-space meshes,
 and aligns them off the GUI thread. Its private single-thread `QThreadPool` limits concurrent
@@ -1210,7 +1214,9 @@ when still visible in a surface mode. `clear` advances the generation and clears
 visibility, caches and errors. It cannot cancel the task already running, whose result is
 ignored. Hiding an ROI preserves its cache. `set_opacity` accepts a known ROI and a finite
 value in 0..1 (default 0.45), emits only `opacity_changed`, and never rebuilds geometry.
-Mode/opacity controls and visible surface actors arrive in #125, not in this state layer.
+The current window keeps its selected mode across `clear`; visibility, caches and per-ROI
+opacity are cleared. These display preferences are not exported to configuration. Controls
+and native surface actors are supplied by #125 (§5.6–5.7).
 *Reasoned from code; regression coverage is catalogued in §8.2.*
 
 ### 5.6 Views and the Qt UI layer
@@ -1251,14 +1257,27 @@ import, `ImportView` also shows a read-only `structure_list` (`QListWidget` adde
 not in the `.ui`): name, colour swatch and category from `structure_list_rows`
 (*Reasoned from code*; `tests/views/test_import_view.py`).
 
-**Structures** — no `.ui`. `StructuresView` builds an instruction label and a checkable
-list in code. Rows show name/category, DICOM colour and ROI identity; checking a row calls
-`StructuresModel.set_visible`. Rebuilding the list blocks item signals. A row is checked
-only when `is_displayed` is true; any nonempty status disables it and becomes its tooltip.
-This includes outline failures; the row does not claim visible geometry after a failed build.
-The Import inventory remains read-only. The nav button sits under Import while the page
-remains `views[5]`. This branch has no mode dropdown or opacity slider; those are #125 work.
-*Reasoned from code; `tests/views/test_structure_display.py`.*
+**Structures** — no `.ui`. `StructuresView` builds the controls in code at `views[5]`;
+its nav button remains under Import, whose inventory stays read-only. *Reasoned from code,
+PR #125; widget assertions are in `tests/views/test_structure_display.py`.*
+
+| Control | Behaviour |
+|---|---|
+| Mode dropdown | Outlines, Surface or Both for all ROIs; starts at Surface. No automatic outline fallback. |
+| Structure list | Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Pending and failure reasons appear directly in wrapped row text and tooltips. |
+| Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
+
+Rows are checked when a representation is available, or when visibility was requested and
+surface work is pending. A pending row remains checkable so the user can hide it. Permanent
+unavailability (for example, a frame mismatch) disables the row. A finished error with no
+usable representation leaves an unchecked, noncheckable row, but its reason stays visible.
+In Both mode, one failed representation does not remove the other. Switching to Outlines
+explicitly can inspect a single slice or another stack that cannot be reconstructed.
+
+List refresh blocks item signals and restores the selected ROI by number. Opacity signals
+update the slider/label without recreating list items; setting opacity to zero does not
+uncheck visibility. The mode tooltip explains 1 mm organ / 2 mm EXTERNAL sampling and that
+grid-aligned boundaries can expand by half a sample step; this is not a universal error bound.
 
 **Cylinder** (`cylinder_view.ui`)
 
@@ -1493,12 +1512,23 @@ were inspected locally and are not archived in this PR.
 > process confirmed `OpenGL`, `QtGui`, `QtWidgets` and the full OpenCASCADE `libTK*` set
 > loaded, and the viewport rendered. This was the main porting risk and it is resolved.
 
-**Anatomy outlines (#121/#134).** `refresh_structure_outlines` removes its previous AIS
-presentations, skips missing outlines, and draws ROI-coloured `AIS_Shape` wires at width 1.5.
-It deactivates them for selection and repaints without fitting. A normal model redraw also
-recreates them. Anatomy stays outside export geometry and the grid's model-bounds calculation.
-The #134 viewport does not render `StructurePresentation.surface`; #125 supplies that path.
-*Reasoned from code; the documentation run did not initialise a native canvas.*
+**Anatomy surfaces and outlines (#125).** Despite its older name,
+`refresh_structure_outlines` draws both representations according to the model's mode.
+It removes old anatomy actors, creates `AIS_Triangulation` for available surfaces and
+`AIS_Shape` for available outlines, and records each actor by ROI. Outlines use width 1.0;
+both use DICOM colour and transparency `1 - opacity`. Surface-only mode does not draw wires.
+`anatomy_surface_presentation` explicitly sets mesh display mode 0 and its shading colour:
+inheriting the solid viewer's mode can otherwise leave a valid triangulation invisible.
+
+`update_structure_opacity` changes only the requested ROI's existing actors in place.
+Both refresh paths repaint without fitting the camera. Geometry changes or a normal model
+redraw recreate actors; pure opacity changes reuse them. All anatomy actors are deactivated
+for selection, stay outside export geometry, and do not contribute to the grid bounds.
+*Reasoned from code.* The native Ex1/Ex2 observations recorded in
+[PR #125](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/125) cover modes,
+BODY visibility, opacity reuse, pending hiding, Export redraw and reset. Those are earlier
+observations, not a new native run for this documentation; screenshots were inspected locally
+then and are not archived here. Windows packaging and native Nucletron rendering remain unverified.
 
 ### 5.8 PDF reference sheet
 
@@ -1862,8 +1892,9 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   32-million-cell limit is not a total memory cap or a guarantee every BODY will reconstruct.
 - **Worker reset is invalidation, not interruption.** A running job can finish after reset;
   only the generation check prevents a previous plan's ROI entering the new plan. Empty model
-  redraws must not be used as reset signals. The #134 UI only exposes outlines, even though
-  its model can compute surfaces; #125 is required to display those results.
+  redraws must not be used as reset signals. Hiding a pending ROI also does not cancel its
+  worker; it prevents display when the result arrives. Errors stay visible in the list and
+  Surface mode never silently changes to Outlines.
 
 - **Fixed 2026-10-08 in PR #19: the Channels list kept a channel highlighted after leaving
   the tab.**
@@ -2194,8 +2225,10 @@ fails, and why that matters
 with `Path.home` redirected to a temporary directory before collection, keeping logger
 initialisation away from real user files. Application modules were not mocked. The later
 flow/reference documentation branches have identical application/test trees; the flow
-update passed all 15 architecture tooling cases and `build.py --check`. No new native
-viewport or Windows reconstruction run is claimed by these receipts.
+update passed all 15 architecture tooling cases and `build.py --check`.
+The #125 documentation follow-up ran the full isolated suite: **290 passed in 286.76s on the surface architecture branch (identical application/test tree)**.
+The earlier architecture-coverage failure recorded in #125 is resolved by the diagram update.
+No new native viewport or Windows reconstruction run is claimed by these receipts.
 
 The viewport regressions (*Reasoned from the test bodies*) are:
 
@@ -2261,7 +2294,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
-| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; an outline failure must leave its row unchecked (§5.5–5.7) |
+| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows (§5.3) |
