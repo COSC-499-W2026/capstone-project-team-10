@@ -47,7 +47,8 @@ tests/
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
 │   ├── test_cylinder.py
-│   ├── test_structure_contours.py  registered anatomy wires, PR #133
+│   ├── test_structure_contours.py  registered anatomy wires and shared vertex transform
+│   ├── test_structure_surfaces.py  axial sampling, topology, bounds and size budget
 │   ├── test_notch.py
 │   └── test_tandem.py
 ├── models/
@@ -72,6 +73,7 @@ tests/
 │   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
+│   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -211,6 +213,27 @@ source points, rejects missing frames, zero and reversed-Z axes, and both open c
 types, and counts three edges with no filled faces for a closed triangle. It uses real
 OpenCASCADE wire construction without a canvas. These tests cover the geometry service;
 they do not claim native rendering or clinical registration validation.
+
+`mesh/test_structure_contours.py` also checks the shared array transform against literal
+coordinates while preserving source vertices. `mesh/test_structure_surfaces.py` checks
+closed/outward triangles and patient bounds, XOR holes, disconnected regions, rejection
+of unsupported stacks, and the volume-plus-slice-field size budget. It reconstructs real
+meshes; it does not render them.
+
+`views/test_structure_display.py` uses real models and offscreen widgets. It checks default
+visibility, frame refusal (including a synthetic Nucletron embedded-frame collision),
+checkboxes, export isolation, explicit reset versus empty redraw, surface modes and cache
+reuse, length changes, EXTERNAL sampling, independent opacity and outline/surface errors.
+Controlled worker subclasses exercise the real thread pool and queued result path: reset,
+a new plan reusing an ROI, length changes during work and unexpected exceptions must not
+leave stale geometry or stuck pending state. No application module is mocked. The native
+canvas remains uninitialised, so these assertions do not prove surface rendering; #125
+supplies that viewport integration.
+
+The documentation pass ran full isolated suites: 258 passed for #133 and 287 for #134.
+`Path.home` was redirected before collection as well as fixture-level filesystem isolation,
+so early logger imports could not touch real user files. The flow documentation then passed
+15 architecture tooling cases on the identical application/test tree.
 
 ## What to test first
 

@@ -437,7 +437,7 @@ color: rgb(0, 0, 0);</string>
       <string notr="true">color: rgb(0, 0, 0);</string>
      </property>
      <property name="text">
-      <string>Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem.</string>
+      <string>Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem. Underlined has been moved.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -585,31 +585,38 @@ QPushButton:disabled {
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
+      <item row="3" column="0" colspan="2">
+       <widget class="QPushButton" name="btn_move_channel">
+        <property name="text">
+         <string>Move...</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
        <widget class="QLineEdit" name="le_template_name">
         <property name="placeholderText">
          <string>Template name</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
        <widget class="QPushButton" name="btn_save_template">
         <property name="text">
          <string>Save as Template</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QComboBox" name="cb_needle_templates"/>
       </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="QPushButton" name="btn_apply_template">
         <property name="text">
          <string>Apply Template</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="0" colspan="2">
+      <item row="6" column="0" colspan="2">
        <widget class="QLabel" name="label_template_status">
         <property name="wordWrap">
          <bool>true</bool>
