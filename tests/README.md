@@ -224,7 +224,7 @@ meshes; it does not render them.
 visibility, frame refusal (including a synthetic Nucletron embedded-frame collision),
 checkboxes, export isolation, explicit reset versus empty redraw, surface modes and cache
 reuse, length changes, EXTERNAL sampling, independent opacity and outline/surface errors.
-It also fails if the Structures list shows a needle or BODY, or if Ex1 fills that list.
+It also fails if the Structures list shows a needle, hides BODY, or if Ex1 loses BODY.
 Controlled worker subclasses exercise the real thread pool and queued result path: reset,
 a new plan reusing an ROI, length changes during work and unexpected exceptions must not
 leave stale geometry or stuck pending state. No application module is mocked. The native
