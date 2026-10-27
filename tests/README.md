@@ -42,7 +42,7 @@ tests/
 │   ├── conftest.py        fixtures used only by dicom tests
 │   ├── test_data.py
 │   ├── test_load_structures.py  exists: attach read_structures onto DicomData
-│   ├── test_structure_list.py   exists: Import-tab list rows from Structures
+│   ├── test_structure_list.py   exists: Import-tab list rows and Structures-tab anatomy filter
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
@@ -224,6 +224,7 @@ meshes; it does not render them.
 visibility, frame refusal (including a synthetic Nucletron embedded-frame collision),
 checkboxes, export isolation, explicit reset versus empty redraw, surface modes and cache
 reuse, length changes, EXTERNAL sampling, independent opacity and outline/surface errors.
+It also fails if the Structures list shows a needle or BODY, or if Ex1 fills that list.
 Controlled worker subclasses exercise the real thread pool and queued result path: reset,
 a new plan reusing an ROI, length changes during work and unexpected exceptions must not
 leave stale geometry or stuck pending state. No application module is mocked. The native
