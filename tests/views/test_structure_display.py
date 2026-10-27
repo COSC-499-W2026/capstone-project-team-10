@@ -94,28 +94,60 @@ def test_anatomy_length_change_and_hide_preserve_geometry(anatomy_model):
     assert anatomy_model.structures == {}
 
 
-def test_structures_checkboxes_control_anatomy_and_failed_import_clears_it(channels_window, tmp_path: Path):
-    """Use real Structures checkboxes and verify a failed new import clears old anatomy.
+def test_structures_tab_lists_only_organs_and_tumours(cylinder_window, anatomy_model):
+    """Show organs and tumours on the Structures tab, not applicator needles.
 
-    A missing checkbox update or remaining preview after failure fails; the previous
-    patient's contours must not survive an import attempt.
+    Fails if Axis (OTHER) appears, or if Organ is missing. Needle-type ROIs
+    already live on Channels; listing them here hides the anatomy (FR-SV-01).
     """
     from PySide6.QtCore import Qt
-    view = channels_window.navigationmodel.views[5]
-    model = channels_window.structuresmodel
-    view.action_update_structure_list()
-    item = view.structure_list.item(0)
-    roi = item.data(Qt.UserRole)
-    assert roi == 1
-    item.setCheckState(Qt.Checked)
-    wait_for_surfaces(model)
-    assert roi in model.visible
-    assert model.presentations()
-    view.structure_list.item(0).setCheckState(Qt.Unchecked)
-    assert roi not in model.visible
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = tuple(anatomy_model.structures.values())
+    cylinder_window.structuresmodel.load_plan(plan, 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    rois = [
+        view.structure_list.item(index).data(Qt.UserRole)
+        for index in range(view.structure_list.count())
+    ]
+    labels = [
+        view.structure_list.item(index).text()
+        for index in range(view.structure_list.count())
+    ]
+    assert rois == [2, 3]
+    assert all("organ" in label for label in labels)
+    assert not any("Axis" in label for label in labels)
+
+
+def test_structures_tab_is_empty_for_ex1_while_import_keeps_needles(channels_window):
+    """Leave the Structures tab empty on Ex1, which has no organs or tumours.
+
+    Fails if an Applicator or BODY row appears on Structures, or if Import loses
+    its 42 inventory rows. The sample plans store needles as OTHER shapes.
+    """
+    from PySide6.QtCore import Qt
+    structures_view = channels_window.navigationmodel.views[5]
     import_view = channels_window.navigationmodel.views[0]
+    assert structures_view.structure_list.count() == 0
+    assert import_view.structure_list.count() == 42
+    import_labels = [
+        import_view.structure_list.item(index).text()
+        for index in range(import_view.structure_list.count())
+    ]
+    assert any("Applicator" in label for label in import_labels)
     assert not import_view.structure_list.item(0).flags() & Qt.ItemIsUserCheckable
-    import_view.import_dicom_from_folder(str(tmp_path))
+
+
+def test_structures_checkboxes_control_anatomy_and_failed_import_clears_it(channels_window, tmp_path: Path):
+    """Verify a failed new import clears anatomy after Ex1, which has no listed organs.
+
+    Remaining preview after failure fails; the previous patient's contours
+    must not survive an import attempt.
+    """
+    model = channels_window.structuresmodel
+    channels_window.navigationmodel.views[0].import_dicom_from_folder(str(tmp_path))
     assert not model.structures
     assert not model.presentations()
 
@@ -240,7 +272,7 @@ def test_structures_surface_controls_change_selected_organ_opacity(cylinder_wind
     plan.structures = tuple(anatomy_model.structures.values())
     model.load_plan(plan, 20.)
     wait_for_surfaces(model)
-    view.structure_list.setCurrentRow(1)
+    view.structure_list.setCurrentRow(0)
     view.surface_mode.setCurrentText('Both')
     assert cylinder_window.structuresmodel.mode == StructureDisplayMode.BOTH
     view.surface_mode.setCurrentText('Surface')
@@ -370,7 +402,7 @@ def test_failed_surface_is_explained_in_visible_structure_row(cylinder_window, a
     model.load_plan(plan, 20.)
     wait_for_surfaces(model)
     view = cylinder_window.navigationmodel.views[5]
-    item = view.structure_list.item(1)
+    item = view.structure_list.item(0)
     assert 'Surface unavailable.' in item.text()
     assert 'two contour slices' in item.text()
     assert item.checkState() == Qt.Unchecked

@@ -3,7 +3,7 @@ from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QSlider, QVBoxLayout
 
 from classes.app import get_app
-from classes.dicom.structure_list import structure_list_rows
+from classes.dicom.structure_list import anatomy_structures, structure_list_rows
 from windows.views.custom_view import CustomView
 from windows.models.structures_model import StructureDisplayMode
 
@@ -61,7 +61,7 @@ class StructuresView(CustomView):
             self.surface_mode.setCurrentText(model.mode.value)
         current = self.structure_list.currentItem()
         selected = current.data(Qt.UserRole) if current is not None else None
-        structures = tuple(model.structures.values())
+        structures = anatomy_structures(tuple(model.structures.values()))
         with QSignalBlocker(self.structure_list):
             self.structure_list.clear()
             for structure, row in zip(structures, structure_list_rows(structures)):
