@@ -1,6 +1,10 @@
 """Tests for Import-tab structure list rows built from decoded Structures."""
 
-from classes.dicom.structure_list import StructureListRow, structure_list_rows
+from classes.dicom.structure_list import (
+    StructureListRow,
+    anatomy_structures,
+    structure_list_rows,
+)
 from classes.dicom.structures import Structure, StructureType
 
 
@@ -95,3 +99,21 @@ def test_roi_suffix_avoids_colliding_with_an_existing_label() -> None:
     assert labels[2] != labels[0]
     assert labels[1] != labels[2]
     assert len(set(labels)) == 3
+
+
+def test_anatomy_structures_keep_organs_and_tumours_only() -> None:
+    """Check that the Structures tab keeps organs and tumours and drops needles.
+
+    Fails if Applicator, BODY or a marker stays in the tuple, or if Bladder or
+    GTV is dropped. Needle paths already live on Channels; listing them here
+    hides the anatomy the physicist came to show (FR-SV-01).
+    """
+    bladder = _structure(7, "Bladder", StructureType.ORGAN, (1, 2, 3))
+    gtv = _structure(2, "GTV", StructureType.TUMOUR, (200, 0, 0))
+    applicator = _structure(34, "Applicator26", StructureType.OTHER)
+    body = _structure(1, "BODY", StructureType.OTHER)
+    marker = _structure(3, "Surface3", StructureType.OTHER)
+
+    assert anatomy_structures((applicator, bladder, body, gtv, marker)) == (bladder, gtv)
+    assert anatomy_structures(None) == ()
+    assert anatomy_structures(()) == ()

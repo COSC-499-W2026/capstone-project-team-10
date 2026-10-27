@@ -1,10 +1,10 @@
-"""Pure rows for the Import-tab structure list."""
+"""Pure rows for the Import inventory and the Structures-tab anatomy list."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from classes.dicom.structures import Structure
+from classes.dicom.structures import Structure, StructureType
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,23 @@ def _label_for(structure: Structure, name_counts: dict[str, int], used: set[str]
     if label in used:
         label = f"{structure.name} (ROI {structure.roi_number}) #{structure.roi_number}"
     return label
+
+
+def anatomy_structures(
+    structures: tuple[Structure, ...] | None,
+) -> tuple[Structure, ...]:
+    """Keep organs and tumours for the Structures tab.
+
+    Needles, body outlines, markers and other ROIs stay in DicomData and on
+    the Import inventory. None or an empty tuple yields no rows.
+    """
+    if not structures:
+        return ()
+    return tuple(
+        structure
+        for structure in structures
+        if structure.category in (StructureType.ORGAN, StructureType.TUMOUR)
+    )
 
 
 def structure_list_rows(
