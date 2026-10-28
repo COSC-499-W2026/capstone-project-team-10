@@ -234,7 +234,9 @@ text with unchecked state and no outline fallback, and inspect a real `AIS_Trian
 actor's mode 0, shading colour and transparency. Selecting a row stores that ROI as
 the highlight, another row replaces it, a second click or a cleared row drops it, and
 an empty organ gains no presentation. A highlighted triangulation uses the channel
-selection blue, 0.2 0.2 0.7. They do not initialise a native viewer;
+selection blue, 0.2 0.2 0.7. Change colour stores an RGB override, updates that
+row's swatch, leaves the imported ROI colour, and ignores a cancelled pick.
+They do not initialise a native viewer;
 previous native observations are recorded separately in PR #125.
 
 The documentation pass ran full isolated suites: 258 passed for #133 and 287 for #134.
