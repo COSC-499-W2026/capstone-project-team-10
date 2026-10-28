@@ -744,6 +744,8 @@ StructuresModel.changed()                   ─→ StructuresView.action_update_
 StructuresModel.opacity_changed(int, float) ─→ OrbitCameraViewer3d.update_structure_opacity
                                              └─→ StructuresView.update_opacity_controls
 StructuresModel.highlight_changed()         ─→ OrbitCameraViewer3d.update_structure_highlight
+StructuresModel.color_changed(int, tuple)   ─→ OrbitCameraViewer3d.update_structure_color
+                                             └─→ StructuresView.update_structure_swatch
 SurfaceSignals.finished(SurfaceResult)      ─→ StructuresModel._accept_surface (queued to GUI)
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
@@ -757,8 +759,9 @@ pool has one thread; it never manipulates viewport actors. `opacity_changed(int,
 connected separately to the viewport and slider in #125: it updates existing actors and
 selected-ROI controls without rebuilding geometry or the structure list.
 `highlight_changed()` is the same kind of signal. It recolours existing anatomy actors
-in the channel-selection blue, or restores the DICOM colour, and does not rebuild the
-list or the meshes. *Reasoned from code.*
+in the channel-selection blue, or restores the stored display colour, and does not rebuild the
+list or the meshes. `color_changed(int, tuple)` updates one swatch and that organ's actors
+the same way. *Reasoned from code.*
 
 ### 4.5 The display pipeline
 
@@ -1228,8 +1231,13 @@ value in 0..1 (default 0.45), emits only `opacity_changed`, and never rebuilds g
 does not create a presentation, so a listed organ with no contour is not added to the
 preview. `clear` drops the highlight with the rest of the plan. A second click on the
 highlighted row sets `None` while that row stays current.
+`color_for` returns a stored RGB override, or the imported DICOM colour. `set_color`
+accepts three integers 0 to 255, writes the override, updates `StructurePresentation.color`,
+and emits only `color_changed`. It does not mutate `Structure.color`. An invalid component
+raises `ValueError` and keeps the previous colour. `clear` drops colour overrides with the
+plan.
 The current window keeps its selected mode across `clear`; visibility, caches and per-ROI
-opacity are cleared. These display preferences are not exported to configuration. Controls
+opacity and colour are cleared. These display preferences are not exported to configuration. Controls
 and native surface actors are supplied by #125 (§5.6–5.7).
 *Reasoned from code; regression coverage is catalogued in §8.2.*
 
@@ -1281,6 +1289,7 @@ PR #125; widget assertions are in `tests/views/test_structure_display.py`.*
 | Structure list | Organs and tumours only, from `anatomy_structures`. Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Needles, BODY, markers and other ROIs stay on the Import inventory. Pending and failure reasons appear directly in wrapped row text and tooltips. |
 | Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
 | Row highlight | The current row emphasises that organ in the preview with the channel-selection blue (0.2, 0.2, 0.7). Outlines also use width 3. Choosing another row moves the highlight. Clicking the highlighted row again, or clearing the selection, drops it. A row with no geometry stays listed and gains no shape. |
+| Change colour | Opens a colour dialog for the current row. OK stores the RGB override and updates the list swatch. Cancel, or an invalid colour, leaves the DICOM colour. Highlight still draws that organ blue until the row is cleared. |
 
 Rows are checked when a representation is available, or when visibility was requested and
 surface work is pending. A pending row remains checkable so the user can hide it. Permanent
@@ -1531,15 +1540,17 @@ were inspected locally and are not archived in this PR.
 `refresh_structure_outlines` draws both representations according to the model's mode.
 It removes old anatomy actors, creates `AIS_Triangulation` for available surfaces and
 `AIS_Shape` for available outlines, and records each actor by ROI. An unhighlighted
-outline uses width 1.0. Both representations use DICOM colour, except the highlighted
-ROI, which uses the channel-selection blue (0.2, 0.2, 0.7) and outline width 3.
+outline uses width 1.0. Both representations use `color_for`, the override or the DICOM
+colour, except the highlighted ROI, which uses the channel-selection blue (0.2, 0.2, 0.7)
+and outline width 3.
 Transparency is `1 - opacity`. Surface-only mode does not draw wires.
 `anatomy_surface_presentation` explicitly sets mesh display mode 0 and its shading colour:
 inheriting the solid viewer's mode can otherwise leave a valid triangulation invisible.
 
 `update_structure_opacity` changes only the requested ROI's existing actors in place.
 `update_structure_highlight` recolours the existing actors for the current highlight
-and does not rebuild them. The native canvas is not initialised by the highlight tests.
+and does not rebuild them. `update_structure_color` does the same for one ROI after a
+pick. The native canvas is not initialised by the highlight or colour tests.
 Both refresh paths repaint without fitting the camera. Geometry changes or a normal model
 redraw recreate actors; pure opacity changes reuse them. All anatomy actors are deactivated
 for selection, stay outside export geometry, and do not contribute to the grid bounds.
@@ -2313,7 +2324,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
-| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, BODY or other non-anatomy ROI, hides an organ or tumour, or Ex1 fills that list while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, or a highlighted surface actor is not the channel-selection blue (§5.5–5.7) |
+| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, BODY or other non-anatomy ROI, hides an organ or tumour, or Ex1 fills that list while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, or a highlighted surface actor is not the channel-selection blue. Or `set_color` mutates the DICOM RGB, changes another organ, accepts a component outside 0 to 255, leaves the list swatch on the old colour, or a cancelled pick recodes the organ (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows. Or `anatomy_structures` keeps a needle, BODY or marker, or drops an organ or tumour (§5.3) |
