@@ -49,8 +49,11 @@ class StructuresView(CustomView):
         self.structure_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.structure_list.setStyleSheet("background-color: white; color: black;")
         layout.addWidget(self.structure_list)
+        self._repeat_highlight = False
         self.structure_list.itemChanged.connect(self.action_toggle_structure)
-        self.structure_list.currentItemChanged.connect(self.update_opacity_controls)
+        self.structure_list.itemPressed.connect(self.action_press_structure)
+        self.structure_list.itemClicked.connect(self.action_click_structure)
+        self.structure_list.currentItemChanged.connect(self.action_current_structure)
         model.changed.connect(self.action_update_structure_list)
         self.update_opacity_controls()
 
@@ -91,6 +94,27 @@ class StructuresView(CustomView):
         """Keep anatomy visibility separate from printable shapes."""
         get_app().window.structuresmodel.set_visible(
             item.data(Qt.UserRole), item.checkState() == Qt.Checked)
+
+    def action_press_structure(self, item: QListWidgetItem):
+        """Note a press on the row that is already highlighted, before the click lands."""
+        model = get_app().window.structuresmodel
+        self._repeat_highlight = (
+            self.structure_list.currentItem() is item and model.highlighted == item.data(Qt.UserRole)
+        )
+
+    def action_click_structure(self, item: QListWidgetItem):
+        """Drop the highlight when the click repeats the row that was already emphasised."""
+        if self._repeat_highlight and get_app().window.structuresmodel.highlighted == item.data(Qt.UserRole):
+            get_app().window.structuresmodel.set_highlight(None)
+        self._repeat_highlight = False
+
+    def action_current_structure(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None):
+        """Follow the current row into the preview highlight and the opacity slider."""
+        self.update_opacity_controls()
+        roi = None if current is None else current.data(Qt.UserRole)
+        model = get_app().window.structuresmodel
+        if model.highlighted != roi:
+            model.set_highlight(roi)
 
     def update_opacity_controls(self):
         item = self.structure_list.currentItem()
