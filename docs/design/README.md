@@ -78,11 +78,13 @@ or an unreadable template file is explained in the status line beside the contro
 than in a dialog, so the clinician sees why without leaving the tab, and a file brachify cannot
 read never stops it starting. *Verified* by offscreen widget tests. A screenshot of it is linked from Ahab's week 6 log.
 
-The Structures page (index 5, navigation button under Import) lists checkable anatomy
-ROIs with their category and DICOM colour; Import's inventory remains read-only. The mode
-dropdown applies Surface/Outlines/Both to the whole list and defaults to Surface without
-automatic contour fallback. ORGAN/TUMOUR ROIs start requested visible; OTHER, including
-BODY, requires selection. A mode tooltip explains the approximate 1 mm / 2 mm EXTERNAL grid.
+The Structures page (index 5, navigation button under Import) lists checkable organs and
+tumours with their category and DICOM colour. Needles, BODY and other ROIs stay on the
+Import inventory, which remains read-only. The mode dropdown applies Surface/Outlines/Both
+to the whole list and defaults to Surface without automatic contour fallback. The current
+row highlights that organ in the preview with the same blue as a selected channel.
+Clicking that row again drops the highlight. A row with no geometry stays listed and
+gains no shape. A mode tooltip explains the approximate 1 mm / 2 mm EXTERNAL grid.
 
 Loading and failure reasons appear as wrapped row text and tooltips. Pending rows stay
 checkable for hiding. In Surface mode a failed surface is unchecked; permanent unavailability
