@@ -744,3 +744,13 @@ def test_cancelled_colour_pick_leaves_the_swatch_and_the_preview(cylinder_window
     assert model.color_for(2) == (0, 255, 0)
     pixel = view.structure_list.item(0).icon().pixmap(12, 12).toImage().pixelColor(6, 6)
     assert (pixel.red(), pixel.green(), pixel.blue()) == (0, 255, 0)
+
+
+def test_structures_tab_copy_uses_black_text(cylinder_window):
+    """Keep Structures labels readable on the light sidebar.
+
+    Missing black copy fails. viewswidget sets color rgba(240, 245, 250), which
+    is almost white, so the physicist cannot read the mode or opacity hint.
+    """
+    view = cylinder_window.navigationmodel.views[5]
+    assert "color: rgb(0, 0, 0)" in view.styleSheet()
