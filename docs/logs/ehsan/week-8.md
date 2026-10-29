@@ -70,7 +70,7 @@ Four stacked PRs for Structures selection, colour, pictures and black copy. #155
 |---|---|---|---|---|---|---|
 | [#154](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/154) | `main` | #111 | Highlight the selected organ in channel-selection blue | 20, +318/−36 | 4 | 322 collected, 318 passed / 4 failed |
 | [#164](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/164) | #154 | #110 | Change colour RGB override | 10, +244/−22 | 4 | 326 collected |
-| [#165](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/165) | #164 | part of #110 | `color_changed` on the architecture pictures | 10, +24/−19 | 0 | 326 collected |
+| [#165](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/165) | #164 | part of #110 | `color_changed` on the architecture pictures | 11, +43/−20 | 0 | 326 collected |
 | [#166](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/166) | #165 | #153 | Black Structures copy on the pale sidebar | 5, +24/−4 | 1 | 327 collected |
 
 The suite had 318 tests on `main` before #154. The four failures are pre-existing (`test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases). Counts were collected with `pytest --collect-only`.
@@ -202,3 +202,31 @@ Stated once here instead of in each section.
 - The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` exited 0** passed.
 - This new test PR did not break anything else in the system because **no `src/` or `tests/` file changed**. Suite total is inherited from the colour PR.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
+
+### For PR #**166** (4 of 4, on #165)
+
+- As part of requirement **FR-SV-01**, the user needs to do **open Structures and read the labels on the pale sidebar**.
+- Therefore, I implemented/generated code so that **the medical physicist can read Structures copy in black**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6** with design components for **the Structures page stylesheet**. Therefore, changing the design of **that `color: rgb(0, 0, 0)` rule** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the widgets are unchanged**.
+- Not applicable: **data caching (no backend fetch)**.
+
+#### Review and design
+
+- When I reviewed the **Structures stylesheet** for this functionality, I noticed **`viewswidget` paints `color: rgba(240, 245, 250)`, so labels vanish on the pale sidebar**. Therefore, I did **set `color: rgb(0, 0, 0)` on `StructuresView`, the same rule Cylinder uses**.
+- The PR does not contain any temporary workaround because **the black rule is the Cylinder stylesheet**.
+- The PR only contains small functions that are **the three-line stylesheet in `StructuresView.__init__`** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`structures_view.py`** because **the unreadable copy is that tab's stylesheet**.
+- This work belongs in **Import's follow-on Structures page** in the DFD because **copy colour is display-only**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_structures_tab_copy_uses_black_text` (1 new)** passed.
+- Among these tests, **`test_structures_tab_copy_uses_black_text`** is an integration test and unit tests are not required because **the rule is one stylesheet string**.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **the new test passed on this branch**. Four pre-existing suite failures are named in #154.
+  **[author: attach a screenshot of Structures copy in black]**
+- Not applicable: **abnormal cases, negative cases (no invalid stylesheet input)**.
