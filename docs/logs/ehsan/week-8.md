@@ -62,15 +62,18 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`python -m pytest` is 297 passed, 21 failed**. The 21 are scipy/skimage surface tests, `test_the_default_dome_tandem_cut_out_is_unchanged`, and three 20 px layout cases. New list tests passed.
   **[author: attach a screenshot of the pytest run showing the new tests and the 297 passed / 21 failed total]**
 
-## Stack #154 then colour, at a glance
+## Stack #154 to #166, at a glance
 
-Two stacked PRs for Structures selection and colour. Each PR was based on the one above it and closes its own issue. A row's counts are **that PR's own diff only**, as GitHub shows it against its parent. Everything in earlier rows is inherited, not repeated.
+Four stacked PRs for Structures selection, colour, pictures and black copy. #155 was 20 files and was closed; colour is now #164, pictures #165, black text #166. Merge #154, then #164, then #165, then #166, retargeting each to `main` after its parent. A row's counts are **that PR's own diff only**.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
-| [#154](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/154) | `main` | #111 | Highlight the selected organ in channel-selection blue | 19, +245/−36 | 4 | 322 collected, 318 passed / 4 failed |
+| [#154](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/154) | `main` | #111 | Highlight the selected organ in channel-selection blue | 20, +318/−36 | 4 | 322 collected, 318 passed / 4 failed |
+| [#164](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/164) | #154 | #110 | Change colour RGB override | 10, +244/−22 | 4 | 326 collected |
+| [#165](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/165) | #164 | part of #110 | `color_changed` on the architecture pictures | 10, +24/−19 | 0 | 326 collected |
+| [#166](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/166) | #165 | #153 | Black Structures copy on the pale sidebar | 5, +24/−4 | 1 | 327 collected |
 
-The suite had 318 tests on `main` before #154. The four failures are pre-existing (`test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases). Counts were collected with `pytest --collect-only` and a full `python -m pytest` on this branch.
+The suite had 318 tests on `main` before #154. The four failures are pre-existing (`test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases). Counts were collected with `pytest --collect-only`.
 
 ### Shared by every PR in this stack
 
@@ -134,3 +137,68 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest` is 318 passed, 4 failed (4 new, 318 collected on `main`)**. The four failures are pre-existing and not from this diff: `test_the_default_dome_tandem_cut_out_is_unchanged`, `test_channels_settings_keep_their_height_in_the_default_window`, `test_cylinder_spin_boxes_keep_their_height_in_the_default_window`, `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`.
   **[author: attach a screenshot of the pytest run showing the 4 new tests and 318 passed / 4 failed]**
   **[author: attach a screenshot of Structures with one organ highlighted blue]**
+
+### For PR #**164** (2 of 4, on #154)
+
+- As part of requirement **FR-SV-05**, the user needs to do **select an organ, click Change colour, pick an RGB, and see the list swatch follow, or cancel and keep the previous colour**.
+- Therefore, I implemented/generated code so that **the medical physicist can override one organ's display colour without changing the imported DICOM RGB**.
+
+#### Backend
+
+- The system uses **an ROI-keyed RGB override on `StructuresModel`** because **FR-SV-05 stores colour separately from the DICOM `Structure.color`**. Benefits for using this pattern include **`set_color` is testable without Qt or a canvas**. Possible risks include **mutating the imported `Structure`**.
+  - To mitigate **changing the DICOM colour**, we implemented **writing only `_colors[roi]` and leaving `structure.color`**.
+  - We considered alternative solutions such as **editing `Structure.color` in place, which would lose the imported value**.
+- The system architecture diagram consists of the following major components: **as in #154**. This structure has low coupling because **the viewport receives `(roi, rgb)` and does not own the override**. This structure has high cohesion because **validation stays in `set_color`**. This design is scalable because **a later reset-to-DICOM can delete one `_colors` entry**. Pictures that name `color_changed` are the next PR.
+  **[system architecture](docs/architecture/diagrams/system-architecture.svg)**
+- The system uses **synchronous data processing** because **a confirmed colour must recolour existing actors immediately**. This method is done by **`color_changed` calling `update_structure_color` and `update_structure_swatch`**. Benefits for using this approach include **no mesh rebuild**. Possible risks include **a highlighted organ hiding the new colour**.
+  - To mitigate **the override disappearing while highlighted**, we implemented **`structure_display_rgb` from #154 still winning when `highlighted` is set, and the swatch still showing the stored RGB**.
+  - We considered alternative solutions such as **dropping the highlight on colour change**.
+- The system adopts a **stateful** approach to state management because **each ROI may have its own override**. This method is done by **`_colors: dict[int, tuple[int, int, int]]`**. Benefits for using this approach include **`color_for` falls back to the DICOM triple**. Possible risks include **storing `True` as 1**.
+  - To mitigate **bool passing `int()`**, we implemented **rejecting `True` and `False` before the integer check**.
+  - We considered alternative solutions such as **accepting any `int`-like value**.
+- The Level 0 DFD consists of the following major components: **as in #154**. **Unchanged in this PR; the next PR adds colour to the pictures**. [DFD level 0](docs/architecture/diagrams/existing-framework/dfd-0.svg)
+- The Level 1 DFD consists of the following major processes: **as in #154**. **Happy path unchanged**. **Failure path unchanged**. [DFD level 1](docs/architecture/diagrams/existing-framework/dfd-1.svg)
+- Not applicable: **database (none), backend API (none)**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6** with design components for **a Change colour `QPushButton` and `QColorDialog`**. Therefore, changing the design of **that button** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the swatch still reads `color_for`**.
+- Not applicable: **data caching (no backend fetch)**.
+
+#### Review and design
+
+- When I reviewed the **stored colour** for this functionality, I noticed **writing `Structure.color` would lose the imported RGB**. Therefore, I did **keep the override in `_colors`**.
+- The PR does not contain any temporary workaround because **the override is a named RGB triple**.
+- The PR only contains small functions that are **25 lines** long (`set_color`).
+- Code quality checklist: **see Shared**.
+- This work is written in **`structures_model.py` and `structures_view.py`** because **the override lives on the model and the dialog is view-only**.
+- This work belongs in **Import's follow-on Structures page** in the DFD because **colour is display-only and Export is unchanged**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_set_color_changes_only_that_organ_and_keeps_the_dicom_value`, `test_change_colour_updates_the_list_swatch` (4 new)** passed.
+- I wrote tests to cover abnormal situations involving **`test_cancelled_colour_pick_leaves_the_swatch_and_the_preview`** and they passed.
+- I checked that these negative cases involving **`test_set_color_rejects_invalid_rgb_and_keeps_the_previous_colour`** failed as expected.
+- Among these tests, **`test_set_color_changes_only_that_organ_and_keeps_the_dicom_value`, `test_set_color_rejects_invalid_rgb_and_keeps_the_previous_colour`** are unit tests and **`test_change_colour_updates_the_list_swatch`, `test_cancelled_colour_pick_leaves_the_swatch_and_the_preview`** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`tests/views/test_structure_display.py` passed on this branch**. Four pre-existing suite failures, not from this diff, are named in #154: `test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases.
+  **[author: attach a screenshot of the pytest run showing the 4 new colour tests]**
+  **[author: attach a screenshot of Change colour updating the swatch]**
+
+### For PR #**165** (3 of 4, on #164)
+
+- As part of requirement **FR-SV-05**, the user needs to do **read the architecture pictures and see that Change colour is a display-only input on Structures**.
+- Therefore, I implemented/generated code so that **the four pictures name `color_changed` the same way they already name `highlight_changed`**.
+
+#### Review and design
+
+- When I reviewed the **generated SVGs** for this functionality, I noticed **`--check` compares each SVG hash to its `.mmd`**. Therefore, I did **edit only the `.mmd` sources and run `python docs/architecture/build.py`**.
+- Code quality checklist: **see Shared**. I checked **`python docs/architecture/build.py --check` exited 0**.
+- This work is written in **`docs/architecture/`** because **that folder owns the pictures**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` exited 0** passed.
+- This new test PR did not break anything else in the system because **no `src/` or `tests/` file changed**. Suite total is inherited from the colour PR.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
