@@ -69,7 +69,7 @@ Four stacked PRs for Structures selection, colour, pictures and black copy. #155
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#154](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/154) | `main` | #111 | Highlight the selected organ in channel-selection blue | 20, +318/−36 | 4 | 322 collected, 318 passed / 4 failed |
-| [#164](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/164) | #154 | #110 | Change colour RGB override | 9, +190/−18 | 4 | 326 collected |
+| [#164](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/164) | #154 | #110 | Change colour RGB override | 10, +244/−22 | 4 | 326 collected |
 | [#165](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/165) | #164 | part of #110 | `color_changed` on the architecture pictures | 10, +24/−19 | 0 | 326 collected |
 | [#166](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/166) | #165 | #153 | Black Structures copy on the pale sidebar | 5, +24/−4 | 1 | 327 collected |
 
@@ -184,3 +184,21 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`tests/views/test_structure_display.py` passed on this branch**. Four pre-existing suite failures, not from this diff, are named in #154: `test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases.
   **[author: attach a screenshot of the pytest run showing the 4 new colour tests]**
   **[author: attach a screenshot of Change colour updating the swatch]**
+
+### For PR #**165** (3 of 4, on #164)
+
+- As part of requirement **FR-SV-05**, the user needs to do **read the architecture pictures and see that Change colour is a display-only input on Structures**.
+- Therefore, I implemented/generated code so that **the four pictures name `color_changed` the same way they already name `highlight_changed`**.
+
+#### Review and design
+
+- When I reviewed the **generated SVGs** for this functionality, I noticed **`--check` compares each SVG hash to its `.mmd`**. Therefore, I did **edit only the `.mmd` sources and run `python docs/architecture/build.py`**.
+- Code quality checklist: **see Shared**. I checked **`python docs/architecture/build.py --check` exited 0**.
+- This work is written in **`docs/architecture/`** because **that folder owns the pictures**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` exited 0** passed.
+- This new test PR did not break anything else in the system because **no `src/` or `tests/` file changed**. Suite total is inherited from the colour PR.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
