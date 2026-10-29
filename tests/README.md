@@ -236,6 +236,8 @@ the highlight, another row replaces it, a second click or a cleared row drops it
 an empty organ gains no presentation. A highlighted triangulation uses the channel
 selection blue, 0.2 0.2 0.7. Change colour stores an RGB override, updates that
 row's swatch, leaves the imported ROI colour, and ignores a cancelled pick.
+The tab's own stylesheet must set `color: rgb(0, 0, 0)`, or the stacked widget's
+almost-white copy stays unreadable on the pale sidebar.
 They do not initialise a native viewer;
 previous native observations are recorded separately in PR #125.
 
