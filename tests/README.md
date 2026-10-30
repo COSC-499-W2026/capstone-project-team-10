@@ -74,6 +74,7 @@ tests/
 │   ├── test_cylinder_view.py
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
+│   ├── test_tandem_channel_clear.py  clearing the tandem channel
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -200,6 +201,9 @@ reference sheet's cylinder table and the Export tab's mesh, and moves Ex1's need
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.
+
+`views/test_tandem_channel_clear.py` checks that `set_tandem(None)` leaves no tandem channel,
+enables the previous one again and keeps the tandem's rotation.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
