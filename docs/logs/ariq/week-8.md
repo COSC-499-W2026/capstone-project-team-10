@@ -17,7 +17,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#177](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/177) | #176 | #171 | *Set as Tandem* removed from the Channels tab | 9, +68/−130 | 1 (replacing 1) | 332 |
 | [#178](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/178) | #177 | #172 | Export warning for a missing tandem hole | 9, +251/−3 | 5 | 337 |
 | [#179](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/179) | #178 | #173 | An import clears the previous plan's tandem | 7, +164/−14 | 1 | 338 |
-| [#183](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/183) | #179 | #182 | Review follow-ups for #175, #176 and #179 | SIZE | 6 | 344 |
+| [#183](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/183) | #179 | #182 | Review follow-ups for #175, #176 and #179 | 9, +216/−15 | 6 | 344 |
 
 The suite had 318 tests on `main` before #174 (`1f34b40`).
 
