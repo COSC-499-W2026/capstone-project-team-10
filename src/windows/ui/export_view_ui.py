@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'export_view.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.1
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -151,6 +151,13 @@ class Ui_Export_View(object):
         self.verticalSpacer_2 = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
 
         self.verticalLayout.addItem(self.verticalSpacer_2)
+
+        self.label_tandem_hole_warning = QLabel(Export_View)
+        self.label_tandem_hole_warning.setObjectName(u"label_tandem_hole_warning")
+        self.label_tandem_hole_warning.setStyleSheet(u"color: rgb(0, 0, 0);")
+        self.label_tandem_hole_warning.setWordWrap(True)
+
+        self.verticalLayout.addWidget(self.label_tandem_hole_warning)
 
         self.btn_export_mesh = QPushButton(Export_View)
         self.btn_export_mesh.setObjectName(u"btn_export_mesh")
