@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from PySide6.QtCore import Qt
 
 if TYPE_CHECKING:
@@ -93,26 +94,63 @@ def test_a_disabled_channel_reads_disabled_and_stays_in_the_list(channels_window
     assert disabled.background() != channel_item(channels_window, MARKED_CHANNEL).background()
 
 
-def test_the_tandem_channel_reads_tandem_in_the_list(cylinder_window: MainWindow) -> None:
-    """Check that the tandem channel reads as the tandem, not as merely disabled.
+def listed_labels(window: MainWindow) -> list[str]:
+    """Return the labels of the Channels list's rows, top to bottom. A helper, not a test."""
+    channel_list = window.navigationmodel.views[CHANNELS_TAB].ui.listwidget_channels
+    return [channel_list.item(row).text() for row in range(channel_list.count())]
 
-    Applicator12 is set as the tandem, which also disables it. Fails if its status is not
-    TANDEM, or its row is not bold italic with the tandem tooltip. The tandem channel is not
-    cut as a needle, but the clinician must be able to tell it from a needle they switched off.
-    A fresh window keeps tandem and disabled state out of the shared channel fixture.
+
+def test_the_tandem_channel_leaves_the_list_and_comes_back_as_a_needle(cylinder_window: MainWindow) -> None:
+    """Check the tandem channel is not listed, and is listed again, plain, once it is not the tandem.
+
+    Applicator12 is set as the tandem, then the tandem is cleared. Fails if Applicator12 still has
+    a row while it is the tandem, or has no row, or a styled one, afterwards. Nothing on the
+    Channels tab applies to the tandem channel, and Enable on its row cut it as a needle as well
+    as labelling the tandem hole with its number. A fresh window keeps this out of the shared
+    channel fixture.
     """
     from pathlib import Path
 
     from classes.dicom.fileio import read_dicom_folder
-    from windows.models.channels_model import ChannelStatus
 
     plan = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
     cylinder_window.dicommodel.update(read_dicom_folder(str(plan)))
     cylinder_window.navigationmodel.views[CHANNELS_TAB].create_channels_list()
     model = cylinder_window.channelsmodel
-    model.set_tandem(TANDEM_CHANNEL)
-    tandem = channel_item(cylinder_window, TANDEM_CHANNEL)
 
-    assert model.channel_status(TANDEM_CHANNEL) is ChannelStatus.TANDEM
-    assert tandem.toolTip() == "Tandem channel, not cut as a needle"
-    assert tandem.font().bold() and tandem.font().italic()
+    model.set_tandem(TANDEM_CHANNEL)
+    assert TANDEM_CHANNEL not in listed_labels(cylinder_window)
+    assert len(listed_labels(cylinder_window)) == 11
+
+    model.set_tandem(None)
+    returned = channel_item(cylinder_window, TANDEM_CHANNEL)
+    assert not returned.font().bold() and not returned.font().italic()
+    assert returned.background() == channel_item(cylinder_window, GLOBAL_DIAMETER_CHANNEL).background()
+
+
+def test_ex2_lists_every_channel_except_its_tandem(tandem_window: MainWindow) -> None:
+    """Check that after importing Ex2 the list shows Applicator2 to Applicator13 and not Tandem.
+
+    Fails if channel 14, Tandem, has a row, a needle is missing, or the legend under the list
+    still explains a tandem row. The tandem channel is chosen on the Tandem tab, so a row for it
+    here would offer controls that do not apply to it, and a legend for a row that never appears
+    would send the clinician looking for it.
+    """
+    legend = tandem_window.navigationmodel.views[CHANNELS_TAB].ui.label_channel_status_legend.text()
+
+    assert listed_labels(tandem_window) == [f"Applicator{number}" for number in range(2, 14)]
+    assert "tandem" not in legend.lower()
+
+
+def test_the_tandem_channel_cannot_be_enabled_as_a_needle(tandem_window: MainWindow) -> None:
+    """Check toggle_channel_enabled refuses the tandem channel with ValueError and leaves it disabled.
+
+    Fails if Tandem is enabled. It would then be cut as a 2.7 mm needle hole beside the tandem
+    hole, and listed on the reference sheet as a needle while its number labels the tandem.
+    """
+    model = tandem_window.channelsmodel
+
+    with pytest.raises(ValueError):
+        model.toggle_channel_enabled("Tandem")
+
+    assert model.is_channel_disabled("Tandem")

@@ -54,9 +54,11 @@ window the group is below the fold and the list shows about four rows, where wit
 scroll area the spin boxes above were squeezed unreadable. *Verified* by offscreen widget tests
 and a render of the shown window. A screenshot of it is linked from Ahab's week 6 log.
 
-Each row of the Channels list shows its channel's status. Own diameter is bold on amber,
-disabled is italic on grey, and the tandem is bold italic on blue, with a legend under the
-list. Every colour has its own bold and italic pair, so colour is never the only cue (WCAG
+Each row of the Channels list shows its channel's status. Own diameter is bold on amber, and
+disabled is italic on grey, with a legend under the list. The tandem channel has no row: it is
+chosen on the Tandem tab, and comes back as a plain row once it is no longer the tandem.
+*Verified* by offscreen tests and in a run of the real window on macOS, linked from Ariq's week 8
+log. Every colour has its own bold and italic pair, so colour is never the only cue (WCAG
 1.4.1, Use of Color), and hovering a row names its status and diameter. A selected row shows
 the system highlight instead of its colour, and keeps its font. *Verified* by offscreen tests
 and a render. A screenshot of it is linked from Ahab's week 6 log.

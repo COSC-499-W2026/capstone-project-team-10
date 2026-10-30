@@ -369,7 +369,7 @@ class Ui_Channels_View(object):
         self.sb_threading_diameter.setSuffix(QCoreApplication.translate("Channels_View", u" mm", None))
         self.btn_apply_settings.setText(QCoreApplication.translate("Channels_View", u"Apply", None))
         self.label_5.setText(QCoreApplication.translate("Channels_View", u"Channels", None))
-        self.label_channel_status_legend.setText(QCoreApplication.translate("Channels_View", u"Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem. Underlined has been moved.", None))
+        self.label_channel_status_legend.setText(QCoreApplication.translate("Channels_View", u"Bold on amber has its own diameter. Italic on grey is disabled and not cut. Underlined has been moved.", None))
         self.btn_set_tandem.setText(QCoreApplication.translate("Channels_View", u"Set as Tandem", None))
         self.btn_enable.setText(QCoreApplication.translate("Channels_View", u"Disable", None))
         self.group_selected_channel.setTitle(QCoreApplication.translate("Channels_View", u"Selected Channel", None))

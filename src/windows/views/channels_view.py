@@ -54,12 +54,10 @@ STATUS_ROW_STYLES = {
     ChannelStatus.STANDARD: ChannelRowStyle(QBrush(), bold=False, italic=False),
     ChannelStatus.OWN_DIAMETER: ChannelRowStyle(QBrush(QColor(255, 214, 153)), bold=True, italic=False),
     ChannelStatus.DISABLED: ChannelRowStyle(QBrush(QColor(220, 220, 220)), bold=False, italic=True),
-    ChannelStatus.TANDEM: ChannelRowStyle(QBrush(QColor(204, 224, 255)), bold=True, italic=True),
 }
 
 
 def channel_status_text(status: ChannelStatus, diameter: float) -> str:
-    if status is ChannelStatus.TANDEM: return "Tandem channel, not cut as a needle"
     if status is ChannelStatus.DISABLED: return "Disabled, not cut into the cylinder"
     if status is ChannelStatus.OWN_DIAMETER: return f"Own diameter {diameter:.3f} mm"
     return f"Channels diameter {diameter:.3f} mm"
@@ -292,13 +290,15 @@ class ChannelsView(CustomView):
         selected_channel = self.channelsmodel.get_selected_channel()
         self.ui.listwidget_channels.blockSignals(True)  # prevents accidently emitting signals
         self.ui.listwidget_channels.clear()
-        for row, channel in enumerate(self.channelsmodel.channels.values()):
+        for channel in self.channelsmodel.channels.values():
+            # the tandem channel is chosen on the Tandem tab, and nothing here applies to it
+            if self.channelsmodel.is_channel_tandem(channel.label): continue
             new_item = QListWidgetItem()
             new_item.setText(channel.label)
             self.ui.listwidget_channels.addItem(new_item)
             if selected_channel is not None and \
                selected_channel == channel.label:
-                self.ui.listwidget_channels.setCurrentRow(row)
+                self.ui.listwidget_channels.setCurrentRow(self.ui.listwidget_channels.count() - 1)
         self.ui.listwidget_channels.blockSignals(False)
         self.mark_channel_statuses()
 
@@ -306,6 +306,7 @@ class ChannelsView(CustomView):
         lister = self.ui.listwidget_channels
         for label, channel in self.channelsmodel.channels.items():
             status = self.channelsmodel.channel_status(label)
+            if status is ChannelStatus.TANDEM: continue  # not listed
             style = STATUS_ROW_STYLES[status]
             for item in lister.findItems(label, Qt.MatchFlag.MatchExactly):
                 font = item.font()
@@ -314,8 +315,7 @@ class ChannelsView(CustomView):
                 font.setUnderline(self.channelsmodel.is_channel_moved(label))
                 item.setFont(font)
                 item.setBackground(style.background)
-                tooltip = channel_status_text(status, channel.get_diameter())
-                if status is not ChannelStatus.TANDEM: tooltip += "\nDouble click to move"
+                tooltip = channel_status_text(status, channel.get_diameter()) + "\nDouble click to move"
                 if self.channelsmodel.is_channel_moved(label):
                     tooltip += "\n" + moved_text(channel.translation)
                     tooltip += "\n" + self.warning_for(label, channel.translation)
@@ -421,5 +421,6 @@ class ChannelsView(CustomView):
 
         self.channelsmodel = get_app().window.channelsmodel
         self.channelsmodel.values_changed.connect(self.action_update_settings)
+        self.channelsmodel.tandem_changed.connect(self.create_channels_list)
 
         self.action_update_settings()
