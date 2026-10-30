@@ -85,6 +85,11 @@ default 770 × 472 window, so the Generate spin boxes keep their full height. *V
 offscreen widget tests and in a run of the real window on macOS. A screenshot of it is linked
 from Ariq's week 8 log.
 
+When a tandem channel is set but no tandem has been generated or imported, the Export tab shows
+a word-wrapped warning above its export buttons, and Export Mesh, Export Reference Sheet and
+Export Shape(s) ask before going ahead, with Cancel the default. *Verified* by offscreen tests and
+in a run of the real window on macOS, linked from Ariq's week 8 log.
+
 The Selected Channel group also holds the needle templates: a name field with *Save as
 Template*, a list of saved templates with *Apply Template*, and a status line. A refused save
 or an unreadable template file is explained in the status line beside the controls rather

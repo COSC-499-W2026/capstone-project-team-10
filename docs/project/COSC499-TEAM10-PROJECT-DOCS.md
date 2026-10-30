@@ -1457,7 +1457,11 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 **Export** (`export_view.ui`) — `cb_tandem_shown`, `cb_collet_preview_reference_sheet`,
 `sb_needle_collet_od`, `sb_tandem_collet_outer_od`, `sb_tandem_collet_inner_od`,
 `btn_export_mesh`, `btn_export_template_reference`, `btn_export_shapes`,
-`btn_export_current_config`.
+`btn_export_current_config`. Since 2026-10-29 `label_tandem_hole_warning`, above the export
+buttons, warns when a tandem channel is set but no tandem has been generated or imported (§7.15).
+`on_open` fills it, and Export Mesh, Export Reference Sheet and Export Shape(s) first ask through
+`Export_View.confirm_export`, a Yes and Cancel dialog with Cancel the default. Exporting the
+config does not ask.
 
 **Main window** (`main_window.ui`) — `display_view_widget` (hosts the OCC canvas),
 `top_menu_bar` with the five nav buttons from the `.ui` plus `btn_structures_view`
@@ -2227,6 +2231,19 @@ from the PDF's own text). *Not addressed, not verified:* a review reported that 
 length reads only a needle's first segment, so a needle that leaves through the side wall on a later
 segment may read 0.
 
+### 7.15 MEDIUM — a plan's tandem channel was exported with no tandem hole, and nothing said so
+
+*Verified* 2026-10-29 in the real window on macOS. **Mitigated 2026-10-29 by a warning.** A plan
+with a channel named Tandem, such as Ex2, sets it as the tandem channel at import, which leaves it
+out of the cut. The tandem hole comes only from *Generate Tandem* or a tandem STEP import. Until one
+of those is used, the Export solid, STL and STEP have no tandem hole, and the reference sheet has no
+tandem row and does not list the channel, so the plan's tandem has nowhere to go and no part of
+the export shows it. Choosing a needle as the tandem channel without generating did the same, and
+also gave that needle no hole. The Export tab now says so and asks before each export (§5.6).
+Exporting is still allowed, because whether a cylinder may ever be printed without the plan's
+tandem is a clinical decision nobody has made yet. A cylinder with no tandem channel and no tandem
+hole, a needles-only device, gets no warning.
+
 ---
 
 ## 8. Testing
@@ -2344,6 +2361,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
+| `views/test_export_tandem_warning.py` | Ex2 imported with no tandem opens the Export tab without a warning naming its Tandem channel, or with a colon or an em dash in it, or the warning shows once a tandem is generated or with no tandem channel. Or exporting with the warning does not ask once with its text, goes ahead after No, or asks when the tandem hole exists (§7.15) |
 | `views/test_tandem_channel_choice.py` | the Tandem Channel box does not list *None* and Ex2's 13 channels with their numbers, or does not show channel 14 after import or a tandem set on the Channels tab. Or choosing Applicator7 does not make it the only channel left out of the cut and aim the tandem at 64.929°, *No* in the rotation warning keeps it, *None* leaves a tandem channel, a moved channel is accepted or not explained, the off-axis warning is missing, wrong, has a colon or an em dash, or shows for Tandem. Or a Generate spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§5.6) |
 | `views/test_tandem_channel.py` | importing Ex2 does not aim the tandem along its channel 14 at 359.996° or record the plan rotation, or `set_tandem(None)` leaves a tandem channel named, keeps the previous tandem channel disabled, puts `None` in the disabled set, or changes the tandem's rotation (§5.5) |
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
@@ -2570,6 +2588,10 @@ python -m pytest
 - *Verified* 2026-10-29 on macOS: 332 passed, with the *Set as Tandem* button test in
   `test_move_channel.py` replaced by one that no Channels tab button sets or clears the tandem.
   It failed while the button existed. *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 337 passed, with `tests/views/test_export_tandem_warning.py`
+  added (five tests). All five failed with `AttributeError` before the warning existed. Two
+  deliberate breaks were each caught: every export allowed, and the warning never shown.
+  *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
