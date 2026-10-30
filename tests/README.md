@@ -75,6 +75,7 @@ tests/
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   ├── test_tandem_channel.py  the tandem channel at import and when cleared
+│   ├── test_tandem_channel_choice.py  the Tandem tab's Tandem Channel box
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -207,6 +208,11 @@ snapshot does not list.
 `views/test_tandem_channel.py` checks that importing Ex2 aims the tandem along its channel named
 Tandem, and that `set_tandem(None)` leaves no tandem channel, enables the previous one again and
 keeps the tandem's rotation. It uses `tandem_window`, the Ex2 window in `views/conftest.py`.
+
+`views/test_tandem_channel_choice.py` drives the Tandem tab's Tandem Channel box on Ex2: what it
+lists, choosing a channel or *None*, the rotation warning answered through
+`TandemView.confirm_rotation`, the off-axis and moved-channel warnings, and the Generate spin
+boxes' height in the default window.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.

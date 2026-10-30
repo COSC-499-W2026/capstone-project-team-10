@@ -72,6 +72,16 @@ nothing stops OK. *Verified* by
 offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked
 from Ahab's week 7 log.
 
+The Tandem tab opens with a *Tandem Channel* row above its Import and Generate sub-tabs. Its
+box lists *None* and every plan channel with its number, such as `Tandem (14)`, and shows the
+channel named Tandem after an import. Choosing a channel does what *Set as Tandem* does on the
+Channels tab, and choosing *None* clears it. A word-wrapped line under the box explains a
+refusal, such as a moved channel, or warns when the chosen channel crosses the base away from
+the axis, since the tandem hole is always cut on the axis. The tab scrolls up and down in the
+default 770 × 472 window, so the Generate spin boxes keep their full height. *Verified* by
+offscreen widget tests and in a run of the real window on macOS. A screenshot of it is linked
+from Ariq's week 8 log.
+
 The Selected Channel group also holds the needle templates: a name field with *Save as
 Template*, a list of saved templates with *Apply Template*, and a status line. A refused save
 or an unreadable template file is explained in the status line beside the controls rather
