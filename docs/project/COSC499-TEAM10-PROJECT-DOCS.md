@@ -1190,9 +1190,11 @@ emitting change signals. They hold no widgets.
 
 Since 2026-10-29 `ImportView.import_dicom_from_folder` calls `clear_for_new_plan()` before reading a
 plan. It removes the tandem, generated or imported, zeroes both offsets, sets the rotation and
-the plan rotation back to `CONFIG_TANDEM_ROTATION` and clears `hasTandemInDICOM`. Before, the tandem
-and its rotation carried into the next plan, so a tandem generated for Ex2 was cut into Ex1's
-cylinder, which has no tandem channel. *Verified* in the real window on macOS.
+the plan rotation to the live settings' `CONFIG_TANDEM_ROTATION` and clears `hasTandemInDICOM`.
+Before, the tandem carried into the next plan, so a tandem generated for Ex2 was cut into Ex1's
+cylinder, which has no tandem channel. *Verified* in the real window on macOS: after Ex2 with a
+generated tandem, importing Ex1 left no tandem and no tandem hole. The rotation still carries
+over through the live settings (§7.16).
 
 Its `_generate_tandem()` implements an unusual error-recovery algorithm, documented in a long
 docstring in the file: it applies each spin-box value one at a time, rebuilding the shape after
@@ -2249,6 +2251,17 @@ also gave that needle no hole. The Export tab now says so and asks before each e
 Exporting is still allowed, because whether a cylinder may ever be printed without the plan's
 tandem is a clinical decision nobody has made yet. A cylinder with no tandem channel and no tandem
 hole, a needles-only device, gets no warning.
+
+### 7.16 LOW — a generated tandem's rotation becomes the next plan's starting rotation
+
+*Verified* 2026-10-29 in the real window on macOS. *Generate Tandem* merges `getCurrentValues()`
+into the live settings (§7.1), and that snapshot includes `CONFIG_TANDEM_ROTATION`, the rotation
+just used. `TandemModel.clear_for_new_plan()` resets the rotation to that live value, so after a
+tandem was generated for Ex2 at 359.996°, importing Ex1 started at 359.996° rather than the 0° of
+the loaded settings. A plan with a tandem channel overwrites it from that channel, so only a plan
+without one, generating a tandem by hand, starts from the previous plan's direction. The tandem
+itself is cleared. Fixing it needs the loaded settings kept apart from the live ones, which nothing
+does yet. Not changed.
 
 ---
 
