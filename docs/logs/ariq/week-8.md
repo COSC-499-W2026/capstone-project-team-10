@@ -15,6 +15,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#175](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/175) | #174 | #169 | Tandem Channel box on the Tandem tab | 9, +454/−9 | 9 | 330 |
 | [#176](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/176) | #175 | #170 | Channels list without the tandem channel | 9, +118/−25 | 3 (1 replaced) | 332 |
 | [#177](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/177) | #176 | #171 | *Set as Tandem* removed from the Channels tab | 9, +68/−130 | 1 (replacing 1) | 332 |
+| [#178](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/178) | #177 | #172 | Export warning for a missing tandem hole | 9, +251/−3 | 5 | 337 |
 
 The suite had 318 tests on `main` before #174 (`1f34b40`).
 
@@ -173,3 +174,36 @@ Stated once here instead of in each section.
 
   ![1, the real Channels tab on Ex2 with Applicator7 selected and no Set as Tandem button, and python -m pytest on feat/remove-set-as-tandem-button, 25 passed in test_move_channel.py and 332 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/800d2b4655f8028644a0c7a11936253308a15870/docs/logs/ariq/screenshots/week-8/pr-177-1-channels-tab.png)
 - Not applicable: **abnormal cases (a removal has no edge case)**.
+
+### For PR #**178** (5 of 6, on #177)
+
+- As part of requirement **issue #172, never print a cylinder without its tandem hole unknowingly**, the user needs to do **export Ex2 before generating a tandem, read the warning, and cancel or go ahead**.
+- Therefore, I implemented/generated code so that **clinicians are told, and asked, before exporting a cylinder whose tandem channel has no tandem hole**.
+
+#### Frontend
+
+- The frontend uses **no cache: the warning is worked out from the plan's tandem channel and the tandem model each time the tab opens or an export starts** because **either can change on another tab**. Benefits for using this pattern include **a stale warning cannot pass or block an export**. Possible risks include **a warning ignored out of habit**.
+  - To mitigate **habit**, we implemented **no warning at all when the device is correct, a needles-only plan included**.
+- The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **a word-wrapped warning line and a `QMessageBox` with Yes and Cancel**. Therefore, changing the design of **the warning line in `export_view.ui`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the text comes from `missing_tandem_hole_text`**.
+- The frontend adopts accessibility principle **WCAG 3.3.4, Error Prevention: an action with consequences is confirmed first**. The aspects that demonstrate this principle in the system include **the dialog with Cancel as its default (screenshot 1)**.
+
+  ![1, the real Export tab on Ex2 with the missing tandem hole warning and its dialog, and python -m pytest on feat/export-tandem-hole-warning, 5 passed in test_export_tandem_warning.py and 337 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ad791f64343f8138bda6a9d36a8bea279226a131/docs/logs/ariq/screenshots/week-8/pr-178-1-export-warning.png)
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#172: `tests/views/test_export_tandem_warning.py`, 5 tests**
+
+#### Review and design
+
+- When I reviewed the **generated export checks** for this functionality, I did not find any problems with it because **in the real window, Cancel opened no save dialog and wrote no file, and after *Generate Tandem* the warning was gone and the STL was written**.
+- The PR does not contain any temporary workaround because **exporting stays allowed until the team decides whether it should be blocked**.
+- The PR only contains small functions that are **3 to 9 lines (new) and 4 to 15 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`export_view.py` and `export_view.ui`** because **the Export tab writes the files**.
+- This work belongs in **Export** in the DFD because **it gates what Export writes**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_the_export_tab_warns_that_the_tandem_channel_has_no_hole`, `test_exporting_asks_first_and_no_stops_it` (5 new; 5 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a generated tandem and no tandem channel, where nothing may be asked** and they passed.
+- I checked that these negative cases involving **two deliberate breaks (every export allowed, the warning never shown)** failed as expected.
+- Among these tests, **none** are unit tests and **all 5** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 337 passed (332 after #177, screenshot 1)**.
