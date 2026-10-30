@@ -2287,7 +2287,7 @@ JSON files from a temporary folder: a file with one key, a file that is not vali
 
 Both view test files share the one QApplication from the `units_app` fixture in
 [tests/views/conftest.py](../../tests/views/conftest.py), which isolates HOME/USERPROFILE.
-`channels_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
+`channels_window`, `tandem_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
 per process, so a fixture that constructed its own would fail in whichever file ran second.
 `brachify_app` in [tests/windows/conftest.py](../../tests/windows/conftest.py) follows the same
 rule: whichever of the two session fixtures runs first starts the app, and the other reuses it.
@@ -2318,7 +2318,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
-| `views/test_tandem_channel_clear.py` | `set_tandem(None)` leaves a tandem channel named, keeps the previous tandem channel disabled, puts `None` in the disabled set, or changes the tandem's rotation (§5.5) |
+| `views/test_tandem_channel.py` | importing Ex2 does not aim the tandem along its channel 14 at 359.996° or record the plan rotation, or `set_tandem(None)` leaves a tandem channel named, keeps the previous tandem channel disabled, puts `None` in the disabled set, or changes the tandem's rotation (§5.5) |
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -2524,9 +2524,12 @@ python -m pytest
   19.83 mm out, and both sheets list Length 170.0 mm, Tip Flat and the collar. OpenCASCADE printed
   its known "2 faces have been skipped due to null triangulation" while writing the STL (§7.9).
   *Not verified:* Windows.
-- *Verified* 2026-10-29 on macOS: 320 passed, with `tests/views/test_tandem_channel_clear.py`
-  added (two tests). Both failed before the fix, one with `[None] == []` in the disabled set and
-  one with the rotation at 0.0 instead of Applicator12's 208.37°. *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 321 passed, with `tests/views/test_tandem_channel.py` added
+  (three tests) and the `tandem_window` fixture, Ex2 imported, in `tests/views/conftest.py`. The
+  two clearing tests failed before the fix, one with `[None] == []` in the disabled set and one
+  with the rotation at 0.0 instead of Applicator12's 208.37°. The import test was added after a
+  first version of the fix raised `NameError` for a channel named Tandem, which Qt printed and
+  ignored. It failed with the rotation at 0.0 instead of 359.996. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

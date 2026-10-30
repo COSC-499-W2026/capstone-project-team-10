@@ -64,7 +64,7 @@ tests/
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
 ├── views/                 exists: the Channels, Cylinder, Tandem and Import views, against the real window
-│   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
+│   ├── conftest.py        units_app, channels_window (Ex1 imported), tandem_window (Ex2) and cylinder_window
 │   ├── test_camera_controls.py  camera gesture and zoom rules
 │   ├── test_central_axis.py     reference geometry and toggle/reset state
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
@@ -74,7 +74,7 @@ tests/
 │   ├── test_cylinder_view.py
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
-│   ├── test_tandem_channel_clear.py  clearing the tandem channel
+│   ├── test_tandem_channel.py  the tandem channel at import and when cleared
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -165,15 +165,17 @@ field `__init__` declares. It imports no Qt or conda-only package.
 `settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
 imports no Qt or conda-only package.
 
-`views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
+`views/conftest.py` holds four fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
-QApplication per process, so the two window fixtures share it rather than each making their
+QApplication per process, so the three window fixtures share it rather than each making their
 own. `channels_window` builds the real `MainWindow`, models and six views once per module
 and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
 in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
 builds a fresh window with default settings for each test and restores the previous app
-window afterwards, so later tests still reach their own models. Neither calls
-`canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and both
+window afterwards, so later tests still reach their own models. `tandem_window` builds one window
+per module with default settings and imports `SI_C_D30 Brachify_Ex2/`, the only sample whose
+channel 14 is named Tandem, and restores the previous window too. None calls
+`canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and all three
 disconnect their window from the application signals on teardown. No application module is
 mocked.
 
@@ -202,8 +204,9 @@ reference sheet's cylinder table and the Export tab's mesh, and moves Ex1's need
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.
 
-`views/test_tandem_channel_clear.py` checks that `set_tandem(None)` leaves no tandem channel,
-enables the previous one again and keeps the tandem's rotation.
+`views/test_tandem_channel.py` checks that importing Ex2 aims the tandem along its channel named
+Tandem, and that `set_tandem(None)` leaves no tandem channel, enables the previous one again and
+keeps the tandem's rotation. It uses `tandem_window`, the Ex2 window in `views/conftest.py`.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
