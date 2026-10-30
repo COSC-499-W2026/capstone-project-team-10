@@ -3,10 +3,10 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #174 to #179, at a glance
+## Stack #174 to #183, at a glance
 
-Six stacked PRs that move the tandem channel choice to the Tandem tab and stop a tandem channel
-being exported without its hole. Each PR is based on the one above it and closes its own issue.
+Seven stacked PRs that move the tandem channel choice to the Tandem tab and stop a tandem channel
+being exported without its hole. The seventh, #183, answers Ayyhab's review of #175, #176 and #179. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
@@ -17,6 +17,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#177](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/177) | #176 | #171 | *Set as Tandem* removed from the Channels tab | 9, +68/−130 | 1 (replacing 1) | 332 |
 | [#178](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/178) | #177 | #172 | Export warning for a missing tandem hole | 9, +251/−3 | 5 | 337 |
 | [#179](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/179) | #178 | #173 | An import clears the previous plan's tandem | 7, +164/−14 | 1 | 338 |
+| [#183](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/183) | #179 | #182 | Review follow-ups for #175, #176 and #179 | SIZE | 6 | 344 |
 
 The suite had 318 tests on `main` before #174 (`1f34b40`).
 
@@ -36,7 +37,7 @@ Stated once here instead of in each section.
 - **Regression checks.** Every PR's regression receipt also includes **`build.py --check` and `session-start.sh`, both exit 0, and an end-to-end run of the real window on the top of the stack, #179, with Ex2, then Ex1, then a third Varian plan whose tandem is channel 1**. Each section gives only its own `python -m pytest` result.
 - **Not applicable in every PR.** **Encryption and access controls (no stored secrets, no user roles), database (none), restricted pages (no logins), usability evaluation (none run), backend API (none), test coverage (no coverage tool)**.
 
-### For PR #**174** (1 of 6, on `main`)
+### For PR #**174** (1 of 7, on `main`)
 
 - As part of requirement **issue #168, a plan with no tandem channel**, the user needs to do **clear a plan's tandem channel so that no channel is the tandem**.
 - Therefore, I implemented/generated code so that **clinicians can clear the tandem channel without an error, the old tandem channel is cut as a needle again, and the tandem keeps its rotation**.
@@ -71,7 +72,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on fix/tandem-channel-none, 3 passed in test_tandem_channel.py and 321 passed in the whole suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/40e32d755ba1d497b71cca7ccef0cc454e03386b/docs/logs/ariq/screenshots/week-8/pr-174-1-pytest-321-passed.png)
 
-### For PR #**175** (2 of 6, on #174)
+### For PR #**175** (2 of 7, on #174)
 
 - As part of requirement **issue #169, choose the tandem channel where the tandem is set up**, the user needs to do **open the Tandem tab, pick which plan channel is the tandem, or None, and be told if it does not run along the axis**.
 - Therefore, I implemented/generated code so that **clinicians choose, change or clear the tandem channel on the Tandem tab, and are warned about an off-axis or moved channel**.
@@ -105,7 +106,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 330 passed (321 after #174, screenshot 1)**.
 
-### For PR #**176** (3 of 6, on #175)
+### For PR #**176** (3 of 7, on #175)
 
 - As part of requirement **issue #170, keep the tandem channel off the needle list**, the user needs to do **see only needles on the Channels tab, and get the tandem channel back as a needle once it stops being the tandem**.
 - Therefore, I implemented/generated code so that **clinicians never see or enable the tandem channel as a needle on the Channels tab**.
@@ -146,7 +147,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 332 passed (330 after #175, screenshot 1)**.
 
-### For PR #**177** (4 of 6, on #176)
+### For PR #**177** (4 of 7, on #176)
 
 - As part of requirement **issue #171, one place to set the tandem channel**, the user needs to do **set the tandem channel only on the Tandem tab**.
 - Therefore, I implemented/generated code so that **clinicians can no longer change the tandem from the Channels tab, where its effect was hidden**.
@@ -176,7 +177,7 @@ Stated once here instead of in each section.
   ![1, the real Channels tab on Ex2 with Applicator7 selected and no Set as Tandem button, and python -m pytest on feat/remove-set-as-tandem-button, 25 passed in test_move_channel.py and 332 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/800d2b4655f8028644a0c7a11936253308a15870/docs/logs/ariq/screenshots/week-8/pr-177-1-channels-tab.png)
 - Not applicable: **abnormal cases (a removal has no edge case)**.
 
-### For PR #**178** (5 of 6, on #177)
+### For PR #**178** (5 of 7, on #177)
 
 - As part of requirement **issue #172, never print a cylinder without its tandem hole unknowingly**, the user needs to do **export Ex2 before generating a tandem, read the warning, and cancel or go ahead**.
 - Therefore, I implemented/generated code so that **clinicians are told, and asked, before exporting a cylinder whose tandem channel has no tandem hole**.
@@ -209,7 +210,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 337 passed (332 after #177, screenshot 1)**.
 
-### For PR #**179** (6 of 6, on #178)
+### For PR #**179** (6 of 7, on #178)
 
 - As part of requirement **issue #173, each patient's cylinder holds only that plan's holes**, the user needs to do **import one plan after another without the previous plan's tandem being cut into the next**.
 - Therefore, I implemented/generated code so that **clinicians start every imported plan with no tandem left over from the previous one**.
@@ -247,3 +248,43 @@ Stated once here instead of in each section.
 
   ![1, the real Tandem tab on Ex1 imported after Ex2 had a generated tandem, no tandem left, and python -m pytest on fix/import-clears-tandem, 3 passed in test_import_view.py and 338 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/efeff987bfab7ea53f9bbe3d63308cffcbe1f999/docs/logs/ariq/screenshots/week-8/pr-179-1-ex1-after-ex2.png)
 - Not applicable: **abnormal cases (one import path)**.
+
+### For PR #**183** (7 of 7, on #179)
+
+- As part of requirement **issue #182, the review of #175, #176 and #179**, the user needs to do **change the tandem's diameter, answer No to the rotation warning, or have a selected channel become the tandem, and see the screens stay correct**.
+- Therefore, I implemented/generated code so that **clinicians always see an up-to-date off-axis warning, a No leaves the tandem as it was, and the Channels tab never acts on the hidden tandem channel**.
+
+#### Backend
+
+- The system uses **the model that owns the state deciding it: `ChannelsModel.set_tandem` clears the selection when the selected channel becomes the tandem** because **every view that sets the tandem then gets the same rule**. Benefits for using this pattern include **the Tandem tab and the import need no extra step**. Possible risks include **a view keeping its own copy of the selection**.
+  - To mitigate **a stale view selection**, we implemented **the Channels tab reading the selection from the model on `values_changed`, checked by `test_a_selected_channel_made_the_tandem_is_no_longer_selected`**.
+- The system architecture diagram consists of the following major components: **as in #174**. This structure has low coupling because **no signal was added**. This structure has high cohesion because **each fix sits in the class that owns the state**. This design is scalable because **a later control that sets the tandem inherits the rule**.
+
+  **[System architecture, unchanged](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/1f34b40bcfbab59fc662d20e25a682f7b33b47ab/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#182: three tests in `test_tandem_channel_choice.py`, two in `test_channel_status_colours.py`, one in `test_import_view.py`**
+- Not applicable: **data processing, state management, Level 0 DFD, Level 1 DFD (unchanged)**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification: a problem is described in text where it happens**. The aspects that demonstrate this principle in the system include **the off-axis warning appearing as soon as Generate makes the tandem narrower (screenshot 1)**.
+- Not applicable: **data caching, design components (no widget added)**.
+
+#### Review and design
+
+- When I reviewed the **review comments on #175, #176 and #179** for this functionality, I noticed **the comments that would change the agreed behaviour: refresh only on `tandem_changed` (it would stop listing Ex1's channels), reset the Generate settings on import, and fix the rotation carry-over of §7.16**. Therefore, I did **reply to those and fix only the ones that keep it**.
+- The PR does not contain any temporary workaround because **each fix is in the method that owns the state**.
+- The PR only contains small functions that are **5 to 17 lines (changed) and 15 to 33 lines (tests)** long. The inherited `action_set_tandem`, 36 lines, gained 2 and was not split.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tandem_view.py`, `channels_model.py` and `channels_view.py`** because **those are the classes the review named**.
+- This work belongs in **Channels and Tandem** in the DFD because **it changes how the tandem channel is shown and chosen**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_generating_with_a_new_diameter_updates_the_off_axis_warning`, `test_a_selected_channel_made_the_tandem_is_no_longer_selected` (6 new; 24 in the three files; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a tandem channel the plan does not have, No after None, and the tandem channel selected in the model** and they passed.
+- I checked that these negative cases involving **the code before each fix (the warning hidden, a `KeyError`, the rotation at 64.929°, Applicator5 still selected, the model's `ValueError`), and three deliberate breaks of the import reset** failed as expected.
+- Among these tests, **none** are unit tests and **all 6** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 344 passed (338 after #179, screenshot 1)**.
+
+  ![1, the real Tandem tab on Ex2 after Generate Tandem at a 2.0 mm diameter, the off-axis warning shown, and python -m pytest on fix/tandem-review-follow-ups, 24 passed in the three files and 344 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/4a6e96b893a6c2b63aa835db728381669ebcf221/docs/logs/ariq/screenshots/week-8/pr-183-1-warning-after-generate.png)
