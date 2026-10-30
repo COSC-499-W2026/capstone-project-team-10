@@ -12,6 +12,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#174](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/174) | `main` | #168 | Clearing the tandem channel, the Ex2 fixture | 8, +193/−14 | 3 | 321 |
+| [#175](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/175) | #174 | #169 | Tandem Channel box on the Tandem tab | 9, +454/−9 | 9 | 330 |
 
 The suite had 318 tests on `main` before #174 (`1f34b40`).
 
@@ -65,3 +66,37 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 321 passed (318 on `main`, screenshot 1)**.
 
   ![1, python -m pytest on fix/tandem-channel-none, 3 passed in test_tandem_channel.py and 321 passed in the whole suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/40e32d755ba1d497b71cca7ccef0cc454e03386b/docs/logs/ariq/screenshots/week-8/pr-174-1-pytest-321-passed.png)
+
+### For PR #**175** (2 of 6, on #174)
+
+- As part of requirement **issue #169, choose the tandem channel where the tandem is set up**, the user needs to do **open the Tandem tab, pick which plan channel is the tandem, or None, and be told if it does not run along the axis**.
+- Therefore, I implemented/generated code so that **clinicians choose, change or clear the tandem channel on the Tandem tab, and are warned about an off-axis or moved channel**.
+
+#### Frontend
+
+- The frontend uses **no cache: the box is refilled from `ChannelsModel` on every `values_changed`** because **an import or the Channels tab can also change the tandem channel**. Benefits for using this pattern include **the box never shows a stale channel**. Possible risks include **a refill re-applying a choice**.
+  - To mitigate **a refill re-applying a choice**, we implemented **a `QSignalBlocker` around the refill and a connection to `activated`, which only a click emits**.
+- The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **a label and combo box row and a word-wrapped warning line, styled like the tab's other rows**. Therefore, changing the design of **the row in `tandem_view.ui`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the view fills the box and the warning at runtime**.
+- The frontend adopts accessibility principle **WCAG 1.4.1, Use of Color: a problem is stated in words, never shown only by colour**. The aspects that demonstrate this principle in the system include **the warning sentence naming the channel and its 7.2 mm distance (screenshot 1)**.
+
+  ![1, the real Tandem tab on Ex2 with Applicator7 chosen and the 7.2 mm warning, and python -m pytest on feat/tandem-channel-choice, 9 passed in test_tandem_channel_choice.py and 330 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/340d2b46208c673b262a40684a39247ff8f5ff7b/docs/logs/ariq/screenshots/week-8/pr-175-1-tandem-channel-box.png)
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#169: `tests/views/test_tandem_channel_choice.py`, 9 tests**
+
+#### Review and design
+
+- When I reviewed the **Tandem tab at the default 770 by 472 window** for this functionality, I noticed **the new row squeezed the Generate spin boxes from 16 to 14 px, and a scroll area alone did not help, because the `.ui` caps the sub-tabs at a 290 px minimum shorter than the Generate page**. Therefore, I did **add the scroll area and raise that minimum to the sub-tabs' size hint, guarded by a height test**.
+- The PR does not contain any temporary workaround because **the scroll area is the Cylinder tab's tested fix (§7.12)**.
+- The PR only contains small functions that are **2 to 15 lines (new) and 4 to 22 lines (tests)** long. The inherited `__init__` grew to 34 lines and was not split.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tandem_view.py` and `tandem_view.ui`** because **the Tandem tab owns the tandem's settings**.
+- This work belongs in **Tandem** in the DFD because **the tandem channel is now chosen there**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_choosing_a_channel_makes_it_the_tandem_and_aims_the_tandem_at_it`, `test_choosing_none_clears_the_tandem_channel` (9 new; 9 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **No in the rotation warning, a moved channel, Applicator7 7.2 mm off the axis, and the default window's height** and they passed.
+- I checked that these negative cases involving **four deliberate breaks (no refresh, the answer ignored, a 100 mm limit, the 290 px minimum kept)** failed as expected.
+- When I reviewed the **`test_generate_spin_boxes_keep_their_height_in_the_default_window`**, I noticed **it read 15 px with the fix in place, because grabbing only the spin box never laid the tab out**. Therefore, I did **grab the whole tab first, and confirmed it still fails without the fix**.
+- Among these tests, **none** are unit tests and **all 9** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 330 passed (321 after #174, screenshot 1)**.
