@@ -1188,6 +1188,12 @@ emitting change signals. They hold no widgets.
 - `height_offset` — automatic, follows cylinder length changes.
 - `mesh_offset` — manual, the *Height Offset* spin box, applies to imported tandems only.
 
+Since 2026-10-29 `ImportView.import_dicom_from_folder` calls `clear_for_new_plan()` before reading a
+plan. It removes the tandem, generated or imported, zeroes both offsets, sets the rotation and
+the plan rotation back to `CONFIG_TANDEM_ROTATION` and clears `hasTandemInDICOM`. Before, the tandem
+and its rotation carried into the next plan, so a tandem generated for Ex2 was cut into Ex1's
+cylinder, which has no tandem channel. *Verified* in the real window on macOS.
+
 Its `_generate_tandem()` implements an unusual error-recovery algorithm, documented in a long
 docstring in the file: it applies each spin-box value one at a time, rebuilding the shape after
 each; any value that throws is recorded, reverted in the UI, but *left in place internally* in
@@ -2348,7 +2354,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows. Or `anatomy_structures` keeps a needle, BODY or marker, or drops an organ or tumour (§5.3) |
-| `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
+| `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6). Or importing Ex1 after a tandem was generated for Ex2 keeps the tandem, its rotation, its plan rotation or the flag that the plan has a tandem (§5.5) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
 | `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
 | `views/test_cylinder_template_exports.py` | after a flat, notch-off, 3 by 10 mm collar template is loaded and applied, the reference sheet's cylinder table or the Export tab's mesh volume (π·15²·160 + π·(18²−15²)·10 mm³, worked by hand) is not the template's, or a 180 mm template applied to Ex1, imported at 160 mm, does not raise every needle 20 mm or changes its stored DICOM points (§5.6, §5.8) |
@@ -2592,6 +2598,9 @@ python -m pytest
   added (five tests). All five failed with `AttributeError` before the warning existed. Two
   deliberate breaks were each caught: every export allowed, and the warning never shown.
   *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 338 passed, with one test added to `test_import_view.py`. It
+  failed with the tandem still there before the fix. Two deliberate breaks were each caught: the
+  tandem not cleared, and the rotation kept. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
