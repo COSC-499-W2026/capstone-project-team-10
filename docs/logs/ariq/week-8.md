@@ -13,6 +13,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 |---|---|---|---|---|---|---|
 | [#174](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/174) | `main` | #168 | Clearing the tandem channel, the Ex2 fixture | 8, +193/−14 | 3 | 321 |
 | [#175](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/175) | #174 | #169 | Tandem Channel box on the Tandem tab | 9, +454/−9 | 9 | 330 |
+| [#176](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/176) | #175 | #170 | Channels list without the tandem channel | 9, +118/−25 | 3 (1 replaced) | 332 |
 
 The suite had 318 tests on `main` before #174 (`1f34b40`).
 
@@ -100,3 +101,44 @@ Stated once here instead of in each section.
 - Among these tests, **none** are unit tests and **all 9** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 330 passed (321 after #174, screenshot 1)**.
+
+### For PR #**176** (3 of 6, on #175)
+
+- As part of requirement **issue #170, keep the tandem channel off the needle list**, the user needs to do **see only needles on the Channels tab, and get the tandem channel back as a needle once it stops being the tandem**.
+- Therefore, I implemented/generated code so that **clinicians never see or enable the tandem channel as a needle on the Channels tab**.
+
+#### Backend
+
+- The system uses **a model guard behind the view filter** because **hiding the row alone would leave `toggle_channel_enabled` able to cut the tandem as a needle**. Benefits for using this pattern include **no caller can enable it, not only the list**. Possible risks include **a caller that toggles without checking**.
+  - To mitigate **an unchecked caller**, we implemented **a `ValueError`, tested directly on the model**.
+- The system architecture diagram consists of the following major components: **as in #174**. This structure has low coupling because **the view listens to `tandem_changed`, which the model already emitted**. This structure has high cohesion because **the model decides what is the tandem and the view only shows the rest**. This design is scalable because **the same filter hides any channel the model marks**.
+
+  **[System architecture, unchanged](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/1f34b40bcfbab59fc662d20e25a682f7b33b47ab/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#170: three tests in `tests/views/test_channel_status_colours.py`**
+- Not applicable: **data processing, state management, Level 0 DFD, Level 1 DFD (unchanged)**.
+
+#### Frontend
+
+- The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **the Channels list and its legend**. Therefore, changing the design of **a status's row style in `STATUS_ROW_STYLES`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **rows are styled by status, not by label**.
+- The frontend adopts accessibility principle **WCAG 1.4.1, Use of Color: each remaining status keeps its own bold and italic pair**. The aspects that demonstrate this principle in the system include **the legend naming only the styles that can appear (screenshot 1)**.
+
+  ![1, the real Channels tab on Ex2 after choosing None, Tandem back as a plain needle row, and python -m pytest on feat/channels-list-hides-tandem, 6 passed in test_channel_status_colours.py and 332 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c1590b218f36f4fb16eb0eebc94ecb4b673a77dd/docs/logs/ariq/screenshots/week-8/pr-176-1-channels-list.png)
+- Not applicable: **data caching (the list reads the model)**.
+
+#### Review and design
+
+- When I reviewed the **generated list change** for this functionality, I noticed **the legend still described a bold italic tandem row that no longer appears**. Therefore, I did **remove the sentence, asserted by the Ex2 list test**.
+- The PR does not contain any temporary workaround because **the row is left out by the model's own `is_channel_tandem`**.
+- The PR only contains small functions that are **10 to 18 lines (changed) and 4 to 26 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`channels_view.py` and `channels_model.py`** because **the Channels tab and its model own the needle list**.
+- This work belongs in **Channels** in the DFD because **it changes which channels are offered as needles**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_ex2_lists_every_channel_except_its_tandem`, `test_the_tandem_channel_leaves_the_list_and_comes_back_as_a_needle` (3 new; 6 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a needle made the tandem and cleared again, and Enable pressed on the tandem** and they passed.
+- I checked that these negative cases involving **three deliberate breaks (the row listed, Enable allowed, no rebuild) and the old legend** failed as expected.
+- Among these tests, **none** are unit tests and **all 3** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 332 passed (330 after #175, screenshot 1)**.
