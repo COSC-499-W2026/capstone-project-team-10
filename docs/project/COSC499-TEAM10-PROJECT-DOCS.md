@@ -2068,15 +2068,18 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 *Verified* on a changed copy of `SI_C_D30 Brachify_Ex2/`, 2026-09-29 to 2026-10-02; not seen in
 the GUI.
 
-`NeedleChannel.get_rotation()` ([mesh/channel.py:152-158](../../src/classes/mesh/channel.py#L152-L158))
+`NeedleChannel.get_rotation()` ([mesh/channel.py:161-176](../../src/classes/mesh/channel.py#L161-L176))
 gives the angle that choosing a tandem channel, and a channel labelled `Tandem` at import, write into the
 tandem rotation. Its comment says it measures "using 0,0". The code measures from `(1, 0)`:
 
 ```python
-v1 = [1.0, 0.0, self.points[0][2]]
-v2 = self.points[0]
+v1 = [1.0, 0.0, self.points_raw[0][2]]
+v2 = self.points_raw[0]
 angle = math.atan2(v2[1] - v1[1], v2[0] - v1[0]) * (180 / 3.14159)
 ```
+
+The snippet was corrected on 2026-10-29: the code reads `points_raw`, the plan's points, since a
+channel move was added (§5.5), so a move does not turn the tandem.
 
 That is `atan2(y, x - 1)`, where `points[0]` is the tip in cylinder-local coordinates, whose
 axis is `x = y = 0` (§4.6). With Ex2's tandem tip moved 6 mm to one side, the tandem was aimed at
@@ -2262,6 +2265,62 @@ the loaded settings. A plan with a tandem channel overwrites it from that channe
 without one, generating a tandem by hand, starts from the previous plan's direction. The tandem
 itself is cleared. Fixing it needs the loaded settings kept apart from the live ones, which nothing
 does yet. Not changed.
+
+### 7.17 Fixed — tandem bugs found and fixed in PRs #174 to #179
+
+**Fixed 2026-10-29.** Listed here so the traps stay visible.
+
+- **`ChannelsModel.set_tandem(None)` disabled `None` and crashed the tandem's slot.** It appended
+  `None` to the disabled set, and `TandemModel.set_tandem_channel` set the rotation to 0, then raised
+  `AttributeError` on `None.label`. Qt prints an exception raised in a slot and carries on, so
+  nothing on screen showed it. *Verified* by `tests/views/test_tandem_channel.py`, which failed on
+  both before the fix (#174).
+- **Enable on the tandem channel cut it as a needle too.** The tandem channel's row could be
+  enabled, so the channel got a needle hole at its plan position while its number still labelled
+  the tandem on the reference sheet, the "6T and 6" seen on a sheet exported from Ex2 with
+  Applicator6 as the tandem. *Verified* in the GUI by Ariq's export. The row is now hidden and
+  `toggle_channel_enabled` refuses the tandem channel (#176).
+- **A tandem carried into the next imported plan.** Importing Ex1 after a tandem was generated for
+  Ex2 kept the tandem, so Ex1's cylinder got Ex2's tandem hole. *Verified* in the real window on
+  macOS and by `test_importing_a_plan_clears_the_previous_plans_tandem` (#179). Its rotation
+  still carries over (§7.16).
+- **The Tandem tab's Generate spin boxes were squeezed in the default window.** At 770 by 472 they
+  were 16 to 17 px tall, because `tandem_view.ui` gives the sub-tabs a 290 px minimum, shorter than
+  the Generate page. *Verified* by an offscreen measurement and
+  `test_generate_spin_boxes_keep_their_height_in_the_default_window` (#175).
+
+### 7.18 MEDIUM — an imported STEP tandem is drawn and previewed as a generated one
+
+*Reasoned from code, 2026-10-29; not run with a STEP file.* Not changed.
+
+- The reference sheet draws the tandem circle at `CONFIG_TANDEM_CHANNEL_DIAMETER`, the Generate
+  tab's diameter, even for an imported tandem. The code says so:
+  `#tandem will show up at config tandem value even if it is imported`
+  ([template_reference.py:443](../../src/classes/pdf/template_reference.py#L443)). A STEP tandem of
+  another diameter is drawn the wrong size, and its collet rings with it.
+- *Show Tandem* on the Export tab always calls `TandemModel.raw_shape()`
+  ([export_view.py:205](../../src/windows/views/export_view.py#L205)), which builds a generated
+  tandem from the Generate values. For an imported tandem the preview shows a tandem that is not
+  the one cut. The cut in the exported solid is correct, from `TandemModel.shape()`.
+
+### 7.19 LOW — a channel named like Tandem is chosen at import but never sets the plan rotation
+
+*Reasoned from code, 2026-10-29; no sample plan shows it.* Not changed. `ChannelsModel.load_data`
+chooses any channel whose label contains `tandem`, ignoring case
+([channels_model.py:87](../../src/windows/models/channels_model.py#L87)). `TandemModel.set_tandem_channel`
+records the plan rotation, and `hasTandemInDICOM`, only when the label equals `tandem`
+([tandem_model.py:82](../../src/windows/models/tandem_model.py#L82)). A channel named `Tandem 1` or
+`Uterine Tandem` is therefore made the tandem and aims it, but the plan rotation stays at the
+settings' value and the rotation warning never fires for that plan. Ex2 and the third plan used on
+2026-10-29 both name the channel exactly `Tandem`.
+
+### 7.20 LOW — the Selected Channel box shows 0.300 mm with no channel selected
+
+*Verified* 2026-10-29 in the real window on macOS, Ex2, after leaving and reopening the Channels
+tab. Not changed. `action_update_settings` fills `sb_channel_diameter` only while a channel is
+selected, and the box's minimum is 0.3 mm, so with nothing selected it shows 0.300 mm, the
+narrowest channel allowed, rather than a blank or the Channels Diameter. The group is disabled
+then, so nothing can be applied, but the number reads as a real width.
 
 ---
 
