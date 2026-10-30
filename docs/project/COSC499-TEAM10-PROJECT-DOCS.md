@@ -1422,7 +1422,23 @@ a driven run of the real window on macOS (Ex1, Applicator3 moved by 6, -4, 3 mm:
 its tip shifted by that much, and the PDF and the STL both exported). Not verified: Windows, and the
 PDF's drawn pages.
 
-**Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
+**Tandem** (`tandem_view.ui`) — a *Tandem Channel* row, then a `QTabWidget` (`ab`) with two
+sub-tabs. Since 2026-10-29 the tab sits in a scroll area, `scroll_tandem`, and `ab`'s minimum
+height is raised to its size hint: the `.ui`'s 290 px minimum is shorter than the Generate page,
+so in the default 770 by 472 window its spin boxes were squeezed to 16 px, and 14 px once the
+Tandem Channel row was added. The tab now scrolls up and down instead.
+
+*Tandem Channel row:* `cb_tandem_channel` lists *None* and every plan channel as
+`<label> (<channel number>)`, showing `DicomData.tandem_channel`. It is refilled whenever
+`ChannelsModel.values_changed` fires, so it follows the Channels tab's *Set as Tandem*. Choosing
+an item calls `ChannelsModel.set_tandem`, exactly what *Set as Tandem* does, with the same
+once-per-plan rotation warning, asked through the `confirm_rotation` seam. *No* puts the previous
+tandem channel back. *None* clears the tandem channel (§5.5), the clear the Channels tab's button
+never did (§7.8). A moved channel is refused and `label_tandem_channel_warning` says to reset its
+move. The same label warns when the chosen channel crosses the base farther from the axis than
+the tandem's radius, `axis_distance_at_base` measured where the reference sheet draws it, because
+the tandem hole is always cut on the axis and that channel gets no hole of its own. Ex2's
+Tandem crosses at 1.2 mm, inside the 1.9 mm radius, and Applicator7 at 7.2 mm.
 
 *Import sub-tab:* `btn_import`, `btn_clear_import`, `sb_height_offset` (−100 – 100),
 `tandem_rotation` (−360 – 360), `btn_apply_import`, `label_5` (shows the model file path).
@@ -1780,7 +1796,7 @@ follow.
   reopens a saved configuration gets whatever collar the app had before, which is usually none.
 
 **2. *Generate Tandem* drops the collar keys from the live settings, but the cylinder keeps its
-collar.** `TandemView.action_set_tandem()` ([tandem_view.py:59](../../src/windows/views/tandem_view.py))
+collar.** `TandemView.action_set_tandem()` ([tandem_view.py:128](../../src/windows/views/tandem_view.py#L128))
 ends with `get_app().values.config_values = getCurrentValues()`, replacing the whole live dict
 with the 17-key version. `BrachyCylinder.shape()` reads the collar from the live dict with a
 default of `0.0`, and `add_base()` does nothing when either is zero. But `shape()` returns the
@@ -1800,7 +1816,7 @@ other `setLength` caller, `CylinderModel.update_height_offset`, is never connect
 checked: every path, in the GUI.
 
 Suggested fix, test first: add both keys to the `current_values` dict in `getCurrentValues()`,
-push them into the spin boxes in `resetAllValues()`, and change `tandem_view.py:59` to
+push them into the spin boxes in `resetAllValues()`, and change `tandem_view.py:128` to
 `config_values.update(getCurrentValues())` so a partial snapshot can never drop keys again.
 
 ### 7.2 MEDIUM — unsupported TPS vendor raises an unhandled `UnboundLocalError`
@@ -2089,6 +2105,8 @@ tandem, stays disabled, and the button keeps its label. The method then only rew
 rotation spin boxes. The Tandem tab's own *Clear Tandem* buttons are separate and are not
 affected. The User Manual does not describe this button's clear action, so what it should do is
 not written down anywhere either (§6.5). Confirm the behaviour in the running app before fixing.
+Since 2026-10-29 the Tandem tab's *Tandem Channel* box clears the tandem channel with *None*
+(§5.6). This button is unchanged.
 
 **The same button also reads *Clear Tandem* when no channel is selected and the plan has no
 tandem.** Found 2026-10-10. `ChannelsModel.is_channel_tandem(None)` compares
@@ -2318,6 +2336,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
+| `views/test_tandem_channel_choice.py` | the Tandem Channel box does not list *None* and Ex2's 13 channels with their numbers, or does not show channel 14 after import or a tandem set on the Channels tab. Or choosing Applicator7 does not make it the only channel left out of the cut and aim the tandem at 64.929°, *No* in the rotation warning keeps it, *None* leaves a tandem channel, a moved channel is accepted or not explained, the off-axis warning is missing, wrong, has a colon or an em dash, or shows for Tandem. Or a Generate spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§5.6) |
 | `views/test_tandem_channel.py` | importing Ex2 does not aim the tandem along its channel 14 at 359.996° or record the plan rotation, or `set_tandem(None)` leaves a tandem channel named, keeps the previous tandem channel disabled, puts `None` in the disabled set, or changes the tandem's rotation (§5.5) |
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
@@ -2530,6 +2549,11 @@ python -m pytest
   with the rotation at 0.0 instead of Applicator12's 208.37°. The import test was added after a
   first version of the fix raised `NameError` for a channel named Tandem, which Qt printed and
   ignored. It failed with the rotation at 0.0 instead of 359.996. *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 330 passed, with `tests/views/test_tandem_channel_choice.py`
+  added (nine tests). The seven choice tests failed with `AttributeError` before the box existed,
+  and the height test at 15 px before the scroll area and the raised tab minimum. Four deliberate
+  breaks were each caught: no refresh on `values_changed`, the rotation answer ignored, an
+  off-axis limit of 100 mm, and the tab minimum left at 290 px. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
