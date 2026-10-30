@@ -1,10 +1,11 @@
+from collections.abc import Callable
 from pathlib import Path
 
 from OCC.Core.BRep import BRep_Builder
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut
 from OCC.Core.TopoDS import TopoDS_Compound, TopoDS_Shape
 
-from PySide6.QtWidgets import QWidget, QFileDialog
+from PySide6.QtWidgets import QWidget, QFileDialog, QMessageBox
 
 from classes.app import get_app
 from classes.logger import log
@@ -30,7 +31,38 @@ materials = {
 }
 
 
+def missing_tandem_hole_text(tandem_channel: str | None, has_tandem_hole: bool) -> str:
+    """The Export tab's warning for a tandem channel with no tandem hole, or nothing."""
+    if tandem_channel is None or has_tandem_hole: return ""
+    return (f"{tandem_channel} is the tandem channel, but no tandem has been generated or imported, "
+            "so this cylinder has no tandem hole.")
+
+
 class Export_View(CustomView):
+
+    def tandem_hole_warning(self) -> str:
+        return missing_tandem_hole_text(self.window.dicommodel.data.tandem_channel,
+                                        self.window.tandemmodel.shape() is not None)
+
+    def show_tandem_hole_warning(self) -> None:
+        text = self.tandem_hole_warning()
+        self.ui.label_tandem_hole_warning.setText(text)
+        self.ui.label_tandem_hole_warning.setHidden(not text)
+
+    def export_allowed(self) -> bool:
+        """Ask before exporting a cylinder whose tandem channel has no tandem hole."""
+        text = self.tandem_hole_warning()
+        return not text or self.confirm_export(text)
+
+    def ask_export(self, text: str) -> bool:
+        """The dialog export_allowed asks with. Cancel is the default, so pressing Return exports nothing."""
+        dialog = QMessageBox()
+        dialog.setIcon(QMessageBox.Icon.Warning)
+        dialog.setWindowTitle("No Tandem Hole")
+        dialog.setText(f"{text} Export anyway?")
+        dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
+        dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        return dialog.exec() == QMessageBox.StandardButton.Yes
 
     def action_export_config(self):
         """
@@ -65,6 +97,7 @@ class Export_View(CustomView):
         """
         Create a single mesh from boolean subtracting the channels and tandem from the cylinder
         """
+        if not self.export_allowed(): return
         filename = QFileDialog.getSaveFileName(
             self, "Save model", "", "STL File (*.stl);; BRep file (*.step *.stp);; All files (*.*))", "")
 
@@ -79,6 +112,7 @@ class Export_View(CustomView):
         """
         Collect the shapes and export them in a single file
         """
+        if not self.export_allowed(): return
         filename = QFileDialog.getSaveFileName(
             self, "Save model", "", "BRep file (*.step *.stp);;", "")
 
@@ -91,6 +125,7 @@ class Export_View(CustomView):
         write_3d_file(filename[0], compound)
 
     def action_export_template_reference(self):
+        if not self.export_allowed(): return
         filename = QFileDialog.getSaveFileName(
             self, 'Save solid as PDF', '', "PDF files (*.pdf)")
         
@@ -150,6 +185,7 @@ class Export_View(CustomView):
             self.ui.cb_tandem_shown.setDisabled(True)
 
         self.shape = self._final_mesh()
+        self.show_tandem_hole_warning()
 
         self.update_display()
 
@@ -184,6 +220,9 @@ class Export_View(CustomView):
         self.ui.setupUi(self)
         self.window = get_app().window
         self.shape = None  # the model to export
+        # the missing tandem hole question asks through this, so a test can answer for the clinician
+        self.confirm_export: Callable[[str], bool] = self.ask_export
+        self.ui.label_tandem_hole_warning.setHidden(True)
 
         # signals and slots
         self.ui.btn_export_mesh.pressed.connect(self.action_export_mesh) # when "export mesh" button pressed, then call action_export_mesh function
