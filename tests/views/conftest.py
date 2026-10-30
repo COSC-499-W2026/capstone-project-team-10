@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SAMPLE_PLAN = REPO_ROOT / "SI_C_D30 Brachify_Ex1"
+TANDEM_PLAN = REPO_ROOT / "SI_C_D30 Brachify_Ex2"
 
 
 @pytest.fixture(scope="session")
@@ -78,6 +79,42 @@ def channels_window(units_app: RadiotherapyApp) -> Iterator[MainWindow]:
     units_app.signals.viewChanged.disconnect(window.navigationmodel.set_page)
     units_app.signals.height_changed.disconnect(window.channelsmodel.update_height_offset)
     units_app.signals.height_changed.disconnect(window.tandemmodel.update_height_offset)
+
+
+@pytest.fixture(scope="module")
+def tandem_window(units_app: RadiotherapyApp) -> Iterator[MainWindow]:
+    """Build brachify's real main window with the Ex2 plan, whose channel 14 is named Tandem.
+
+    A fixture, not a test. It is built like channels_window, with the 3D canvas never
+    initialised, and the live settings are a copy of the defaults so a test cannot leak a
+    setting into another module. Ex2 is the only sample plan with a tandem channel, so it is
+    the only one that exercises the tandem chosen at import. Module scope, because building
+    Ex2's thirteen channels takes several seconds. Fails with an exception from the DICOM
+    readers if Ex2 no longer loads.
+    """
+    from classes.dicom.fileio import read_dicom_folder
+    from settings.defaults import DEFAULT_CONFIG_VALUES
+    from windows.main_window import MainWindow
+    from windows.models.navigation_model import NavigationModel
+    from windows.views.viewport import OrbitCameraViewer3d
+
+    previous_config = units_app.values.config_values
+    previous_window = units_app.window
+    units_app.values.config_values = DEFAULT_CONFIG_VALUES.copy()
+    units_app.window = MainWindow()
+    units_app.window.initModels()
+    units_app.window.canvas = OrbitCameraViewer3d()
+    units_app.window.navigationmodel = NavigationModel()
+    window = units_app.window
+
+    window.dicommodel.update(read_dicom_folder(str(TANDEM_PLAN)))
+    window.navigationmodel.views[2].create_channels_list()
+    yield window
+    units_app.signals.viewChanged.disconnect(window.navigationmodel.set_page)
+    units_app.signals.height_changed.disconnect(window.channelsmodel.update_height_offset)
+    units_app.signals.height_changed.disconnect(window.tandemmodel.update_height_offset)
+    units_app.values.config_values = previous_config
+    units_app.window = previous_window
 
 
 @pytest.fixture
