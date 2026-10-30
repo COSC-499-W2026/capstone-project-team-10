@@ -4858,7 +4858,8 @@ again. The collet boxes save themselves into the live settings every time their 
 > Out of date after the anatomy changes through PR #134: The viewport now draws nonselectable anatomy surfaces and wires independently of printable shapes. PR #125 supplies surface rendering and opacity updates; see the [current anatomy display path](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
 > Out of date after PRs #78/#79/#81: the upstream bindings below have been replaced by
-> left-drag rotation, right/middle-drag pan and proportional zoom. The viewport now has
+> left-drag rotation, right/middle-drag pan and proportional zoom. Horizontal scrolling
+> rolls clockwise/counterclockwise around the viewing axis; vertical scrolling zooms (added 2026-10-30). The viewport now has
 > independent central-axis and outer-wall XYZ grid toggles. See
 > [current viewport behavior](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 

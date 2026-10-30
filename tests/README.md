@@ -262,8 +262,9 @@ which on Windows means `npx.cmd`. That test is skipped where Node is not install
 
 ## Viewport controls and references
 
-`views/test_camera_controls.py` has six cases for left-drag versus click, jitter, distant
-release, incremental right/middle panning and proportional reversible wheel/trackpad zoom.
+`views/test_camera_controls.py` has eleven cases for left-drag versus click, jitter, distant
+release, incremental right/middle panning, proportional reversible wheel/trackpad zoom
+and horizontal camera roll/vertical zoom routing, including pixel-only and zero-delta events.
 `views/test_central_axis.py` has eight cases for local-Z endpoints, invalid lengths, the
 real toggle's availability/preference and `DisplayModel.reset` emitting an empty scene.
 `views/test_bounding_grid.py` (PR #81) has nine cases for rounded bounds, invalid input,
