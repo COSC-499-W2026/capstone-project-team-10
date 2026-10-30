@@ -67,3 +67,19 @@ def test_zoom_is_smooth_reversible_and_ignores_zero(controls):
     assert controls.wheel_zoom_factor(-120, 0) == pytest.approx(1 / 1.15)
     assert 1 < controls.wheel_zoom_factor(30, 0) < 1.15
     assert controls.wheel_zoom_factor(0, 30) == pytest.approx(1.15)
+
+
+@pytest.mark.parametrize('angle,pixel,expected', [
+    ((0, 0), (30, 2), (0.17453292519943295, 1.0)),
+    ((0, 0), (-30, 2), (-0.17453292519943295, 1.0)),
+    ((120, 0), (0, 0), (0.17453292519943295, 1.0)),
+    ((0, 120), (2, 30), (0, 1.15)),
+    ((0, 0), (0, 0), (0, 1.0)),
+])
+def test_scroll_routes_dominant_axis_without_combining_actions(controls, angle, pixel, expected):
+    """Horizontal scrolling produces reversible camera roll in radians; vertical scrolling zooms.
+
+    Returning orbit pixels instead of roll radians or ignoring pixel-only events fails,
+    preventing diagonal trackpad jitter from rotating and zooming together.
+    """
+    assert controls.wheel_camera_motion(*angle, *pixel) == pytest.approx(expected)
