@@ -102,17 +102,10 @@ class ImportView(CustomView):
         cylindermodel = app.window.cylindermodel
         cylindermodel.starting_length = app.values.config_values.get("CONFIG_CYLINDER_LENGTH")
         
-        # for an imported tandem:
-        # place the bottom of the original imported shape at the origin (0,0,0) (the base of the cylinder)
-        # reset the tandem height_offset to 0 when a new dicom file is loaded.
-        tandemmodel = app.window.tandemmodel
-        tandemmodel.height_offset = 0.0
-        # set the mesh_offset to 0 and reset the spin box to 0.
-        tandemmodel.mesh_offset = 0.0
+        # the previous plan's tandem, offsets and rotation do not carry into this one
+        app.window.tandemmodel.clear_for_new_plan()
         window.navigationmodel.views[3].ui.sb_height_offset.setValue(0.0)
-        #sets the fact a tandem is in the plan to False
         window.navigationmodel.views[3].hasShownRotationWarning = False
-        tandemmodel.hasTandemInDICOM = False
 
         try:
             data = window.dicommodel.data.reset() # resets all the data in the dicom 

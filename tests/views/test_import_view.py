@@ -49,3 +49,28 @@ def test_empty_folder_import_clears_the_structure_list(
     import_view.import_dicom_from_folder(str(empty))
 
     assert import_view.structure_list.count() == 0
+
+
+def test_importing_a_plan_clears_the_previous_plans_tandem(cylinder_window: MainWindow) -> None:
+    """Check that importing Ex1 after a tandem was generated for Ex2 leaves no tandem and the default rotation.
+
+    Ex2 is imported, a tandem is generated, then Ex1 is imported, all through the Import tab's
+    no-dialog path. Fails if the tandem still exists, if its rotation is not the default 0 degrees,
+    or if the plan rotation the warning compares against, or the flag that the plan has a tandem,
+    is left over from Ex2. Ex1 has no tandem, so a leftover would cut Ex2's tandem hole into the
+    next patient's cylinder without anyone asking for it.
+    """
+    import_view = cylinder_window.navigationmodel.views[IMPORT_TAB]
+    tandem = cylinder_window.tandemmodel
+    import_view.import_dicom_from_folder(str(REPO_ROOT / "SI_C_D30 Brachify_Ex2"))
+    tandem.tandem_length = 150.0
+    tandem.set_tandem()
+    tandem.change_tandem_rotation(64.0)
+    assert tandem.exists()
+
+    import_view.import_dicom_from_folder(str(SAMPLE_PLAN))
+
+    assert not tandem.exists()
+    assert tandem.rotation == 0.0
+    assert tandem.protation == 0.0
+    assert not tandem.hasTandemInDICOM
