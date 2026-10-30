@@ -182,7 +182,7 @@ class ChannelsModel(QObject):
             self.disabled_channels.remove(old_label)
 
         data.tandem_channel = label
-        if not label in self.disabled_channels:
+        if label and not label in self.disabled_channels:
             self.disabled_channels.append(label)
 
         self.update()
