@@ -1,7 +1,13 @@
-from PySide6.QtWidgets import QWidget, QFileDialog
+import math
+from collections.abc import Callable
+
+from PySide6.QtCore import QSignalBlocker
+from PySide6.QtWidgets import QFileDialog, QFrame, QLayout, QMessageBox, QScrollArea, QVBoxLayout, QWidget
 
 from classes.app import get_app
 from classes.logger import log
+from classes.mesh.channel import NeedleChannel
+from classes.pdf.template_reference import extract_points_from_channels2
 from windows.models.shape_model import ShapeTypes
 from windows.ui.tandem_view_ui import Ui_Tandem_View
 from windows.views.custom_view import display_action, CustomView
@@ -16,7 +22,69 @@ materials = {
 }
 
 
+def axis_distance_at_base(channel: NeedleChannel) -> float:
+    """How far from the cylinder axis the channel crosses the base, in mm, where the reference sheet draws it."""
+    x, y, _ = extract_points_from_channels2([channel])[0][-1]
+    return math.hypot(x, y)
+
+
+def off_axis_warning(label: str, distance: float, tandem_diameter: float) -> str:
+    """The warning for a tandem channel that crosses the base outside the tandem hole, or nothing."""
+    if distance <= tandem_diameter / 2: return ""
+    return (f"{label} crosses the base {distance:.1f} mm from the cylinder axis. "
+            f"The tandem hole stays on the axis, so {label} gets no hole of its own.")
+
+
 class TandemView(CustomView):
+
+    def refresh_tandem_channels(self) -> None:
+        """List None and every plan channel with its number, showing the current tandem channel."""
+        box = self.ui.cb_tandem_channel
+        current = get_app().window.dicommodel.data.tandem_channel
+        with QSignalBlocker(box):
+            box.clear()
+            box.addItem("None", None)
+            for label, channel in self.channelsmodel.channels.items():
+                box.addItem(f"{label} ({channel.channel_number})", label)
+            box.setCurrentIndex(box.findData(current) if current else 0)
+        self.show_tandem_channel_warning(self.off_axis_text(current))
+
+    def off_axis_text(self, label: str | None) -> str:
+        if label is None: return ""
+        distance = axis_distance_at_base(self.channelsmodel.channels[label])
+        return off_axis_warning(label, distance, self.tandemmodel.tandem_diameter)
+
+    def show_tandem_channel_warning(self, text: str) -> None:
+        self.ui.label_tandem_channel_warning.setText(text)
+        self.ui.label_tandem_channel_warning.setHidden(not text)
+
+    @display_action
+    def action_choose_tandem_channel(self, index: int) -> None:
+        label = self.ui.cb_tandem_channel.itemData(index)
+        log.debug(f"action: choose {label} as the tandem channel")
+        previous = get_app().window.dicommodel.data.tandem_channel
+        try:
+            self.channelsmodel.set_tandem(label)
+        except ValueError:
+            self.refresh_tandem_channels()
+            self.show_tandem_channel_warning(
+                f"{label} has been moved. Reset its move on the Channels tab to make it the tandem.")
+            return
+        if not self.rotation_change_kept():
+            self.channelsmodel.set_tandem(previous)
+        self.ui.tandem_rotation.setValue(self.tandemmodel.rotation)
+        self.ui.tandem_rotation_2.setValue(self.tandemmodel.rotation)
+
+    def rotation_change_kept(self) -> bool:
+        """Ask once per plan, as Set as Tandem did, whether a rotation unlike the plan's is kept."""
+        tandem = self.tandemmodel
+        if not tandem.hasTandemInDICOM or self.hasShownRotationWarning: return True
+        if round(tandem.protation, 2) == round(tandem.rotation, 2): return True
+        self.hasShownRotationWarning = True
+        return self.confirm_rotation()
+
+    def ask_rotation_change(self) -> bool:
+        return get_app().window.tandem_rotation_warning() != QMessageBox.No
 
     @display_action
     def action_clear_tandem(self):
@@ -119,6 +187,7 @@ class TandemView(CustomView):
         self.tandemmodel.update_display()
 
         self.update_settings()
+        self.refresh_tandem_channels()
 
     def update_settings(self):
         log.debug(f"updating settings")
@@ -157,9 +226,25 @@ class TandemView(CustomView):
     def __init__(self):
         super().__init__()
         self.ui = Ui_Tandem_View()  # the converted python file from the ui file
-        self.ui.setupUi(self)
+        # the tab's rows do not fit brachify's default window, so they scroll rather than squeeze
+        content = QWidget()
+        self.ui.setupUi(content)
+        self.ui.verticalLayout_5.setSizeConstraint(QLayout.SizeConstraint.SetMinimumSize)
+        # the .ui's 290 px minimum is shorter than the Generate page, which squeezed its spin boxes
+        self.ui.ab.setMinimumHeight(self.ui.ab.sizeHint().height())
+        scroll = QScrollArea(self)
+        scroll.setObjectName("scroll_tandem")
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(content)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
         self.tandemmodel = get_app().window.tandemmodel
+        self.channelsmodel = get_app().window.channelsmodel
         self.hasShownRotationWarning = False
+        # the rotation warning asks through this, so a test can answer for the clinician
+        self.confirm_rotation: Callable[[], bool] = self.ask_rotation_change
 
         # signals and slots
         self.ui.btn_apply.pressed.connect(self.action_set_tandem)
@@ -167,5 +252,8 @@ class TandemView(CustomView):
         self.ui.btn_import.pressed.connect(self.action_import_tandem)
         self.ui.btn_clear_import.pressed.connect(self.action_clear_tandem)     
         self.ui.btn_apply_import.pressed.connect(self.action_set_import)
+        self.ui.cb_tandem_channel.activated.connect(self.action_choose_tandem_channel)
+        self.channelsmodel.values_changed.connect(self.refresh_tandem_channels)
 
         self.update_settings()
+        self.refresh_tandem_channels()
