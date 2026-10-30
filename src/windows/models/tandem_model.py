@@ -69,7 +69,7 @@ class TandemModel(QObject):
         if channel is None: return
         self.rotation = channel.get_rotation()
         if(channel.label.lower() == 'tandem'):
-            self.protation = rotation
+            self.protation = self.rotation
             self.hasTandemInDICOM = True # if this happens there is a tandem in the plan
         self.update_display()
 

@@ -1,7 +1,9 @@
-"""Exercise ChannelsModel.set_tandem(None), which says no channel of the plan is the tandem."""
+"""Exercise how the tandem channel reaches the tandem: chosen at import, and cleared with set_tandem(None)."""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
+import pytest
 
 if TYPE_CHECKING:
     from windows.main_window import MainWindow
@@ -42,3 +44,19 @@ def test_clearing_the_tandem_channel_keeps_the_tandem_rotation(channels_window: 
 
     assert aimed != 0.0
     assert channels_window.tandemmodel.rotation == aimed
+
+
+def test_importing_a_plan_with_a_tandem_channel_aims_the_tandem_along_it(tandem_window: MainWindow) -> None:
+    """Check that importing Ex2 takes the tandem's rotation from its channel 14, named Tandem.
+
+    Ex2's Tandem tip lies on the +x side, so its direction is 359.996 degrees. Fails if the
+    rotation or the plan rotation the warning compares against is not 359.996, or if the plan
+    is not recorded as having a tandem. That happened when set_tandem_channel raised NameError
+    for a channel named Tandem, which Qt prints and ignores, so the tandem stayed at the
+    default 0 degrees and the rotation warning never fired.
+    """
+    tandem = tandem_window.tandemmodel
+
+    assert tandem.rotation == pytest.approx(359.996, abs=0.001)
+    assert tandem.protation == pytest.approx(359.996, abs=0.001)
+    assert tandem.hasTandemInDICOM
