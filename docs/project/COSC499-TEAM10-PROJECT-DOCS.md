@@ -1476,7 +1476,13 @@ hands `int(self.winId())` to pythonocc's `OCCViewer.Viewer3d().Create()`.
 | Left click | select shape (emits `sig_topods_selected`) |
 | Left drag | rotate; release does not select |
 | Right or middle drag | pan using incremental pointer movement |
-| Wheel | proportional zoom, 1.15× per 120 vertical angle units |
+| Vertical scroll | proportional zoom, 1.15× per 120 vertical angle units |
+| Horizontal scroll | roll clockwise/counterclockwise around the viewing axis |
+
+`wheel_camera_motion` routes the dominant scroll axis: horizontal rolls, vertical zooms.
+Pixel deltas determine the axis when available. Roll is 10 degrees per 30 horizontal
+pixels or 120 angle units, applied through `V3d_View.SetTwist`; opposite deltas reverse it. Diagonal events perform only one action. *Reasoned from code;
+native trackpad feel not yet verified.*
 
 `CameraGesture` uses Qt's platform drag threshold to tolerate click jitter. Once a drag
 starts, returning to its origin does not turn it into a click. A distant release also
@@ -2241,7 +2247,7 @@ The viewport regressions (*Reasoned from the test bodies*) are:
 
 | File | What fails when behavior regresses |
 |---|---|
-| `views/test_camera_controls.py` (6 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom |
+| `views/test_camera_controls.py` (11 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom and dominant-axis scroll routing |
 | `views/test_central_axis.py` (8 cases) | local-Z endpoints and 10% margin, invalid-length rejection, button availability/preference, or reset notification |
 | `views/test_bounding_grid.py` (9 cases, PR #81) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, or nonoverlapping independent controls |
 
