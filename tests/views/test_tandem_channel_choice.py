@@ -219,3 +219,73 @@ def test_the_tandem_tab_never_scrolls_sideways_in_the_default_window(
     tandem_window.grab()
 
     assert scroll.horizontalScrollBar().maximum() == 0
+
+
+def test_generating_with_a_new_diameter_updates_the_off_axis_warning(
+    tandem_window: MainWindow, tandem_tab: TandemView,
+) -> None:
+    """Check the off-axis warning follows a tandem diameter changed with Generate Tandem.
+
+    Tandem, channel 14, crosses the base 1.2 mm from the axis, inside the 1.9 mm radius of the
+    default 3.8 mm tandem, so no warning shows. The diameter is set to 2.0 mm, a 1.0 mm radius,
+    and Generate Tandem is pressed at 150 mm. Fails if the warning stays hidden, as it did when
+    only a channel change refreshed it: the clinician would read that the channel is inside the
+    tandem hole when it is not. Raised in review of #175.
+    """
+    from classes.app import get_app
+
+    ui = tandem_tab.ui
+    tandem_tab.hasShownRotationWarning = True
+    ui.sb_tandem_height.setValue(150.0)
+    ui.sp_channel_diameter.setValue(2.0)
+    try:
+        assert ui.label_tandem_channel_warning.isHidden()
+
+        tandem_tab.action_set_tandem()
+
+        assert not ui.label_tandem_channel_warning.isHidden()
+        assert "1.2 mm" in ui.label_tandem_channel_warning.text()
+    finally:
+        ui.sp_channel_diameter.setValue(3.8)
+        tandem_window.tandemmodel.tandem_diameter = 3.8
+        get_app().values.config_values["CONFIG_TANDEM_CHANNEL_DIAMETER"] = 3.8
+        tandem_window.tandemmodel.clear_tandem()
+
+
+def test_a_tandem_channel_missing_from_the_plan_shows_no_warning(
+    tandem_window: MainWindow, tandem_tab: TandemView,
+) -> None:
+    """Check refreshing the box with a tandem channel the plan does not have raises nothing.
+
+    Fails with KeyError if the warning looks the label up in the plan's channels without checking.
+    The refresh runs in a Qt slot, so the error would be swallowed and leave the box and the
+    warning half updated. Raised in review of #175.
+    """
+    data = tandem_window.dicommodel.data
+    data.tandem_channel = "Missing channel"
+    try:
+        tandem_tab.refresh_tandem_channels()
+
+        assert tandem_tab.ui.label_tandem_channel_warning.isHidden()
+    finally:
+        data.tandem_channel = PLAN_TANDEM
+
+
+def test_answering_no_after_choosing_none_puts_the_rotation_back(
+    tandem_window: MainWindow, tandem_tab: TandemView,
+) -> None:
+    """Check No in the rotation warning restores the rotation as well as the previous choice, None.
+
+    None is chosen, which keeps Tandem's 359.996 degrees, then Applicator7 is chosen and the
+    warning answered No. Fails if the rotation stays at Applicator7's 64.929 degrees, which
+    happened because clearing to None leaves the rotation alone and only the real dialog's own
+    side effect put it back. A No would then still turn the tandem. Raised in review of #175.
+    """
+    choose(tandem_tab, None)
+    before = tandem_window.tandemmodel.rotation
+    tandem_tab.confirm_rotation = StubbedRotationAnswer(False)
+
+    choose(tandem_tab, OFF_AXIS_NEEDLE)
+
+    assert tandem_window.dicommodel.data.tandem_channel is None
+    assert tandem_window.tandemmodel.rotation == before

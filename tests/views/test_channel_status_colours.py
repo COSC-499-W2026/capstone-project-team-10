@@ -154,3 +154,43 @@ def test_the_tandem_channel_cannot_be_enabled_as_a_needle(tandem_window: MainWin
         model.toggle_channel_enabled("Tandem")
 
     assert model.is_channel_disabled("Tandem")
+
+
+def test_a_selected_channel_made_the_tandem_is_no_longer_selected(cylinder_window: MainWindow) -> None:
+    """Check a channel that becomes the tandem while selected is unselected, and Disable turns off.
+
+    Applicator5 is selected, then made the tandem. Fails if it is still the selected channel or
+    the Disable button stays enabled. Its row has left the list, so the Selected Channel controls
+    would otherwise act on a channel the clinician can no longer see. Raised in review of #176.
+    """
+    from pathlib import Path
+
+    from classes.dicom.fileio import read_dicom_folder
+
+    plan = Path(__file__).resolve().parents[2] / "SI_C_D30 Brachify_Ex1"
+    cylinder_window.dicommodel.update(read_dicom_folder(str(plan)))
+    cylinder_window.navigationmodel.views[CHANNELS_TAB].create_channels_list()
+    model = cylinder_window.channelsmodel
+    model.set_selected_channels("Applicator5")
+
+    model.set_tandem("Applicator5")
+
+    assert model.get_selected_channel() is None
+    assert not cylinder_window.navigationmodel.views[CHANNELS_TAB].ui.btn_enable.isEnabled()
+
+
+def test_the_view_does_not_ask_the_model_to_enable_the_tandem_channel(tandem_window: MainWindow) -> None:
+    """Check Disable or Enable with the tandem channel selected does nothing, and raises nothing.
+
+    Tandem is selected through the model, which the list no longer offers. Fails with the model's
+    ValueError if the view passes the tandem channel on, which would escape the Qt slot with no
+    message. Raised in review of #176.
+    """
+    model = tandem_window.channelsmodel
+    model.set_selected_channels("Tandem")
+    try:
+        tandem_window.navigationmodel.views[CHANNELS_TAB].action_toggle_channel_disable()
+
+        assert model.is_channel_disabled("Tandem")
+    finally:
+        model.clear_selected_channels()

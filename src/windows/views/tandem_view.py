@@ -50,8 +50,9 @@ class TandemView(CustomView):
         self.show_tandem_channel_warning(self.off_axis_text(current))
 
     def off_axis_text(self, label: str | None) -> str:
-        if label is None: return ""
-        distance = axis_distance_at_base(self.channelsmodel.channels[label])
+        channel = self.channelsmodel.channels.get(label)
+        if channel is None: return ""
+        distance = axis_distance_at_base(channel)
         return off_axis_warning(label, distance, self.tandemmodel.tandem_diameter)
 
     def show_tandem_channel_warning(self, text: str) -> None:
@@ -63,6 +64,7 @@ class TandemView(CustomView):
         label = self.ui.cb_tandem_channel.itemData(index)
         log.debug(f"action: choose {label} as the tandem channel")
         previous = get_app().window.dicommodel.data.tandem_channel
+        rotation = self.tandemmodel.rotation
         try:
             self.channelsmodel.set_tandem(label)
         except ValueError:
@@ -72,6 +74,7 @@ class TandemView(CustomView):
             return
         if not self.rotation_change_kept():
             self.channelsmodel.set_tandem(previous)
+            self.tandemmodel.change_tandem_rotation(rotation)
         self.ui.tandem_rotation.setValue(self.tandemmodel.rotation)
         self.ui.tandem_rotation_2.setValue(self.tandemmodel.rotation)
 
@@ -126,6 +129,8 @@ class TandemView(CustomView):
         # update the config_values dict
         # merge, so a setting the snapshot does not list keeps its value
         get_app().values.config_values.update(getCurrentValues())
+        # the off-axis warning depends on the tandem's diameter
+        self.refresh_tandem_channels()
 
 
     @display_action

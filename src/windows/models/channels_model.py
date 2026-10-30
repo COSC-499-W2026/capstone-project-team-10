@@ -184,6 +184,9 @@ class ChannelsModel(QObject):
         data.tandem_channel = label
         if label and not label in self.disabled_channels:
             self.disabled_channels.append(label)
+        # the tandem channel leaves the Channels list, so it cannot stay selected there
+        if label and label in self.selected_channels:
+            self.selected_channels = []
 
         self.update()
         self.tandem_changed.emit(self.get_tandem_channel())
