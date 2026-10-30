@@ -16,6 +16,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#176](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/176) | #175 | #170 | Channels list without the tandem channel | 9, +118/−25 | 3 (1 replaced) | 332 |
 | [#177](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/177) | #176 | #171 | *Set as Tandem* removed from the Channels tab | 9, +68/−130 | 1 (replacing 1) | 332 |
 | [#178](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/178) | #177 | #172 | Export warning for a missing tandem hole | 9, +251/−3 | 5 | 337 |
+| [#179](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/179) | #178 | #173 | An import clears the previous plan's tandem | 7, +164/−14 | 1 | 338 |
 
 The suite had 318 tests on `main` before #174 (`1f34b40`).
 
@@ -207,3 +208,42 @@ Stated once here instead of in each section.
 - Among these tests, **none** are unit tests and **all 5** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 337 passed (332 after #177, screenshot 1)**.
+
+### For PR #**179** (6 of 6, on #178)
+
+- As part of requirement **issue #173, each patient's cylinder holds only that plan's holes**, the user needs to do **import one plan after another without the previous plan's tandem being cut into the next**.
+- Therefore, I implemented/generated code so that **clinicians start every imported plan with no tandem left over from the previous one**.
+
+#### Backend
+
+- The system uses **one reset method on the model that owns the state, `TandemModel.clear_for_new_plan`** because **the Import tab reset tandem fields one by one and missed the tandem itself**. Benefits for using this pattern include **a new tandem field has one place to be reset**. Possible risks include **a value the live settings carry over**.
+  - To mitigate **the rotation carried by the live settings**, we implemented **a §7.16 entry, since fixing it needs the loaded settings kept apart from the live ones**.
+- The system architecture diagram consists of the following major components: **as in #174**. This structure has low coupling because **the Import tab calls one model method**. This structure has high cohesion because **the tandem model resets only its own state**. This design is scalable because **a future tandem field is cleared in the same method**.
+
+  **[System architecture, unchanged](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/1f34b40bcfbab59fc662d20e25a682f7b33b47ab/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#173: `test_importing_a_plan_clears_the_previous_plans_tandem`**
+- Not applicable: **data processing, state management, Level 0 DFD, Level 1 DFD (unchanged)**.
+
+#### Frontend
+
+- Not applicable: **data caching, design components, accessibility (the Import tab only calls the model; no widget changed)**.
+
+#### Review and design
+
+- When I reviewed the **real window after importing Ex1 following Ex2** for this functionality, I noticed **the rotation started at Ex2's 359.996°, not 0°, because *Generate Tandem* writes the rotation into the live settings**. Therefore, I did **record it as §7.16 rather than widen this PR**.
+- The PR does not contain any temporary workaround because **the reset is one model method called by the one import path**.
+- The PR only contains small functions that are **10 lines (new) and 23 lines (test)** long. `import_dicom_from_folder`, 51 lines and inherited, got shorter.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tandem_model.py` and `import_view.py`** because **the model owns the tandem and the Import tab starts a new plan**.
+- This work belongs in **Import and Tandem** in the DFD because **an import now resets the tandem**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_importing_a_plan_clears_the_previous_plans_tandem` (1 new; 3 in the file; screenshot 1)** passed.
+- I checked that these negative cases involving **two deliberate breaks (no clear, rotation kept) and the code before the fix** failed as expected.
+- Among these tests, **none** are unit tests and **the 1 new test** is an integration test.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 338 passed (337 after #178, screenshot 1)**.
+
+  ![1, the real Tandem tab on Ex1 imported after Ex2 had a generated tandem, no tandem left, and python -m pytest on fix/import-clears-tandem, 3 passed in test_import_view.py and 338 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/efeff987bfab7ea53f9bbe3d63308cffcbe1f999/docs/logs/ariq/screenshots/week-8/pr-179-1-ex1-after-ex2.png)
+- Not applicable: **abnormal cases (one import path)**.

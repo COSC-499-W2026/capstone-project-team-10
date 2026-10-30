@@ -32,6 +32,17 @@ class TandemModel(QObject):
         self.filepath = None
         self.update()
 
+    def clear_for_new_plan(self):
+        """Forget the previous plan's tandem, its offsets and rotation, before another plan is imported."""
+        rotation = get_app().values.config_values.get("CONFIG_TANDEM_ROTATION")
+        self.rotation = rotation
+        self.protation = rotation
+        self.hasTandemInDICOM = False
+        self.height_offset = 0.0
+        self.mesh_offset = 0.0
+        self.is_shape_imported = False
+        self.clear_tandem()
+
     def import_tandem(self, filepath: str):
         self.filepath = filepath
         self._base_shape = read_3d_file(filepath)
