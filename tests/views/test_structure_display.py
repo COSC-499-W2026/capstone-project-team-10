@@ -626,10 +626,11 @@ def test_selecting_a_structure_highlights_only_that_organ(cylinder_window):
 
 
 def test_clicking_the_highlighted_row_again_drops_the_highlight(cylinder_window):
-    """A second click on the highlighted row removes that preview emphasis.
+    """A mouse click on a listed organ highlights it, a second click drops it.
 
-    The highlight remaining fails. The physicist cannot get back to an
-    unemphasised view of every organ without leaving the row selected.
+    A first click that leaves the organ unemphasised, or a second click that
+    keeps the blue, fails. The physicist would inspect the wrong organ, or
+    could not return to an unemphasised view without leaving the row.
     """
     from PySide6.QtCore import Qt
     from PySide6.QtTest import QTest
@@ -640,15 +641,17 @@ def test_clicking_the_highlighted_row_again_drops_the_highlight(cylinder_window)
     view = cylinder_window.navigationmodel.views[5]
     view.resize(320, 480)
     view.show()
-    view.structure_list.setCurrentRow(0)
-    assert model.highlighted == 2
     item = view.structure_list.item(0)
+    pos = view.structure_list.visualItemRect(item).center()
     QTest.mouseClick(
-        view.structure_list.viewport(),
-        Qt.MouseButton.LeftButton,
-        pos=view.structure_list.visualItemRect(item).center(),
-    )
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted == 2
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
     assert model.highlighted is None
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted == 2
 
 
 def test_highlighting_an_organ_without_contours_adds_no_presentation(cylinder_window):
