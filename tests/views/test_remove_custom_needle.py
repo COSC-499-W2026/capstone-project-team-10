@@ -106,8 +106,9 @@ def test_the_remove_button_is_on_only_for_a_selected_custom_applicator_that_is_n
     """Check Remove Applicator is off with nothing or a plan applicator selected, on for a custom one, and off for the tandem.
 
     Fails if it is on for a plan needle, which invites deleting one the plan asked for, off for
-    a custom one, which leaves no way to remove it, or on for the tandem, which the model
-    refuses and leaves the press doing nothing.
+    a custom one, which leaves no way to remove it, on for the tandem, which the model refuses
+    and leaves the press doing nothing, or if its style has no disabled look, since the buttons
+    above it have none and an off button that looks live gets pressed again and again.
     """
     view = channels_window.navigationmodel.views[CHANNELS_TAB]
     model = channels_window.channelsmodel
@@ -127,6 +128,7 @@ def test_the_remove_button_is_on_only_for_a_selected_custom_applicator_that_is_n
         data.tandem_channel = old_tandem
 
     assert off_when_none and off_for_plan and on_for_custom and off_for_tandem
+    assert ":disabled" in view.btn_remove_applicator.styleSheet()
 
 
 def test_the_remove_button_takes_the_selected_applicator_out_of_the_model_and_the_list(channels_window: MainWindow) -> None:

@@ -181,8 +181,8 @@ class ChannelsView(CustomView):
         self.create_channels_list()
 
     def make_applicator_button(self, text: str, action: Callable[[], None]) -> QPushButton:
-        button = QPushButton(text)  # beside Disable, in the same style
-        button.setStyleSheet(self.ui.btn_enable.styleSheet())
+        button = QPushButton(text)  # beside Disable, in the same style, with the disabled look that one lacks
+        button.setStyleSheet(self.ui.btn_enable.styleSheet() + "QPushButton:disabled { color: rgb(150, 150, 150); }")
         button.setMinimumHeight(33)
         self.ui.verticalLayout_4.addWidget(button)
         button.pressed.connect(action)
