@@ -72,6 +72,8 @@ nothing stops OK. *Verified* by
 offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked
 from Ahab's week 7 log.
 
+*Add Applicator...* sits under Disable on the Channels tab and is off until a plan is imported. It opens a form with a name, Start X and Y, Length 1 inside the cylinder and Length 2 out into tissue, all in mm, with OK and Cancel. OK stays closed and shows the reason in a line under the fields, such as the start being too far from the centre of the base, until the numbers pass. The new needle is a row named Custom Applicator and a number, and it is cut and listed like a plan needle. There is no bend yet. *Verified* by offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked from Ahab's week 8 log.
+
 The Selected Channel group also holds the needle templates: a name field with *Save as
 Template*, a list of saved templates with *Apply Template*, and a status line. A refused save
 or an unreadable template file is explained in the status line beside the controls rather

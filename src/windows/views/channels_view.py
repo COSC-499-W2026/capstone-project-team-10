@@ -5,13 +5,14 @@ from dataclasses import dataclass
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QListWidgetItem, QMessageBox, QPushButton, QWidget,
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QListWidgetItem, QMessageBox, QPushButton,
 )
 
 from classes.app import get_app
 from classes.info import USER_PATH
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel, Translation
+from classes.mesh.helper import CustomNeedleSpec
 from classes.pdf.template_reference import channels_inside_cylinder
 from windows.models.channels_model import ChannelStatus
 from windows.models.shape_model import ShapeTypes
@@ -139,6 +140,57 @@ class MoveChannelDialog(QDialog):
         return (self.spin_x.value(), self.spin_y.value(), self.spin_z.value())
 
 
+class AddApplicatorDialog(QDialog):
+    """Asks for a custom applicator's name, its start on the cylinder's base and its two lengths, in mm.
+
+    It has no parent, like MoveChannelDialog. OK checks the numbers with the model's own rules and
+    stays open, showing the reason, until they pass.
+    """
+
+    def __init__(self, label: str, check: Callable[[CustomNeedleSpec], str]):
+        super().__init__()
+        self.check = check
+        self.setWindowTitle("Add Applicator")
+        form = QFormLayout(self)
+        form.setSizeConstraint(QFormLayout.SizeConstraint.SetFixedSize)
+        self.edit_label = QLineEdit(label)
+        self.spin_x = self.make_spin_box(0.0, -MoveChannelDialog.RANGE_MM)
+        self.spin_y = self.make_spin_box(0.0, -MoveChannelDialog.RANGE_MM)
+        self.spin_length1 = self.make_spin_box(10.0, 0.0)
+        self.spin_length2 = self.make_spin_box(10.0, 0.0)
+        for name, widget in (("Name", self.edit_label), ("Start X", self.spin_x), ("Start Y", self.spin_y),
+                             ("Length 1 inside the cylinder", self.spin_length1),
+                             ("Length 2 out into tissue", self.spin_length2)):
+            form.addRow(name, widget)
+        self.label_error = QLabel()
+        self.label_error.setWordWrap(True)
+        self.label_error.setMinimumWidth(360)
+        self.label_error.setHidden(True)
+        form.addRow(self.label_error)
+        self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        self.buttons.accepted.connect(self.try_accept)
+        self.buttons.rejected.connect(self.reject)
+        form.addRow(self.buttons)
+
+    def make_spin_box(self, value: float, minimum: float) -> QDoubleSpinBox:
+        spin_box = QDoubleSpinBox()
+        spin_box.setRange(minimum, MoveChannelDialog.RANGE_MM)
+        spin_box.setDecimals(3)
+        spin_box.setSuffix(" mm")
+        spin_box.setValue(value)
+        return spin_box
+
+    def spec(self) -> CustomNeedleSpec:
+        return CustomNeedleSpec(label=self.edit_label.text(), x=self.spin_x.value(), y=self.spin_y.value(),
+                                length1=self.spin_length1.value(), length2=self.spin_length2.value())
+
+    def try_accept(self) -> None:
+        error = self.check(self.spec())
+        self.label_error.setText(error)
+        self.label_error.setHidden(not error)
+        if not error: self.accept()
+
+
 class ChannelsView(CustomView):
 
     @display_action
@@ -165,6 +217,18 @@ class ChannelsView(CustomView):
         dialog = MoveChannelDialog(label, translation, lambda move: self.warning_for(label, move))
         if dialog.exec() != QDialog.DialogCode.Accepted: return None
         return dialog.translation()
+
+    @display_action
+    def action_add_applicator(self) -> None:
+        spec = self.ask_needle(self.channelsmodel.next_custom_label())
+        if spec is None: return
+        self.channelsmodel.add_custom_needle(spec)
+        self.create_channels_list()
+
+    def ask_new_needle(self, label: str) -> CustomNeedleSpec | None:
+        dialog = AddApplicatorDialog(label, self.channelsmodel.custom_needle_error)
+        if dialog.exec() != QDialog.DialogCode.Accepted: return None
+        return dialog.spec()
 
     @display_action
     def action_select_channel(self, item: QListWidgetItem, *args):
@@ -334,6 +398,7 @@ class ChannelsView(CustomView):
         # enable/disable buttons if any channel is selected
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
+        self.btn_add_applicator.setEnabled(self.channelsmodel.has_plan())
         selected_is_moved = any_selected and self.channelsmodel.is_channel_moved(selected_channel)
         self.ui.btn_set_tandem.setEnabled(any_selected and not selected_is_moved)
         self.ui.btn_set_tandem.setToolTip("Reset this channel's move to make it the tandem" if selected_is_moved else "")
@@ -393,9 +458,14 @@ class ChannelsView(CustomView):
         super().__init__()
         self.ui = Ui_Channels_View()  # the converted python file from the ui file
         self.ui.setupUi(self)
+        self.btn_add_applicator = QPushButton("Add Applicator...")  # beside Disable, in the same style
+        self.btn_add_applicator.setStyleSheet(self.ui.btn_enable.styleSheet())
+        self.btn_add_applicator.setMinimumHeight(33)
+        self.ui.verticalLayout_4.addWidget(self.btn_add_applicator)
         self.setStyleSheet(spin_box_arrows)
         self.is_active = False
         self.ask_translation: Callable[[str, Translation], Translation | None] = self.ask_move
+        self.ask_needle: Callable[[str], CustomNeedleSpec | None] = self.ask_new_needle
 
         #sets default needle length
         config_values = get_app().values.config_values
@@ -411,6 +481,7 @@ class ChannelsView(CustomView):
         self.ui.btn_apply_settings.pressed.connect(self.action_apply_settings)
         self.ui.btn_apply_channel_diameter.pressed.connect(self.action_apply_channel_diameter)
         self.ui.btn_move_channel.pressed.connect(self.action_move_selected_channel)
+        self.btn_add_applicator.pressed.connect(self.action_add_applicator)
         self.ui.btn_clear_channel_diameter.pressed.connect(self.action_clear_channel_diameter)
         self.ui.btn_save_template.pressed.connect(self.action_save_template)
         self.ui.btn_apply_template.pressed.connect(self.action_apply_template)
