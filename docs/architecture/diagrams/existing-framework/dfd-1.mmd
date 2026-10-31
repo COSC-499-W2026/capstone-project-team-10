@@ -35,7 +35,7 @@ flowchart TB
   worker(("Surface reconstruction<br/>single worker"))
   anatomy[("Anatomy state<br/>visibility, pending, generation,<br/>errors, opacity, cached meshes")]
   d1 -->|"immutable patient contours and probe frame"| p6
-  physicist -->|"show or hide ROI, mode, selected-ROI opacity"| p6
+  physicist -->|"show or hide ROI, mode, selected-ROI opacity, highlight"| p6
   p2 -->|"current cylinder length"| p6
   p6 <-->|"aligned meshes or wires, status and opacity"| anatomy
   p6 -->|"nonselectable surface or outline preview; visible loading or failure reason"| physicist
