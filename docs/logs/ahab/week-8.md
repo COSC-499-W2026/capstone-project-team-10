@@ -3,6 +3,21 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
+## Stack #184 to #194, at a glance
+
+| PR | On | Closes | Adds | Own diff | New tests | Suite after |
+|---|---|---|---|---|---|---|
+| #184 | main | #112 | the straight custom applicator, its form and button | 9 files, 499 lines | 20 | 321 passed, 17 failed |
+| #194 | #184 | #112 | the bend, with Bend radius, Theta and Phi | 8 files, 233 lines | 12 | 333 passed, 17 failed |
+
+The 17 failures are in `test_structure_surfaces.py` and `test_structure_display.py`, and are the same in every PR, since `scipy` and `skimage` are not in this conda env.
+
+### Shared by every PR in this stack
+
+- The code quality checklist, for every PR in the stack: **no hardcoded values, duplicate code, dead code, unnecessary function calls, excessive conditional logic, deep nesting, high cyclomatic complexity, or classes, modules and functions with many unrelated responsibilities, checked with `anti_slop review --base <parent branch> src tests utils` and a line-by-line read of each diff**.
+- Checks run on every PR: **`python docs/architecture/build.py --check` and `sh .claude/hooks/session-start.sh`, both exit 0**.
+- Not applicable to any PR in the stack: **security, privacy, encryption, access controls (typed numbers, nothing stored); database, data processing, state management, backend API (unchanged or none); data caching, restricted pages, design components, usability evaluation; test coverage (no tool)**.
+
 ### For PR #**184**
 
 - As part of requirement **FR-CN-01, create custom needles, and FR-CN-07, they reach the 3D export and the PDF**, the user needs to do **import Ex1, press Add Applicator..., type a name, a start on the base and two lengths, press OK, then export the STL and the PDF**.
@@ -60,5 +75,57 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - This new test PR did not break anything else in the system because **`python -m pytest` (321 passed, 17 failed, all in the structure surface tests with library failure, since `scipy` and `skimage` are not in the conda env), `build.py --check` and `session-start.sh` (exit 0), and brachify run on macOS with Ex1, driven by a script that pressed the real button, then an STL and a PDF exported (screenshot 1, whose panel 6 is the pytest result text drawn from the real output)**.
 
   ![1, Ex1 on macOS, the Add Applicator... button, the new row, a refused start, the 3D views and the pytest run](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0f08474df7f5efe25818e39c924932b4c142199c/docs/logs/ahab/screenshots/week-8/pr-184-1-add-applicator.png)
+
+- Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**194** (2 of 4, on #184)
+
+- As part of requirement **FR-CN-01, create custom needles with a bend**, the user needs to do **import Ex1, press Add Applicator..., type a start, two lengths, a bend radius, Theta and Phi, press OK, then export the STL and the PDF**.
+- Therefore, I implemented/generated code so that **medical physicists can add a custom applicator that runs straight up, turns by Theta towards Phi along an arc, and runs on into tissue**.
+
+#### Data Modeling and Integrity
+
+- This data **`CustomNeedleSpec`** is modeled as **#184's frozen dataclass with `radius`, `theta` and `phi` added, each defaulting to 0 so a straight needle is unchanged** because **one value still travels from the form to the builder**. We considered alternative models such as **a separate bend class, which would give the dialog and model a second value to carry**.
+- This data **`CustomNeedleSpec`** uses the input validation to ensure it adheres to **finite numbers, Theta from 0 to 89 degrees, and a radius above 0 mm whenever Theta is above 0**.
+- Not applicable: **see Shared**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **as in #184**. This structure has low coupling because **the form still reaches the rules only through `ChannelsModel.custom_needle_error`**. This structure has high cohesion because **`bent_needle_points` alone makes the arc**. This design is scalable because **a new bend field is one more spec field and one more step in that function**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **as in #184**. **A bent needle comes out in the STL and the PDF**.
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **as in #184**. **A bend with no radius raises `CustomNeedleError` and the form stays open showing the text (screenshot 1, panel 2)**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-01 → `test_a_bend_turns_the_needle_by_theta_towards_phi_after_a_radius_arc`, `test_a_bend_is_sampled_along_the_arc_from_the_joint_to_the_arc_end`, `test_a_bent_applicator_solid_reaches_sideways_to_where_the_bend_sends_it`**
+- Not applicable: **see Shared**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification**. The aspects that demonstrate this principle in the system include **a bend with no radius is explained in words under the fields, with no colour needed (screenshot 1, panel 2)**.
+- Not applicable: **see Shared, and traceability matrix (in Backend)**.
+
+#### Review and design
+
+- When I reviewed **my first bend, sampled every 10 degrees and tested at 90 degrees**, I noticed **`rounded_channel` opens its modal error box when the last pipe is exactly flat, which stalled the offscreen test and would show a clinician an error box**. Therefore, I did **stop Theta at 89 degrees and record the trap in §7.6, rather than change inherited channel code in this PR**.
+- The PR contains one limit that works around inherited code, because **Theta stops at 89 since `rounded_channel` cannot build a flat last pipe (§7.6)**.
+- The PR only contains small functions that are **at most 28 lines (`AddApplicatorDialog.__init__`)** long. The two it adds or splits are **19 lines (`custom_needle_points`) and 11 lines (`bent_needle_points`)**.
+- I did **`anti_slop review --base feat/custom-needle-straight src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
+- This work is written in **`helper.py` and `channels_view.py`** because **#184 put the builder and the form there, and a new module needs the architecture diagram redrawn**.
+- This work belongs in **3 Channels** in the DFD because **it is another way to create a channel**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_bend_turns_the_needle_by_theta_towards_phi_after_a_radius_arc` and `test_a_bent_applicator_solid_reaches_sideways_to_where_the_bend_sends_it` (12 new; 21 in `test_custom_needle_points.py` and 11 in `test_add_custom_needle.py`)** passed.
+- I wrote tests to cover abnormal situations involving **a Theta of 90 or below 0, NaN, a bend with no radius, an infinite Phi, and Theta 0 with a radius left in the form** and they passed.
+- I checked that these negative cases involving **two deliberate breaks (Phi measured from +Y, the arc cut to one chord)** failed as expected.
+- Among these tests, **the 11 new in `test_custom_needle_points.py`** are unit tests and **the 1 new in `test_add_custom_needle.py`** is an integration test through the real window.
+- These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (333 passed, 321 after #184, 17 failed, all in the structure surface tests with library failure, since `scipy` and `skimage` are not in the conda env), and brachify run on macOS with Ex1, driven by a script that pressed the real button, then an STL (2.1 MB) and a PDF (45 KB) exported (screenshot 1, whose panel 6 is the pytest result text drawn from the real output)**.
+
+  ![1, Ex1 on macOS, the bend form, a refused bend, the new row, the bent needle in 3D and the pytest run](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9cb94d086df77cd34bd7e2684386853b72b3821f/docs/logs/ahab/screenshots/week-8/pr-194-1-bend.png)
 
 - Not applicable: **generated-test review (no problem found)**.
