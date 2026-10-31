@@ -2032,6 +2032,11 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
   `getCurrentValues()` writes only the global diameter. The 3D export is correct, because it
   cuts `channel.shape()`, so a reference sheet checked against a cylinder printed with own
   diameters disagrees with it. FR-CN-07 is the follow-up. *Reasoned from code*.
+- **A custom needle needs a plan, because `starting_length` is 0 until an import.** `CylinderView.action_apply_settings`
+  emits `height_changed(length - starting_length)`, so with no plan the first Apply would shift every channel by the
+  whole cylinder length. *Add Applicator...* is disabled until `DicomData.channel_paths` is set for this reason.
+  `ChannelsModel.height_offset` records the last offset so a needle added after a length change keeps its tip where
+  it was typed (*Verified* by `tests/views/test_add_custom_needle.py`). The no-plan shift itself is *Reasoned from code*.
 
 
 ### 7.7 MEDIUM — a tandem channel's rotation is measured from `(1, 0)`, not the axis
