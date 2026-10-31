@@ -4644,7 +4644,7 @@ same model looked different in each tab's screenshot.
 
 ### 17.3 `import_view.py`, the Import tab
 
-> Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. PR #125 adds Surface/Outlines/Both and selected-ROI opacity controls. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
+> Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. PR #125 adds Surface/Outlines/Both and selected-ROI opacity controls. Selecting a row highlights that organ in the channel-selection blue, and clicking it again clears the highlight. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
 
 | Widget | Label | Does |
 |---|---|---|

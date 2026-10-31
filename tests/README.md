@@ -231,7 +231,10 @@ leave stale geometry or stuck pending state. No application module is mocked. Th
 canvas remains uninitialised, so these assertions do not prove native rendering. The #125
 cases drive the real mode dropdown and selected-ROI opacity slider, check visible failure
 text with unchecked state and no outline fallback, and inspect a real `AIS_Triangulation`
-actor's mode 0, shading colour and transparency. They do not initialise a native viewer;
+actor's mode 0, shading colour and transparency. Selecting a row stores that ROI as
+the highlight, another row replaces it, a second click or a cleared row drops it, and
+an empty organ gains no presentation. A highlighted triangulation uses the channel
+selection blue, 0.2 0.2 0.7. They do not initialise a native viewer;
 previous native observations are recorded separately in PR #125.
 
 The documentation pass ran full isolated suites: 258 passed for #133 and 287 for #134.
