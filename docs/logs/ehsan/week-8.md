@@ -119,11 +119,11 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 ## Stack #154 then colour, at a glance
 
-Two stacked PRs for Structures selection and colour. Each PR was based on the one above it and closes its own issue. A row's counts are **that PR's own diff only**, as GitHub shows it against its parent. Everything in earlier rows is inherited, not repeated.
+Seven stacked PRs for Structures selection, colour and black copy. Each PR is based on the one above it and closes its own issue. A row's counts are **that PR's own diff only**.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
-| [#154](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/154) | `main` | #111 | Highlight the selected organ in channel-selection blue | 19, +245/âˆ’36 | 4 | 322 collected, 318 passed / 4 failed |
+| [#154](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/154) | `main` | #111 | Highlight the selected organ in channel-selection blue | 6, code and tests | 4 | 322 collected, 318 passed / 4 failed |
 
 The suite had 318 tests on `main` before #154. The four failures are pre-existing (`test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases). Counts were collected with `pytest --collect-only` and a full `python -m pytest` on this branch.
 
@@ -143,7 +143,7 @@ Stated once here instead of in each section.
 - **Regression checks.** Every PR's regression receipt also includes **`python docs/architecture/build.py --check` and `session-start.sh`, both exit 0**. Each section gives only its own `python -m pytest` result.
 - **Not applicable in every PR.** **Encryption and access controls (no stored secrets, no user roles), restricted pages (no logins), usability evaluation (none run), backend API (none), database (none), test coverage (no coverage tool), security sanitization (no network input), privacy sanitization (no new patient fields)**.
 
-### For PR #**154** (1 of 2, on `main`)
+### For PR #**154** (1 of 7, on `main`)
 
 - As part of requirement **FR-SV-01**, the user needs to do **import a plan with organs, open Structures, click a row, and see that organ emphasised in the preview**.
 - Therefore, I implemented/generated code so that **the medical physicist can highlight one listed organ in the channel-selection blue, and click it again to clear**.

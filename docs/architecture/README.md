@@ -108,9 +108,7 @@ Structures list and nonselectable surface/wire actors, outside printable `ShapeM
 The worker returns `SurfaceResult` through a queued signal. A generation tag rejects old
 plans; a changed length realigns cached patient meshes. `opacity_changed` is separate from
 geometry changes: it updates existing ROI actors and the selected ROI slider without
-rebuilding geometry or list rows. `highlight_changed` recolours those actors in the
-channel-selection blue, or restores the DICOM colour, without rebuilding the list.
-Surface is the default; failed reconstruction does not
+rebuilding geometry or list rows. Surface is the default; failed reconstruction does not
 automatically fall back to outlines. *Reasoned from code, PRs #134/#125.*
 
 ### DFD level 0
@@ -125,8 +123,6 @@ The six tabs now include Structures at `views[5]`. Printable shapes still flow t
 `ShapeModel` and `DisplayModel`. Anatomy has its own visibility, alignment and cache state;
 no anatomy edge enters Export. Surface/Both modes request reconstruction from the worker;
 results update the preview or its visible status. Opacity affects existing actors only.
-The highlighted row recolours its actors through `highlight_changed` and adds no shape
-for an organ that has no geometry.
 
 ![DFD level 1. Import, cylinder, channels, tandem, export and structures, with the plan and the shapes stored between them. Import also reads a config JSON. Tandem takes the tandem channel from channels and the length and diameter from cylinder. Export reads the plan for the PDF and writes STL or STEP.](diagrams/existing-framework/dfd-1.svg)
 
@@ -139,7 +135,7 @@ Six tabs, with Structures appended at index 5. The code addresses them by index.
 | Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter, directly or from a saved needle template. The list shows each channel's status. |
 | Tandem | Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
-| Structures | Surface/Outlines/Both, default Surface; per-ROI visibility and opacity, DICOM colours and visible loading/failure status. The current row highlights that organ in the channel-selection blue. Pending ROIs can be hidden; failed surfaces do not fall back automatically. |
+| Structures | Surface/Outlines/Both, default Surface; per-ROI visibility and opacity, DICOM colours and visible loading/failure status. Pending ROIs can be hidden; failed surfaces do not fall back automatically. |
 
 A view method that changes geometry must use `@display_action`, or the model updates and the viewport does not. The shape path is in the UML above.
 
