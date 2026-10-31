@@ -279,3 +279,22 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **no `src/` file changed**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
 
+### For PR black-text (7 of 7, on colour pictures)
+
+- As part of requirement **FR-SV-01**, the user needs to do **open Structures and read the mode, opacity hint and Change colour label**.
+- Therefore, I implemented/generated code so that **the Structures page paints copy `color: rgb(0, 0, 0)` like Cylinder, instead of inheriting almost-white sidebar text**.
+
+#### Review and design
+
+- When I reviewed the **stacked `viewswidget` stylesheet** for this functionality, I noticed **it sets `color: rgba(240, 245, 250)`**. Therefore, I did **set the same black rule Cylinder uses on its labels**.
+- Code quality checklist: **see Shared**.
+- This work is written in **`structures_view.py`** because **the page is built in code, not a `.ui`**.
+- Not applicable: **temporary workaround, DFD process (display-only copy)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_structures_tab_copy_uses_black_text` (1 new)** passed.
+- I checked that these negative cases involving **an empty stylesheet inheriting the stacked widget colour** failed as expected.
+- This new test PR did not break anything else in the system because **the parent colour tests still pass**.
+- Not applicable: **abnormal cases (no extra dialog), generated-test review**.
+
