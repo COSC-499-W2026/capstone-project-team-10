@@ -261,3 +261,21 @@ Stated once here instead of in each section.
   **[author: attach a screenshot of the pytest run showing the 4 new colour tests]**
   **[author: attach a screenshot of Change colour updating the swatch]**
 
+### For PR colour-reference (5 of 7, on colour)
+
+- As part of requirement **FR-SV-05**, the user needs to do **read the source of truth and see that Change colour stores a display override**.
+- Therefore, I implemented/generated code so that **§5.6, the design note, the init guide and `tests/README.md` describe `color_changed`**.
+
+#### Review and design
+
+- When I reviewed the **Structures control table** for this functionality, I noticed **it still stopped at row highlight**. Therefore, I did **add Change colour**.
+- Code quality checklist: **see Shared**.
+- This work is written in **the documentation set** because **the code landed in the colour PR**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **the colour tests from the parent PR, inherited** passed.
+- This new test PR did not break anything else in the system because **no `src/` file changed**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
+
