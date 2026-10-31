@@ -16,6 +16,9 @@ class StructuresView(CustomView):
 
     def __init__(self):
         super().__init__()
+        # viewswidget paints color rgba(240, 245, 250). Cylinder labels override it
+        # with this same rule so copy stays readable on the pale sidebar.
+        self.setStyleSheet("color: rgb(0, 0, 0);")
         layout = QVBoxLayout(self)
         self.instructions = QLabel("Select structures to display beside the probe. Surface previews are approximate.", self)
         self.instructions.setWordWrap(True)
