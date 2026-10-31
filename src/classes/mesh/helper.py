@@ -243,6 +243,11 @@ def custom_needle_points(
         raise CustomNeedleError("A bend needs a radius above 0 mm")
     if spec.theta == 0:
         return [[spec.x, spec.y, spec.length1 + spec.length2], [spec.x, spec.y, 0.0]]
+    return bent_needle_points(spec)
+
+
+def bent_needle_points(spec: CustomNeedleSpec) -> list[list[float]]:
+    """The points of a needle with a bend, from its tip to its start. The spec has already been checked."""
     direction = (math.cos(math.radians(spec.phi)), math.sin(math.radians(spec.phi)))
     steps = math.ceil(spec.theta / ARC_STEP_DEGREES)
     arc = []
