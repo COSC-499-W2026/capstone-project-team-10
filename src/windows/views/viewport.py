@@ -251,11 +251,12 @@ class OrbitCameraViewer3d(qtBaseViewer):
         for structure in model.presentations():
             self._structure_actors[structure.roi_number] = []
             highlighted = structure.roi_number == model.highlighted
-            red, green, blue = structure_display_rgb(structure.color, highlighted)
+            rgb = model.color_for(structure.roi_number)
+            red, green, blue = structure_display_rgb(rgb, highlighted)
             color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
             if model.mode != StructureDisplayMode.OUTLINES and structure.surface is not None:
                 surface = anatomy_surface_presentation(
-                    structure.surface, structure.color, model.opacity_for(structure.roi_number), highlighted)
+                    structure.surface, rgb, model.opacity_for(structure.roi_number), highlighted)
                 context.Display(surface, False)
                 context.Deactivate(surface)
                 self._structure_presentations.append(surface)
@@ -276,12 +277,11 @@ class OrbitCameraViewer3d(qtBaseViewer):
         if not self._inited:
             return
         model = get_app().window.structuresmodel
-        colours = {item.roi_number: item.color for item in model.presentations()}
         for roi, actors in self._structure_actors.items():
-            if roi not in colours:
+            if roi not in model.structures:
                 continue
             highlighted = roi == model.highlighted
-            red, green, blue = structure_display_rgb(colours[roi], highlighted)
+            red, green, blue = structure_display_rgb(model.color_for(roi), highlighted)
             color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
             for actor in actors:
                 actor.SetColor(color)
@@ -289,6 +289,20 @@ class OrbitCameraViewer3d(qtBaseViewer):
                     actor.Attributes().ShadingAspect().SetColor(color)
                 actor.SetWidth(3. if highlighted else 1.)
                 self._display.Context.Redisplay(actor, False)
+        self._display.Repaint()
+
+    def update_structure_color(self, roi: int, rgb: tuple[int, int, int]):
+        """Recolour one organ's existing actors without rebuilding the mesh."""
+        if not self._inited:
+            return
+        model = get_app().window.structuresmodel
+        red, green, blue = structure_display_rgb(rgb, roi == model.highlighted)
+        color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
+        for actor in self._structure_actors.get(roi, ()):
+            actor.SetColor(color)
+            if actor.Attributes().HasOwnShadingAspect():
+                actor.Attributes().ShadingAspect().SetColor(color)
+            self._display.Context.Redisplay(actor, False)
         self._display.Repaint()
 
     def update_structure_opacity(self, roi: int, opacity: float):

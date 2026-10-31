@@ -676,3 +676,77 @@ def test_highlighting_an_organ_without_contours_adds_no_presentation(cylinder_wi
     assert {item.roi_number for item in model.presentations()} == before
     assert 5 not in model._outlines
     assert view.structure_list.count() == 3
+
+
+def test_set_color_changes_only_that_organ_and_keeps_the_dicom_value(anatomy_model):
+    """Override one organ's display colour without rewriting the imported ROI.
+
+    A second organ changing, or Structure.color mutating, fails. The physicist
+    would lose the plan colour and could not tell which organ was recoded.
+    """
+    from PySide6.QtTest import QSignalSpy
+    geometry_changes = QSignalSpy(anatomy_model.changed)
+    anatomy_model.set_color(2, (10, 20, 30))
+    assert anatomy_model.color_for(2) == (10, 20, 30)
+    assert anatomy_model.color_for(1) == (255, 255, 255)
+    assert anatomy_model.structures[2].color == (0, 255, 0)
+    assert anatomy_model.presentations()[0].color == (10, 20, 30)
+    assert geometry_changes.count() == 0
+
+
+def test_set_color_rejects_invalid_rgb_and_keeps_the_previous_colour(anatomy_model):
+    """Refuse a component outside 0 to 255 and leave the last accepted colour.
+
+    An accepted 256 or a negative channel fails. A preview colour outside
+    DICOM RGB would not match the list swatch the physicist just set.
+    """
+    anatomy_model.set_color(2, (10, 20, 30))
+    for invalid in ((-1, 0, 0), (0, 256, 0), (0, 0, 1.5), (0, 0)):
+        with pytest.raises(ValueError):
+            anatomy_model.set_color(2, invalid)
+    assert anatomy_model.color_for(2) == (10, 20, 30)
+
+
+def test_change_colour_updates_the_list_swatch(cylinder_window):
+    """Apply a picked colour to the current row and show it on the swatch.
+
+    A green pixel remaining, or no Change colour button, fails. The list
+    indicator and the drawn organ must show the same RGB (FR-SV-05).
+    """
+    from PySide6.QtGui import QColor
+    from PySide6.QtWidgets import QPushButton
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    buttons = [button for button in view.findChildren(QPushButton) if button.text() == "Change colour"]
+    assert len(buttons) == 1
+    view.structure_list.setCurrentRow(0)
+    view.action_apply_colour(QColor(10, 20, 30))
+    assert model.color_for(2) == (10, 20, 30)
+    pixel = view.structure_list.item(0).icon().pixmap(12, 12).toImage().pixelColor(6, 6)
+    assert (pixel.red(), pixel.green(), pixel.blue()) == (10, 20, 30)
+    from windows.views.viewport import structure_display_rgb
+    assert structure_display_rgb(model.color_for(2), True) == (0.2, 0.2, 0.7)
+    assert structure_display_rgb(model.color_for(2), False) == (10 / 255, 20 / 255, 30 / 255)
+
+
+def test_cancelled_colour_pick_leaves_the_swatch_and_the_preview(cylinder_window):
+    """Ignore a cancelled colour dialog so the DICOM colour stays on both surfaces.
+
+    A changed swatch or model colour after None fails. Cancel must not recode
+    the organ the physicist was only inspecting.
+    """
+    from PySide6.QtGui import QColor
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    view.structure_list.setCurrentRow(0)
+    view.action_apply_colour(None)
+    view.action_apply_colour(QColor())
+    assert model.color_for(2) == (0, 255, 0)
+    pixel = view.structure_list.item(0).icon().pixmap(12, 12).toImage().pixelColor(6, 6)
+    assert (pixel.red(), pixel.green(), pixel.blue()) == (0, 255, 0)

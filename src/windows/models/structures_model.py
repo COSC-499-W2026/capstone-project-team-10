@@ -85,6 +85,7 @@ class StructuresModel(QObject):
     changed = Signal()
     opacity_changed = Signal(int, float)
     highlight_changed = Signal()
+    color_changed = Signal(int, tuple)
 
     def __init__(self):
         super().__init__()
@@ -97,6 +98,7 @@ class StructuresModel(QObject):
         self.surface_errors: dict[int, str] = {}
         self.mode = StructureDisplayMode.SURFACE
         self._opacities: dict[int, float] = {}
+        self._colors: dict[int, tuple[int, int, int]] = {}
         self.outline_errors: dict[int, str] = {}
         self.pending: set[int] = set()
         self.highlighted: int | None = None
@@ -110,6 +112,7 @@ class StructuresModel(QObject):
         self.pending.clear()
         self.outline_errors.clear()
         self._opacities.clear()
+        self._colors.clear()
         self.structures.clear()
         self.visible.clear()
         self.unavailable.clear()
@@ -151,7 +154,7 @@ class StructuresModel(QObject):
             return
         structure = self.structures[roi]
         if roi not in self._outlines:
-            self._outlines[roi] = StructurePresentation(roi, structure.color)
+            self._outlines[roi] = StructurePresentation(roi, self.color_for(roi))
         if (self.mode != StructureDisplayMode.SURFACE and self._outlines[roi].outline is None
                 and roi not in self.outline_errors):
             try:
@@ -214,6 +217,37 @@ class StructuresModel(QObject):
 
     def opacity_for(self, roi: int) -> float:
         return self._opacities.get(roi, 0.45)
+
+    def color_for(self, roi: int) -> tuple[int, int, int]:
+        if roi in self._colors:
+            return self._colors[roi]
+        return self.structures[roi].color
+
+    def set_color(self, roi: int, rgb: tuple[int, int, int]):
+        """Override one organ's display colour. The imported DICOM RGB stays.
+
+        Each component must be an integer 0 to 255. The mesh is not rebuilt.
+        """
+        if roi not in self.structures:
+            raise ValueError('This structure is unavailable')
+        if len(rgb) != 3:
+            raise ValueError('Colour needs three RGB components')
+        red, green, blue = rgb
+        decoded: list[int] = []
+        for component in (red, green, blue):
+            if component is True or component is False:
+                raise ValueError('Each RGB component must be an integer from 0 to 255')
+            try:
+                as_int = int(component)
+            except (TypeError, ValueError):
+                raise ValueError('Each RGB component must be an integer from 0 to 255') from None
+            if as_int != component or not 0 <= as_int <= 255:
+                raise ValueError('Each RGB component must be an integer from 0 to 255')
+            decoded.append(as_int)
+        self._colors[roi] = (decoded[0], decoded[1], decoded[2])
+        if roi in self._outlines:
+            self._outlines[roi] = replace(self._outlines[roi], color=self._colors[roi])
+        self.color_changed.emit(roi, self._colors[roi])
 
     def set_opacity(self, roi: int, opacity: float):
         if roi not in self.structures:

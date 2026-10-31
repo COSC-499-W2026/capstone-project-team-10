@@ -1,6 +1,9 @@
 from PySide6.QtCore import Qt, QSignalBlocker
 from PySide6.QtGui import QColor, QIcon, QPixmap
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QSlider, QVBoxLayout
+from PySide6.QtWidgets import (
+    QColorDialog, QComboBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+    QPushButton, QSlider, QVBoxLayout,
+)
 
 from classes.app import get_app
 from classes.dicom.structure_list import anatomy_structures, structure_list_rows
@@ -39,10 +42,15 @@ class StructuresView(CustomView):
         opacity_controls.addWidget(self.opacity_label)
         opacity_controls.addWidget(self.surface_opacity, 1)
         controls.addLayout(opacity_controls)
+        self.change_colour_button = QPushButton("Change colour", self)
+        self.change_colour_button.setToolTip("Change the selected structure colour")
+        controls.addWidget(self.change_colour_button)
         layout.addLayout(controls)
         self.surface_mode.currentTextChanged.connect(lambda text: model.set_mode(StructureDisplayMode(text)))
         self.surface_opacity.valueChanged.connect(self.action_change_opacity)
+        self.change_colour_button.clicked.connect(self.action_change_colour)
         model.opacity_changed.connect(self.update_opacity_controls)
+        model.color_changed.connect(self.update_structure_swatch)
         self.structure_list = QListWidget(self)
         self.structure_list.setObjectName("structure_list")
         self.structure_list.setWordWrap(True)
@@ -82,7 +90,7 @@ class StructuresView(CustomView):
                 elif reason and not model.is_displayed(roi) and roi not in model.pending:
                     item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
                 swatch = QPixmap(12, 12)
-                swatch.fill(QColor(*row.color))
+                swatch.fill(QColor(*model.color_for(roi)))
                 item.setIcon(QIcon(swatch))
                 self.structure_list.addItem(item)
                 if roi == selected:
@@ -122,6 +130,36 @@ class StructuresView(CustomView):
         with QSignalBlocker(self.surface_opacity):
             self.surface_opacity.setValue(round(opacity * 100))
         self.opacity_label.setText(f"Opacity {round(opacity * 100)}%")
+
+    def action_change_colour(self):
+        """Open a colour dialog for the current row. Cancel leaves the colour."""
+        item = self.structure_list.currentItem()
+        if item is None:
+            return
+        roi = item.data(Qt.UserRole)
+        current = get_app().window.structuresmodel.color_for(roi)
+        picked = QColorDialog.getColor(QColor(*current), self, "Choose structure colour")
+        self.action_apply_colour(picked)
+
+    def action_apply_colour(self, colour: QColor | None):
+        """Store a picked colour, or ignore a cancelled dialog."""
+        item = self.structure_list.currentItem()
+        if item is None or colour is None or not colour.isValid():
+            return
+        model = get_app().window.structuresmodel
+        model.set_color(item.data(Qt.UserRole), (colour.red(), colour.green(), colour.blue()))
+        model.set_highlight(None)
+
+    def update_structure_swatch(self, roi: int, rgb: tuple[int, int, int]):
+        """Repaint one list swatch without rebuilding the rows."""
+        with QSignalBlocker(self.structure_list):
+            for index in range(self.structure_list.count()):
+                item = self.structure_list.item(index)
+                if item.data(Qt.UserRole) == roi:
+                    swatch = QPixmap(12, 12)
+                    swatch.fill(QColor(*rgb))
+                    item.setIcon(QIcon(swatch))
+                    return
 
     def action_change_opacity(self, value: int):
         item = self.structure_list.currentItem()
