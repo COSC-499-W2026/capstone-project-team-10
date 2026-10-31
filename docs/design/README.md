@@ -92,3 +92,8 @@ items; model changes rebuild rows while restoring selection by ROI number.
 *Reasoned from #125 code and covered by offscreen widgets/native-actor tests; no fresh native
 screenshot or usability evaluation is claimed.* See [§5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 and [§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+
+The XYZ grid refines from 10 mm to 5 mm and 1 mm as the camera zooms in, then coarsens
+on zoom-out. Its outer walls stay fixed. Numeric labels sit closer to the walls;
+X/Y titles sit below the bottom wall and the Z title sits outside the minimum-X/Y corner. The grid tooltip reports the current interval.
+*Reasoned from code; native zoom transitions not yet visually verified.*

@@ -117,3 +117,28 @@ def test_grid_and_central_axis_controls_do_not_overlap(viewport_module):
     canvas.central_axis_button.click()
     assert not canvas.grid_button.isChecked()
     canvas.close()
+
+
+@pytest.mark.parametrize('mm_per_pixel,expected', [(0.501, 10), (0.5, 5), (0.126, 5), (0.125, 1)])
+def test_grid_spacing_follows_zoom(viewport_module, mm_per_pixel, expected):
+    """Choose finer millimetre intervals only when they have readable screen spacing.
+
+    Wrong thresholds fail these literal cases and would leave the close-up grid coarse
+    or crowd it with fine lines when zoomed out.
+    """
+    assert viewport_module.grid_spacing(mm_per_pixel) == expected
+
+
+@pytest.mark.parametrize('spacing', [10, 5, 1])
+def test_zoom_grid_keeps_bounds_and_updates_ticks(viewport_module, spacing):
+    """Refine ticks without moving the bounding walls or changing model units.
+
+    Missing subdivisions or shifted walls fail, preventing the grid from jumping
+    through geometry when the camera crosses a zoom threshold.
+    """
+    grid = viewport_module.reference_grid((-15, -15, 0, 15, 15, 100), spacing)
+    assert grid.lower == (-20, -20, 0)
+    assert grid.upper == (20, 20, 100)
+    xs = sorted({a[0] for a, b in grid.lines if a[0] == b[0] and a[1] != b[1]})
+    assert xs == list(range(-20, 21, spacing))
+    assert str(spacing) in {label.text for label in grid.labels}

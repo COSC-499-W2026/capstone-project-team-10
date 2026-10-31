@@ -71,10 +71,23 @@ def grid_ticks(lower: float, upper: float) -> tuple[int, ...]:
     return tuple(range(start, stop + step, step))
 
 
-def reference_grid(bounds: GridBounds) -> ReferenceGrid:
+def grid_spacing(mm_per_pixel: float) -> int:
+    """Select 10, 5 or 1 mm intervals from the current screen scale."""
+    if mm_per_pixel <= 0.125:
+        return 1
+    if mm_per_pixel <= 0.5:
+        return 5
+    return 10
+
+
+def reference_grid(bounds: GridBounds, spacing: int | None = None) -> ReferenceGrid:
     """Build an outer-wall lattice and model-coordinate labels."""
     xs, ys, zs = (grid_ticks(bounds[i], bounds[i + 3]) for i in range(3))
     x0, x1, y0, y1, z0, z1 = xs[0], xs[-1], ys[0], ys[-1], zs[0], zs[-1]
+    if spacing is not None:
+        xs = tuple(range(x0, x1 + 1, spacing))
+        ys = tuple(range(y0, y1 + 1, spacing))
+        zs = tuple(range(z0, z1 + 1, spacing))
     lines: set[GridLine] = set()
     for x in xs:
         lines.add(((x, y0, z0), (x, y1, z0)))
@@ -86,13 +99,13 @@ def reference_grid(bounds: GridBounds) -> ReferenceGrid:
         lines.add(((x0, y0, z), (x0, y1, z)))
         lines.add(((x0, y1, z), (x1, y1, z)))
     xm, ym, zm = (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2
-    gap = max(x1 - x0, y1 - y0) * 0.12
+    gap = max(x1 - x0, y1 - y0) * 0.05
     labels = [GridLabel(str(x), (x, y0 - gap, z0)) for x in xs]
     labels += [GridLabel(str(y), (x1 + gap, y, z0)) for y in ys]
     labels += [GridLabel(str(z), (x0 - gap, y0, z)) for z in zs]
-    labels += [GridLabel('X (mm)', (xm, y0 - 5 * gap, z0)),
-               GridLabel('Y (mm)', (x1 + 5 * gap, ym, z0)),
-               GridLabel('Z (mm)', (x0 - 5 * gap, y0, zm))]
+    labels += [GridLabel('X (mm)', (xm, y0 - 5 * gap, z0 - 5)),
+               GridLabel('Y (mm)', (x1 + 5 * gap, ym, z0 - 5)),
+               GridLabel('Z (mm)', (x0 - 5 * gap, y0 - 5 * gap, zm))]
     return ReferenceGrid((x0, y0, z0), (x1, y1, z1), tuple(sorted(lines)), tuple(labels))
 
 
@@ -216,12 +229,15 @@ class OrbitCameraViewer3d(qtBaseViewer):
             if transparent: self._display.DisplayShape(shape.shape, color=colour, material=Graphic3d_NOM_TRANSPARENT, update=False)
             else: self._display.DisplayShape(shape.shape, color=colour, update=False)
 
-        self._grid_definition = None if bounds.IsVoid() else reference_grid(bounds.Get())
+        self._grid_bounds = None if bounds.IsVoid() else bounds.Get()
+        self._grid_spacing = None
+        self._grid_definition = None if self._grid_bounds is None else reference_grid(self._grid_bounds)
         self.set_grid_available(self._grid_definition is not None)
         self.refresh_structure_outlines()
         if resize:
             self._display.View.ZFitAll()
             self._display.View.FitAll(0.2, False)
+        self._update_grid_spacing()
         self._display.Repaint()
         cylinder = get_app().window.cylindermodel.cylinder
         self.set_axis_length(cylinder.length if shapes and cylinder is not None else None)
@@ -285,6 +301,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._available_cursors = {}
         self._gesture: CameraGesture | None = None
         self._grid_available = False
+        self._grid_bounds: GridBounds | None = None
+        self._grid_spacing: int | None = None
         self._grid_definition: ReferenceGrid | None = None
         self._grid_presentations: list[AIS_InteractiveObject] = []
         self._structure_presentations: list[AIS_InteractiveObject] = []
@@ -341,6 +359,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
     def resizeEvent(self, event):
         if self._inited:
             super().resizeEvent(event)
+            self._update_grid_spacing()
         self._position_grid_button()
         self._position_axis_button()
 
@@ -349,6 +368,17 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_available = available
         self.grid_button.setEnabled(available)
         self._refresh_grid()
+
+    def _update_grid_spacing(self):
+        """Rebuild only when zoom or viewport size crosses an interval threshold."""
+        if not self._inited or self._grid_bounds is None or self.height() <= 0:
+            return
+        spacing = grid_spacing(self._display.View.Convert(1) * self.devicePixelRatioF())
+        if spacing != self._grid_spacing:
+            self._grid_spacing = spacing
+            self._grid_definition = reference_grid(self._grid_bounds, spacing)
+            self.grid_button.setToolTip(f"Outer bounding-box grid; {spacing} mm intervals (zoom adaptive)")
+            self._refresh_grid()
 
     def _refresh_grid(self):
         """Draw subdued outer-wall lines and white millimetre labels."""
@@ -426,6 +456,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         code = event.key()
         if code in self._key_map:
             self._key_map[code]()
+            self._update_grid_spacing()
         elif code in range(256):
             pass
 
@@ -441,6 +472,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         if not self._inited:
             self.InitDriver()
 
+        self._update_grid_spacing()
         self._display.Context.UpdateCurrentViewer()
 
         if self._drawbox:
@@ -453,6 +485,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         factor = wheel_zoom_factor(event.angleDelta().y(), event.pixelDelta().y())
         if factor != 1.0:
             self._display.ZoomFactor(factor)
+            self._update_grid_spacing()
         event.accept()
 
     @property

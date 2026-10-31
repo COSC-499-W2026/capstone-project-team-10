@@ -262,11 +262,14 @@ which on Windows means `npx.cmd`. That test is skipped where Node is not install
 
 ## Viewport controls and references
 
+Grid coverage includes zoom-dependent 10/5/1 mm intervals and unchanged outer walls
+while refining line positions and millimetre labels.
+
 `views/test_camera_controls.py` has six cases for left-drag versus click, jitter, distant
 release, incremental right/middle panning and proportional reversible wheel/trackpad zoom.
 `views/test_central_axis.py` has eight cases for local-Z endpoints, invalid lengths, the
 real toggle's availability/preference and `DisplayModel.reset` emitting an empty scene.
-`views/test_bounding_grid.py` (PR #81) has nine cases for rounded bounds, invalid input,
+`views/test_bounding_grid.py` has sixteen cases for rounded bounds, invalid input,
 outer-wall lines, model-mm axis titles, real AIS label text/position, reset and independent
 nonoverlapping controls. The fixtures isolate user files before importing the viewport.
 
