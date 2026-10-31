@@ -285,6 +285,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
             color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
             for actor in actors:
                 actor.SetColor(color)
+                if actor.Attributes().HasOwnShadingAspect():
+                    actor.Attributes().ShadingAspect().SetColor(color)
                 actor.SetWidth(3. if highlighted else 1.)
                 self._display.Context.Redisplay(actor, False)
         self._display.Repaint()
