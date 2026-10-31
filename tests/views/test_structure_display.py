@@ -307,6 +307,31 @@ def test_surface_presentation_uses_mesh_mode_and_dicom_colour(units_app):
     assert actor.Transparency() == pytest.approx(0.4)
 
 
+def test_highlighted_surface_uses_the_channel_selection_colour(units_app):
+    """Draw a highlighted organ in the same blue used for a selected channel.
+
+    A green actor, or a highlighted actor that keeps the DICOM colour, fails.
+    The physicist would not be able to tell which organ the list row refers to.
+    """
+    from OCC.Core.Poly import Poly_Triangulation, Poly_Triangle
+    from OCC.Core.gp import gp_Pnt
+    from windows.views.viewport import anatomy_surface_presentation, structure_display_rgb
+    mesh = Poly_Triangulation(3, 1, False)
+    for index, point in enumerate(((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)), 1):
+        mesh.SetNode(index, gp_Pnt(*point))
+    mesh.SetTriangle(1, Poly_Triangle(1, 2, 3))
+    mesh.ComputeNormals()
+    assert structure_display_rgb((0, 255, 0), False) == (0., 1., 0.)
+    assert structure_display_rgb((0, 255, 0), True) == (0.2, 0.2, 0.7)
+    from OCC.Core.Quantity import Quantity_Color, Quantity_TOC_sRGB
+    actor = anatomy_surface_presentation(mesh, (0, 255, 0), 0.6, highlighted=True)
+    colour = actor.Attributes().ShadingAspect().Color()
+    expected = Quantity_Color(0.2, 0.2, 0.7, Quantity_TOC_sRGB)
+    assert colour.Red() == pytest.approx(expected.Red())
+    assert colour.Green() == pytest.approx(expected.Green())
+    assert colour.Blue() == pytest.approx(expected.Blue())
+
+
 def test_large_external_body_can_be_selected_as_a_surface(anatomy_model):
     """Reconstruct a large external envelope when selected in Surface mode.
 
@@ -557,3 +582,97 @@ def test_failed_outline_row_cannot_claim_visible_geometry(cylinder_window, anato
     assert item.checkState() == Qt.Unchecked
     assert not item.flags() & Qt.ItemIsUserCheckable or not item.flags() & Qt.ItemIsEnabled
     assert item.toolTip().startswith('Outline unavailable.')
+
+
+def outline_organs_for_highlight() -> DicomData:
+    """Helper, not a test. Two closed organs and one empty organ share a probe frame.
+
+    The empty organ is listed and has no contour. A highlight that builds a shape
+    for it would put an invalid object beside the probe.
+    """
+    slices = tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (4., 0., z), (0., 4., z)))
+        for z in (2., 4., 6.)
+    )
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (
+        Structure(2, 'Bladder', '1.2.3', (0, 255, 0), 'ORGAN', StructureType.ORGAN, slices),
+        Structure(4, 'Rectum', '1.2.3', (255, 0, 0), 'ORGAN', StructureType.ORGAN, slices),
+        Structure(5, 'Empty', '1.2.3', (0, 0, 255), 'ORGAN', StructureType.ORGAN, ()),
+    )
+    return plan
+
+
+def test_selecting_a_structure_highlights_only_that_organ(cylinder_window):
+    """Highlight one listed organ, then move or clear the highlight with the row.
+
+    The previous organ staying highlighted, or a cleared list leaving a highlight,
+    fails. The physicist would inspect the wrong organ beside the probe.
+    """
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    view.structure_list.setCurrentRow(0)
+    assert model.highlighted == 2
+    view.structure_list.setCurrentRow(1)
+    assert model.highlighted == 4
+    view.structure_list.setCurrentRow(-1)
+    assert model.highlighted is None
+
+
+def test_clicking_the_highlighted_row_again_drops_the_highlight(cylinder_window):
+    """A mouse click on a listed organ highlights it, a second click drops it.
+
+    A first click that leaves the organ unemphasised, or a second click that
+    keeps the blue, fails. The physicist would inspect the wrong organ, or
+    could not return to an unemphasised view without leaving the row.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    view.resize(320, 480)
+    view.show()
+    item = view.structure_list.item(0)
+    pos = view.structure_list.visualItemRect(item).center()
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted == 2
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted is None
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted == 2
+
+
+def test_highlighting_an_organ_without_contours_adds_no_presentation(cylinder_window):
+    """Keep an empty organ on the list and out of the preview when its row is current.
+
+    A new presentation for the empty ROI fails. An invalid object beside the
+    probe would look like anatomy the plan does not contain.
+    """
+    from PySide6.QtCore import Qt
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    empty_row = next(
+        index for index in range(view.structure_list.count())
+        if view.structure_list.item(index).data(Qt.UserRole) == 5
+    )
+    before = {item.roi_number for item in model.presentations()}
+    view.structure_list.setCurrentRow(empty_row)
+    assert model.highlighted == 5
+    assert {item.roi_number for item in model.presentations()} == before
+    assert 5 not in model._outlines
+    assert view.structure_list.count() == 3

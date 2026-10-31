@@ -174,12 +174,23 @@ class qtBaseViewer(QtWidgets.QWidget):
 
 # ref   https://github.com/tpaviot/pythonocc-core/blob/master/src/Display/OCCViewer.py
 #       https://github.com/tpaviot/pythonocc-core/blob/master/src/Display/qtDisplay.py
+def structure_display_rgb(rgb: tuple[int, int, int], highlighted: bool) -> tuple[float, float, float]:
+    """Return sRGB floats for an organ, or the channel-selection blue when emphasised.
+
+    The blue is the Channels tab selection colour, 0.2 0.2 0.7, so a highlighted
+    organ reads the same way as a highlighted needle.
+    """
+    if highlighted:
+        return (0.2, 0.2, 0.7)
+    return (rgb[0] / 255, rgb[1] / 255, rgb[2] / 255)
+
+
 def anatomy_surface_presentation(mesh: Poly_Triangulation, rgb: tuple[int, int, int],
-                                 opacity: float) -> AIS_Triangulation:
+                                 opacity: float, highlighted: bool = False) -> AIS_Triangulation:
     """Use the triangulation renderer's mode and its own shaded colour/material."""
     surface = AIS_Triangulation(mesh)
     surface.SetDisplayMode(0)
-    color = Quantity_Color(*(component / 255 for component in rgb), Quantity_TOC_sRGB)
+    color = Quantity_Color(*structure_display_rgb(rgb, highlighted), Quantity_TOC_sRGB)
     surface.Attributes().SetShadingAspect(Prs3d_ShadingAspect())
     surface.Attributes().ShadingAspect().SetColor(color)
     surface.SetColor(color)
@@ -239,10 +250,12 @@ class OrbitCameraViewer3d(qtBaseViewer):
         model = get_app().window.structuresmodel
         for structure in model.presentations():
             self._structure_actors[structure.roi_number] = []
-            red, green, blue = structure.color
-            color = Quantity_Color(red / 255, green / 255, blue / 255, Quantity_TOC_sRGB)
+            highlighted = structure.roi_number == model.highlighted
+            red, green, blue = structure_display_rgb(structure.color, highlighted)
+            color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
             if model.mode != StructureDisplayMode.OUTLINES and structure.surface is not None:
-                surface = anatomy_surface_presentation(structure.surface, structure.color, model.opacity_for(structure.roi_number))
+                surface = anatomy_surface_presentation(
+                    structure.surface, structure.color, model.opacity_for(structure.roi_number), highlighted)
                 context.Display(surface, False)
                 context.Deactivate(surface)
                 self._structure_presentations.append(surface)
@@ -250,12 +263,32 @@ class OrbitCameraViewer3d(qtBaseViewer):
             if model.mode != StructureDisplayMode.SURFACE and structure.outline is not None:
                 outline = AIS_Shape(structure.outline)
                 outline.SetColor(color)
-                outline.SetWidth(1.)
+                outline.SetWidth(3. if highlighted else 1.)
                 outline.SetTransparency(1 - model.opacity_for(structure.roi_number))
                 context.Display(outline, False)
                 context.Deactivate(outline)
                 self._structure_presentations.append(outline)
                 self._structure_actors[structure.roi_number].append(outline)
+        self._display.Repaint()
+
+    def update_structure_highlight(self):
+        """Recolour existing anatomy actors when the highlighted row changes."""
+        if not self._inited:
+            return
+        model = get_app().window.structuresmodel
+        colours = {item.roi_number: item.color for item in model.presentations()}
+        for roi, actors in self._structure_actors.items():
+            if roi not in colours:
+                continue
+            highlighted = roi == model.highlighted
+            red, green, blue = structure_display_rgb(colours[roi], highlighted)
+            color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
+            for actor in actors:
+                actor.SetColor(color)
+                if actor.Attributes().HasOwnShadingAspect():
+                    actor.Attributes().ShadingAspect().SetColor(color)
+                actor.SetWidth(3. if highlighted else 1.)
+                self._display.Context.Redisplay(actor, False)
         self._display.Repaint()
 
     def update_structure_opacity(self, roi: int, opacity: float):
