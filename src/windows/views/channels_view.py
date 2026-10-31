@@ -12,7 +12,7 @@ from classes.app import get_app
 from classes.info import USER_PATH
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel, Translation
-from classes.mesh.helper import CustomNeedleSpec
+from classes.mesh.helper import MAX_THETA_DEGREES, CustomNeedleSpec
 from classes.pdf.template_reference import channels_inside_cylinder
 from windows.models.channels_model import ChannelStatus
 from windows.models.shape_model import ShapeTypes
@@ -141,10 +141,9 @@ class MoveChannelDialog(QDialog):
 
 
 class AddApplicatorDialog(QDialog):
-    """Asks for a custom applicator's name, its start on the cylinder's base and its two lengths, in mm.
+    """Asks for a custom applicator's name, start, lengths and bend (mm and degrees), with no parent like MoveChannelDialog.
 
-    It has no parent, like MoveChannelDialog. OK checks the numbers with the model's own rules and
-    stays open, showing the reason, until they pass.
+    OK checks the numbers with the model's own rules and stays open, showing the reason, until they pass.
     """
 
     def __init__(self, label: str, check: Callable[[CustomNeedleSpec], str]):
@@ -158,9 +157,13 @@ class AddApplicatorDialog(QDialog):
         self.spin_y = self.make_spin_box(0.0, -MoveChannelDialog.RANGE_MM)
         self.spin_length1 = self.make_spin_box(10.0, 0.0)
         self.spin_length2 = self.make_spin_box(10.0, 0.0)
+        self.spin_radius = self.make_spin_box(10.0, 0.0)
+        self.spin_theta = self.make_spin_box(0.0, 0.0, MAX_THETA_DEGREES, " °")
+        self.spin_phi = self.make_spin_box(0.0, 0.0, 360.0, " °")
         for name, widget in (("Name", self.edit_label), ("Start X", self.spin_x), ("Start Y", self.spin_y),
-                             ("Length 1 inside the cylinder", self.spin_length1),
-                             ("Length 2 out into tissue", self.spin_length2)):
+                             ("Length 1 inside the cylinder", self.spin_length1), ("Length 2 out into tissue", self.spin_length2),
+                             ("Bend radius", self.spin_radius), ("Theta tilt from the axis", self.spin_theta),
+                             ("Phi direction from X towards Y", self.spin_phi)):
             form.addRow(name, widget)
         self.label_error = QLabel()
         self.label_error.setWordWrap(True)
@@ -172,17 +175,18 @@ class AddApplicatorDialog(QDialog):
         self.buttons.rejected.connect(self.reject)
         form.addRow(self.buttons)
 
-    def make_spin_box(self, value: float, minimum: float) -> QDoubleSpinBox:
+    def make_spin_box(self, value: float, minimum: float, maximum: float = MoveChannelDialog.RANGE_MM, suffix: str = " mm") -> QDoubleSpinBox:
         spin_box = QDoubleSpinBox()
-        spin_box.setRange(minimum, MoveChannelDialog.RANGE_MM)
+        spin_box.setRange(minimum, maximum)
         spin_box.setDecimals(3)
-        spin_box.setSuffix(" mm")
+        spin_box.setSuffix(suffix)
         spin_box.setValue(value)
         return spin_box
 
     def spec(self) -> CustomNeedleSpec:
         return CustomNeedleSpec(label=self.edit_label.text(), x=self.spin_x.value(), y=self.spin_y.value(),
-                                length1=self.spin_length1.value(), length2=self.spin_length2.value())
+                                length1=self.spin_length1.value(), length2=self.spin_length2.value(),
+                                radius=self.spin_radius.value(), theta=self.spin_theta.value(), phi=self.spin_phi.value())
 
     def try_accept(self) -> None:
         error = self.check(self.spec())
@@ -227,8 +231,7 @@ class ChannelsView(CustomView):
 
     def ask_new_needle(self, label: str) -> CustomNeedleSpec | None:
         dialog = AddApplicatorDialog(label, self.channelsmodel.custom_needle_error)
-        if dialog.exec() != QDialog.DialogCode.Accepted: return None
-        return dialog.spec()
+        return dialog.spec() if dialog.exec() == QDialog.DialogCode.Accepted else None
 
     @display_action
     def action_select_channel(self, item: QListWidgetItem, *args):
