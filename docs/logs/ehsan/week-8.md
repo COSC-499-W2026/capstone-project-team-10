@@ -124,6 +124,12 @@ Seven stacked PRs for Structures selection, colour and black copy. Each PR is ba
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#154](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/154) | `main` | #111 | Highlight the selected organ in channel-selection blue | 6, +267/−7 | 4 | 322 collected, 318 passed / 4 failed |
+| `docs/structures-highlight-reference` | #154 | docs | Record highlighting in the source of truth and design note | 6 | 0 | inherited |
+| `docs/structures-highlight-architecture` | reference | pictures | Show `highlight_changed` on the four pictures | 9 | 0 | inherited |
+| `feat/structures-set-color` | pictures | #110 | Change colour RGB override | 6 | 4 | inherited |
+| `docs/structures-color-reference` | colour | docs | Record colour override in the source of truth | 6 | 0 | inherited |
+| `docs/structures-color-diagrams` | colour docs | pictures | Show `color_changed` on the four pictures | 9 | 0 | inherited |
+| `feat/structures-tab-black-text` | colour pictures | #153 | Black Structures copy on the pale sidebar | 6 | 1 | inherited |
 
 The suite had 318 tests on `main` before #154. The four failures are pre-existing (`test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases). Counts were collected with `pytest --collect-only` and a full `python -m pytest` on this branch.
 
@@ -189,3 +195,21 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest` is 318 passed, 4 failed (4 new, 318 collected on `main`)**. The four failures are pre-existing and not from this diff: `test_the_default_dome_tandem_cut_out_is_unchanged`, `test_channels_settings_keep_their_height_in_the_default_window`, `test_cylinder_spin_boxes_keep_their_height_in_the_default_window`, `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`.
   **[author: attach a screenshot of the pytest run showing the 4 new tests and 318 passed / 4 failed]**
   **[author: attach a screenshot of Structures with one organ highlighted blue]**
+
+### For PR highlight-reference (2 of 7, on #154)
+
+- As part of requirement **FR-SV-01**, the user needs to do **read the source of truth and see that a Structures row highlight is display-only**.
+- Therefore, I implemented/generated code so that **§5.6, the design note, the init guide and `tests/README.md` describe `highlight_changed`**.
+
+#### Review and design
+
+- When I reviewed the **Structures control table** for this functionality, I noticed **it still stopped at opacity**. Therefore, I did **add a Row highlight row**.
+- Code quality checklist: **see Shared**.
+- This work is written in **the documentation set** because **the code landed in #154**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **#154's highlight tests, inherited** passed.
+- This new test PR did not break anything else in the system because **no `src/` file changed**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no new tests)**.
