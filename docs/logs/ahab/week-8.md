@@ -3,12 +3,13 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #184 to #194, at a glance
+## Stack #184 to #195, at a glance
 
 | PR | On | Closes | Adds | Own diff | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | #184 | main | #112 | the straight custom applicator, its form and button | 9 files, 499 lines | 20 | 321 passed, 17 failed |
 | #194 | #184 | #112 | the bend, with Bend radius, Theta and Phi | 8 files, 233 lines | 12 | 333 passed, 17 failed |
+| #195 | #194 | #112 | Remove Applicator for custom applicators | 8 files, 395 lines | 7 | 340 passed, 17 failed |
 
 The 17 failures are in `test_structure_surfaces.py` and `test_structure_display.py`, and are the same in every PR, since `scipy` and `skimage` are not in this conda env.
 
@@ -127,5 +128,57 @@ The 17 failures are in `test_structure_surfaces.py` and `test_structure_display.
 - This new test PR did not break anything else in the system because **`python -m pytest` (333 passed, 321 after #184, 17 failed, all in the structure surface tests with library failure, since `scipy` and `skimage` are not in the conda env), and brachify run on macOS with Ex1, driven by a script that pressed the real button, then an STL (2.1 MB) and a PDF (45 KB) exported (screenshot 1, whose panel 6 is the pytest result text drawn from the real output)**.
 
   ![1, Ex1 on macOS, the bend form, a refused bend, the new row, the bent needle in 3D and the pytest run](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9cb94d086df77cd34bd7e2684386853b72b3821f/docs/logs/ahab/screenshots/week-8/pr-194-1-bend.png)
+
+- Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**195** (3 of 5, on #194)
+
+- As part of requirement **FR-CN-01, create custom needles, and edit or remove them**, the user needs to do **select a custom applicator on the Channels tab, press Remove Applicator, then export the STL and the PDF**.
+- Therefore, I implemented/generated code so that **medical physicists can delete a custom applicator they added, and the export no longer cuts it**.
+
+#### Data Modeling and Integrity
+
+- This data **`ChannelsModel.custom_specs`** is modeled as **a dict from label to `CustomNeedleSpec`, filled when an applicator is added and cleared with a new plan** because **a plan channel has no spec, so the dict is also the record of which channels are custom, and the Edit PR needs the numbers back**. We considered alternative models such as **a flag on `NeedleChannel`, which would add a field to inherited geometry code for a UI rule**.
+- This data **`custom_specs`** uses the input validation to ensure it adheres to **only a custom applicator being removable, and never the one that is the tandem**.
+- Not applicable: **see Shared**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **as in #184**. This structure has low coupling because **the view only calls `remove_custom_needle` and reads `is_custom_needle`**. This structure has high cohesion because **removal clears a label from every list that holds it in one method**. This design is scalable because **a new list that keys on a label is one more line in that method**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **as in #184**. **A removed needle is no longer in the STL or the PDF**.
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **as in #184**. **Channels deletes the channel, so Export cuts one hole fewer, and the export volume returns to 98960.757 mm cubed (screenshot 1, panel 6)**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-01 → `test_removing_a_custom_applicator_puts_the_export_cut_back_as_it_was`, `test_the_remove_button_takes_the_selected_applicator_out_of_the_model_and_the_list`, `test_a_plan_applicator_cannot_be_removed_and_nothing_changes`**
+- Not applicable: **see Shared**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 4.1.2, Name, Role, Value**. The aspects that demonstrate this principle in the system include **Remove Applicator is really disabled with `setEnabled`, and now greyed too, for a plan applicator and the tandem (screenshot 1, panels 2 and 3). I did not run a screen reader**.
+- Not applicable: **see Shared, and traceability matrix (in Backend)**.
+
+#### Review and design
+
+- When I reviewed **my first screenshot of the button**, I noticed **Remove looked on while it was off, because the style copied from Disable has no disabled rule**. Therefore, I did **add a disabled rule in `make_applicator_button`, with a test, which also fixes Add Applicator... without a plan**.
+- The PR contains one gap, because **Remove has no confirmation and no undo, so a deleted needle is re-added by hand**.
+- The PR only contains small functions that are **at most 28 lines (`AddApplicatorDialog.__init__`, moved unchanged)** long. The ones it adds are **11 lines (`remove_custom_needle`) and 7 lines (`make_applicator_button`)**.
+- I did **`anti_slop review --base feat/custom-needle-bend src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
+- This work is written in **`channels_model.py`, `channels_view.py` and a new `add_applicator_dialog.py`** because **`channels_view.py` was at 499 lines, and the new file is not a `*_view.py` and adds no layer, so the diagram check passes without a redraw**.
+- This work belongs in **3 Channels** in the DFD because **it deletes a channel**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_removing_a_custom_applicator_puts_the_export_cut_back_as_it_was` and `test_the_remove_button_takes_the_selected_applicator_out_of_the_model_and_the_list` (7 new; 7 in `test_remove_custom_needle.py`)** passed.
+- I wrote tests to cover abnormal situations involving **a plan applicator, the tandem, a disabled and selected applicator with its own diameter, and a new import** and they passed.
+- I checked that these negative cases involving **two deliberate breaks (own diameter kept after removal, Remove left on for the tandem)** failed as expected, and **the disabled look assertion failed before its code**.
+- Among these tests, **none are pure unit tests** and **all 7** are integration tests through the real window.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (340 passed, 333 after #194, 17 failed, all in the structure surface tests with library failure, since `scipy` and `skimage` are not in the conda env), and brachify run on macOS with Ex1, driven by a script that pressed the real Remove button and measured the export (screenshot 1, whose panel 6 is the pytest result and the volumes drawn from the real output)**.
+
+  ![1, Ex1 on macOS, the Channels tab with Remove Applicator on, greyed, and after pressing it, the front view before and after, and the pytest run](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/658ed9196672839de90d7cdc95310d40a6b539c7/docs/logs/ahab/screenshots/week-8/pr-195-1-remove.png)
 
 - Not applicable: **generated-test review (no problem found)**.
