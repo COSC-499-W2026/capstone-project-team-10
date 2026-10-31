@@ -78,9 +78,9 @@ or an unreadable template file is explained in the status line beside the contro
 than in a dialog, so the clinician sees why without leaving the tab, and a file brachify cannot
 read never stops it starting. *Verified* by offscreen widget tests. A screenshot of it is linked from Ahab's week 6 log.
 
-The Structures page (index 5, navigation button under Import) lists checkable organs and
-tumours with their category and DICOM colour. Needles, BODY and other ROIs stay on the
-Import inventory, which remains read-only. The mode dropdown applies Surface/Outlines/Both
+The Structures page (index 5, navigation button under Import) lists checkable organs,
+tumours and BODY with their category and DICOM colour. Needles, markers and other ROIs stay
+on the Import inventory, which remains read-only. The mode dropdown applies Surface/Outlines/Both
 to the whole list and defaults to Surface without automatic contour fallback. The current
 row highlights that organ in the preview with the same blue as a selected channel.
 Clicking that row again drops the highlight. A row with no geometry stays listed and

@@ -1002,9 +1002,9 @@ case is in `tests/views/test_structure_display.py`. Neither is a real Oncentra i
 
 **[`dicom/structure_list.py`](../../src/classes/dicom/structure_list.py)** —
 `structure_list_rows` still builds one Import-tab row per decoded ROI. `anatomy_structures`
-keeps only `ORGAN` and `TUMOUR` for the Structures tab, so applicator needles, BODY, markers
-and other ROIs stay off that list and in `DicomData`. Ex1 and Ex2 have no organs or tumours,
-so the Structures list is empty after those imports. *Reasoned from code*;
+keeps `ORGAN`, `TUMOUR` and `EXTERNAL` (BODY) for the Structures tab, so applicator needles,
+markers and other ROIs stay off that list and in `DicomData`. Ex1 and Ex2 have no organs or
+tumours, so after those imports the Structures list shows BODY only. *Reasoned from code*;
 `tests/dicom/test_structure_list.py` and `tests/views/test_structure_display.py`.
 
 **[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a mutable container of named
@@ -1278,7 +1278,7 @@ PR #125; widget assertions are in `tests/views/test_structure_display.py`.*
 | Control | Behaviour |
 |---|---|
 | Mode dropdown | Outlines, Surface or Both for all ROIs; starts at Surface. No automatic outline fallback. |
-| Structure list | Organs and tumours only, from `anatomy_structures`. Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Needles, BODY, markers and other ROIs stay on the Import inventory. Pending and failure reasons appear directly in wrapped row text and tooltips. |
+| Structure list | Organs, tumours and BODY (`EXTERNAL`), from `anatomy_structures`. Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Needles, markers and other ROIs stay on the Import inventory. Pending and failure reasons appear directly in wrapped row text and tooltips. |
 | Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
 | Row highlight | The current row emphasises that organ in the preview with the channel-selection blue (0.2, 0.2, 0.7). Outlines also use width 3. Choosing another row moves the highlight. Clicking the highlighted row again, or clearing the selection, drops it. A row with no geometry stays listed and gains no shape. |
 
@@ -2213,6 +2213,14 @@ from the PDF's own text). *Not addressed, not verified:* a review reported that 
 length reads only a needle's first segment, so a needle that leaves through the side wall on a later
 segment may read 0.
 
+### 7.15 LOW — PR #149 hid BODY from the Structures tab
+
+**Fixed in the PR that added this entry.** `anatomy_structures` kept only `ORGAN` and `TUMOUR`.
+BODY is `EXTERNAL`, which maps to `OTHER`, so the Structures list dropped it with the applicator
+needles. The filter now also keeps `interpreted_type == "EXTERNAL"`. Needles and markers stay off
+the tab. *Verified* by `test_anatomy_structures_keep_organs_tumours_and_body` and
+`test_structures_tab_shows_body_on_ex1_and_hides_needles`. Not a runtime app run.
+
 ---
 
 ## 8. Testing
@@ -2313,10 +2321,10 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
-| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, BODY or other non-anatomy ROI, hides an organ or tumour, or Ex1 fills that list while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, or a highlighted surface actor is not the channel-selection blue (§5.5–5.7) |
+| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, or a highlighted surface actor is not the channel-selection blue (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
-| `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows. Or `anatomy_structures` keeps a needle, BODY or marker, or drops an organ or tumour (§5.3) |
+| `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows. Or `anatomy_structures` keeps a needle or marker, or drops an organ, tumour or BODY (§5.3) |
 | `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
 | `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
