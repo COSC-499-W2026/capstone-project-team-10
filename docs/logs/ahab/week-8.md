@@ -78,7 +78,7 @@ The 17 failures are in `test_structure_surfaces.py` and `test_structure_display.
 
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**194** (2 of 4, on #184)
+### For PR #**194** (2 of 5, on #184)
 
 - As part of requirement **FR-CN-01, create custom needles with a bend**, the user needs to do **import Ex1, press Add Applicator..., type a start, two lengths, a bend radius, Theta and Phi, press OK, then export the STL and the PDF**.
 - Therefore, I implemented/generated code so that **medical physicists can add a custom applicator that runs straight up, turns by Theta towards Phi along an arc, and runs on into tissue**.
