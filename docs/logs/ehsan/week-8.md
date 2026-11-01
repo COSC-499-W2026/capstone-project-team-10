@@ -60,7 +60,6 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **`test_anatomy_structures_keep_organs_and_tumours_only`** is a unit test and **`test_structures_tab_lists_only_organs_and_tumours`, `test_structures_tab_is_empty_for_ex1_while_import_keeps_needles`** are integration tests.
 - These tests are included in the directory **`tests/dicom/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` is 297 passed, 21 failed**. The 21 are scipy/skimage surface tests, `test_the_default_dome_tandem_cut_out_is_unchanged`, and three 20 px layout cases. New list tests passed.
-  **[author: attach a screenshot of the pytest run showing the new tests and the 297 passed / 21 failed total]**
 
 ### For PR #**152**
 
@@ -114,8 +113,6 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - Among these tests, **`test_anatomy_structures_keep_organs_tumours_and_body`** is a unit test and **`test_structures_tab_shows_body_on_ex1_and_hides_needles`, `test_structures_tab_lists_only_organs_and_tumours`** are integration tests.
 - These tests are included in the directory **`tests/dicom/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` is 297 passed, 21 failed**. The 21 are scipy/skimage surface tests, `test_the_default_dome_tandem_cut_out_is_unchanged`, and three 20 px layout cases. New list tests passed.
-  **[author: attach a screenshot of the pytest run showing the new tests and the 297 passed / 21 failed total]**
-  **[author: attach a screenshot of Ex1 Structures listing BODY and no Applicator rows]**
 
 ## Stack #154 then colour, at a glance
 
@@ -193,8 +190,6 @@ Stated once here instead of in each section.
 - Among these tests, **`test_highlighted_surface_uses_the_channel_selection_colour`** is a unit test and **`test_selecting_a_structure_highlights_only_that_organ`, `test_clicking_the_highlighted_row_again_drops_the_highlight`, `test_highlighting_an_organ_without_contours_adds_no_presentation`** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` is 318 passed, 4 failed (4 new, 318 collected on `main`)**. The four failures are pre-existing and not from this diff: `test_the_default_dome_tandem_cut_out_is_unchanged`, `test_channels_settings_keep_their_height_in_the_default_window`, `test_cylinder_spin_boxes_keep_their_height_in_the_default_window`, `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`.
-  **[author: attach a screenshot of the pytest run showing the 4 new tests and 318 passed / 4 failed]**
-  **[author: attach a screenshot of Structures with one organ highlighted blue]**
 
 ### For PR highlight-reference (2 of 7, on #154)
 
@@ -258,6 +253,4 @@ Stated once here instead of in each section.
 - Among these tests, **`test_set_color_changes_only_that_organ_and_keeps_the_dicom_value`, `test_set_color_rejects_invalid_rgb_and_keeps_the_previous_colour`** are unit tests and **`test_change_colour_updates_the_list_swatch`, `test_cancelled_colour_pick_leaves_the_swatch_and_the_preview`** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`tests/views/test_structure_display.py` passed on this branch**. Four pre-existing suite failures, not from this diff, are named in #154: `test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases.
-  **[author: attach a screenshot of the pytest run showing the 4 new colour tests]**
-  **[author: attach a screenshot of Change colour updating the swatch]**
 
