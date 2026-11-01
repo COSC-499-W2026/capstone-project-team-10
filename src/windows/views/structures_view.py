@@ -149,6 +149,7 @@ class StructuresView(CustomView):
         model = get_app().window.structuresmodel
         model.set_color(item.data(Qt.UserRole), (colour.red(), colour.green(), colour.blue()))
         model.set_highlight(None)
+        self._just_selected = False
 
     def update_structure_swatch(self, roi: int, rgb: tuple[int, int, int]):
         """Repaint one list swatch without rebuilding the rows."""

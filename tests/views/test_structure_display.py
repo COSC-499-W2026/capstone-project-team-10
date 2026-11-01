@@ -750,3 +750,30 @@ def test_cancelled_colour_pick_leaves_the_swatch_and_the_preview(cylinder_window
     assert model.color_for(2) == (0, 255, 0)
     pixel = view.structure_list.item(0).icon().pixmap(12, 12).toImage().pixelColor(6, 6)
     assert (pixel.red(), pixel.green(), pixel.blue()) == (0, 255, 0)
+
+
+def test_clicking_after_colour_change_can_rehighlight_the_row(cylinder_window):
+    """A click after changing colour can re-highlight the same row.
+
+    A stuck unhighlighted row after keyboard select, colour change, then click
+    fails. The colour action clears _just_selected so subsequent clicks work.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QColor
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    view.resize(320, 480)
+    view.show()
+    view.structure_list.setCurrentRow(0)
+    assert model.highlighted == 2
+    view.action_apply_colour(QColor(10, 20, 30))
+    assert model.highlighted is None
+    item = view.structure_list.item(0)
+    pos = view.structure_list.visualItemRect(item).center()
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted == 2
