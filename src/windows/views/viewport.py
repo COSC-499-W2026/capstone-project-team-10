@@ -418,8 +418,6 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._display.Create(window_handle=int(self.winId()), parent=self)
         # background gradient
         self._display.SetModeShaded()
-        background = Quantity_Color(12 / 255, 17 / 255, 23 / 255, Quantity_TOC_sRGB)
-        self._display.View.SetBgGradientColors(background, background)
         self._inited = True
 
     def keyPressEvent(self, event):

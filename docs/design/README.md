@@ -38,7 +38,8 @@ running app.
 and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
 release. These are project bindings, not a universal medical-software standard.
 
-The dark viewport has white millimetre labels and faint grid lines on three outer walls,
+The viewport uses the original OpenCASCADE grey background, with white millimetre
+labels and faint grid lines on three outer walls,
 with no intersecting planes. The top-right **XYZ grid (mm)** control is blue when checked;
 the independent **Central axis** control below it is amber when checked and shows a dashed
 local-Z reference above solids. Both are disabled when their reference is unavailable.
