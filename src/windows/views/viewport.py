@@ -109,19 +109,32 @@ def grid_text_label(annotation: GridLabel) -> AIS_TextLabel:
     return label
 
 
+ANGLE_UNITS_PER_STEP = 120.0
+PIXELS_PER_STEP = 30.0
+MAX_SCROLL_STEPS = 10.0
+ROLL_DEGREES_PER_STEP = 10.0
+SCROLL_AXIS_RATIO = 2
+
+
+def wheel_steps(angle_delta: int, pixel_delta: int) -> float:
+    """Normalize and bound one wheel axis, preferring Qt's angle delta."""
+    steps = angle_delta / ANGLE_UNITS_PER_STEP if angle_delta else pixel_delta / PIXELS_PER_STEP
+    return max(-MAX_SCROLL_STEPS, min(MAX_SCROLL_STEPS, steps))
+
+
 def wheel_zoom_factor(angle_delta: int, pixel_delta: int) -> float:
     """Return a reversible zoom scale, including pixel-only trackpad events."""
-    steps = angle_delta / 120.0 if angle_delta else pixel_delta / 30.0
-    return 1.15 ** max(-10.0, min(10.0, steps))
+    return 1.15 ** wheel_steps(angle_delta, pixel_delta)
 
 
 def wheel_camera_motion(angle_x: int, angle_y: int, pixel_x: int, pixel_y: int) -> tuple[float, float]:
-    """Route horizontal scroll to camera roll radians and vertical scroll to zoom."""
-    x, y = (pixel_x, pixel_y) if pixel_x or pixel_y else (angle_x, angle_y)
-    if abs(x) > abs(y):
-        steps = pixel_x / 30.0 if pixel_x or pixel_y else angle_x / 120.0
-        return (radians(10 * steps), 1.0)
-    return (0, wheel_zoom_factor(angle_y, pixel_y))
+    """Use one consistent delta source and ignore ambiguous diagonal gestures."""
+    x, y = (angle_x, angle_y) if angle_x or angle_y else (pixel_x, pixel_y)
+    if abs(x) > SCROLL_AXIS_RATIO * abs(y):
+        return (radians(ROLL_DEGREES_PER_STEP * wheel_steps(angle_x, pixel_x)), 1.0)
+    if abs(y) > SCROLL_AXIS_RATIO * abs(x):
+        return (0, wheel_zoom_factor(angle_y, pixel_y))
+    return (0, 1.0)
 
 
 class CameraGesture:
