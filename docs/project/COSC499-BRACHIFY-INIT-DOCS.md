@@ -4857,10 +4857,8 @@ again. The collet boxes save themselves into the live settings every time their 
 
 > Out of date after the anatomy changes through PR #134: The viewport now draws nonselectable anatomy surfaces and wires independently of printable shapes. PR #125 supplies surface rendering and opacity updates; see the [current anatomy display path](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
-> Out of date after PRs #78/#79/#81: the upstream bindings below have been replaced by
-> left-drag rotation, right/middle-drag pan and proportional zoom. The viewport now has
-> independent central-axis and outer-wall XYZ grid toggles. See
-> [current viewport behavior](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+> Out of date after PRs #78/#79/#81/#180: the mouse bindings and viewport overlays
+> described below have changed. See [current viewport behavior](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
 `OrbitCameraViewer3d` is the 3D view on the right of the window: an OpenCASCADE viewer placed
 inside a Qt widget.

@@ -1510,7 +1510,21 @@ hands `int(self.winId())` to pythonocc's `OCCViewer.Viewer3d().Create()`.
 | Left click | select shape (emits `sig_topods_selected`) |
 | Left drag | rotate; release does not select |
 | Right or middle drag | pan using incremental pointer movement |
-| Wheel | proportional zoom, 1.15× per 120 vertical angle units |
+| Vertical scroll | proportional zoom, 1.15× per 120 vertical angle units |
+| Horizontal scroll | roll clockwise/counterclockwise around the viewing axis |
+
+`wheel_camera_motion` uses the angle-delta pair when either angle component is nonzero,
+otherwise the pixel-delta pair. An axis must exceed twice the other axis's magnitude:
+horizontal rolls, vertical zooms; ambiguous diagonal and zero events do nothing.
+Both actions cap each event at ten steps. `wheel_steps` shares the 120 angle-unit / 30 pixel
+normalization; `ROLL_DEGREES_PER_STEP` sets roll sensitivity to 10 degrees per step.
+Roll adds to `V3d_View.Twist()` and repaints. Qt's signed deltas are used directly, including
+when `inverted()` is true; no fixed physical finger direction is promised because OS natural
+scrolling affects those signs. Opposite deltas reverse roll. Physical trackpad feel remains
+unverified. *Verified 2026-11-01 on native macOS with synthetic wheel events:* Ex1
+roll reverses, 144 steps along/near the poles do not snap, post-orbit roll stays stable,
+diagonal jitter is ignored, and vertical zoom preserves orientation. Evidence is in
+Gilles's week 8 PR #180 receipt; no physical trackpad gesture was tested.
 
 `CameraGesture` uses Qt's platform drag threshold to tolerate click jitter. Once a drag
 starts, returning to its origin does not turn it into a click. A distant release also
@@ -2373,7 +2387,7 @@ The viewport regressions (*Reasoned from the test bodies*) are:
 
 | File | What fails when behavior regresses |
 |---|---|
-| `views/test_camera_controls.py` (6 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom |
+| `views/test_camera_controls.py` (20 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom and ratio-gated scroll routing, bounded roll, angle precedence, and real wheel-handler accumulation/repaint |
 | `views/test_central_axis.py` (8 cases) | local-Z endpoints and 10% margin, invalid-length rejection, button availability/preference, or reset notification |
 | `views/test_bounding_grid.py` (9 cases, PR #81) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, or nonoverlapping independent controls |
 

@@ -35,7 +35,10 @@ the tab's, and its buttons look like *Apply Settings*. *Verified* by offscreen t
 running app.
 
 *Reasoned from viewport code, PRs #78/#79/#81:* left-drag rotates, right/middle-drag pans,
-and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
+and vertical scrolling zooms proportionally. Horizontal scrolling rolls clockwise/counterclockwise around the viewing
+axis. An axis must exceed twice the other axis; ambiguous diagonal events do nothing.
+Angle deltas take precedence over pixels, and both actions cap at ten steps per event.
+Qt supplies the direction signs; physical trackpad feel is not yet verified. Click jitter is tolerated; a drag never selects on
 release. These are project bindings, not a universal medical-software standard.
 
 The dark viewport has white millimetre labels and faint grid lines on three outer walls,
