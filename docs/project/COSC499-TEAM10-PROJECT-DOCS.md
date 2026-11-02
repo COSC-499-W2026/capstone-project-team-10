@@ -999,9 +999,9 @@ case is in `tests/views/test_structure_display.py`. Neither is a real Oncentra i
 
 **[`dicom/structure_list.py`](../../src/classes/dicom/structure_list.py)** —
 `structure_list_rows` still builds one Import-tab row per decoded ROI. `anatomy_structures`
-keeps only `ORGAN` and `TUMOUR` for the Structures tab, so applicator needles, BODY, markers
-and other ROIs stay off that list and in `DicomData`. Ex1 and Ex2 have no organs or tumours,
-so the Structures list is empty after those imports. *Reasoned from code*;
+keeps `ORGAN`, `TUMOUR` and `EXTERNAL` (BODY) for the Structures tab, so applicator needles,
+markers and other ROIs stay off that list and in `DicomData`. Ex1 and Ex2 have no organs or
+tumours, so after those imports the Structures list shows BODY only. *Reasoned from code*;
 `tests/dicom/test_structure_list.py` and `tests/views/test_structure_display.py`.
 
 **[`dicom/data.py`](../../src/classes/dicom/data.py)** — `DicomData`, a mutable container of named
@@ -1178,7 +1178,7 @@ emitting change signals. They hold no widgets.
 |---|---|---|
 | `DicomModel` | a `DicomData` | thin; `update()` swaps the bag and emits |
 | `CylinderModel` | a `BrachyCylinder`, `starting_length` | `cylinder` is `None` until a DICOM import or a manual *Apply Settings* |
-| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD. `move_channel(label, dx, dy, dz)` shifts a whole channel from its plan position. An unknown label raises `KeyError`. NaN, infinity or the tandem channel raise `ValueError` and keep the earlier move. `set_tandem` raises `ValueError` for a channel that has been moved, because the tandem is aimed from its plan path and its Move controls are off. `is_channel_moved` is true for any non-zero move, and `load_data` builds new channels, so a new plan clears every move. `add_custom_needle(spec)` adds a user typed channel named in `spec`, built from `check_custom_needle`, which raises `CustomNeedleError` with no plan loaded, for an empty or repeated name, or for a spec the builder refuses. Its points are kept in the plan's frame (z less `height_offset`, which `update_height_offset` records) so a later length change moves its tip like an imported needle, and its channel number is the highest number plus 1. `custom_needle_error` gives the same refusal as text, `next_custom_label` the first free `Custom Applicator<n>`. `custom_specs` keeps the numbers each custom channel was built from, and `is_custom_needle` reads it. `remove_custom_needle(label)` deletes a custom channel and clears its label from the disabled set, the own diameters and the selection. It raises `CustomNeedleError` for a plan channel or the tandem. *Verified* by `tests/views/test_remove_custom_needle.py`. A new plan clears custom channels with the rest, since `load_data` rebuilds `channels` (*Reasoned from code*) |
+| `ChannelsModel` | `{label: NeedleChannel}`, selection, disabled set, own diameters | the tandem channel is auto-disabled when set. `set_tandem(None)` clears it: the previous tandem channel is enabled again as a needle, nothing is added to the disabled set, and `TandemModel.set_tandem_channel` ignores the `None`, so the tandem keeps its rotation. Before 2026-10-29 it put `None` in the disabled set, set the rotation to 0 and raised `AttributeError` in the slot. `toggle_channel_enabled` raises `ValueError` for the tandem channel, so it is never cut as a needle beside the tandem hole, and the Channels tab's Disable does nothing for it. Since #183 `set_tandem` also clears the selection when the selected channel becomes the tandem, because its row leaves the list. `load_data` starts every other channel enabled (§7.10) and clears own diameters. `set_channel_diameter` gives one channel a diameter that `set_diameter`, the Channels tab's Apply, keeps. Unknown labels raise `KeyError` before the override map changes. Clearing uses `NeedleChannel.default_diameter()`, the live config value used by newly imported channels. Below 0.3 mm, or NaN, it raises `ValueError`: a NaN diameter reaching the geometry crashes OpenCASCADE (exit 139, *Verified* 2026-10-15 by removing the check under test). `channel_status` gives each channel one `ChannelStatus`: TANDEM, then DISABLED, then OWN_DIAMETER, then STANDARD. `move_channel(label, dx, dy, dz)` shifts a whole channel from its plan position. An unknown label raises `KeyError`. NaN, infinity or the tandem channel raise `ValueError` and keep the earlier move. `set_tandem` raises `ValueError` for a channel that has been moved, because the tandem is aimed from its plan path and its Move controls are off. `is_channel_moved` is true for any non-zero move, and `load_data` builds new channels, so a new plan clears every move. `add_custom_needle(spec)` adds a user typed channel named in `spec`, built from `check_custom_needle`, which raises `CustomNeedleError` with no plan loaded, for an empty or repeated name, or for a spec the builder refuses. Its points are kept in the plan's frame (z less `height_offset`, which `update_height_offset` records) so a later length change moves its tip like an imported needle, and its channel number is the highest number plus 1. `custom_needle_error` gives the same refusal as text, `next_custom_label` the first free `Custom Applicator<n>`. `custom_specs` keeps the numbers each custom channel was built from, and `is_custom_needle` reads it. `remove_custom_needle(label)` deletes a custom channel and clears its label from the disabled set, the own diameters and the selection. It raises `CustomNeedleError` for a plan channel or the tandem. *Verified* by `tests/views/test_remove_custom_needle.py`. A new plan clears custom channels with the rest, since `load_data` rebuilds `channels` (*Reasoned from code*) |
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `StructuresModel` | imported ROIs, visibility, alignment, presentations, surface cache and worker state | display only; defaults to Surface; details below |
@@ -1188,6 +1188,14 @@ emitting change signals. They hold no widgets.
 (`is_shape_imported`) and tracks two independent vertical offsets:
 - `height_offset` — automatic, follows cylinder length changes.
 - `mesh_offset` — manual, the *Height Offset* spin box, applies to imported tandems only.
+
+Since 2026-10-29 `ImportView.import_dicom_from_folder` calls `clear_for_new_plan()` before reading a
+plan. It removes the tandem, generated or imported, zeroes both offsets, sets the rotation and
+the plan rotation to the live settings' `CONFIG_TANDEM_ROTATION` and clears `hasTandemInDICOM`.
+Before, the tandem carried into the next plan, so a tandem generated for Ex2 was cut into Ex1's
+cylinder, which has no tandem channel. *Verified* in the real window on macOS: after Ex2 with a
+generated tandem, importing Ex1 left no tandem and no tandem hole. The rotation still carries
+over through the live settings (§7.16).
 
 Its `_generate_tandem()` implements an unusual error-recovery algorithm, documented in a long
 docstring in the file: it applies each spin-box value one at a time, rebuilding the shape after
@@ -1272,7 +1280,7 @@ PR #125; widget assertions are in `tests/views/test_structure_display.py`.*
 | Control | Behaviour |
 |---|---|
 | Mode dropdown | Outlines, Surface or Both for all ROIs; starts at Surface. No automatic outline fallback. |
-| Structure list | Organs and tumours only, from `anatomy_structures`. Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Needles, BODY, markers and other ROIs stay on the Import inventory. Pending and failure reasons appear directly in wrapped row text and tooltips. |
+| Structure list | Organs, tumours and BODY (`EXTERNAL`), from `anatomy_structures`. Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Needles, markers and other ROIs stay on the Import inventory. Pending and failure reasons appear directly in wrapped row text and tooltips. |
 | Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
 
 Rows are checked when a representation is available, or when visibility was requested and
@@ -1383,7 +1391,6 @@ the default window: every spin box is 22 px and nothing scrolls sideways (§7.12
 | `sb_threading_dept` | Threading Depth | max 350, 3 dp — note the `dept` typo in the name |
 | `sb_threading_diameter` | Threading Diameter | max 350, 3 dp |
 | `listwidget_channels` | Channels | |
-| `btn_set_tandem` | Set as Tandem / Clear Tandem | text toggles |
 | `btn_enable` | Disable / Enable | text toggles |
 | `group_selected_channel` | Selected Channel | enabled only while a channel is selected |
 | `sb_channel_diameter` | Channel Diameter | min 0.3 from `MINIMUM_CHANNEL_DIAMETER_MM`, max 99.99, 3 dp. Shows the selected channel's diameter |
@@ -1406,7 +1413,10 @@ scroll area, the group squeezed the four spin boxes above it to 9 px. *Verified*
 offscreen, by a test and a render of the shown window.
 
 Each row of `listwidget_channels` shows its channel's `ChannelStatus`: own diameter is bold on
-amber, disabled is italic on grey, the tandem is bold italic on blue, and the rest are plain.
+amber, disabled is italic on grey, and the rest are plain. Since 2026-10-29 the tandem channel has
+no row: `create_channels_list` leaves it out, and runs again on `ChannelsModel.tandem_changed`, so a
+channel that stops being the tandem comes back as a plain needle row. Its bold italic on blue
+style is gone, and so is the legend's sentence about it. Ex2 lists Applicator2 to Applicator13.
 Its tooltip names the status and the diameter it is cut at. `mark_channel_statuses` restyles
 every row on each `ChannelsModel.values_changed` and after `create_channels_list`, looking rows
 up by label. The selected row's highlight hides its colour but not its font. *Verified* by
@@ -1415,7 +1425,7 @@ offscreen tests and a render.
 Double-clicking a row moves its channel. `action_move_channel` asks `ChannelsView.ask_translation`
 for X, Y and Z in mm, which by default opens `MoveChannelDialog`. The dialog has no parent, starts at
 the channel's current move, allows ±300 mm, and has Reset to plan position, Cancel and OK. Cancel,
-or OK with unchanged values, does nothing, and the tandem's row opens nothing. Every needle row's tooltip carries `Double click to move`. The Set as Tandem button is disabled, with a tooltip, while a moved channel is selected. A moved row is
+or OK with unchanged values, does nothing, and the tandem's row opens nothing. Every needle row's tooltip carries `Double click to move`. A moved row is
 underlined and its tooltip adds `Moved by X 6, Y -4, Z 3 mm from the plan`. The legend says
 underlined has been moved, and *Move...* in the Selected Channel group opens the same popup for the
 selected channel through `action_move_selected_channel`. While the popup is open, a line under
@@ -1425,7 +1435,27 @@ a driven run of the real window on macOS (Ex1, Applicator3 moved by 6, -4, 3 mm:
 its tip shifted by that much, and the PDF and the STL both exported). Not verified: Windows, and the
 PDF's drawn pages.
 
-**Tandem** (`tandem_view.ui`) — a `QTabWidget` (`ab`) with two sub-tabs.
+**Tandem** (`tandem_view.ui`) — a *Tandem Channel* row, then a `QTabWidget` (`ab`) with two
+sub-tabs. Since 2026-10-29 the tab sits in a scroll area, `scroll_tandem`, and `ab`'s minimum
+height is raised to its size hint: the `.ui`'s 290 px minimum is shorter than the Generate page,
+so in the default 770 by 472 window its spin boxes were squeezed to 16 px, and 14 px once the
+Tandem Channel row was added. The tab now scrolls up and down instead.
+
+*Tandem Channel row:* `cb_tandem_channel` lists *None* and every plan channel as
+`<label> (<channel number>)`, showing `DicomData.tandem_channel`. It is refilled whenever
+`ChannelsModel.values_changed` fires, so it follows a tandem set anywhere else. Choosing
+an item calls `ChannelsModel.set_tandem`, exactly what the Channels tab's *Set as Tandem* did, with the same
+once-per-plan rotation warning, asked through the `confirm_rotation` seam. *No* puts the previous
+tandem channel back. *None* clears the tandem channel (§5.5), the clear the Channels tab's button
+never did (§7.8). Since 2026-10-29 this box is the only control that sets the tandem channel by hand:
+the Channels tab's *Set as Tandem* button was removed. A moved channel is refused and `label_tandem_channel_warning` says to reset its
+move. The same label warns when the chosen channel crosses the base farther from the axis than
+the tandem's radius, `axis_distance_at_base` measured where the reference sheet draws it, because
+the tandem hole is always cut on the axis and that channel gets no hole of its own. Ex2's
+Tandem crosses at 1.2 mm, inside the 1.9 mm radius, and Applicator7 at 7.2 mm.
+Since #183 *Generate Tandem* refreshes the warning, because it depends on the tandem's
+diameter, *No* in the rotation warning puts the rotation back as well as the previous choice, and
+a tandem channel the plan does not have shows no warning.
 
 *Import sub-tab:* `btn_import`, `btn_clear_import`, `sb_height_offset` (−100 – 100),
 `tandem_rotation` (−360 – 360), `btn_apply_import`, `label_5` (shows the model file path).
@@ -1441,7 +1471,11 @@ Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import
 **Export** (`export_view.ui`) — `cb_tandem_shown`, `cb_collet_preview_reference_sheet`,
 `sb_needle_collet_od`, `sb_tandem_collet_outer_od`, `sb_tandem_collet_inner_od`,
 `btn_export_mesh`, `btn_export_template_reference`, `btn_export_shapes`,
-`btn_export_current_config`.
+`btn_export_current_config`. Since 2026-10-29 `label_tandem_hole_warning`, above the export
+buttons, warns when a tandem channel is set but no tandem has been generated or imported (§7.15).
+`on_open` fills it, and Export Mesh, Export Reference Sheet and Export Shape(s) first ask through
+`Export_View.confirm_export`, a Yes and Cancel dialog with Cancel the default. Exporting the
+config does not ask.
 
 **Main window** (`main_window.ui`) — `display_view_widget` (hosts the OCC canvas),
 `top_menu_bar` with the five nav buttons from the `.ui` plus `btn_structures_view`
@@ -1709,7 +1743,7 @@ with the current UI.
 | §2: give the Oncentra central axis channel number 1 | Neither reader checks the channel number. It is matched by name only (§3.2) |
 | §1–2: ensure no needles intersect | Nothing checks this. `are_colliding()` is never called (§7.4) |
 | 4.4: a selected channel changes from blue to purple | On the Channels tab a channel is teal, `[0.2, 0.55, 0.55]`, and a selected one is blue, `[0.2, 0.2, 0.7]` ([channels_view.py:15-18](../../src/windows/views/channels_view.py#L15-L18)). *Verified* |
-| 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab does nothing (§7.8) |
+| 4.4: describes *Set as Tandem*, not what *Clear Tandem* does | *Clear Tandem* on the Channels tab did nothing (§7.8). Both were removed 2026-10-29, and the tandem channel is chosen on the Tandem tab (§5.6) |
 | 4.4: lists *Dead Space* in the layout, but never explains it | `CONFIG_DEADSPACE` extends each needle tip outward, in the model and in the interstitial lengths (§5.4, §5.8) |
 | 4.3: Collar Thickness "changes the diameter of the collar" | It is the collar's wall thickness. The collar's diameter is the cylinder diameter plus twice the thickness (`outer_radius = radius1 + base_thickness`, [cylinder.py:136](../../src/classes/mesh/cylinder.py#L136)) |
 | 4.6: the Export tab shows the orientation notch removed from the cylinder | The notch is fused on as a raised bar (§5.4). `_final_mesh()` cuts out only channels and tandem ([export_view.py:202-210](../../src/windows/views/export_view.py#L202-L210)). *Verified* |
@@ -1783,7 +1817,7 @@ follow.
   reopens a saved configuration gets whatever collar the app had before, which is usually none.
 
 **2. *Generate Tandem* drops the collar keys from the live settings, but the cylinder keeps its
-collar.** `TandemView.action_set_tandem()` ([tandem_view.py:59](../../src/windows/views/tandem_view.py))
+collar.** `TandemView.action_set_tandem()` ([tandem_view.py:128](../../src/windows/views/tandem_view.py#L128))
 ends with `get_app().values.config_values = getCurrentValues()`, replacing the whole live dict
 with the 17-key version. `BrachyCylinder.shape()` reads the collar from the live dict with a
 default of `0.0`, and `add_base()` does nothing when either is zero. But `shape()` returns the
@@ -1803,7 +1837,7 @@ other `setLength` caller, `CylinderModel.update_height_offset`, is never connect
 checked: every path, in the GUI.
 
 Suggested fix, test first: add both keys to the `current_values` dict in `getCurrentValues()`,
-push them into the spin boxes in `resetAllValues()`, and change `tandem_view.py:59` to
+push them into the spin boxes in `resetAllValues()`, and change `tandem_view.py:128` to
 `config_values.update(getCurrentValues())` so a partial snapshot can never drop keys again.
 
 ### 7.2 MEDIUM — unsupported TPS vendor raises an unhandled `UnboundLocalError`
@@ -2046,15 +2080,18 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 *Verified* on a changed copy of `SI_C_D30 Brachify_Ex2/`, 2026-09-29 to 2026-10-02; not seen in
 the GUI.
 
-`NeedleChannel.get_rotation()` ([mesh/channel.py:152-158](../../src/classes/mesh/channel.py#L152-L158))
-gives the angle that *Set as Tandem*, and a channel labelled `Tandem` at import, write into the
+`NeedleChannel.get_rotation()` ([mesh/channel.py:161-176](../../src/classes/mesh/channel.py#L161-L176))
+gives the angle that choosing a tandem channel, and a channel labelled `Tandem` at import, write into the
 tandem rotation. Its comment says it measures "using 0,0". The code measures from `(1, 0)`:
 
 ```python
-v1 = [1.0, 0.0, self.points[0][2]]
-v2 = self.points[0]
+v1 = [1.0, 0.0, self.points_raw[0][2]]
+v2 = self.points_raw[0]
 angle = math.atan2(v2[1] - v1[1], v2[0] - v1[0]) * (180 / 3.14159)
 ```
+
+The snippet was corrected on 2026-10-29: the code reads `points_raw`, the plan's points, since a
+channel move was added (§5.5), so a move does not turn the tandem.
 
 That is `atan2(y, x - 1)`, where `points[0]` is the tip in cylinder-local coordinates, whose
 axis is `x = y = 0` (§4.6). With Ex2's tandem tip moved 6 mm to one side, the tandem was aimed at
@@ -2078,6 +2115,11 @@ first test for `tests/mesh/`. Inspect the result in the Export tab.
 
 ### 7.8 LOW — *Clear Tandem* on the Channels tab does nothing
 
+**Fixed 2026-10-29** by removing the button. The tandem channel is now chosen, and cleared with
+*None*, in the Tandem tab's *Tandem Channel* box (§5.6), and the Channels list no longer shows the
+tandem channel. The entry below is kept as written. Pressing the button was never tried in the GUI
+before it was removed.
+
 *Reasoned from code, 2026-09-29; not reproduced in the GUI.*
 
 When the selected channel is the tandem, `btn_set_tandem` reads *Clear Tandem*
@@ -2098,6 +2140,8 @@ tandem, stays disabled, and the button keeps its label. The method then only rew
 rotation spin boxes. The Tandem tab's own *Clear Tandem* buttons are separate and are not
 affected. The User Manual does not describe this button's clear action, so what it should do is
 not written down anywhere either (§6.5). Confirm the behaviour in the running app before fixing.
+Since 2026-10-29 the Tandem tab's *Tandem Channel* box clears the tandem channel with *None*
+(§5.6). This button is unchanged.
 
 **The same button also reads *Clear Tandem* when no channel is selected and the plan has no
 tandem.** Found 2026-10-10. `ChannelsModel.is_channel_tandem(None)` compares
@@ -2210,6 +2254,94 @@ from the PDF's own text). *Not addressed, not verified:* a review reported that 
 length reads only a needle's first segment, so a needle that leaves through the side wall on a later
 segment may read 0.
 
+### 7.15 LOW — PR #149 hid BODY from the Structures tab
+
+**Fixed in the PR that added this entry.** `anatomy_structures` kept only `ORGAN` and `TUMOUR`.
+BODY is `EXTERNAL`, which maps to `OTHER`, so the Structures list dropped it with the applicator
+needles. The filter now also keeps `interpreted_type == "EXTERNAL"`. Needles and markers stay off
+the tab. *Verified* by `test_anatomy_structures_keep_organs_tumours_and_body` and
+`test_structures_tab_shows_body_on_ex1_and_hides_needles`. Not a runtime app run.
+
+### 7.15 MEDIUM — a plan's tandem channel was exported with no tandem hole, and nothing said so
+
+*Verified* 2026-10-29 in the real window on macOS. **Mitigated 2026-10-29 by a warning.** A plan
+with a channel named Tandem, such as Ex2, sets it as the tandem channel at import, which leaves it
+out of the cut. The tandem hole comes only from *Generate Tandem* or a tandem STEP import. Until one
+of those is used, the Export solid, STL and STEP have no tandem hole, and the reference sheet has no
+tandem row and does not list the channel, so the plan's tandem has nowhere to go and no part of
+the export shows it. Choosing a needle as the tandem channel without generating did the same, and
+also gave that needle no hole. The Export tab now says so and asks before each export (§5.6).
+Exporting is still allowed, because whether a cylinder may ever be printed without the plan's
+tandem is a clinical decision nobody has made yet. A cylinder with no tandem channel and no tandem
+hole, a needles-only device, gets no warning.
+
+### 7.16 LOW — a generated tandem's rotation becomes the next plan's starting rotation
+
+*Verified* 2026-10-29 in the real window on macOS. *Generate Tandem* merges `getCurrentValues()`
+into the live settings (§7.1), and that snapshot includes `CONFIG_TANDEM_ROTATION`, the rotation
+just used. `TandemModel.clear_for_new_plan()` resets the rotation to that live value, so after a
+tandem was generated for Ex2 at 359.996°, importing Ex1 started at 359.996° rather than the 0° of
+the loaded settings. A plan with a tandem channel overwrites it from that channel, so only a plan
+without one, generating a tandem by hand, starts from the previous plan's direction. The tandem
+itself is cleared. Fixing it needs the loaded settings kept apart from the live ones, which nothing
+does yet. Not changed.
+
+### 7.17 Fixed — tandem bugs found and fixed in PRs #174 to #179
+
+**Fixed 2026-10-29.** Listed here so the traps stay visible.
+
+- **`ChannelsModel.set_tandem(None)` disabled `None` and crashed the tandem's slot.** It appended
+  `None` to the disabled set, and `TandemModel.set_tandem_channel` set the rotation to 0, then raised
+  `AttributeError` on `None.label`. Qt prints an exception raised in a slot and carries on, so
+  nothing on screen showed it. *Verified* by `tests/views/test_tandem_channel.py`, which failed on
+  both before the fix (#174).
+- **Enable on the tandem channel cut it as a needle too.** The tandem channel's row could be
+  enabled, so the channel got a needle hole at its plan position while its number still labelled
+  the tandem on the reference sheet, the "6T and 6" seen on a sheet exported from Ex2 with
+  Applicator6 as the tandem. *Verified* in the GUI by Ariq's export. The row is now hidden and
+  `toggle_channel_enabled` refuses the tandem channel (#176).
+- **A tandem carried into the next imported plan.** Importing Ex1 after a tandem was generated for
+  Ex2 kept the tandem, so Ex1's cylinder got Ex2's tandem hole. *Verified* in the real window on
+  macOS and by `test_importing_a_plan_clears_the_previous_plans_tandem` (#179). Its rotation
+  still carries over (§7.16).
+- **The Tandem tab's Generate spin boxes were squeezed in the default window.** At 770 by 472 they
+  were 16 to 17 px tall, because `tandem_view.ui` gives the sub-tabs a 290 px minimum, shorter than
+  the Generate page. *Verified* by an offscreen measurement and
+  `test_generate_spin_boxes_keep_their_height_in_the_default_window` (#175).
+
+### 7.18 MEDIUM — an imported STEP tandem is drawn and previewed as a generated one
+
+*Reasoned from code, 2026-10-29; not run with a STEP file.* Not changed.
+
+- The reference sheet draws the tandem circle at `CONFIG_TANDEM_CHANNEL_DIAMETER`, the Generate
+  tab's diameter, even for an imported tandem. The code says so:
+  `#tandem will show up at config tandem value even if it is imported`
+  ([template_reference.py:443](../../src/classes/pdf/template_reference.py#L443)). A STEP tandem of
+  another diameter is drawn the wrong size, and its collet rings with it.
+- *Show Tandem* on the Export tab always calls `TandemModel.raw_shape()`
+  ([export_view.py:205](../../src/windows/views/export_view.py#L205)), which builds a generated
+  tandem from the Generate values. For an imported tandem the preview shows a tandem that is not
+  the one cut. The cut in the exported solid is correct, from `TandemModel.shape()`.
+
+### 7.19 LOW — a channel named like Tandem is chosen at import but never sets the plan rotation
+
+*Reasoned from code, 2026-10-29; no sample plan shows it.* Not changed. `ChannelsModel.load_data`
+chooses any channel whose label contains `tandem`, ignoring case
+([channels_model.py:87](../../src/windows/models/channels_model.py#L87)). `TandemModel.set_tandem_channel`
+records the plan rotation, and `hasTandemInDICOM`, only when the label equals `tandem`
+([tandem_model.py:82](../../src/windows/models/tandem_model.py#L82)). A channel named `Tandem 1` or
+`Uterine Tandem` is therefore made the tandem and aims it, but the plan rotation stays at the
+settings' value and the rotation warning never fires for that plan. Ex2 and the third plan used on
+2026-10-29 both name the channel exactly `Tandem`.
+
+### 7.20 LOW — the Selected Channel box shows 0.300 mm with no channel selected
+
+*Verified* 2026-10-29 in the real window on macOS, Ex2, after leaving and reopening the Channels
+tab. Not changed. `action_update_settings` fills `sb_channel_diameter` only while a channel is
+selected, and the box's minimum is 0.3 mm, so with nothing selected it shows 0.300 mm, the
+narrowest channel allowed, rather than a blank or the Channels Diameter. The group is disabled
+then, so nothing can be applied, but the number reads as a real width.
+
 ---
 
 ## 8. Testing
@@ -2296,7 +2428,7 @@ JSON files from a temporary folder: a file with one key, a file that is not vali
 
 Both view test files share the one QApplication from the `units_app` fixture in
 [tests/views/conftest.py](../../tests/views/conftest.py), which isolates HOME/USERPROFILE.
-`channels_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
+`channels_window`, `tandem_window` and `cylinder_window` build their windows on it. Qt allows one QApplication
 per process, so a fixture that constructed its own would fail in whichever file ran second.
 `brachify_app` in [tests/windows/conftest.py](../../tests/windows/conftest.py) follows the same
 rule: whichever of the two session fixtures runs first starts the app, and the other reuses it.
@@ -2310,18 +2442,18 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
-| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, BODY or other non-anatomy ROI, hides an organ or tumour, or Ex1 fills that list while Import loses its inventory (§5.5–5.7) |
+| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows. Or `anatomy_structures` keeps a needle, BODY or marker, or drops an organ or tumour (§5.3) |
-| `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6) |
+| `views/test_import_view.py` | Import Dicom leaves the structure list empty after Ex1, or a failed empty-folder import leaves the previous plan's rows (§5.6). Or importing Ex1 after a tandem was generated for Ex2 keeps the tandem, its rotation, its plan rotation or the flag that the plan has a tandem (§5.5) Or an import leaves an offset, the imported flag or the shown-warning flag, or a tandem made with the Tandem tab's *Generate Tandem* (#183). |
 | `views/test_channels_view.py` | after a channel is selected and the Channels tab is left and reopened, the list still highlights it or holds it as the current item, or clicking it again does not select it in `ChannelsModel`. Or, after a channel is picked in the viewport, the list does not highlight only that channel, or clicking the channel clicked before the pick does not select it (§7.6). Also fails if an arrow of a Channels spin box is drawn lighter than black (§7.5), or if a channel disabled before a plan is loaded is still disabled, or missing from `get_visible_channels`, afterwards (§7.10). Or a channel's own diameter is overwritten by the Channels tab's Apply, survives being cleared or a new plan, or accepts less than 0.3 mm or NaN (§5.5). Also checks that clearing after config import matches untouched channels and unknown labels leave no override (§7.6). Or the Selected Channel group is enabled with nothing selected, Apply to Channel changes another channel, the box keeps a typed value across selections or goes below 0.3 mm, or a Channels spin box is under 20 px tall in the default window (§5.6) |
 | `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
 | `views/test_cylinder_template_exports.py` | after a flat, notch-off, 3 by 10 mm collar template is loaded and applied, the reference sheet's cylinder table or the Export tab's mesh volume (π·15²·160 + π·(18²−15²)·10 mm³, worked by hand) is not the template's, or a 180 mm template applied to Ex1, imported at 160 mm, does not raise every needle 20 mm or changes its stored DICOM points (§5.6, §5.8) |
-| `views/test_move_channel.py` | a move does not shift every point of a channel by exactly (dx, dy, dz), changes the plan's `points_raw`, is ignored by the channel's 3D shape or the PDF's point reader, or changes `get_rotation()`. Or NaN, infinity, an unknown channel or the tandem channel is accepted, or a rejected move loses the earlier one. Or double-clicking a row does not ask the popup, moves on Cancel, rebuilds the shape when nothing changed, does not underline the moved row, or opens for the tandem. Or a moved channel can be set as the tandem, its button stays enabled, or a needle row has no double click hint. Or *Move...* is enabled with nothing selected or for the tandem, pressing it does not move the selected channel, or the legend does not say underlined has been moved. Or the popup does not start at the current move, refuses -12.5 or 300 mm, or Reset leaves a value. Or a new plan keeps a move, or a needle moved out of the cylinder or below the base is still counted inside it, an unmoved plan needle is dropped, the sheet's note is missing, has a colon or a dash, or the popup or the row's tooltip does not warn (§5.5, §5.6, §7.14) |
+| `views/test_move_channel.py` | a move does not shift every point of a channel by exactly (dx, dy, dz), changes the plan's `points_raw`, is ignored by the channel's 3D shape or the PDF's point reader, or changes `get_rotation()`. Or NaN, infinity, an unknown channel or the tandem channel is accepted, or a rejected move loses the earlier one. Or double-clicking a row does not ask the popup, moves on Cancel, rebuilds the shape when nothing changed, does not underline the moved row, or opens for the tandem. Or a moved channel can be set as the tandem, a button on the Channels tab can set or clear the tandem, or a needle row has no double click hint. Or *Move...* is enabled with nothing selected or for the tandem, pressing it does not move the selected channel, or the legend does not say underlined has been moved. Or the popup does not start at the current move, refuses -12.5 or 300 mm, or Reset leaves a value. Or a new plan keeps a move, or a needle moved out of the cylinder or below the base is still counted inside it, an unmoved plan needle is dropped, the sheet's note is missing, has a colon or a dash, or the popup or the row's tooltip does not warn (§5.5, §5.6, §7.14) |
 | `views/test_add_custom_needle.py` | an added applicator is missing from the model or the visible channels, its points differ, its solid stops at the base or lacks the dead space, it is missing from the export cut or the sheet or shares a channel number, an empty, blank or imported name or a missing plan is accepted, a length change moves its tip wrongly, the Add button does not offer the first free name, add a row or ignore Cancel, or a bent applicator's solid does not reach sideways, or the dialog closes on bad numbers or reads a field wrongly (§5.5, §5.6) |
 | `views/test_remove_custom_needle.py` | removing a custom applicator leaves a hole in the export cut, its label stays in the disabled set, own diameters or selection, a plan applicator or the tandem is removed, the Remove button is on for a plan needle or the tandem or off for a custom one or does not delete its row, or a new import keeps a custom record (§5.5, §5.6) |
-| `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter, disabled or tandem, with its font and tooltip, or keeps its mark once cleared (§5.6) |
+| `views/test_channel_status_colours.py` | a channel's row does not show its status, own diameter or disabled, with its font and tooltip, or keeps its mark once cleared. Or the tandem channel has a row, Ex2's list is not Applicator2 to Applicator13, a channel that stops being the tandem does not come back as a plain row, the legend still explains a tandem row, or the tandem channel can be enabled (§5.5, §5.6) Or a selected channel stays selected once it is the tandem, or the view asks the model to enable the tandem channel (#183). |
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
@@ -2330,6 +2462,9 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
 | `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
+| `views/test_export_tandem_warning.py` | Ex2 imported with no tandem opens the Export tab without a warning naming its Tandem channel, or with a colon or an em dash in it, or the warning shows once a tandem is generated or with no tandem channel. Or exporting with the warning does not ask once with its text, goes ahead after No, or asks when the tandem hole exists (§7.15) |
+| `views/test_tandem_channel_choice.py` | the Tandem Channel box does not list *None* and Ex2's 13 channels with their numbers, or does not show channel 14 after import or a tandem set on the Channels tab. Or choosing Applicator7 does not make it the only channel left out of the cut and aim the tandem at 64.929°, *No* in the rotation warning keeps it, *None* leaves a tandem channel, a moved channel is accepted or not explained, the off-axis warning is missing, wrong, has a colon or an em dash, or shows for Tandem. Or a Generate spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§5.6) Or the warning does not follow a diameter changed with *Generate Tandem*, a missing tandem channel raises, or *No* after *None* leaves the rotation changed (#183). |
+| `views/test_tandem_channel.py` | importing Ex2 does not aim the tandem along its channel 14 at 359.996° or record the plan rotation, or `set_tandem(None)` leaves a tandem channel named, keeps the previous tandem channel disabled, puts `None` in the disabled set, or changes the tandem's rotation (§5.5) |
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
@@ -2535,6 +2670,37 @@ python -m pytest
   19.83 mm out, and both sheets list Length 170.0 mm, Tip Flat and the collar. OpenCASCADE printed
   its known "2 faces have been skipped due to null triangulation" while writing the STL (§7.9).
   *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 321 passed, with `tests/views/test_tandem_channel.py` added
+  (three tests) and the `tandem_window` fixture, Ex2 imported, in `tests/views/conftest.py`. The
+  two clearing tests failed before the fix, one with `[None] == []` in the disabled set and one
+  with the rotation at 0.0 instead of Applicator12's 208.37°. The import test was added after a
+  first version of the fix raised `NameError` for a channel named Tandem, which Qt printed and
+  ignored. It failed with the rotation at 0.0 instead of 359.996. *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 330 passed, with `tests/views/test_tandem_channel_choice.py`
+  added (nine tests). The seven choice tests failed with `AttributeError` before the box existed,
+  and the height test at 15 px before the scroll area and the raised tab minimum. Four deliberate
+  breaks were each caught: no refresh on `values_changed`, the rotation answer ignored, an
+  off-axis limit of 100 mm, and the tab minimum left at 290 px. *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 332 passed, with the tandem row test in
+  `test_channel_status_colours.py` replaced by three (six in the file). All three failed before the
+  change, and the legend assertion failed on the old copy. Three deliberate breaks were each
+  caught: the tandem row listed, Enable allowed for the tandem, and no rebuild on
+  `tandem_changed`. *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 332 passed, with the *Set as Tandem* button test in
+  `test_move_channel.py` replaced by one that no Channels tab button sets or clears the tandem.
+  It failed while the button existed. *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 337 passed, with `tests/views/test_export_tandem_warning.py`
+  added (five tests). All five failed with `AttributeError` before the warning existed. Two
+  deliberate breaks were each caught: every export allowed, and the warning never shown.
+  *Not verified:* Windows.
+- *Verified* 2026-10-29 on macOS: 338 passed, with one test added to `test_import_view.py`. It
+  failed with the tandem still there before the fix. Two deliberate breaks were each caught: the
+  tandem not cleared, and the rotation kept. *Not verified:* Windows.
+- *Verified* 2026-10-30 on macOS: 344 passed, with six tests added after Ayyhab's review of #175,
+  #176 and #179. The five covering a code change failed first: the warning stayed hidden, a
+  `KeyError`, the rotation left at 64.929°, Applicator5 still selected, and the model's
+  `ValueError`. The import tests passed on the fixed code, and three deliberate breaks of the reset
+  (an offset kept, the imported flag kept, no clear) each failed one. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

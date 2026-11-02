@@ -32,6 +32,17 @@ class TandemModel(QObject):
         self.filepath = None
         self.update()
 
+    def clear_for_new_plan(self):
+        """Forget the previous plan's tandem, its offsets and rotation, before another plan is imported."""
+        rotation = get_app().values.config_values.get("CONFIG_TANDEM_ROTATION")
+        self.rotation = rotation
+        self.protation = rotation
+        self.hasTandemInDICOM = False
+        self.height_offset = 0.0
+        self.mesh_offset = 0.0
+        self.is_shape_imported = False
+        self.clear_tandem()
+
     def import_tandem(self, filepath: str):
         self.filepath = filepath
         self._base_shape = read_3d_file(filepath)
@@ -64,13 +75,12 @@ class TandemModel(QObject):
 
         self.update()
 
-    def set_tandem_channel(self, channel: NeedleChannel):
-        rotation = 0.0
-        if channel:
-            rotation = channel.get_rotation()
-        self.rotation = rotation
+    def set_tandem_channel(self, channel: NeedleChannel | None):
+        # with no tandem channel the tandem keeps the rotation it has
+        if channel is None: return
+        self.rotation = channel.get_rotation()
         if(channel.label.lower() == 'tandem'):
-            self.protation = rotation
+            self.protation = self.rotation
             self.hasTandemInDICOM = True # if this happens there is a tandem in the plan
         self.update_display()
 

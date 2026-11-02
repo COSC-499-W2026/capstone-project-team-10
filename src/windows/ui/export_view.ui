@@ -278,6 +278,16 @@ color: rgb(0, 0, 0);
     </spacer>
    </item>
    <item>
+    <widget class="QLabel" name="label_tandem_hole_warning">
+     <property name="styleSheet">
+      <string notr="true">color: rgb(0, 0, 0);</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="btn_export_mesh">
      <property name="sizePolicy">
       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">

@@ -54,9 +54,11 @@ window the group is below the fold and the list shows about four rows, where wit
 scroll area the spin boxes above were squeezed unreadable. *Verified* by offscreen widget tests
 and a render of the shown window. A screenshot of it is linked from Ahab's week 6 log.
 
-Each row of the Channels list shows its channel's status. Own diameter is bold on amber,
-disabled is italic on grey, and the tandem is bold italic on blue, with a legend under the
-list. Every colour has its own bold and italic pair, so colour is never the only cue (WCAG
+Each row of the Channels list shows its channel's status. Own diameter is bold on amber, and
+disabled is italic on grey, with a legend under the list. The tandem channel has no row: it is
+chosen on the Tandem tab, and comes back as a plain row once it is no longer the tandem.
+*Verified* by offscreen tests and in a run of the real window on macOS, linked from Ariq's week 8
+log. Every colour has its own bold and italic pair, so colour is never the only cue (WCAG
 1.4.1, Use of Color), and hovering a row names its status and diameter. A selected row shows
 the system highlight instead of its colour, and keeps its font. *Verified* by offscreen tests
 and a render. A screenshot of it is linked from Ahab's week 6 log.
@@ -64,7 +66,7 @@ and a render. A screenshot of it is linked from Ahab's week 6 log.
 Double-clicking a Channels row opens a small popup that moves that channel from its plan position,
 with X, Y and Z in mm, Reset to plan position, Cancel and OK. It starts at the channel's current move,
 so OK with nothing edited changes nothing, and the tandem's row opens nothing. A moved row is
-underlined and its tooltip says how far it moved, so colour is still not the only cue. Each needle row's tooltip carries `Double click to move`, and a moved channel cannot be set as the tandem until its move is reset, so the button is disabled with a tooltip saying so. The legend
+underlined and its tooltip says how far it moved, so colour is still not the only cue. Each needle row's tooltip carries `Double click to move`, and a moved channel cannot be chosen as the tandem on the Tandem tab until its move is reset. The legend
 under the list says underlined has been moved, and *Move...* in the Selected Channel group opens the
 same popup for the selected channel. It is off with nothing selected and for the tandem. If the typed
 move would take a needle off the reference sheet, a line in the popup and the row's tooltip say so, and
@@ -73,6 +75,22 @@ offscreen widget tests and in a driven run of the real window on macOS. A screen
 from Ahab's week 7 log.
 
 *Add Applicator...* sits under Disable on the Channels tab and is off until a plan is imported. It opens a form with a name, Start X and Y, Length 1 inside the cylinder and Length 2 out into tissue, then Bend radius, Theta (the tilt from the axis, 0 to 89) and Phi (the direction, measured from X towards Y), in mm and degrees, with OK and Cancel. OK stays closed and shows the reason in a line under the fields, such as the start being too far from the centre of the base, until the numbers pass. The new needle is a row named Custom Applicator and a number, and it is cut and listed like a plan needle. A Theta above 0 bends it along an arc of the Bend radius. *Remove Applicator* beside it deletes the selected custom applicator and its row, and is off for a plan applicator and for the tandem. *Verified* by offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked from Ahab's week 8 log.
+
+The Tandem tab opens with a *Tandem Channel* row above its Import and Generate sub-tabs. Its
+box lists *None* and every plan channel with its number, such as `Tandem (14)`, and shows the
+channel named Tandem after an import. Choosing a channel makes it the tandem channel, which is
+left out of the cut and labels the tandem on the reference sheet, and choosing *None* clears it.
+It replaced the Channels tab's *Set as Tandem* button. A word-wrapped line under the box explains a
+refusal, such as a moved channel, or warns when the chosen channel crosses the base away from
+the axis, since the tandem hole is always cut on the axis. The tab scrolls up and down in the
+default 770 × 472 window, so the Generate spin boxes keep their full height. *Verified* by
+offscreen widget tests and in a run of the real window on macOS. A screenshot of it is linked
+from Ariq's week 8 log.
+
+When a tandem channel is set but no tandem has been generated or imported, the Export tab shows
+a word-wrapped warning above its export buttons, and Export Mesh, Export Reference Sheet and
+Export Shape(s) ask before going ahead, with Cancel the default. *Verified* by offscreen tests and
+in a run of the real window on macOS, linked from Ariq's week 8 log.
 
 The Selected Channel group also holds the needle templates: a name field with *Save as
 Template*, a list of saved templates with *Apply Template*, and a status line. A refused save

@@ -121,16 +121,19 @@ def test_structures_tab_lists_only_organs_and_tumours(cylinder_window, anatomy_m
     assert not any("Axis" in label for label in labels)
 
 
-def test_structures_tab_is_empty_for_ex1_while_import_keeps_needles(channels_window):
-    """Leave the Structures tab empty on Ex1, which has no organs or tumours.
+def test_structures_tab_shows_body_on_ex1_and_hides_needles(channels_window):
+    """Show BODY on Ex1 Structures, and keep Applicator rows on Import only.
 
-    Fails if an Applicator or BODY row appears on Structures, or if Import loses
-    its 42 inventory rows. The sample plans store needles as OTHER shapes.
+    Fails if BODY is missing, if an Applicator row appears on Structures, or if
+    Import loses its 42 inventory rows. BODY is the external outline on this
+    sample; hiding it with the needles leaves no anatomy on the tab.
     """
     from PySide6.QtCore import Qt
     structures_view = channels_window.navigationmodel.views[5]
     import_view = channels_window.navigationmodel.views[0]
-    assert structures_view.structure_list.count() == 0
+    assert structures_view.structure_list.count() == 1
+    assert "BODY" in structures_view.structure_list.item(0).text()
+    assert "Applicator" not in structures_view.structure_list.item(0).text()
     assert import_view.structure_list.count() == 42
     import_labels = [
         import_view.structure_list.item(index).text()
