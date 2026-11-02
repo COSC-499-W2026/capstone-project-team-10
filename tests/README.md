@@ -265,6 +265,9 @@ which on Windows means `npx.cmd`. That test is skipped where Node is not install
 `views/test_camera_controls.py` has eleven cases for left-drag versus click, jitter, distant
 release, incremental right/middle panning, proportional reversible wheel/trackpad zoom
 and horizontal camera roll/vertical zoom routing, including pixel-only and zero-delta events.
+The 20 camera cases cover diagonal dead-zone boundaries, bounded roll, angle/pixel precedence,
+and real Qt wheel events against a recording display boundary: accumulated twist, repaint,
+zoom separation and Qt-signed deltas for either inverted flag.
 `views/test_central_axis.py` has eight cases for local-Z endpoints, invalid lengths, the
 real toggle's availability/preference and `DisplayModel.reset` emitting an empty scene.
 `views/test_bounding_grid.py` (PR #81) has nine cases for rounded bounds, invalid input,
