@@ -10,23 +10,26 @@ RANGE_MM = 300.0  # the longest cylinder the Cylinder tab allows
 class AddApplicatorDialog(QDialog):
     """Asks for a custom applicator's name, start, lengths and bend (mm and degrees), with no parent like MoveChannelDialog.
 
-    OK checks the numbers with the model's own rules and stays open, showing the reason, until they pass.
+    Given the numbers of an existing applicator it edits that one, and its name cannot be changed. OK checks
+    the numbers with the model's own rules and stays open, showing the reason, until they pass.
     """
 
-    def __init__(self, label: str, check: Callable[[CustomNeedleSpec], str]):
+    def __init__(self, label: str, check: Callable[[CustomNeedleSpec], str], current: CustomNeedleSpec | None = None):
         super().__init__()
         self.check = check
-        self.setWindowTitle("Add Applicator")
+        self.setWindowTitle("Add Applicator" if current is None else "Edit Applicator")
+        start = current or CustomNeedleSpec(label, 0.0, 0.0, 10.0, 10.0, 10.0)
         form = QFormLayout(self)
         form.setSizeConstraint(QFormLayout.SizeConstraint.SetFixedSize)
         self.edit_label = QLineEdit(label)
-        self.spin_x = self.make_spin_box(0.0, -RANGE_MM)
-        self.spin_y = self.make_spin_box(0.0, -RANGE_MM)
-        self.spin_length1 = self.make_spin_box(10.0, 0.0)
-        self.spin_length2 = self.make_spin_box(10.0, 0.0)
-        self.spin_radius = self.make_spin_box(10.0, 0.0)
-        self.spin_theta = self.make_spin_box(0.0, 0.0, MAX_THETA_DEGREES, " °")
-        self.spin_phi = self.make_spin_box(0.0, 0.0, 360.0, " °")
+        self.edit_label.setEnabled(current is None)
+        self.spin_x = self.make_spin_box(start.x, -RANGE_MM)
+        self.spin_y = self.make_spin_box(start.y, -RANGE_MM)
+        self.spin_length1 = self.make_spin_box(start.length1, 0.0)
+        self.spin_length2 = self.make_spin_box(start.length2, 0.0)
+        self.spin_radius = self.make_spin_box(start.radius, 0.0)
+        self.spin_theta = self.make_spin_box(start.theta, 0.0, MAX_THETA_DEGREES, " °")
+        self.spin_phi = self.make_spin_box(start.phi, 0.0, 360.0, " °")
         for name, widget in (("Name", self.edit_label), ("Start X", self.spin_x), ("Start Y", self.spin_y),
                              ("Length 1 inside the cylinder", self.spin_length1), ("Length 2 out into tissue", self.spin_length2),
                              ("Bend radius", self.spin_radius), ("Theta tilt from the axis", self.spin_theta),

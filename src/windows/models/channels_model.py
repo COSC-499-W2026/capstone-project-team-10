@@ -1,3 +1,4 @@
+from dataclasses import replace
 from enum import Enum, auto
 from math import isfinite
 
@@ -106,46 +107,67 @@ class ChannelsModel(QObject):
     def is_custom_needle(self, label: str) -> bool:
         return label in self.custom_specs
 
-    def check_custom_needle(self, spec: CustomNeedleSpec) -> list[list[float]]:
-        """The points of a custom needle in the plan's frame, or CustomNeedleError saying which rule it breaks."""
+    def check_custom_needle(self, spec: CustomNeedleSpec, editing: str = "") -> list[list[float]]:
+        """The points of a custom needle in the plan's frame, or CustomNeedleError saying which rule it breaks.
+
+        When editing, the applicator being edited may keep its own name.
+        """
         if not self.has_plan():
             raise CustomNeedleError("Import a plan before adding an applicator")
         label = spec.label.strip()
         if not label:
             raise CustomNeedleError("Name the applicator")
-        if label in self.channels:
+        if label in self.channels and label != editing:
             raise CustomNeedleError(f"An applicator named {label} already exists")
         cylinder = get_app().window.cylindermodel.cylinder
         points = custom_needle_points(spec, cylinder.diameter, cylinder.length, self.diameter)
         return [[x, y, z - self.height_offset] for x, y, z in points]  # get_points adds the offset back
 
-    def custom_needle_error(self, spec: CustomNeedleSpec) -> str:
-        """The reason a spec is refused, or an empty string when it would be added."""
+    def custom_needle_error(self, spec: CustomNeedleSpec, editing: str = "") -> str:
+        """The reason a spec is refused, or an empty string when it would be added or, when editing, applied."""
         try:
-            self.check_custom_needle(spec)
+            self.check_custom_needle(spec, editing)
         except CustomNeedleError as error:
             return str(error)
         return ""
 
+    def make_custom_needle(self, spec: CustomNeedleSpec, points: list[list[float]], channel_number: str) -> NeedleChannel:
+        needle = NeedleChannel(roi_number="custom", channel_number=channel_number, label=spec.label, points=points)
+        needle.set_diameter(self.own_diameters.get(spec.label, self.diameter))
+        needle.set_offset(self.height_offset)
+        return needle
+
     def add_custom_needle(self, spec: CustomNeedleSpec) -> NeedleChannel:
         points = self.check_custom_needle(spec)
+        spec = replace(spec, label=spec.label.strip())
         numbers = [int(channel.channel_number) for channel in self.channels.values() if channel.channel_number.isdigit()]
-        needle = NeedleChannel(
-            roi_number="custom",
-            channel_number=str(max(numbers, default=0) + 1),
-            label=spec.label.strip(),
-            points=points)
-        needle.set_diameter(self.diameter)
-        needle.set_offset(self.height_offset)
-        self.channels[needle.label] = needle
-        self.custom_specs[needle.label] = spec
-        log.info(f"added custom applicator {needle.label} starting at ({spec.x}, {spec.y}) mm")
+        needle = self.make_custom_needle(spec, points, str(max(numbers, default=0) + 1))
+        self.channels[spec.label] = needle
+        self.custom_specs[spec.label] = spec
+        log.info(f"added custom applicator {spec.label} starting at ({spec.x}, {spec.y}) mm")
+        self.update()
+        return needle
+
+    def require_custom_needle(self, label: str) -> None:
+        if not self.is_custom_needle(label):
+            raise CustomNeedleError("Only a custom applicator can be edited or removed")
+
+    def edit_custom_needle(self, label: str, spec: CustomNeedleSpec) -> NeedleChannel:
+        """Rebuild a custom applicator from new numbers, keeping its name, number, place, diameter, disabled state and move."""
+        self.require_custom_needle(label)
+        spec = replace(spec, label=label)
+        points = self.check_custom_needle(spec, editing=label)
+        old = self.channels[label]
+        needle = self.make_custom_needle(spec, points, old.channel_number)
+        needle.set_translation(old.translation)
+        self.channels[label] = needle
+        self.custom_specs[label] = spec
+        log.info(f"edited custom applicator {label}, now starting at ({spec.x}, {spec.y}) mm")
         self.update()
         return needle
 
     def remove_custom_needle(self, label: str) -> None:
-        if not self.is_custom_needle(label):
-            raise CustomNeedleError("Only a custom applicator can be removed")
+        self.require_custom_needle(label)
         if self.is_channel_tandem(label):
             raise CustomNeedleError("Choose another tandem before removing the applicator that is the tandem")
         del self.channels[label], self.custom_specs[label]
