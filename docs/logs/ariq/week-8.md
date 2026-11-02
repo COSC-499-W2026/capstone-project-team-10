@@ -288,3 +288,21 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 344 passed (338 after #179, screenshot 1)**.
 
   ![1, the real Tandem tab on Ex2 after Generate Tandem at a 2.0 mm diameter, the off-axis warning shown, and python -m pytest on fix/tandem-review-follow-ups, 24 passed in the three files and 344 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/4a6e96b893a6c2b63aa835db728381669ebcf221/docs/logs/ariq/screenshots/week-8/pr-183-1-warning-after-generate.png)
+
+### For PR #**203**
+
+- As part of requirement **the course's week 8 team log**, the user needs to do **audit the merged work from PR #149 through #201**.
+- Therefore, I implemented/generated code so that **the team has a Part B with each PR's own diff, new tests, approvals, size check, the current suite result and pinned diagrams**.
+
+#### Review and design
+
+- When I reviewed the **PR evidence against `main`**, I noticed **six merged PRs (#164–#166, #191–#193) never reached `main`, #198's GitHub count included #199, and two #154 tests fail on `main` at `b02d8f0` and at `b87f58b`**. Therefore, I did **count only work on `main`, give #198 its own diff (`43b1982..f32af07`), and use the _did not meet_ receipt with both tests named**.
+- I did **a check of every PR's merge commit with `git merge-base --is-ancestor`, a first-parent `test_*` count per merge, and a read of each link** to ensure that my feature contribution does not contain any of the following: **duplicate receipts (stated once, individual logs linked); the code items do not apply, no code changed**.
+- This work is written in **`docs/logs/team/week-8.md` and three PNGs in `docs/logs/team/screenshots/week-8/`** because **Part B belongs in the team log and its diagrams must render anywhere**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0, seven diagrams) and `sh .claude/hooks/session-start.sh` (exit 0, no `UNDOCUMENTED` or `STALE ROW`)** passed.
+- This new test PR did not break anything else in the system because **it changes no code, and `python -m pytest` at `b02d8f0`, macOS, isolated `HOME`, gives 424 passed and 2 failed (`test_toggling_checkbox_does_not_drop_highlight`, `test_click_after_keyboard_navigation_can_rehighlight`, both from #154 and failing on `main` before this branch)**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
