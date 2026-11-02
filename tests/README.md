@@ -72,6 +72,7 @@ tests/
 │   ├── test_cylinder_template_controls.py
 │   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
+│   ├── test_export_tandem_warning.py  the Export tab's missing tandem hole warning
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   ├── test_tandem_channel.py  the tandem channel at import and when cleared
@@ -208,6 +209,9 @@ snapshot does not list.
 `views/test_tandem_channel.py` checks that importing Ex2 aims the tandem along its channel named
 Tandem, and that `set_tandem(None)` leaves no tandem channel, enables the previous one again and
 keeps the tandem's rotation. It uses `tandem_window`, the Ex2 window in `views/conftest.py`.
+
+`views/test_export_tandem_warning.py` opens Ex2's Export tab with and without a tandem hole and a
+tandem channel, and answers the export question through `Export_View.confirm_export`.
 
 `views/test_tandem_channel_choice.py` drives the Tandem tab's Tandem Channel box on Ex2: what it
 lists, choosing a channel or *None*, the rotation warning answered through
