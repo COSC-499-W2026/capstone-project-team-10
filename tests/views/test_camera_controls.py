@@ -67,3 +67,84 @@ def test_zoom_is_smooth_reversible_and_ignores_zero(controls):
     assert controls.wheel_zoom_factor(-120, 0) == pytest.approx(1 / 1.15)
     assert 1 < controls.wheel_zoom_factor(30, 0) < 1.15
     assert controls.wheel_zoom_factor(0, 30) == pytest.approx(1.15)
+
+
+@pytest.mark.parametrize('angle,pixel,expected', [
+    ((0, 0), (30, 2), (0.17453292519943295, 1.0)),
+    ((0, 0), (-30, 2), (-0.17453292519943295, 1.0)),
+    ((120, 0), (0, 0), (0.17453292519943295, 1.0)),
+    ((0, 120), (2, 30), (0, 1.15)),
+    ((0, 0), (0, 0), (0, 1.0)),
+    ((0, 0), (3, 2), (0., 1.)),
+    ((0, 0), (2, 3), (0., 1.)),
+    ((0, 0), (2, 1), (0., 1.)),
+    ((0, 0), (3000, 0), (1.7453292519943295, 1.)),
+    ((0, 0), (-3000, 0), (-1.7453292519943295, 1.)),
+    ((0, 120), (1, 0), (0., 1.15)),
+    ((120, 0), (0, 30), (0.17453292519943295, 1.)),
+])
+def test_scroll_routes_dominant_axis_without_combining_actions(controls, angle, pixel, expected):
+    """Horizontal scrolling produces reversible camera roll in radians; vertical scrolling zooms.
+
+    Wrong units, ambiguous diagonal movement, unbounded roll or inconsistent delta
+    precedence fails, preventing jitter from unexpectedly turning the view.
+    """
+    assert controls.wheel_camera_motion(*angle, *pixel) == pytest.approx(expected)
+
+
+class RecordingCameraDisplay:
+    """Record native display boundary calls without initializing a native canvas."""
+
+    def __init__(self):
+        """Initialize a nonzero twist and empty call counters for the handler tests."""
+        self.View = self
+        self.twist = 0.3
+        self.repaints = 0
+        self.zoom_factors = []
+
+    def Twist(self):
+        """Return the retained twist so successive events can accumulate."""
+        return self.twist
+
+    def SetTwist(self, rotation: float):
+        """Record the requested orientation; this helper does not emulate geometry."""
+        self.twist = rotation
+
+    def Repaint(self):
+        """Count explicit redraws so a forgotten repaint fails the handler test."""
+        self.repaints += 1
+
+    def ZoomFactor(self, factor: float):
+        """Record zoom requests to detect roll accidentally taking the zoom path."""
+        self.zoom_factors.append(factor)
+
+
+@pytest.mark.parametrize('inverted', [False, True])
+def test_wheel_handler_accumulates_roll_repaints_and_preserves_zoom(controls, inverted):
+    """Drive real Qt wheel events through the real widget and its display boundary.
+
+    Absolute SetTwist, a missing repaint, zoom during roll or double inversion fails.
+    Qt already supplies signed deltas; the handler must preserve those directions.
+    """
+    from PySide6.QtCore import QPoint, QPointF, Qt
+    from PySide6.QtGui import QWheelEvent
+    viewer = controls.OrbitCameraViewer3d()
+    display = RecordingCameraDisplay()
+    viewer._display = display
+    for dx, dy in ((30, 0), (30, 0), (-30, 0)):
+        event = QWheelEvent(QPointF(), QPointF(), QPoint(dx, dy), QPoint(),
+                            Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, inverted)
+        event.ignore()
+        viewer.wheelEvent(event)
+        assert event.isAccepted()
+    assert display.twist == pytest.approx(0.47453292519943295)
+    assert display.repaints == 3
+    assert display.zoom_factors == []
+    for dx, dy in ((0, 30), (0, 0), (3, 2)):
+        event = QWheelEvent(QPointF(), QPointF(), QPoint(dx, dy), QPoint(),
+                            Qt.NoButton, Qt.NoModifier, Qt.NoScrollPhase, inverted)
+        viewer.wheelEvent(event)
+    assert display.twist == pytest.approx(0.47453292519943295)
+    assert display.repaints == 3
+    assert display.zoom_factors == pytest.approx([1.15])
+    viewer.close()
