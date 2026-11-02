@@ -2,7 +2,7 @@ from OCC.Core.Poly import Poly_Triangulation
 from OCC.Core.Prs3d import Prs3d_ShadingAspect
 from windows.models.structures_model import StructureDisplayMode
 from dataclasses import dataclass
-from math import ceil, floor, isfinite, log10
+from math import ceil, floor, isfinite, log10, radians
 
 from OCC.Core.AIS import AIS_InteractiveObject, AIS_Shape, AIS_TextLabel, AIS_Triangulation
 from OCC.Core.Bnd import Bnd_Box
@@ -71,10 +71,23 @@ def grid_ticks(lower: float, upper: float) -> tuple[int, ...]:
     return tuple(range(start, stop + step, step))
 
 
-def reference_grid(bounds: GridBounds) -> ReferenceGrid:
+def grid_spacing(mm_per_pixel: float) -> int:
+    """Select 10, 5 or 1 mm intervals from the current screen scale."""
+    if mm_per_pixel <= 0.125:
+        return 1
+    if mm_per_pixel <= 0.5:
+        return 5
+    return 10
+
+
+def reference_grid(bounds: GridBounds, spacing: int | None = None) -> ReferenceGrid:
     """Build an outer-wall lattice and model-coordinate labels."""
     xs, ys, zs = (grid_ticks(bounds[i], bounds[i + 3]) for i in range(3))
     x0, x1, y0, y1, z0, z1 = xs[0], xs[-1], ys[0], ys[-1], zs[0], zs[-1]
+    if spacing is not None:
+        xs = tuple(range(x0, x1 + 1, spacing))
+        ys = tuple(range(y0, y1 + 1, spacing))
+        zs = tuple(range(z0, z1 + 1, spacing))
     lines: set[GridLine] = set()
     for x in xs:
         lines.add(((x, y0, z0), (x, y1, z0)))
@@ -86,13 +99,13 @@ def reference_grid(bounds: GridBounds) -> ReferenceGrid:
         lines.add(((x0, y0, z), (x0, y1, z)))
         lines.add(((x0, y1, z), (x1, y1, z)))
     xm, ym, zm = (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2
-    gap = max(x1 - x0, y1 - y0) * 0.12
+    gap = max(x1 - x0, y1 - y0) * 0.05
     labels = [GridLabel(str(x), (x, y0 - gap, z0)) for x in xs]
     labels += [GridLabel(str(y), (x1 + gap, y, z0)) for y in ys]
     labels += [GridLabel(str(z), (x0 - gap, y0, z)) for z in zs]
-    labels += [GridLabel('X (mm)', (xm, y0 - 5 * gap, z0)),
-               GridLabel('Y (mm)', (x1 + 5 * gap, ym, z0)),
-               GridLabel('Z (mm)', (x0 - 5 * gap, y0, zm))]
+    labels += [GridLabel('X (mm)', (xm, y0 - 5 * gap, z0 - 5)),
+               GridLabel('Y (mm)', (x1 + 5 * gap, ym, z0 - 5)),
+               GridLabel('Z (mm)', (x0 - 5 * gap, y0 - 5 * gap, zm))]
     return ReferenceGrid((x0, y0, z0), (x1, y1, z1), tuple(sorted(lines)), tuple(labels))
 
 
@@ -109,10 +122,32 @@ def grid_text_label(annotation: GridLabel) -> AIS_TextLabel:
     return label
 
 
+ANGLE_UNITS_PER_STEP = 120.0
+PIXELS_PER_STEP = 30.0
+MAX_SCROLL_STEPS = 10.0
+ROLL_DEGREES_PER_STEP = 10.0
+SCROLL_AXIS_RATIO = 2
+
+
+def wheel_steps(angle_delta: int, pixel_delta: int) -> float:
+    """Normalize and bound one wheel axis, preferring Qt's angle delta."""
+    steps = angle_delta / ANGLE_UNITS_PER_STEP if angle_delta else pixel_delta / PIXELS_PER_STEP
+    return max(-MAX_SCROLL_STEPS, min(MAX_SCROLL_STEPS, steps))
+
+
 def wheel_zoom_factor(angle_delta: int, pixel_delta: int) -> float:
     """Return a reversible zoom scale, including pixel-only trackpad events."""
-    steps = angle_delta / 120.0 if angle_delta else pixel_delta / 30.0
-    return 1.15 ** max(-10.0, min(10.0, steps))
+    return 1.15 ** wheel_steps(angle_delta, pixel_delta)
+
+
+def wheel_camera_motion(angle_x: int, angle_y: int, pixel_x: int, pixel_y: int) -> tuple[float, float]:
+    """Use one consistent delta source and ignore ambiguous diagonal gestures."""
+    x, y = (angle_x, angle_y) if angle_x or angle_y else (pixel_x, pixel_y)
+    if abs(x) > SCROLL_AXIS_RATIO * abs(y):
+        return (radians(ROLL_DEGREES_PER_STEP * wheel_steps(angle_x, pixel_x)), 1.0)
+    if abs(y) > SCROLL_AXIS_RATIO * abs(x):
+        return (0, wheel_zoom_factor(angle_y, pixel_y))
+    return (0, 1.0)
 
 
 class CameraGesture:
@@ -174,12 +209,23 @@ class qtBaseViewer(QtWidgets.QWidget):
 
 # ref   https://github.com/tpaviot/pythonocc-core/blob/master/src/Display/OCCViewer.py
 #       https://github.com/tpaviot/pythonocc-core/blob/master/src/Display/qtDisplay.py
+def structure_display_rgb(rgb: tuple[int, int, int], highlighted: bool) -> tuple[float, float, float]:
+    """Return sRGB floats for an organ, or the channel-selection blue when emphasised.
+
+    The blue is the Channels tab selection colour, 0.2 0.2 0.7, so a highlighted
+    organ reads the same way as a highlighted needle.
+    """
+    if highlighted:
+        return (0.2, 0.2, 0.7)
+    return (rgb[0] / 255, rgb[1] / 255, rgb[2] / 255)
+
+
 def anatomy_surface_presentation(mesh: Poly_Triangulation, rgb: tuple[int, int, int],
-                                 opacity: float) -> AIS_Triangulation:
+                                 opacity: float, highlighted: bool = False) -> AIS_Triangulation:
     """Use the triangulation renderer's mode and its own shaded colour/material."""
     surface = AIS_Triangulation(mesh)
     surface.SetDisplayMode(0)
-    color = Quantity_Color(*(component / 255 for component in rgb), Quantity_TOC_sRGB)
+    color = Quantity_Color(*structure_display_rgb(rgb, highlighted), Quantity_TOC_sRGB)
     surface.Attributes().SetShadingAspect(Prs3d_ShadingAspect())
     surface.Attributes().ShadingAspect().SetColor(color)
     surface.SetColor(color)
@@ -216,12 +262,15 @@ class OrbitCameraViewer3d(qtBaseViewer):
             if transparent: self._display.DisplayShape(shape.shape, color=colour, material=Graphic3d_NOM_TRANSPARENT, update=False)
             else: self._display.DisplayShape(shape.shape, color=colour, update=False)
 
-        self._grid_definition = None if bounds.IsVoid() else reference_grid(bounds.Get())
+        self._grid_bounds = None if bounds.IsVoid() else bounds.Get()
+        self._grid_spacing = None
+        self._grid_definition = None if self._grid_bounds is None else reference_grid(self._grid_bounds)
         self.set_grid_available(self._grid_definition is not None)
         self.refresh_structure_outlines()
         if resize:
             self._display.View.ZFitAll()
             self._display.View.FitAll(0.2, False)
+        self._update_grid_spacing()
         self._display.Repaint()
         cylinder = get_app().window.cylindermodel.cylinder
         self.set_axis_length(cylinder.length if shapes and cylinder is not None else None)
@@ -239,10 +288,12 @@ class OrbitCameraViewer3d(qtBaseViewer):
         model = get_app().window.structuresmodel
         for structure in model.presentations():
             self._structure_actors[structure.roi_number] = []
-            red, green, blue = structure.color
-            color = Quantity_Color(red / 255, green / 255, blue / 255, Quantity_TOC_sRGB)
+            highlighted = structure.roi_number == model.highlighted
+            red, green, blue = structure_display_rgb(structure.color, highlighted)
+            color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
             if model.mode != StructureDisplayMode.OUTLINES and structure.surface is not None:
-                surface = anatomy_surface_presentation(structure.surface, structure.color, model.opacity_for(structure.roi_number))
+                surface = anatomy_surface_presentation(
+                    structure.surface, structure.color, model.opacity_for(structure.roi_number), highlighted)
                 context.Display(surface, False)
                 context.Deactivate(surface)
                 self._structure_presentations.append(surface)
@@ -250,12 +301,32 @@ class OrbitCameraViewer3d(qtBaseViewer):
             if model.mode != StructureDisplayMode.SURFACE and structure.outline is not None:
                 outline = AIS_Shape(structure.outline)
                 outline.SetColor(color)
-                outline.SetWidth(1.)
+                outline.SetWidth(3. if highlighted else 1.)
                 outline.SetTransparency(1 - model.opacity_for(structure.roi_number))
                 context.Display(outline, False)
                 context.Deactivate(outline)
                 self._structure_presentations.append(outline)
                 self._structure_actors[structure.roi_number].append(outline)
+        self._display.Repaint()
+
+    def update_structure_highlight(self):
+        """Recolour existing anatomy actors when the highlighted row changes."""
+        if not self._inited:
+            return
+        model = get_app().window.structuresmodel
+        colours = {item.roi_number: item.color for item in model.presentations()}
+        for roi, actors in self._structure_actors.items():
+            if roi not in colours:
+                continue
+            highlighted = roi == model.highlighted
+            red, green, blue = structure_display_rgb(colours[roi], highlighted)
+            color = Quantity_Color(red, green, blue, Quantity_TOC_sRGB)
+            for actor in actors:
+                actor.SetColor(color)
+                if actor.Attributes().HasOwnShadingAspect():
+                    actor.Attributes().ShadingAspect().SetColor(color)
+                actor.SetWidth(3. if highlighted else 1.)
+                self._display.Context.Redisplay(actor, False)
         self._display.Repaint()
 
     def update_structure_opacity(self, roi: int, opacity: float):
@@ -285,6 +356,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._available_cursors = {}
         self._gesture: CameraGesture | None = None
         self._grid_available = False
+        self._grid_bounds: GridBounds | None = None
+        self._grid_spacing: int | None = None
         self._grid_definition: ReferenceGrid | None = None
         self._grid_presentations: list[AIS_InteractiveObject] = []
         self._structure_presentations: list[AIS_InteractiveObject] = []
@@ -324,7 +397,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self.central_axis_button.toggled.connect(self._refresh_central_axis)
         self.central_axis_button.adjustSize()
         self._position_axis_button()
-        self.setToolTip("Left drag to rotate • Right or middle drag to pan • Scroll to zoom")
+        self.setToolTip("Left drag to rotate • Right or middle drag to pan • Side scroll to roll clockwise/counterclockwise • Vertical scroll to zoom")
 
     def _position_axis_button(self):
         """Keep the overlay control inset from the viewport's top-right corner."""
@@ -341,6 +414,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
     def resizeEvent(self, event):
         if self._inited:
             super().resizeEvent(event)
+            self._update_grid_spacing()
         self._position_grid_button()
         self._position_axis_button()
 
@@ -349,6 +423,17 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_available = available
         self.grid_button.setEnabled(available)
         self._refresh_grid()
+
+    def _update_grid_spacing(self):
+        """Rebuild only when zoom or viewport size crosses an interval threshold."""
+        if not self._inited or self._grid_bounds is None or self.height() <= 0:
+            return
+        spacing = grid_spacing(self._display.View.Convert(1) * self.devicePixelRatioF())
+        if spacing != self._grid_spacing:
+            self._grid_spacing = spacing
+            self._grid_definition = reference_grid(self._grid_bounds, spacing)
+            self.grid_button.setToolTip(f"Outer bounding-box grid; {spacing} mm intervals (zoom adaptive)")
+            self._refresh_grid()
 
     def _refresh_grid(self):
         """Draw subdued outer-wall lines and white millimetre labels."""
@@ -418,14 +503,13 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._display.Create(window_handle=int(self.winId()), parent=self)
         # background gradient
         self._display.SetModeShaded()
-        background = Quantity_Color(12 / 255, 17 / 255, 23 / 255, Quantity_TOC_sRGB)
-        self._display.View.SetBgGradientColors(background, background)
         self._inited = True
 
     def keyPressEvent(self, event):
         code = event.key()
         if code in self._key_map:
             self._key_map[code]()
+            self._update_grid_spacing()
         elif code in range(256):
             pass
 
@@ -441,6 +525,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         if not self._inited:
             self.InitDriver()
 
+        self._update_grid_spacing()
         self._display.Context.UpdateCurrentViewer()
 
         if self._drawbox:
@@ -450,9 +535,15 @@ class OrbitCameraViewer3d(qtBaseViewer):
             painter.drawRect(rect)
 
     def wheelEvent(self, event):
-        factor = wheel_zoom_factor(event.angleDelta().y(), event.pixelDelta().y())
+        angle, pixel = event.angleDelta(), event.pixelDelta()
+        rotation, factor = wheel_camera_motion(angle.x(), angle.y(), pixel.x(), pixel.y())
+        if rotation:
+            view = self._display.View
+            view.SetTwist(view.Twist() + rotation)
+            self._display.Repaint()
         if factor != 1.0:
             self._display.ZoomFactor(factor)
+            self._update_grid_spacing()
         event.accept()
 
     @property

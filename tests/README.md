@@ -253,8 +253,12 @@ leave stale geometry or stuck pending state. No application module is mocked. Th
 canvas remains uninitialised, so these assertions do not prove native rendering. The #125
 cases drive the real mode dropdown and selected-ROI opacity slider, check visible failure
 text with unchecked state and no outline fallback, and inspect a real `AIS_Triangulation`
-actor's mode 0, shading colour and transparency. They do not initialise a native viewer;
-previous native observations are recorded separately in PR #125.
+actor's mode 0, shading colour and transparency. Selecting a row stores that ROI as
+the highlight, another row replaces it, a second click or a cleared row drops it, and
+an empty organ gains no presentation. A highlighted triangulation uses the channel
+selection blue, 0.2 0.2 0.7. Toggling a checkbox keeps the highlight, a click after
+keyboard navigation can drop it, and leaving the tab clears it. They do not initialise
+a native viewer; previous native observations are recorded separately in PR #125.
 
 The documentation pass ran full isolated suites: 258 passed for #133 and 287 for #134.
 `Path.home` was redirected before collection as well as fixture-level filesystem isolation,
@@ -284,11 +288,18 @@ which on Windows means `npx.cmd`. That test is skipped where Node is not install
 
 ## Viewport controls and references
 
-`views/test_camera_controls.py` has six cases for left-drag versus click, jitter, distant
-release, incremental right/middle panning and proportional reversible wheel/trackpad zoom.
+Grid coverage includes zoom-dependent 10/5/1 mm intervals and unchanged outer walls
+while refining line positions and millimetre labels.
+
+`views/test_camera_controls.py` has 20 cases for left-drag versus click, jitter, distant
+release, incremental right/middle panning, proportional reversible wheel/trackpad zoom
+and horizontal camera roll/vertical zoom routing, including pixel-only and zero-delta events.
+These cover diagonal dead-zone boundaries, bounded roll, angle/pixel precedence,
+and real Qt wheel events against a recording display boundary: accumulated twist, repaint,
+zoom separation and Qt-signed deltas for either inverted flag.
 `views/test_central_axis.py` has eight cases for local-Z endpoints, invalid lengths, the
 real toggle's availability/preference and `DisplayModel.reset` emitting an empty scene.
-`views/test_bounding_grid.py` (PR #81) has nine cases for rounded bounds, invalid input,
+`views/test_bounding_grid.py` has sixteen cases for rounded bounds, invalid input,
 outer-wall lines, model-mm axis titles, real AIS label text/position, reset and independent
 nonoverlapping controls. The fixtures isolate user files before importing the viewport.
 

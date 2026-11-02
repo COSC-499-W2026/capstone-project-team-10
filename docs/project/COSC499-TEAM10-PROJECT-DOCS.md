@@ -1514,7 +1514,21 @@ hands `int(self.winId())` to pythonocc's `OCCViewer.Viewer3d().Create()`.
 | Left click | select shape (emits `sig_topods_selected`) |
 | Left drag | rotate; release does not select |
 | Right or middle drag | pan using incremental pointer movement |
-| Wheel | proportional zoom, 1.15× per 120 vertical angle units |
+| Vertical scroll | proportional zoom, 1.15× per 120 vertical angle units |
+| Horizontal scroll | roll clockwise/counterclockwise around the viewing axis |
+
+`wheel_camera_motion` uses the angle-delta pair when either angle component is nonzero,
+otherwise the pixel-delta pair. An axis must exceed twice the other axis's magnitude:
+horizontal rolls, vertical zooms; ambiguous diagonal and zero events do nothing.
+Both actions cap each event at ten steps. `wheel_steps` shares the 120 angle-unit / 30 pixel
+normalization; `ROLL_DEGREES_PER_STEP` sets roll sensitivity to 10 degrees per step.
+Roll adds to `V3d_View.Twist()` and repaints. Qt's signed deltas are used directly, including
+when `inverted()` is true; no fixed physical finger direction is promised because OS natural
+scrolling affects those signs. Opposite deltas reverse roll. Physical trackpad feel remains
+unverified. *Verified 2026-11-01 on native macOS with synthetic wheel events:* Ex1
+roll reverses, 144 steps along/near the poles do not snap, post-orbit roll stays stable,
+diagonal jitter is ignored, and vertical zoom preserves orientation. Evidence is in
+Gilles's week 8 PR #180 receipt; no physical trackpad gesture was tested.
 
 `CameraGesture` uses Qt's platform drag threshold to tolerate click jitter. Once a drag
 starts, returning to its origin does not turn it into a click. A distant release also
@@ -1535,11 +1549,22 @@ This is the cylinder's geometric centre line, not the imported DICOM central-cha
 
 The grid uses `brepbndlib.AddOptimal` bounds of the displayed non-null model shapes.
 `grid_ticks` rounds outward with 1/2/5-based steps of at least 10 mm; larger scenes use
-larger steps. `ReferenceGrid` holds the outer bounds, unique line segments and `GridLabel`
+larger steps to establish stable outer bounds. The displayed lattice then uses 10 mm,
+5 mm or 1 mm intervals according to zoom: `grid_spacing` chooses 5 mm at at most
+0.5 mm per logical pixel, and 1 mm at at most 0.125 mm per logical pixel. The native
+view's pixel conversion is adjusted for device pixel ratio. Zoom, fit and resize refresh
+spacing only when the threshold changes; the walls stay fixed. *Reasoned from code;
+native zoom transitions not yet visually verified.* `ReferenceGrid` holds the outer bounds, unique line segments and `GridLabel`
 text/positions. Lines occupy three outer walls (minimum X, maximum Y and minimum Z);
-there are no translucent planes through the model. White ticks and X/Y/Z titles on a dark
+there are no translucent planes through the model. White ticks and X/Y/Z titles on the original grey
 background denote **model coordinates in millimetres**, not patient Left/Posterior/Superior.
-The Cylinder tab's mm/cm selector does not change these labels.
+The Cylinder tab's mm/cm selector does not change these labels. Tick offsets are 5% of
+the larger XY extent; X/Y titles sit 5 mm below the bottom wall, while the Z title
+is offset outside both the minimum-X and minimum-Y walls.
+`InitDriver` leaves the background from OpenCASCADE `Create` unchanged, restoring the
+pre-grid appearance instead of overriding it with RGB (12, 17, 23). *Verified 2026-11-01
+on macOS: native Ex1 framebuffer captures show the original grey background and the
+previous dark override with the same probe and grid. Windows/Linux not visually checked.*
 
 Both overlays are native AIS presentations deactivated for selection and kept outside
 `DisplayModel.shapes`, so they never enter mesh exports. On redraw the old presentations
@@ -2387,9 +2412,9 @@ The viewport regressions (*Reasoned from the test bodies*) are:
 
 | File | What fails when behavior regresses |
 |---|---|
-| `views/test_camera_controls.py` (6 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom |
+| `views/test_camera_controls.py` (20 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom and ratio-gated scroll routing, bounded roll, angle precedence, and real wheel-handler accumulation/repaint |
 | `views/test_central_axis.py` (8 cases) | local-Z endpoints and 10% margin, invalid-length rejection, button availability/preference, or reset notification |
-| `views/test_bounding_grid.py` (9 cases, PR #81) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, or nonoverlapping independent controls |
+| `views/test_bounding_grid.py` (16 cases) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, nonoverlapping independent controls, zoom thresholds or stable walls during refinement |
 
 These checks do not initialise the native canvas. The grid label test constructs a real
 `AIS_TextLabel`; native scene rendering still requires a displayed run (see §5.7).
@@ -2447,7 +2472,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
-| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory (§5.5–5.7) |
+| `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, a highlighted surface actor is not the channel-selection blue, a checkbox toggle drops the highlight, a click after keyboard navigation cannot toggle, or leaving the tab keeps the highlight (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
 | `dicom/test_structure_list.py` | Import list rows drop name, colour or category, duplicate names stay indistinguishable, labels collide after an ROI suffix, or `None`/empty structures invent rows. Or `anatomy_structures` keeps a needle, BODY or marker, or drops an organ or tumour (§5.3) |

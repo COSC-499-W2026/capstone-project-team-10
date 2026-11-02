@@ -35,10 +35,14 @@ the tab's, and its buttons look like *Apply Settings*. *Verified* by offscreen t
 running app.
 
 *Reasoned from viewport code, PRs #78/#79/#81:* left-drag rotates, right/middle-drag pans,
-and scrolling zooms proportionally. Click jitter is tolerated; a drag never selects on
+and vertical scrolling zooms proportionally. Horizontal scrolling rolls clockwise/counterclockwise around the viewing
+axis. An axis must exceed twice the other axis; ambiguous diagonal events do nothing.
+Angle deltas take precedence over pixels, and both actions cap at ten steps per event.
+Qt supplies the direction signs; physical trackpad feel is not yet verified. Click jitter is tolerated; a drag never selects on
 release. These are project bindings, not a universal medical-software standard.
 
-The dark viewport has white millimetre labels and faint grid lines on three outer walls,
+The viewport uses the original OpenCASCADE grey background, with white millimetre
+labels and faint grid lines on three outer walls,
 with no intersecting planes. The top-right **XYZ grid (mm)** control is blue when checked;
 the independent **Central axis** control below it is amber when checked and shows a dashed
 local-Z reference above solids. Both are disabled when their reference is unavailable.
@@ -112,3 +116,8 @@ items; model changes rebuild rows while restoring selection by ROI number.
 *Reasoned from #125 code and covered by offscreen widgets/native-actor tests; no fresh native
 screenshot or usability evaluation is claimed.* See [§5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 and [§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+
+The XYZ grid refines from 10 mm to 5 mm and 1 mm as the camera zooms in, then coarsens
+on zoom-out. Its outer walls stay fixed. Numeric labels sit closer to the walls;
+X/Y titles sit below the bottom wall and the Z title sits outside the minimum-X/Y corner. The grid tooltip reports the current interval.
+*Reasoned from code; native zoom transitions not yet visually verified.*
