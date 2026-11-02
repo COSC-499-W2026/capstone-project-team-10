@@ -471,23 +471,23 @@ def test_a_moved_channel_cannot_be_set_as_the_tandem(channels_window: MainWindow
     model.move_channel(label, 0.0, 0.0, 0.0)
 
 
-def test_set_as_tandem_is_disabled_for_a_moved_channel(channels_window: MainWindow) -> None:
-    """Check the Set as Tandem button is off, with a reason, while a moved channel is selected.
+def test_no_channels_tab_button_makes_a_channel_the_tandem(channels_window: MainWindow) -> None:
+    """Check the Channels tab has no Set as Tandem or Clear Tandem button, with a channel selected.
 
-    Fails if the button stays enabled. The clinician would press it and nothing would happen,
-    with no hint that the move has to be reset first.
+    Fails if any push button on the tab reads either. The tandem channel is chosen on the
+    Tandem tab. The Channels tab's button changed the tandem's rotation from a tab that does not
+    show the tandem, put the previous tandem back into the cut without a word, and its Clear
+    Tandem did nothing (section 7.8 of the project docs).
     """
+    from PySide6.QtWidgets import QPushButton
+
     view = channels_window.navigationmodel.views[CHANNELS_TAB]
-    model = channels_window.channelsmodel
-    label = channel_label(channels_window, 10)
-    model.move_channel(label, 10.0, 0.0, 0.0)
-    model.set_selected_channels(label)
+    channels_window.channelsmodel.set_selected_channels(channel_label(channels_window, 10))
 
-    view.action_update_settings()
+    labels = [button.text() for button in view.findChildren(QPushButton)]
 
-    assert not view.ui.btn_set_tandem.isEnabled()
-    assert "Reset" in view.ui.btn_set_tandem.toolTip()
-    model.move_channel(label, 0.0, 0.0, 0.0)
+    assert "Set as Tandem" not in labels and "Clear Tandem" not in labels
+    channels_window.channelsmodel.clear_selected_channels()
 
 
 def test_every_movable_row_tells_the_clinician_to_double_click(channels_window: MainWindow) -> None:

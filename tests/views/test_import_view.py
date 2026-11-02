@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SAMPLE_PLAN = REPO_ROOT / "SI_C_D30 Brachify_Ex1"
 IMPORT_TAB = 0
+TANDEM_TAB = 3
 
 
 def test_importing_ex1_fills_the_structure_list(channels_window: MainWindow) -> None:
@@ -49,3 +50,60 @@ def test_empty_folder_import_clears_the_structure_list(
     import_view.import_dicom_from_folder(str(empty))
 
     assert import_view.structure_list.count() == 0
+
+
+def test_importing_a_plan_clears_the_previous_plans_tandem(cylinder_window: MainWindow) -> None:
+    """Check that importing Ex1 after a tandem was generated for Ex2 leaves no tandem and the default rotation.
+
+    Ex2 is imported, a tandem is generated, then Ex1 is imported, all through the Import tab's
+    no-dialog path. Fails if the tandem still exists, if its rotation is not the default 0 degrees,
+    or if the plan rotation the warning compares against, or the flag that the plan has a tandem,
+    is left over from Ex2. Ex1 has no tandem, so a leftover would cut Ex2's tandem hole into the
+    next patient's cylinder without anyone asking for it.
+    """
+    import_view = cylinder_window.navigationmodel.views[IMPORT_TAB]
+    tandem_view = cylinder_window.navigationmodel.views[TANDEM_TAB]
+    tandem = cylinder_window.tandemmodel
+    import_view.import_dicom_from_folder(str(REPO_ROOT / "SI_C_D30 Brachify_Ex2"))
+    tandem.tandem_length = 150.0
+    tandem.set_tandem()
+    tandem.change_tandem_rotation(64.0)
+    tandem.mesh_offset = 5.0
+    tandem.height_offset = 3.0
+    tandem.is_shape_imported = True
+    tandem_view.hasShownRotationWarning = True
+    tandem_view.ui.sb_height_offset.setValue(5.0)
+    assert tandem.exists()
+
+    import_view.import_dicom_from_folder(str(SAMPLE_PLAN))
+
+    assert not tandem.exists()
+    assert tandem.rotation == 0.0
+    assert tandem.protation == 0.0
+    assert not tandem.hasTandemInDICOM
+    assert (tandem.mesh_offset, tandem.height_offset) == (0.0, 0.0)
+    assert not tandem.is_shape_imported and tandem.filepath is None
+    assert not tandem_view.hasShownRotationWarning
+    assert tandem_view.ui.sb_height_offset.value() == 0.0
+
+
+def test_a_tandem_generated_on_the_tandem_tab_does_not_reach_the_next_plan(cylinder_window: MainWindow) -> None:
+    """Check a tandem made with the Tandem tab's Generate Tandem is gone after Ex1 is imported.
+
+    Unlike the test above, the tandem is generated through TandemView.action_set_tandem, the
+    button's own path, which also writes the live settings. Fails if the tandem still exists
+    after Ex1 is imported, so Ex2's tandem hole would be cut into Ex1's cylinder. The rotation is
+    not asserted here: Generate writes it into the live settings, and the reset starts from them,
+    which is the known gap in section 7.16 of the project docs. Raised in review of #179.
+    """
+    import_view = cylinder_window.navigationmodel.views[IMPORT_TAB]
+    tandem_view = cylinder_window.navigationmodel.views[TANDEM_TAB]
+    import_view.import_dicom_from_folder(str(REPO_ROOT / "SI_C_D30 Brachify_Ex2"))
+    tandem_view.hasShownRotationWarning = True
+    tandem_view.ui.sb_tandem_height.setValue(150.0)
+    tandem_view.action_set_tandem()
+    assert cylinder_window.tandemmodel.exists()
+
+    import_view.import_dicom_from_folder(str(SAMPLE_PLAN))
+
+    assert not cylinder_window.tandemmodel.exists()
