@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #184 to #198, at a glance
+## Stack #184 to #199, at a glance
 
 | PR | On | Closes | Adds | Own diff | New tests | Suite after |
 |---|---|---|---|---|---|---|
@@ -11,6 +11,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 | #194 | #184 | #112 | the bend, with Bend radius, Theta and Phi | 8 files, 233 lines | 12 | 333 passed, 17 failed |
 | #195 | #194 | #112 | Remove Applicator for custom applicators | 8 files, 395 lines | 7 | 340 passed, 17 failed |
 | #198 | #195 | #112 | Edit Applicator for custom applicators | 9 files, 330 lines | 6 | 346 passed, 17 failed |
+| #199 | #198 | #112 | a check that the export can cut a custom applicator | 8 files, 174 lines | 3 | 349 passed, 17 failed |
 
 The 17 failures are in `test_structure_surfaces.py` and `test_structure_display.py`, and are the same in every PR, since `scipy` and `skimage` are not in this conda env.
 
@@ -233,5 +234,57 @@ The 17 failures are in `test_structure_surfaces.py` and `test_structure_display.
 - This new test PR did not break anything else in the system because **`python -m pytest` (346 passed, 340 after #195, 17 failed, all in the structure surface tests with library failure, since `scipy` and `skimage` are not in the conda env), and brachify run on macOS with Ex1, driven by a script that pressed the real Edit button and measured the export (screenshot 1, whose panel 6 is the pytest result and the volumes drawn from the real output)**.
 
   ![1, Ex1 on macOS, the Channels tab with Edit Applicator on, greyed, and after pressing it, the front view before and after, and the pytest run](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0c94051f721b1a98ef8ec2748ac4e34770855ae8/docs/logs/ahab/screenshots/week-8/pr-198-1-edit.png)
+
+- Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**199** (5 of 5, on #198)
+
+- As part of requirement **FR-CN-01, create custom needles, and FR-CN-07, they reach the 3D export**, the user needs to do **type the numbers of a custom applicator on the Channels tab and get a printed channel exactly where they placed it**.
+- Therefore, I implemented/generated code so that **medical physicists are told in the form when the numbers they typed would print a cylinder with no channel, instead of finding out on the printed device**.
+
+#### Data Modeling and Integrity
+
+- This data **`cut_is_clean(solid, tool)`** is modeled as **a function returning a bool from `BRepAlgoAPI_Cut`'s own error and warning flags** because **OpenCASCADE already says whether a cut is trustworthy, so the check adds no second measure of volume**. We considered alternative models such as **comparing the volume removed with the needle's volume, which needs a second boolean that can fail the same way**.
+- This data **`check_custom_needle`** uses the input validation to ensure it adheres to **the earlier rules and now also a channel that cuts cleanly out of the bare cylinder, for an add, an edit and the form's OK**.
+- Not applicable: **see Shared**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **as in #184**. This structure has low coupling because **the check is one call from `ChannelsModel` to a function in `mesh/helper.py`, the layer that already holds the geometry rules**. This structure has high cohesion because **every rule that refuses numbers is still in `check_custom_needle`**. This design is scalable because **a new rule is one more refusal in that method, and the form shows it with no change**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **as in #184**. **A custom needle that would not be cut never reaches the STL or the PDF**.
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **as in #184**. **Channels tries the cut before it keeps a channel, so Export only receives channels it can cut. The Phi 45 needle removes 775.790 mm cubed in the export (screenshot 1, panel 4)**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/74b0d97b3381c4d7ecc1b4e2d9eedef3d0c3734b/docs/architecture/diagrams/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-07 → `test_numbers_the_export_cannot_cut_are_refused_in_plain_text_and_change_nothing`, `test_the_same_bend_towards_another_direction_is_accepted_and_the_export_loses_its_volume`**
+- Not applicable: **see Shared**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 3.3.3, Error Suggestion**. The aspects that demonstrate this principle in the system include **the form stays open and says what to change, the start, a length or Phi, in words with no colon or em dash (screenshot 1, panel 1). I did not run a screen reader**.
+- Not applicable: **see Shared, and traceability matrix (in Backend)**.
+
+#### Review and design
+
+- When I reviewed **what the Edit PR's real run showed**, I noticed **a bent needle removed 23.5 mm cubed from the export where about 800 was expected**. Therefore, I did **make the model refuse such numbers, and the screenshot shows the same numbers refused and then accepted with Phi 45**.
+- The PR contains gaps, because **the check cuts the bare cylinder and not the whole export, so a cut that only fails after the other channels are cut is not caught, and the failing numbers were found by probe with pythonocc 7.7.2 and so may change with the version. OK and Add each run the check, so a needle is built twice, and a probe of six needles before the check took 0.1 to 1.5 s each**.
+- The PR only contains small functions that are **at most 18 lines (`check_custom_needle`, 3 more than before)** long. The one it adds is **7 lines (`cut_is_clean`)**.
+- I did **`anti_slop review --base feat/custom-needle-edit src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
+- This work is written in **`mesh/helper.py` and `channels_model.py`** because **the geometry check belongs with the mesh helpers and the refusal with the model's other refusals, so no new file or layer is added and the diagram check passes without a redraw**.
+- This work belongs in **3 Channels** in the DFD because **it decides whether a channel is kept**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_the_same_bend_towards_another_direction_is_accepted_and_the_export_loses_its_volume` (3 new; 3 in `test_custom_needle_cut_check.py`)** passed.
+- I wrote tests to cover abnormal situations involving **an add and an edit with numbers that cannot be cut, and the form's OK** and they passed.
+- I checked that these negative cases involving **two deliberate breaks (`cut_is_clean` always true, which failed 2 tests, and always false, which failed 2)** failed as expected, and **all 3 tests failed before their code, one of them also because the shared window kept a needle from an earlier test, which I fixed by removing it in the test**.
+- Among these tests, **none are pure unit tests** and **all 3** are integration tests through the real window.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (349 passed, 346 after #198, 17 failed, all in the structure surface tests with library failure, since `scipy` and `skimage` are not in the conda env), and brachify run on macOS with Ex1, driven by a script that filled the real Add form and measured the export (screenshot 1, whose panel 4 is the pytest result and the volumes drawn from the real output)**.
+
+  ![1, Ex1 on macOS, the Add form refusing Phi 90 and accepting Phi 45, the front view, and the pytest run](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0350280baa8bdb8b0ef823bf317087dcf2061879/docs/logs/ahab/screenshots/week-8/pr-199-1-cut-check.png)
 
 - Not applicable: **generated-test review (no problem found)**.
