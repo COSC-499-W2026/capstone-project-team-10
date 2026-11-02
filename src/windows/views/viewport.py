@@ -2,7 +2,7 @@ from OCC.Core.Poly import Poly_Triangulation
 from OCC.Core.Prs3d import Prs3d_ShadingAspect
 from windows.models.structures_model import StructureDisplayMode
 from dataclasses import dataclass
-from math import ceil, floor, isfinite, log10
+from math import ceil, floor, isfinite, log10, radians
 
 from OCC.Core.AIS import AIS_InteractiveObject, AIS_Shape, AIS_TextLabel, AIS_Triangulation
 from OCC.Core.Bnd import Bnd_Box
@@ -109,10 +109,32 @@ def grid_text_label(annotation: GridLabel) -> AIS_TextLabel:
     return label
 
 
+ANGLE_UNITS_PER_STEP = 120.0
+PIXELS_PER_STEP = 30.0
+MAX_SCROLL_STEPS = 10.0
+ROLL_DEGREES_PER_STEP = 10.0
+SCROLL_AXIS_RATIO = 2
+
+
+def wheel_steps(angle_delta: int, pixel_delta: int) -> float:
+    """Normalize and bound one wheel axis, preferring Qt's angle delta."""
+    steps = angle_delta / ANGLE_UNITS_PER_STEP if angle_delta else pixel_delta / PIXELS_PER_STEP
+    return max(-MAX_SCROLL_STEPS, min(MAX_SCROLL_STEPS, steps))
+
+
 def wheel_zoom_factor(angle_delta: int, pixel_delta: int) -> float:
     """Return a reversible zoom scale, including pixel-only trackpad events."""
-    steps = angle_delta / 120.0 if angle_delta else pixel_delta / 30.0
-    return 1.15 ** max(-10.0, min(10.0, steps))
+    return 1.15 ** wheel_steps(angle_delta, pixel_delta)
+
+
+def wheel_camera_motion(angle_x: int, angle_y: int, pixel_x: int, pixel_y: int) -> tuple[float, float]:
+    """Use one consistent delta source and ignore ambiguous diagonal gestures."""
+    x, y = (angle_x, angle_y) if angle_x or angle_y else (pixel_x, pixel_y)
+    if abs(x) > SCROLL_AXIS_RATIO * abs(y):
+        return (radians(ROLL_DEGREES_PER_STEP * wheel_steps(angle_x, pixel_x)), 1.0)
+    if abs(y) > SCROLL_AXIS_RATIO * abs(x):
+        return (0, wheel_zoom_factor(angle_y, pixel_y))
+    return (0, 1.0)
 
 
 class CameraGesture:
@@ -324,7 +346,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self.central_axis_button.toggled.connect(self._refresh_central_axis)
         self.central_axis_button.adjustSize()
         self._position_axis_button()
-        self.setToolTip("Left drag to rotate • Right or middle drag to pan • Scroll to zoom")
+        self.setToolTip("Left drag to rotate • Right or middle drag to pan • Side scroll to roll clockwise/counterclockwise • Vertical scroll to zoom")
 
     def _position_axis_button(self):
         """Keep the overlay control inset from the viewport's top-right corner."""
@@ -448,7 +470,12 @@ class OrbitCameraViewer3d(qtBaseViewer):
             painter.drawRect(rect)
 
     def wheelEvent(self, event):
-        factor = wheel_zoom_factor(event.angleDelta().y(), event.pixelDelta().y())
+        angle, pixel = event.angleDelta(), event.pixelDelta()
+        rotation, factor = wheel_camera_motion(angle.x(), angle.y(), pixel.x(), pixel.y())
+        if rotation:
+            view = self._display.View
+            view.SetTwist(view.Twist() + rotation)
+            self._display.Repaint()
         if factor != 1.0:
             self._display.ZoomFactor(factor)
         event.accept()

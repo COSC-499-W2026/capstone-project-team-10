@@ -132,8 +132,8 @@ Six tabs, with Structures appended at index 5. The code addresses them by index.
 |---|---|
 | Import | Reads the first RTPLAN and RTSTRUCT. Needs a channel named `Central Axis`. Varian is the path the sample data exercises. Nucletron exists in code and has no sample here. |
 | Cylinder | Diameter, length, optional collar displayed in mm or cm; Apply uses mm. Length changes move needles by an offset. Original DICOM points stay put. |
-| Channels | Bore diameter, dead space, threading. A channel can be disabled, marked as the tandem, or given its own diameter, directly or from a saved needle template. The list shows each channel's status. |
-| Tandem | Generate a curved channel, or import a STEP model. |
+| Channels | Bore diameter, dead space, threading. A channel can be disabled or given its own diameter, directly or from a saved needle template. The list shows each channel's status, and leaves out the tandem channel. |
+| Tandem | Choose which plan channel is the tandem channel. Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
 | Structures | Surface/Outlines/Both, default Surface; per-ROI visibility and opacity, DICOM colours and visible loading/failure status. Pending ROIs can be hidden; failed surfaces do not fall back automatically. |
 
