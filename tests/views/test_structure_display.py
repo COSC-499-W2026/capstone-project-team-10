@@ -676,3 +676,77 @@ def test_highlighting_an_organ_without_contours_adds_no_presentation(cylinder_wi
     assert {item.roi_number for item in model.presentations()} == before
     assert 5 not in model._outlines
     assert view.structure_list.count() == 3
+
+
+def test_toggling_checkbox_does_not_drop_highlight(cylinder_window):
+    """Hide or show a highlighted organ without clearing its emphasis.
+
+    A highlight that disappears when the checkbox is unticked fails. The
+    physicist would lose the selection indicator while adjusting visibility.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    view.resize(320, 480)
+    view.show()
+    item = view.structure_list.item(0)
+    pos = view.structure_list.visualItemRect(item).center()
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted == 2
+    checkbox_pos = view.structure_list.visualItemRect(item).topLeft()
+    checkbox_pos.setX(checkbox_pos.x() + 8)
+    checkbox_pos.setY(checkbox_pos.y() + view.structure_list.visualItemRect(item).height() // 2)
+    original_state = item.checkState()
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=checkbox_pos)
+    assert item.checkState() != original_state
+    assert model.highlighted == 2
+
+
+def test_click_after_keyboard_navigation_can_rehighlight(cylinder_window):
+    """Arrow to a row then click it; a second click must drop the highlight.
+
+    A click that does nothing after keyboard selection fails. The physicist
+    would have to click twice to toggle the highlight on the current row.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    view.resize(320, 480)
+    view.show()
+    view.structure_list.setCurrentRow(0)
+    assert model.highlighted == 2
+    item = view.structure_list.item(0)
+    pos = view.structure_list.visualItemRect(item).center()
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted is None
+    QTest.mouseClick(
+        view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
+    assert model.highlighted == 2
+
+
+def test_leaving_structures_tab_clears_highlight(cylinder_window):
+    """Switch away from Structures and lose the selection blue on the organ.
+
+    A highlight that survives leaving the tab fails. The physicist would
+    see channel-selection blue on an organ while viewing the Channels tab.
+    """
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(outline_organs_for_highlight(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    view.structure_list.setCurrentRow(0)
+    assert model.highlighted == 2
+    view.on_close()
+    assert model.highlighted is None
