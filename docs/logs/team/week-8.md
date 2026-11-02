@@ -7,7 +7,7 @@ The template is in [docs/logs/README.md](../README.md#team-log-part-b)._
 
 **PRs covered:** #149 through #201, merged October 26 to November 1, 2026 in America/Vancouver
 (#149 at 12:29 on October 27 to #201 at 22:45 on November 1). Evidence is pinned to `main` at
-[`b02d8f0`](https://github.com/COSC-499-W2026/capstone-project-team-10/commit/b02d8f0de1cf17883fa5b3ac40f9a90f16e8c7a8).
+[`b02d8f0`](https://github.com/COSC-499-W2026/capstone-project-team-10/commit/b02d8f043dd08028dec18f3e917d6300fe3e5f78).
 That is 22 contributions: 21 merges into `main`, plus #199, merged into #198's branch and
 landed by #198. Each merge commit was confirmed an ancestor of `b02d8f0`.
 #164, #165, #166, #191, #192 and #193 merged only into branches that never reached `main`, and
@@ -137,11 +137,11 @@ Approvers are teammates other than the author whose latest review approved.
 
   ![Level 0, with row highlight added to the physicist's Structures input](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6ff8592c6660d537895d07ebfd4749ccce971c25/docs/logs/team/screenshots/week-8/dfd-0.png)
 
-  [Version-controlled SVG](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b02d8f0de1cf17883fa5b3ac40f9a90f16e8c7a8/docs/architecture/diagrams/existing-framework/dfd-0.svg).
+  [Version-controlled SVG](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b02d8f043dd08028dec18f3e917d6300fe3e5f78/docs/architecture/diagrams/existing-framework/dfd-0.svg).
 
   ![Level 1, with highlight added to the input into the Structures preview](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6ff8592c6660d537895d07ebfd4749ccce971c25/docs/logs/team/screenshots/week-8/dfd-1.png)
 
-  [Version-controlled SVG](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b02d8f0de1cf17883fa5b3ac40f9a90f16e8c7a8/docs/architecture/diagrams/existing-framework/dfd-1.svg).
+  [Version-controlled SVG](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b02d8f043dd08028dec18f3e917d6300fe3e5f78/docs/architecture/diagrams/existing-framework/dfd-1.svg).
 
 - With everyone's newly merged work for this week, the system architecture diagram looks like
   **the updated snapshot below, changed only by #189**. The specific changes include **"row
@@ -153,7 +153,7 @@ Approvers are teammates other than the author whose latest review approved.
 
   ![System architecture, with row highlight and highlight_changed added](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6ff8592c6660d537895d07ebfd4749ccce971c25/docs/logs/team/screenshots/week-8/system-architecture.png)
 
-  [Version-controlled SVG](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b02d8f0de1cf17883fa5b3ac40f9a90f16e8c7a8/docs/architecture/diagrams/system-architecture.svg).
+  [Version-controlled SVG](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b02d8f043dd08028dec18f3e917d6300fe3e5f78/docs/architecture/diagrams/system-architecture.svg).
 
   The PNGs were rendered from the unchanged Mermaid sources at `b02d8f0` with mermaid-cli 11
   at scale 2, level 1 with the ELK layout as in week 7. #200's `color_changed` is missing from
