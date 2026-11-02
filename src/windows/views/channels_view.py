@@ -174,6 +174,14 @@ class ChannelsView(CustomView):
         self.create_channels_list()
 
     @display_action
+    def action_edit_applicator(self) -> None:
+        label = self.channelsmodel.get_selected_channel()
+        spec = self.ask_edit(label, self.channelsmodel.custom_specs[label])
+        if spec is None: return
+        self.channelsmodel.edit_custom_needle(label, spec)
+        self.create_channels_list()
+
+    @display_action
     def action_remove_applicator(self) -> None:
         self.channelsmodel.remove_custom_needle(self.channelsmodel.get_selected_channel())
         self.create_channels_list()
@@ -188,6 +196,10 @@ class ChannelsView(CustomView):
 
     def ask_new_needle(self, label: str) -> CustomNeedleSpec | None:
         dialog = AddApplicatorDialog(label, self.channelsmodel.custom_needle_error)
+        return dialog.spec() if dialog.exec() == QDialog.DialogCode.Accepted else None
+
+    def ask_edited_needle(self, label: str, current: CustomNeedleSpec) -> CustomNeedleSpec | None:
+        dialog = AddApplicatorDialog(label, lambda spec: self.channelsmodel.custom_needle_error(spec, editing=label), current)
         return dialog.spec() if dialog.exec() == QDialog.DialogCode.Accepted else None
 
     @display_action
@@ -325,6 +337,7 @@ class ChannelsView(CustomView):
         self.ui.btn_enable.setEnabled(any_selected)
         self.btn_add_applicator.setEnabled(self.channelsmodel.has_plan())
         is_custom = self.channelsmodel.is_custom_needle(selected_channel)
+        self.btn_edit_applicator.setEnabled(is_custom)
         self.btn_remove_applicator.setEnabled(is_custom and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
@@ -379,11 +392,13 @@ class ChannelsView(CustomView):
         self.ui = Ui_Channels_View()  # the converted python file from the ui file
         self.ui.setupUi(self)
         self.btn_add_applicator = self.make_applicator_button("Add Applicator...", self.action_add_applicator)
+        self.btn_edit_applicator = self.make_applicator_button("Edit Applicator...", self.action_edit_applicator)
         self.btn_remove_applicator = self.make_applicator_button("Remove Applicator", self.action_remove_applicator)
         self.setStyleSheet(spin_box_arrows)
         self.is_active = False
         self.ask_translation: Callable[[str, Translation], Translation | None] = self.ask_move
         self.ask_needle: Callable[[str], CustomNeedleSpec | None] = self.ask_new_needle
+        self.ask_edit: Callable[[str, CustomNeedleSpec], CustomNeedleSpec | None] = self.ask_edited_needle
 
         #sets default needle length
         config_values = get_app().values.config_values
