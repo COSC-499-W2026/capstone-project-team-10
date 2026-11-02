@@ -88,7 +88,9 @@ gains no shape. A mode tooltip explains the approximate 1 mm / 2 mm EXTERNAL gri
 
 Loading and failure reasons appear as wrapped row text and tooltips. Pending rows stay
 checkable for hiding. In Surface mode a failed surface is unchecked; permanent unavailability
-disables the row. The 0–100% opacity slider applies only to the selected ROI (default 45%) and commits
+disables the row. Change colour opens a dialog for the current row. OK updates the list
+swatch and the preview RGB, then clears the highlight so the new colour shows at once.
+Cancel leaves the colour unchanged. The 0–100% opacity slider applies only to the selected ROI (default 45%) and commits
 a drag on release. Without selection it is disabled. Opacity updates retain actors and list
 items; model changes rebuild rows while restoring selection by ROI number.
 *Reasoned from #125 code and covered by offscreen widgets/native-actor tests; no fresh native
