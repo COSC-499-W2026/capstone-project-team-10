@@ -65,7 +65,7 @@ tests/
 │   ├── test_build_executable.py
 │   └── test_line_endings.py
 ├── views/                 exists: the Channels, Cylinder, Tandem and Import views, against the real window
-│   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
+│   ├── conftest.py        units_app, channels_window (Ex1 imported), tandem_window (Ex2) and cylinder_window
 │   ├── test_camera_controls.py  camera gesture and zoom rules
 │   ├── test_central_axis.py     reference geometry and toggle/reset state
 │   ├── test_add_custom_needle.py     adding a custom applicator: model, form, list, export and sheet
@@ -75,9 +75,12 @@ tests/
 │   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
 │   ├── test_edit_custom_needle.py    editing a custom applicator: model, button and form
-│   ├── test_import_view.py  exists: Import structure list after DICOM import
+│   ├── test_export_tandem_warning.py  the Export tab's missing tandem hole warning
+│   ├── test_import_view.py  exists: Import structure list, and no tandem carried into a new plan
 │   ├── test_remove_custom_needle.py  removing a custom applicator: model rules and button
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
+│   ├── test_tandem_channel.py  the tandem channel at import and when cleared
+│   ├── test_tandem_channel_choice.py  the Tandem tab's Tandem Channel box
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -168,15 +171,17 @@ field `__init__` declares. It imports no Qt or conda-only package.
 `settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
 imports no Qt or conda-only package.
 
-`views/conftest.py` holds three fixtures. `units_app` is the one QApplication for the whole
+`views/conftest.py` holds four fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
-QApplication per process, so the two window fixtures share it rather than each making their
+QApplication per process, so the three window fixtures share it rather than each making their
 own. `channels_window` builds the real `MainWindow`, models and six views once per module
 and imports `SI_C_D30 Brachify_Ex1/`. It reads that folder where it is rather than from a copy
 in `tests/data/`, because the folder is inherited upstream and never edited. `cylinder_window`
 builds a fresh window with default settings for each test and restores the previous app
-window afterwards, so later tests still reach their own models. Neither calls
-`canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and both
+window afterwards, so later tests still reach their own models. `tandem_window` builds one window
+per module with default settings and imports `SI_C_D30 Brachify_Ex2/`, the only sample whose
+channel 14 is named Tandem, and restores the previous window too. None calls
+`canvas.InitDriver()`, since OpenCASCADE's viewer segfaults without a display, and all three
 disconnect their window from the application signals on teardown. No application module is
 mocked.
 
@@ -205,6 +210,18 @@ reference sheet's cylinder table and the Export tab's mesh, and moves Ex1's need
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
 snapshot does not list.
 
+`views/test_tandem_channel.py` checks that importing Ex2 aims the tandem along its channel named
+Tandem, and that `set_tandem(None)` leaves no tandem channel, enables the previous one again and
+keeps the tandem's rotation. It uses `tandem_window`, the Ex2 window in `views/conftest.py`.
+
+`views/test_export_tandem_warning.py` opens Ex2's Export tab with and without a tandem hole and a
+tandem channel, and answers the export question through `Export_View.confirm_export`.
+
+`views/test_tandem_channel_choice.py` drives the Tandem tab's Tandem Channel box on Ex2: what it
+lists, choosing a channel or *None*, the rotation warning answered through
+`TandemView.confirm_rotation`, the off-axis and moved-channel warnings, and the Generate spin
+boxes' height in the default window.
+
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
 
@@ -228,7 +245,7 @@ meshes; it does not render them.
 visibility, frame refusal (including a synthetic Nucletron embedded-frame collision),
 checkboxes, export isolation, explicit reset versus empty redraw, surface modes and cache
 reuse, length changes, EXTERNAL sampling, independent opacity and outline/surface errors.
-It also fails if the Structures list shows a needle or BODY, or if Ex1 fills that list.
+It also fails if the Structures list shows a needle, hides BODY, or if Ex1 loses BODY.
 Controlled worker subclasses exercise the real thread pool and queued result path: reset,
 a new plan reusing an ROI, length changes during work and unexpected exceptions must not
 leave stale geometry or stuck pending state. No application module is mocked. The native

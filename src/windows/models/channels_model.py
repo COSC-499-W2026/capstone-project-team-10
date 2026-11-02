@@ -270,14 +270,19 @@ class ChannelsModel(QObject):
             self.disabled_channels.remove(old_label)
 
         data.tandem_channel = label
-        if not label in self.disabled_channels:
+        if label and not label in self.disabled_channels:
             self.disabled_channels.append(label)
+        # the tandem channel leaves the Channels list, so it cannot stay selected there
+        if label and label in self.selected_channels:
+            self.selected_channels = []
 
         self.update()
         self.tandem_changed.emit(self.get_tandem_channel())
 
     def toggle_channel_enabled(self, label: str):
         log.debug(f"Toggling channel enable")
+        if self.is_channel_tandem(label):
+            raise ValueError(f"{label} is the tandem channel and is never cut as a needle")
         if label in self.disabled_channels:
             self.disabled_channels.remove(label)
         else:
