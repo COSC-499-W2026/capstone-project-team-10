@@ -64,13 +64,12 @@ class TandemModel(QObject):
 
         self.update()
 
-    def set_tandem_channel(self, channel: NeedleChannel):
-        rotation = 0.0
-        if channel:
-            rotation = channel.get_rotation()
-        self.rotation = rotation
+    def set_tandem_channel(self, channel: NeedleChannel | None):
+        # with no tandem channel the tandem keeps the rotation it has
+        if channel is None: return
+        self.rotation = channel.get_rotation()
         if(channel.label.lower() == 'tandem'):
-            self.protation = rotation
+            self.protation = self.rotation
             self.hasTandemInDICOM = True # if this happens there is a tandem in the plan
         self.update_display()
 
