@@ -49,8 +49,11 @@ class StructuresView(CustomView):
         self.structure_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.structure_list.setStyleSheet("background-color: white; color: black;")
         layout.addWidget(self.structure_list)
+        self._just_selected = False
+        self._checkbox_toggled = False
         self.structure_list.itemChanged.connect(self.action_toggle_structure)
-        self.structure_list.currentItemChanged.connect(self.update_opacity_controls)
+        self.structure_list.itemClicked.connect(self.action_click_structure)
+        self.structure_list.currentItemChanged.connect(self.action_current_structure)
         model.changed.connect(self.action_update_structure_list)
         self.update_opacity_controls()
 
@@ -89,8 +92,37 @@ class StructuresView(CustomView):
 
     def action_toggle_structure(self, item: QListWidgetItem):
         """Keep anatomy visibility separate from printable shapes."""
+        self._checkbox_toggled = True
         get_app().window.structuresmodel.set_visible(
             item.data(Qt.UserRole), item.checkState() == Qt.Checked)
+
+    def action_click_structure(self, item: QListWidgetItem):
+        """Toggle highlight off on the second click, unless the row just became current.
+
+        A checkbox toggle fires itemChanged before itemClicked; skip the highlight
+        toggle so hiding or showing an organ does not drop its emphasis. A keyboard
+        navigation sets _just_selected but never fires itemClicked, so clear it here
+        unconditionally so a subsequent mouse click on the same row can re-highlight.
+        """
+        just_selected = self._just_selected
+        self._just_selected = False
+        if self._checkbox_toggled:
+            self._checkbox_toggled = False
+            return
+        if just_selected:
+            return
+        model = get_app().window.structuresmodel
+        roi = item.data(Qt.UserRole)
+        model.set_highlight(None if model.highlighted == roi else roi)
+
+    def action_current_structure(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None):
+        """Follow the current row into the preview highlight and the opacity slider."""
+        self.update_opacity_controls()
+        roi = None if current is None else current.data(Qt.UserRole)
+        model = get_app().window.structuresmodel
+        if model.highlighted != roi:
+            model.set_highlight(roi)
+            self._just_selected = True
 
     def update_opacity_controls(self):
         item = self.structure_list.currentItem()
@@ -107,3 +139,8 @@ class StructuresView(CustomView):
         item = self.structure_list.currentItem()
         if item is not None:
             get_app().window.structuresmodel.set_opacity(item.data(Qt.UserRole), value / 100)
+
+    def on_close(self):
+        """Clear the highlight when leaving the Structures tab."""
+        get_app().window.structuresmodel.set_highlight(None)
+        super().on_close()

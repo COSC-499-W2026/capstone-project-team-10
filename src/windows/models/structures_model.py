@@ -84,6 +84,7 @@ class SurfaceTask(QRunnable):
 class StructuresModel(QObject):
     changed = Signal()
     opacity_changed = Signal(int, float)
+    highlight_changed = Signal()
 
     def __init__(self):
         super().__init__()
@@ -98,6 +99,7 @@ class StructuresModel(QObject):
         self._opacities: dict[int, float] = {}
         self.outline_errors: dict[int, str] = {}
         self.pending: set[int] = set()
+        self.highlighted: int | None = None
         self._generation = 0
         self.surface_pool = QThreadPool(self)
         self.surface_pool.setMaxThreadCount(1)
@@ -115,6 +117,7 @@ class StructuresModel(QObject):
         self.alignment = None
         self._surfaces.clear()
         self.surface_errors.clear()
+        self.highlighted = None
         self.changed.emit()
 
     def load_plan(self, plan: DicomData, length: float):
@@ -219,6 +222,17 @@ class StructuresModel(QObject):
             raise ValueError('Opacity must be between zero and one')
         self._opacities[roi] = opacity
         self.opacity_changed.emit(roi, opacity)
+
+    def set_highlight(self, roi: int | None):
+        """Remember which listed structure the viewport should emphasise.
+
+        Passing None clears it. This does not create geometry, so a row with no
+        contour stays listed and is not added to the preview.
+        """
+        if roi is not None and roi not in self.structures:
+            raise ValueError('This structure is unavailable')
+        self.highlighted = roi
+        self.highlight_changed.emit()
 
     def set_visible(self, roi: int, visible: bool):
         if roi not in self.structures or roi in self.unavailable:
