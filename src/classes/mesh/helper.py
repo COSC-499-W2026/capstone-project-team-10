@@ -1,4 +1,6 @@
 import math
+from dataclasses import dataclass
+
 import numpy as np
 
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface
@@ -186,3 +188,41 @@ def add_point_and_vector(p1: gp_Pnt, v1: gp_Vec) -> gp_Pnt:
         p1.X() + v1.X(),
         p1.Y() + v1.Y(),
         p1.Z() + v1.Z())
+
+
+class CustomNeedleError(ValueError):
+    """A custom needle's numbers break a rule. The text is written for the clinician who typed them."""
+
+
+@dataclass(frozen=True)
+class CustomNeedleSpec:
+    """What a user types to add a needle, all in mm. x and y are the start on the cylinder's base."""
+    label: str
+    x: float
+    y: float
+    length1: float
+    length2: float
+
+
+def custom_needle_points(
+    spec: CustomNeedleSpec, cylinder_diameter: float, cylinder_length: float, needle_diameter: float
+) -> list[list[float]]:
+    """Turn a spec into the points of a DICOM channel, tissue end first, in cylinder coordinates.
+
+    The path runs straight up from the base start for Length 1 and on for Length 2. The whole
+    needle must stay inside the base circle, so the start is at most the cylinder radius less
+    the needle's radius from the axis. A broken rule raises CustomNeedleError.
+    """
+    numbers = (spec.x, spec.y, spec.length1, spec.length2)
+    if not all(math.isfinite(value) for value in numbers):
+        raise CustomNeedleError("Every value must be a number")
+    if spec.length1 <= 0:
+        raise CustomNeedleError("Length 1 must be above 0 mm")
+    if spec.length2 <= 0:
+        raise CustomNeedleError("Length 2 must be above 0 mm")
+    if spec.length1 > cylinder_length:
+        raise CustomNeedleError(f"Length 1 must be at most the cylinder length of {cylinder_length:g} mm")
+    limit = (cylinder_diameter - needle_diameter) / 2
+    if math.hypot(spec.x, spec.y) > limit:
+        raise CustomNeedleError(f"The start must be within {limit:g} mm of the centre of the base so the whole needle stays inside the cylinder")
+    return [[spec.x, spec.y, spec.length1 + spec.length2], [spec.x, spec.y, 0.0]]
