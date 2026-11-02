@@ -437,7 +437,7 @@ color: rgb(0, 0, 0);</string>
       <string notr="true">color: rgb(0, 0, 0);</string>
      </property>
      <property name="text">
-      <string>Bold on amber has its own diameter. Italic on grey is disabled and not cut. Bold italic on blue is the tandem. Underlined has been moved.</string>
+      <string>Bold on amber has its own diameter. Italic on grey is disabled and not cut. Underlined has been moved.</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

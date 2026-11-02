@@ -190,6 +190,8 @@ class ChannelsModel(QObject):
 
     def toggle_channel_enabled(self, label: str):
         log.debug(f"Toggling channel enable")
+        if self.is_channel_tandem(label):
+            raise ValueError(f"{label} is the tandem channel and is never cut as a needle")
         if label in self.disabled_channels:
             self.disabled_channels.remove(label)
         else:
