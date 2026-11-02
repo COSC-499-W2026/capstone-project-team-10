@@ -71,6 +71,7 @@ tests/
 │   ├── test_add_custom_needle.py     adding a custom applicator: model, form, list, export and sheet
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
+│   ├── test_custom_needle_cut_check.py  the check that a custom applicator's channel can be cut out
 │   ├── test_cylinder_template_controls.py
 │   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
