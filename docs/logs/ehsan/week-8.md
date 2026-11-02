@@ -255,3 +255,23 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`tests/views/test_structure_display.py` passed on this branch**. Four pre-existing suite failures, not from this diff, are named in #154: `test_the_default_dome_tandem_cut_out_is_unchanged` and three 20 px layout cases.
 
+### For PR #**201** (black Structures copy)
+
+- As part of requirement **FR-SV-01**, the user needs to do **open Structures and read the mode, opacity hint and Change colour label**.
+- Therefore, I implemented/generated code so that **`StructuresView` sets `color: rgb(0, 0, 0)` on the page**.
+
+#### Review and design
+
+- When I reviewed the **`main_window.ui` stylesheets** for this functionality, I noticed **`viewswidget` and the sidebar set `color: rgba(240, 245, 250)`**. Therefore, I did **set a black `color` rule on the Structures view itself**.
+- Code quality checklist: **see Shared**.
+- This work is written in **`structures_view.py`** because **the page is built in code, not a `.ui`**.
+- Not applicable: **temporary workaround, DFD process (display-only copy)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_structures_tab_copy_uses_black_text` (1 new)** passed.
+- I checked that these negative cases involving **a view stylesheet that does not contain `color: rgb(0, 0, 0)`** failed as expected.
+- That test is a string search on `view.styleSheet()`. It does not build an empty stylesheet, resolve inherited colour, or capture the window.
+- This new test PR did not break anything else in the system because **the parent colour tests still pass**.
+- Not applicable: **abnormal cases (no extra dialog), generated-test review**.
+
