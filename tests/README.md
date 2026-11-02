@@ -46,6 +46,7 @@ tests/
 │   ├── test_structures.py   exists: RTSTRUCT decoding and validation
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
+│   ├── test_custom_needle_points.py  custom needle points, bend and refusals
 │   ├── test_cylinder.py
 │   ├── test_structure_contours.py  registered anatomy wires and shared vertex transform
 │   ├── test_structure_surfaces.py  axial sampling, topology, bounds and size budget
@@ -67,12 +68,15 @@ tests/
 │   ├── conftest.py        units_app, channels_window (Ex1 imported) and cylinder_window
 │   ├── test_camera_controls.py  camera gesture and zoom rules
 │   ├── test_central_axis.py     reference geometry and toggle/reset state
+│   ├── test_add_custom_needle.py     adding a custom applicator: model, form, list, export and sheet
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
 │   ├── test_cylinder_template_controls.py
 │   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
+│   ├── test_edit_custom_needle.py    editing a custom applicator: model, button and form
 │   ├── test_import_view.py  exists: Import structure list after DICOM import
+│   ├── test_remove_custom_needle.py  removing a custom applicator: model rules and button
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
