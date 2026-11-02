@@ -190,18 +190,29 @@ def add_point_and_vector(p1: gp_Pnt, v1: gp_Vec) -> gp_Pnt:
         p1.Z() + v1.Z())
 
 
+MAX_THETA_DEGREES = 89  # exactly 90 leaves the last pipe flat, which rounded_channel's sphere fuse cannot build
+ARC_STEP_DEGREES = 10  # a bend is cut into pipes this many degrees long, small enough to read as a curve
+
+
 class CustomNeedleError(ValueError):
     """A custom needle's numbers break a rule. The text is written for the clinician who typed them."""
 
 
 @dataclass(frozen=True)
 class CustomNeedleSpec:
-    """What a user types to add a needle, all in mm. x and y are the start on the cylinder's base."""
+    """What a user types to add a needle. Lengths, radius, x and y are mm, theta and phi degrees.
+
+    x and y are the start on the cylinder's base. After Length 1 the needle turns by theta from
+    the axis towards phi, measured from +X towards +Y, along an arc of the given radius.
+    """
     label: str
     x: float
     y: float
     length1: float
     length2: float
+    radius: float = 0.0
+    theta: float = 0.0
+    phi: float = 0.0
 
 
 def custom_needle_points(
@@ -209,11 +220,12 @@ def custom_needle_points(
 ) -> list[list[float]]:
     """Turn a spec into the points of a DICOM channel, tissue end first, in cylinder coordinates.
 
-    The path runs straight up from the base start for Length 1 and on for Length 2. The whole
-    needle must stay inside the base circle, so the start is at most the cylinder radius less
-    the needle's radius from the axis. A broken rule raises CustomNeedleError.
+    The path runs straight up from the base start for Length 1, then turns by theta along an
+    arc, sampled every ARC_STEP_DEGREES, and goes on for Length 2 in the new direction. The start
+    is at most the cylinder radius less the needle's radius from the axis, so the straight run
+    stays inside. A broken rule raises CustomNeedleError.
     """
-    numbers = (spec.x, spec.y, spec.length1, spec.length2)
+    numbers = (spec.x, spec.y, spec.length1, spec.length2, spec.radius, spec.theta, spec.phi)
     if not all(math.isfinite(value) for value in numbers):
         raise CustomNeedleError("Every value must be a number")
     if spec.length1 <= 0:
@@ -225,4 +237,25 @@ def custom_needle_points(
     limit = (cylinder_diameter - needle_diameter) / 2
     if math.hypot(spec.x, spec.y) > limit:
         raise CustomNeedleError(f"The start must be within {limit:g} mm of the centre of the base so the whole needle stays inside the cylinder")
-    return [[spec.x, spec.y, spec.length1 + spec.length2], [spec.x, spec.y, 0.0]]
+    if not 0 <= spec.theta <= MAX_THETA_DEGREES:
+        raise CustomNeedleError(f"Theta must be between 0 and {MAX_THETA_DEGREES} degrees")
+    if spec.theta > 0 and spec.radius <= 0:
+        raise CustomNeedleError("A bend needs a radius above 0 mm")
+    if spec.theta == 0:
+        return [[spec.x, spec.y, spec.length1 + spec.length2], [spec.x, spec.y, 0.0]]
+    return bent_needle_points(spec)
+
+
+def bent_needle_points(spec: CustomNeedleSpec) -> list[list[float]]:
+    """The points of a needle with a bend, from its tip to its start. The spec has already been checked."""
+    direction = (math.cos(math.radians(spec.phi)), math.sin(math.radians(spec.phi)))
+    steps = math.ceil(spec.theta / ARC_STEP_DEGREES)
+    arc = []
+    for step in range(steps + 1):
+        angle = math.radians(spec.theta * step / steps)
+        sideways = spec.radius * (1 - math.cos(angle))
+        arc.append([spec.x + sideways * direction[0], spec.y + sideways * direction[1], spec.length1 + spec.radius * math.sin(angle)])
+    turn = math.radians(spec.theta)
+    tip = [arc[-1][0] + spec.length2 * math.sin(turn) * direction[0], arc[-1][1] + spec.length2 * math.sin(turn) * direction[1],
+           arc[-1][2] + spec.length2 * math.cos(turn)]
+    return [tip, *reversed(arc), [spec.x, spec.y, 0.0]]

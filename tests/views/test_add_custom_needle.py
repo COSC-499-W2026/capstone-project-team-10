@@ -203,7 +203,26 @@ def test_the_dialog_stays_open_with_the_reason_on_bad_numbers_and_hands_back_goo
     dialog.spin_y.setValue(-6.0)
     dialog.spin_length1.setValue(30.0)
     dialog.spin_length2.setValue(12.5)
+    dialog.spin_radius.setValue(8.0)
+    dialog.spin_theta.setValue(45.0)
+    dialog.spin_phi.setValue(90.0)
     QTest.mouseClick(ok, Qt.MouseButton.LeftButton)
 
     assert dialog.result() == QDialog.DialogCode.Accepted
-    assert dialog.spec() == CustomNeedleSpec(label="Left needle", x=4.0, y=-6.0, length1=30.0, length2=12.5)
+    assert dialog.spec() == CustomNeedleSpec(label="Left needle", x=4.0, y=-6.0, length1=30.0, length2=12.5, radius=8.0, theta=45.0, phi=90.0)
+
+
+def test_a_bent_applicator_solid_reaches_sideways_to_where_the_bend_sends_it(channels_window: MainWindow) -> None:
+    """Check a 60 degree bend of radius 5 towards +X makes a solid reaching x 24 or more, where a straight one stops near x 1.5.
+
+    Fails if the model drops the bend fields, so the channel is built straight, or builds the
+    arc but not Length 2. The solid is what the export cuts, so a needle that stayed straight
+    would be printed as a channel pointing away from where the clinician planned it.
+    """
+    bent = CustomNeedleSpec(label="Custom Applicator97", x=0.0, y=0.0, length1=40.0, length2=25.0, radius=5.0, theta=60.0)
+    box = Bnd_Box()
+    box.SetGap(0)
+
+    brepbndlib.Add(channels_window.channelsmodel.add_custom_needle(bent).shape(), box, False)
+
+    assert box.Get()[3] >= 24.0
