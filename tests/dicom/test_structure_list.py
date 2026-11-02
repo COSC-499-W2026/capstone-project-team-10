@@ -13,6 +13,7 @@ def _structure(
     name: str,
     category: StructureType,
     color: tuple[int, int, int] = (10, 20, 30),
+    interpreted_type: str | None = None,
 ) -> Structure:
     """Helper: build a Structure with no contours for list-row tests."""
     return Structure(
@@ -20,7 +21,7 @@ def _structure(
         name,
         "1.2.3",
         color,
-        None,
+        interpreted_type,
         category,
         (),
     )
@@ -101,19 +102,19 @@ def test_roi_suffix_avoids_colliding_with_an_existing_label() -> None:
     assert len(set(labels)) == 3
 
 
-def test_anatomy_structures_keep_organs_and_tumours_only() -> None:
-    """Check that the Structures tab keeps organs and tumours and drops needles.
+def test_anatomy_structures_keep_organs_tumours_and_body() -> None:
+    """Check that the Structures tab keeps organs, tumours and BODY, and drops needles.
 
-    Fails if Applicator, BODY or a marker stays in the tuple, or if Bladder or
-    GTV is dropped. Needle paths already live on Channels; listing them here
-    hides the anatomy the physicist came to show (FR-SV-01).
+    Fails if Applicator or a marker stays in the tuple, or if Bladder, GTV or
+    BODY is dropped. BODY is the external outline; hiding it with the needles
+    leaves the physicist no patient surface on this tab (FR-SV-01).
     """
     bladder = _structure(7, "Bladder", StructureType.ORGAN, (1, 2, 3))
     gtv = _structure(2, "GTV", StructureType.TUMOUR, (200, 0, 0))
-    applicator = _structure(34, "Applicator26", StructureType.OTHER)
-    body = _structure(1, "BODY", StructureType.OTHER)
-    marker = _structure(3, "Surface3", StructureType.OTHER)
+    applicator = _structure(34, "Applicator26", StructureType.OTHER, interpreted_type="BRACHY_CHANNEL")
+    body = _structure(1, "BODY", StructureType.OTHER, interpreted_type="EXTERNAL")
+    marker = _structure(3, "Surface3", StructureType.OTHER, interpreted_type="MARKER")
 
-    assert anatomy_structures((applicator, bladder, body, gtv, marker)) == (bladder, gtv)
+    assert anatomy_structures((applicator, bladder, body, gtv, marker)) == (bladder, body, gtv)
     assert anatomy_structures(None) == ()
     assert anatomy_structures(()) == ()

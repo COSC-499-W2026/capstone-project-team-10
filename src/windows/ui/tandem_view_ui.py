@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'tandem_view.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.1
+## Created by: Qt User Interface Compiler version 6.11.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -15,9 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDoubleSpinBox, QGridLayout, QLabel,
-    QLayout, QPushButton, QSizePolicy, QSpacerItem,
-    QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QGridLayout,
+    QHBoxLayout, QLabel, QLayout, QPushButton,
+    QSizePolicy, QSpacerItem, QTabWidget, QVBoxLayout,
+    QWidget)
 
 class Ui_Tandem_View(object):
     def setupUi(self, Tandem_View):
@@ -31,6 +32,32 @@ class Ui_Tandem_View(object):
         self.verticalLayout_5.setSpacing(0)
         self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.layout_tandem_channel = QHBoxLayout()
+        self.layout_tandem_channel.setObjectName(u"layout_tandem_channel")
+        self.label_tandem_channel = QLabel(Tandem_View)
+        self.label_tandem_channel.setObjectName(u"label_tandem_channel")
+        self.label_tandem_channel.setStyleSheet(u"background-color: rgb(240, 245, 250);\n"
+"color: rgb(0, 0, 0);")
+
+        self.layout_tandem_channel.addWidget(self.label_tandem_channel)
+
+        self.cb_tandem_channel = QComboBox(Tandem_View)
+        self.cb_tandem_channel.setObjectName(u"cb_tandem_channel")
+        self.cb_tandem_channel.setStyleSheet(u"background-color: rgb(255, 255, 255);\n"
+"color: rgb(0, 0, 0);")
+
+        self.layout_tandem_channel.addWidget(self.cb_tandem_channel)
+
+
+        self.verticalLayout_5.addLayout(self.layout_tandem_channel)
+
+        self.label_tandem_channel_warning = QLabel(Tandem_View)
+        self.label_tandem_channel_warning.setObjectName(u"label_tandem_channel_warning")
+        self.label_tandem_channel_warning.setStyleSheet(u"color: rgb(0, 0, 0);")
+        self.label_tandem_channel_warning.setWordWrap(True)
+
+        self.verticalLayout_5.addWidget(self.label_tandem_channel_warning)
+
         self.ab = QTabWidget(Tandem_View)
         self.ab.setObjectName(u"ab")
         self.ab.setMinimumSize(QSize(0, 290))
@@ -380,6 +407,7 @@ class Ui_Tandem_View(object):
 
     def retranslateUi(self, Tandem_View):
         Tandem_View.setWindowTitle(QCoreApplication.translate("Tandem_View", u"Form", None))
+        self.label_tandem_channel.setText(QCoreApplication.translate("Tandem_View", u"Tandem Channel", None))
         self.btn_import.setText(QCoreApplication.translate("Tandem_View", u"Import", None))
         self.btn_clear_import.setText(QCoreApplication.translate("Tandem_View", u"Clear Tandem", None))
         self.label_2.setText(QCoreApplication.translate("Tandem_View", u"Height Offset", None))
