@@ -235,7 +235,8 @@ actor's mode 0, shading colour and transparency. Selecting a row stores that ROI
 the highlight, another row replaces it, a second click or a cleared row drops it, and
 an empty organ gains no presentation. A highlighted triangulation uses the channel
 selection blue, 0.2 0.2 0.7. Change colour stores an RGB override, updates that
-row's swatch, leaves the imported ROI colour, and ignores a cancelled pick.
+row's swatch, leaves the imported ROI colour, ignores a cancelled pick, clears
+the highlight and resets `_just_selected` so a subsequent click can re-highlight.
 They do not initialise a native viewer;
 previous native observations are recorded separately in PR #125.
 
