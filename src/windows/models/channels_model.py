@@ -7,10 +7,12 @@ from classes.app import get_app
 from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
+from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec, custom_needle_points
 from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from windows.models.shape_model import ShapeModel, ShapeTypes
 
 CHANNELS_LABEL = "applicator_"
+CUSTOM_LABEL = "Custom Applicator"
 
 
 class ChannelStatus(Enum):
@@ -64,6 +66,8 @@ class ChannelsModel(QObject):
         self.channels = {}
         self.disabled_channels = []
         self.own_diameters = {}
+        self.custom_specs = {}
+        self.height_offset = 0.0  # a new plan starts at its own cylinder length
         log.debug("### Importing RP Data ###")
 
         for i in range(len(data.channels_rois)):
@@ -87,6 +91,68 @@ class ChannelsModel(QObject):
             if "tandem" in channel_id.lower():
                 self.set_tandem(channel_id)
 
+        self.update()
+
+    def has_plan(self) -> bool:
+        return get_app().window.dicommodel.data.channel_paths is not None
+
+    def next_custom_label(self) -> str:
+        """The first Custom Applicator name, counting from 1, that no channel has."""
+        number = 1
+        while f"{CUSTOM_LABEL}{number}" in self.channels:
+            number += 1
+        return f"{CUSTOM_LABEL}{number}"
+
+    def is_custom_needle(self, label: str) -> bool:
+        return label in self.custom_specs
+
+    def check_custom_needle(self, spec: CustomNeedleSpec) -> list[list[float]]:
+        """The points of a custom needle in the plan's frame, or CustomNeedleError saying which rule it breaks."""
+        if not self.has_plan():
+            raise CustomNeedleError("Import a plan before adding an applicator")
+        label = spec.label.strip()
+        if not label:
+            raise CustomNeedleError("Name the applicator")
+        if label in self.channels:
+            raise CustomNeedleError(f"An applicator named {label} already exists")
+        cylinder = get_app().window.cylindermodel.cylinder
+        points = custom_needle_points(spec, cylinder.diameter, cylinder.length, self.diameter)
+        return [[x, y, z - self.height_offset] for x, y, z in points]  # get_points adds the offset back
+
+    def custom_needle_error(self, spec: CustomNeedleSpec) -> str:
+        """The reason a spec is refused, or an empty string when it would be added."""
+        try:
+            self.check_custom_needle(spec)
+        except CustomNeedleError as error:
+            return str(error)
+        return ""
+
+    def add_custom_needle(self, spec: CustomNeedleSpec) -> NeedleChannel:
+        points = self.check_custom_needle(spec)
+        numbers = [int(channel.channel_number) for channel in self.channels.values() if channel.channel_number.isdigit()]
+        needle = NeedleChannel(
+            roi_number="custom",
+            channel_number=str(max(numbers, default=0) + 1),
+            label=spec.label.strip(),
+            points=points)
+        needle.set_diameter(self.diameter)
+        needle.set_offset(self.height_offset)
+        self.channels[needle.label] = needle
+        self.custom_specs[needle.label] = spec
+        log.info(f"added custom applicator {needle.label} starting at ({spec.x}, {spec.y}) mm")
+        self.update()
+        return needle
+
+    def remove_custom_needle(self, label: str) -> None:
+        if not self.is_custom_needle(label):
+            raise CustomNeedleError("Only a custom applicator can be removed")
+        if self.is_channel_tandem(label):
+            raise CustomNeedleError("Choose another tandem before removing the applicator that is the tandem")
+        del self.channels[label], self.custom_specs[label]
+        self.own_diameters.pop(label, None)
+        self.disabled_channels = [disabled for disabled in self.disabled_channels if disabled != label]
+        self.selected_channels = [selected for selected in self.selected_channels if selected != label]
+        log.info(f"removed custom applicator {label}")
         self.update()
 
     def set_diameter(self, diameter: float):
@@ -182,14 +248,19 @@ class ChannelsModel(QObject):
             self.disabled_channels.remove(old_label)
 
         data.tandem_channel = label
-        if not label in self.disabled_channels:
+        if label and not label in self.disabled_channels:
             self.disabled_channels.append(label)
+        # the tandem channel leaves the Channels list, so it cannot stay selected there
+        if label and label in self.selected_channels:
+            self.selected_channels = []
 
         self.update()
         self.tandem_changed.emit(self.get_tandem_channel())
 
     def toggle_channel_enabled(self, label: str):
         log.debug(f"Toggling channel enable")
+        if self.is_channel_tandem(label):
+            raise ValueError(f"{label} is the tandem channel and is never cut as a needle")
         if label in self.disabled_channels:
             self.disabled_channels.remove(label)
         else:
@@ -221,6 +292,7 @@ class ChannelsModel(QObject):
 
     def update_height_offset(self, height_offset: float):
         log.debug(f"updating channels height offset")
+        self.height_offset = height_offset
         for channel in self.channels.values():
             new_channel = channel
             new_channel.set_offset(height_offset)
@@ -230,10 +302,12 @@ class ChannelsModel(QObject):
     def __init__(self):
         super().__init__()
         self.channels = {}
+        self.height_offset = 0.0  # how far the cylinder is from its length at import, which the channels follow
         self.diameter = NeedleChannel.default_diameter()
         self.selected_channels = []
         self.disabled_channels = []
         self.own_diameters: dict[str, float] = {}  # label: diameter that Apply on the Channels tab keeps
+        self.custom_specs: dict[str, CustomNeedleSpec] = {}  # label: the numbers a custom applicator was built from
         config_values = get_app().values.config_values
         self.threading_depth = config_values.get("CONFIG_CHANNELS_THREADING_DEPTH")
         self.threading_diamenter = config_values.get("CONFIG_CHANNELS_THREADING_DIAMETER")
