@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from OCC.Core.BRepAdaptor import BRepAdaptor_Surface
-from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
+from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Cut, BRepAlgoAPI_Fuse
 from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_MakeEdge, BRepBuilderAPI_MakeWire, BRepBuilderAPI_MakeFace
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakePrism
 from OCC.Core.GeomAbs import GeomAbs_Plane
@@ -259,3 +259,12 @@ def bent_needle_points(spec: CustomNeedleSpec) -> list[list[float]]:
     tip = [arc[-1][0] + spec.length2 * math.sin(turn) * direction[0], arc[-1][1] + spec.length2 * math.sin(turn) * direction[1],
            arc[-1][2] + spec.length2 * math.cos(turn)]
     return [tip, *reversed(arc), [spec.x, spec.y, 0.0]]
+
+
+def cut_is_clean(solid: TopoDS_Shape, tool: TopoDS_Shape) -> bool:
+    """Whether cutting the tool out of the solid finishes without an OpenCASCADE error or warning.
+
+    A cut that warns can silently remove almost nothing, so the printed cylinder would lack the channel.
+    """
+    cut = BRepAlgoAPI_Cut(solid, tool)
+    return not (cut.HasErrors() or cut.HasWarnings())
