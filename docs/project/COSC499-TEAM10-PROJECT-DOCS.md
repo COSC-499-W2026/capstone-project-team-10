@@ -1545,11 +1545,18 @@ This is the cylinder's geometric centre line, not the imported DICOM central-cha
 
 The grid uses `brepbndlib.AddOptimal` bounds of the displayed non-null model shapes.
 `grid_ticks` rounds outward with 1/2/5-based steps of at least 10 mm; larger scenes use
-larger steps. `ReferenceGrid` holds the outer bounds, unique line segments and `GridLabel`
+larger steps to establish stable outer bounds. The displayed lattice then uses 10 mm,
+5 mm or 1 mm intervals according to zoom: `grid_spacing` chooses 5 mm at at most
+0.5 mm per logical pixel, and 1 mm at at most 0.125 mm per logical pixel. The native
+view's pixel conversion is adjusted for device pixel ratio. Zoom, fit and resize refresh
+spacing only when the threshold changes; the walls stay fixed. *Reasoned from code;
+native zoom transitions not yet visually verified.* `ReferenceGrid` holds the outer bounds, unique line segments and `GridLabel`
 text/positions. Lines occupy three outer walls (minimum X, maximum Y and minimum Z);
 there are no translucent planes through the model. White ticks and X/Y/Z titles on the original grey
 background denote **model coordinates in millimetres**, not patient Left/Posterior/Superior.
-The Cylinder tab's mm/cm selector does not change these labels.
+The Cylinder tab's mm/cm selector does not change these labels. Tick offsets are 5% of
+the larger XY extent; X/Y titles sit 5 mm below the bottom wall, while the Z title
+is offset outside both the minimum-X and minimum-Y walls.
 `InitDriver` leaves the background from OpenCASCADE `Create` unchanged, restoring the
 pre-grid appearance instead of overriding it with RGB (12, 17, 23). *Verified 2026-11-01
 on macOS: native Ex1 framebuffer captures show the original grey background and the
@@ -2393,7 +2400,7 @@ The viewport regressions (*Reasoned from the test bodies*) are:
 |---|---|
 | `views/test_camera_controls.py` (20 cases) | left-drag selection suppression, click jitter, distant release, incremental right/middle pan, or proportional wheel/trackpad zoom and ratio-gated scroll routing, bounded roll, angle precedence, and real wheel-handler accumulation/repaint |
 | `views/test_central_axis.py` (8 cases) | local-Z endpoints and 10% margin, invalid-length rejection, button availability/preference, or reset notification |
-| `views/test_bounding_grid.py` (9 cases, PR #81) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, or nonoverlapping independent controls |
+| `views/test_bounding_grid.py` (16 cases) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, nonoverlapping independent controls, zoom thresholds or stable walls during refinement |
 
 These checks do not initialise the native canvas. The grid label test constructs a real
 `AIS_TextLabel`; native scene rendering still requires a displayed run (see §5.7).
