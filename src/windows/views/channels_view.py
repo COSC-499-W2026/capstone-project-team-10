@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QListWidgetItem, QMessageBox, QPushButton,
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QListWidgetItem, QPushButton, QWidget,
 )
 
 from classes.app import get_app
@@ -55,12 +55,10 @@ STATUS_ROW_STYLES = {
     ChannelStatus.STANDARD: ChannelRowStyle(QBrush(), bold=False, italic=False),
     ChannelStatus.OWN_DIAMETER: ChannelRowStyle(QBrush(QColor(255, 214, 153)), bold=True, italic=False),
     ChannelStatus.DISABLED: ChannelRowStyle(QBrush(QColor(220, 220, 220)), bold=False, italic=True),
-    ChannelStatus.TANDEM: ChannelRowStyle(QBrush(QColor(204, 224, 255)), bold=True, italic=True),
 }
 
 
 def channel_status_text(status: ChannelStatus, diameter: float) -> str:
-    if status is ChannelStatus.TANDEM: return "Tandem channel, not cut as a needle"
     if status is ChannelStatus.DISABLED: return "Disabled, not cut into the cylinder"
     if status is ChannelStatus.OWN_DIAMETER: return f"Own diameter {diameter:.3f} mm"
     return f"Channels diameter {diameter:.3f} mm"
@@ -273,48 +271,11 @@ class ChannelsView(CustomView):
         self.channelsmodel.set_selected_shapes(*args)
 
     @display_action
-    def action_set_tandem(self):
-        data = get_app().window.dicommodel.data
-        window = get_app().window
-        tan = window.tandemmodel
-        log.debug(f"setting channel's tandem status")
-
-        model = get_app().window.channelsmodel
-        channel_label = model.get_selected_channel()
-
-        # set or clear the tandem channel
-        
-        #stores old tandem label in canse user desides they want to 
-        #revert to plan value when prompted
-        temp_label=data.tandem_channel
-
-        label = None
-        if channel_label != data.tandem_channel: 
-            label = channel_label
-            model.set_tandem(label)
-        
-        answer = QMessageBox.Yes
-        if(tan.hasTandemInDICOM):
-            if(not window.navigationmodel.views[3].hasShownRotationWarning):
-                if(round(tan.protation,2) != round(window.tandemmodel.rotation,2)):
-                    window.navigationmodel.views[3].hasShownRotationWarning=True
-                    answer = window.tandem_rotation_warning()
-        #If the user wishes to proceed then do this, if not then do not
-        if(answer == QMessageBox.No):
-            label = None
-            model.set_tandem(temp_label)
-
-
-        #updates the spin box value of rotation
-        rotation = window.tandemmodel.rotation
-        window.navigationmodel.views[3].ui.tandem_rotation.setValue(rotation)
-        window.navigationmodel.views[3].ui.tandem_rotation_2.setValue(rotation)
-
-    @display_action
     def action_toggle_channel_disable(self):
         log.debug(f"toggling channel's disabled status")
         model = get_app().window.channelsmodel
         channel_label = model.get_selected_channel()   
+        if model.is_channel_tandem(channel_label): return
         model.toggle_channel_enabled(channel_label)
 
     @display_action
@@ -359,13 +320,15 @@ class ChannelsView(CustomView):
         selected_channel = self.channelsmodel.get_selected_channel()
         self.ui.listwidget_channels.blockSignals(True)  # prevents accidently emitting signals
         self.ui.listwidget_channels.clear()
-        for row, channel in enumerate(self.channelsmodel.channels.values()):
+        for channel in self.channelsmodel.channels.values():
+            # the tandem channel is chosen on the Tandem tab, and nothing here applies to it
+            if self.channelsmodel.is_channel_tandem(channel.label): continue
             new_item = QListWidgetItem()
             new_item.setText(channel.label)
             self.ui.listwidget_channels.addItem(new_item)
             if selected_channel is not None and \
                selected_channel == channel.label:
-                self.ui.listwidget_channels.setCurrentRow(row)
+                self.ui.listwidget_channels.setCurrentRow(self.ui.listwidget_channels.count() - 1)
         self.ui.listwidget_channels.blockSignals(False)
         self.mark_channel_statuses()
 
@@ -373,6 +336,7 @@ class ChannelsView(CustomView):
         lister = self.ui.listwidget_channels
         for label, channel in self.channelsmodel.channels.items():
             status = self.channelsmodel.channel_status(label)
+            if status is ChannelStatus.TANDEM: continue  # not listed
             style = STATUS_ROW_STYLES[status]
             for item in lister.findItems(label, Qt.MatchFlag.MatchExactly):
                 font = item.font()
@@ -381,8 +345,7 @@ class ChannelsView(CustomView):
                 font.setUnderline(self.channelsmodel.is_channel_moved(label))
                 item.setFont(font)
                 item.setBackground(style.background)
-                tooltip = channel_status_text(status, channel.get_diameter())
-                if status is not ChannelStatus.TANDEM: tooltip += "\nDouble click to move"
+                tooltip = channel_status_text(status, channel.get_diameter()) + "\nDouble click to move"
                 if self.channelsmodel.is_channel_moved(label):
                     tooltip += "\n" + moved_text(channel.translation)
                     tooltip += "\n" + self.warning_for(label, channel.translation)
@@ -402,9 +365,6 @@ class ChannelsView(CustomView):
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
         self.btn_add_applicator.setEnabled(self.channelsmodel.has_plan())
-        selected_is_moved = any_selected and self.channelsmodel.is_channel_moved(selected_channel)
-        self.ui.btn_set_tandem.setEnabled(any_selected and not selected_is_moved)
-        self.ui.btn_set_tandem.setToolTip("Reset this channel's move to make it the tandem" if selected_is_moved else "")
         self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
         if any_selected:
@@ -413,7 +373,6 @@ class ChannelsView(CustomView):
         
         label = self.channelsmodel.get_selected_channel()
         is_disabled = self.channelsmodel.is_channel_disabled(label)
-        is_tandem = self.channelsmodel.is_channel_tandem(label)
         lister = self.ui.listwidget_channels
         selected_row = -1
         for row in range(lister.count()):
@@ -427,9 +386,6 @@ class ChannelsView(CustomView):
             lister.scrollToItem(lister.item(selected_row))
         if is_disabled: self.ui.btn_enable.setText("Enable")
         else: self.ui.btn_enable.setText("Disable")
-
-        if is_tandem: self.ui.btn_set_tandem.setText("Clear Tandem")
-        else: self.ui.btn_set_tandem.setText("Set as Tandem")
         self.mark_channel_statuses()
 
     def on_close(self):
@@ -491,9 +447,9 @@ class ChannelsView(CustomView):
         self.ui.listwidget_channels.currentItemChanged.connect(self.action_select_channel)
         self.ui.listwidget_channels.itemDoubleClicked.connect(self.action_move_channel)
         self.ui.btn_enable.pressed.connect(self.action_toggle_channel_disable)
-        self.ui.btn_set_tandem.pressed.connect(self.action_set_tandem)
 
         self.channelsmodel = get_app().window.channelsmodel
         self.channelsmodel.values_changed.connect(self.action_update_settings)
+        self.channelsmodel.tandem_changed.connect(self.create_channels_list)
 
         self.action_update_settings()
