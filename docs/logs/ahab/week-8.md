@@ -10,7 +10,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 | #184 | main | #112 | the straight custom applicator, its form and button | 9 files, 499 lines | 20 | 321 passed, 17 failed |
 | #194 | #184 | #112 | the bend, with Bend radius, Theta and Phi | 8 files, 233 lines | 12 | 333 passed, 17 failed |
 | #195 | #194 | #112 | Remove Applicator for custom applicators | 8 files, 395 lines | 7 | 340 passed, 17 failed |
-| #198 | #195 | #112 | Edit Applicator for custom applicators | 8 files, 326 lines | 6 | 346 passed, 17 failed |
+| #198 | #195 | #112 | Edit Applicator for custom applicators | 9 files, 330 lines | 6 | 346 passed, 17 failed |
 
 The 17 failures are in `test_structure_surfaces.py` and `test_structure_display.py`, and are the same in every PR, since `scipy` and `skimage` are not in this conda env.
 
