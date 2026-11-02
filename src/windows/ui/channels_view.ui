@@ -453,40 +453,6 @@ color: rgb(0, 0, 0);</string>
       <enum>QLayout::SetFixedSize</enum>
      </property>
      <item>
-      <widget class="QPushButton" name="btn_set_tandem">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-         <horstretch>2</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>240</width>
-         <height>33</height>
-        </size>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">QPushButton {
-	color: rgb(0, 0, 0);
-	background-color: rgb(199, 219, 237);
-	border: 0px solid;
-}
-QPushButton:hover {
-	color: rgb(250,250,250);
-	background-color: rgb(48, 88, 162);
-}
-QPushButton:pressed {
-	color: rgb(250,250,250);
-	background-color: rgb(28, 44, 81);
-}</string>
-       </property>
-       <property name="text">
-        <string>Set as Tandem</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="btn_enable">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Minimum" vsizetype="Maximum">

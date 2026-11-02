@@ -14,6 +14,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#174](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/174) | `main` | #168 | Clearing the tandem channel, the Ex2 fixture | 8, +193/−14 | 3 | 321 |
 | [#175](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/175) | #174 | #169 | Tandem Channel box on the Tandem tab | 9, +454/−9 | 9 | 330 |
 | [#176](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/176) | #175 | #170 | Channels list without the tandem channel | 9, +118/−25 | 3 (1 replaced) | 332 |
+| [#177](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/177) | #176 | #171 | *Set as Tandem* removed from the Channels tab | 9, +68/−130 | 1 (replacing 1) | 332 |
 
 The suite had 318 tests on `main` before #174 (`1f34b40`).
 
@@ -142,3 +143,33 @@ Stated once here instead of in each section.
 - Among these tests, **none** are unit tests and **all 3** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 332 passed (330 after #175, screenshot 1)**.
+
+### For PR #**177** (4 of 6, on #176)
+
+- As part of requirement **issue #171, one place to set the tandem channel**, the user needs to do **set the tandem channel only on the Tandem tab**.
+- Therefore, I implemented/generated code so that **clinicians can no longer change the tandem from the Channels tab, where its effect was hidden**.
+
+#### Frontend
+
+- The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **the Channels tab's buttons**. Therefore, changing the design of **the button style in `channels_view.ui`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **removing a button leaves the others' style alone**.
+- Not applicable: **data caching (nothing cached), accessibility (no new control)**.
+
+#### Review and design
+
+- When I reviewed the **generated removal** for this functionality, I noticed **`QMessageBox` was left imported and unused once `action_set_tandem` went**. Therefore, I did **remove the import**.
+- The PR does not contain any temporary workaround because **the button is removed, not hidden**.
+- The PR only contains small functions that are **20 lines (the new test)** long. `action_update_settings`, 35 lines and inherited, got shorter.
+- Code quality checklist: **see Shared**.
+- This work is written in **`channels_view.py` and `channels_view.ui`** because **that is where the button lived**.
+- This work belongs in **Channels** in the DFD because **the Channels process no longer chooses the tandem channel**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_no_channels_tab_button_makes_a_channel_the_tandem` (1 new, replacing the button's test; 25 in the file; screenshot 1)** passed.
+- I checked that these negative cases involving **the button still present** failed as expected.
+- Among these tests, **none** are unit tests and **the 1 new test** is an integration test.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 332 passed (332 after #176, one test replaced; screenshot 1)**.
+
+  ![1, the real Channels tab on Ex2 with Applicator7 selected and no Set as Tandem button, and python -m pytest on feat/remove-set-as-tandem-button, 25 passed in test_move_channel.py and 332 in the suite](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/800d2b4655f8028644a0c7a11936253308a15870/docs/logs/ariq/screenshots/week-8/pr-177-1-channels-tab.png)
+- Not applicable: **abnormal cases (a removal has no edge case)**.

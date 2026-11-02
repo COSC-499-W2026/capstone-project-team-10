@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QListWidgetItem, QMessageBox, QPushButton, QWidget,
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QListWidgetItem, QPushButton, QWidget,
 )
 
 from classes.app import get_app
@@ -204,44 +204,6 @@ class ChannelsView(CustomView):
         self.channelsmodel.set_selected_shapes(*args)
 
     @display_action
-    def action_set_tandem(self):
-        data = get_app().window.dicommodel.data
-        window = get_app().window
-        tan = window.tandemmodel
-        log.debug(f"setting channel's tandem status")
-
-        model = get_app().window.channelsmodel
-        channel_label = model.get_selected_channel()
-
-        # set or clear the tandem channel
-        
-        #stores old tandem label in canse user desides they want to 
-        #revert to plan value when prompted
-        temp_label=data.tandem_channel
-
-        label = None
-        if channel_label != data.tandem_channel: 
-            label = channel_label
-            model.set_tandem(label)
-        
-        answer = QMessageBox.Yes
-        if(tan.hasTandemInDICOM):
-            if(not window.navigationmodel.views[3].hasShownRotationWarning):
-                if(round(tan.protation,2) != round(window.tandemmodel.rotation,2)):
-                    window.navigationmodel.views[3].hasShownRotationWarning=True
-                    answer = window.tandem_rotation_warning()
-        #If the user wishes to proceed then do this, if not then do not
-        if(answer == QMessageBox.No):
-            label = None
-            model.set_tandem(temp_label)
-
-
-        #updates the spin box value of rotation
-        rotation = window.tandemmodel.rotation
-        window.navigationmodel.views[3].ui.tandem_rotation.setValue(rotation)
-        window.navigationmodel.views[3].ui.tandem_rotation_2.setValue(rotation)
-
-    @display_action
     def action_toggle_channel_disable(self):
         log.debug(f"toggling channel's disabled status")
         model = get_app().window.channelsmodel
@@ -334,9 +296,6 @@ class ChannelsView(CustomView):
         # enable/disable buttons if any channel is selected
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
-        selected_is_moved = any_selected and self.channelsmodel.is_channel_moved(selected_channel)
-        self.ui.btn_set_tandem.setEnabled(any_selected and not selected_is_moved)
-        self.ui.btn_set_tandem.setToolTip("Reset this channel's move to make it the tandem" if selected_is_moved else "")
         self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
         if any_selected:
@@ -345,7 +304,6 @@ class ChannelsView(CustomView):
         
         label = self.channelsmodel.get_selected_channel()
         is_disabled = self.channelsmodel.is_channel_disabled(label)
-        is_tandem = self.channelsmodel.is_channel_tandem(label)
         lister = self.ui.listwidget_channels
         selected_row = -1
         for row in range(lister.count()):
@@ -359,9 +317,6 @@ class ChannelsView(CustomView):
             lister.scrollToItem(lister.item(selected_row))
         if is_disabled: self.ui.btn_enable.setText("Enable")
         else: self.ui.btn_enable.setText("Disable")
-
-        if is_tandem: self.ui.btn_set_tandem.setText("Clear Tandem")
-        else: self.ui.btn_set_tandem.setText("Set as Tandem")
         self.mark_channel_statuses()
 
     def on_close(self):
@@ -417,7 +372,6 @@ class ChannelsView(CustomView):
         self.ui.listwidget_channels.currentItemChanged.connect(self.action_select_channel)
         self.ui.listwidget_channels.itemDoubleClicked.connect(self.action_move_channel)
         self.ui.btn_enable.pressed.connect(self.action_toggle_channel_disable)
-        self.ui.btn_set_tandem.pressed.connect(self.action_set_tandem)
 
         self.channelsmodel = get_app().window.channelsmodel
         self.channelsmodel.values_changed.connect(self.action_update_settings)

@@ -216,32 +216,11 @@ class Ui_Channels_View(object):
         self.verticalLayout_4.setSpacing(0)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.verticalLayout_4.setSizeConstraint(QLayout.SetFixedSize)
-        self.btn_set_tandem = QPushButton(self.scroll_channels_contents)
-        self.btn_set_tandem.setObjectName(u"btn_set_tandem")
+        self.btn_enable = QPushButton(self.scroll_channels_contents)
+        self.btn_enable.setObjectName(u"btn_enable")
         sizePolicy4 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Maximum)
         sizePolicy4.setHorizontalStretch(2)
         sizePolicy4.setVerticalStretch(0)
-        sizePolicy4.setHeightForWidth(self.btn_set_tandem.sizePolicy().hasHeightForWidth())
-        self.btn_set_tandem.setSizePolicy(sizePolicy4)
-        self.btn_set_tandem.setMinimumSize(QSize(240, 33))
-        self.btn_set_tandem.setStyleSheet(u"QPushButton {\n"
-"	color: rgb(0, 0, 0);\n"
-"	background-color: rgb(199, 219, 237);\n"
-"	border: 0px solid;\n"
-"}\n"
-"QPushButton:hover {\n"
-"	color: rgb(250,250,250);\n"
-"	background-color: rgb(48, 88, 162);\n"
-"}\n"
-"QPushButton:pressed {\n"
-"	color: rgb(250,250,250);\n"
-"	background-color: rgb(28, 44, 81);\n"
-"}")
-
-        self.verticalLayout_4.addWidget(self.btn_set_tandem)
-
-        self.btn_enable = QPushButton(self.scroll_channels_contents)
-        self.btn_enable.setObjectName(u"btn_enable")
         sizePolicy4.setHeightForWidth(self.btn_enable.sizePolicy().hasHeightForWidth())
         self.btn_enable.setSizePolicy(sizePolicy4)
         self.btn_enable.setMinimumSize(QSize(240, 33))
@@ -370,7 +349,6 @@ class Ui_Channels_View(object):
         self.btn_apply_settings.setText(QCoreApplication.translate("Channels_View", u"Apply", None))
         self.label_5.setText(QCoreApplication.translate("Channels_View", u"Channels", None))
         self.label_channel_status_legend.setText(QCoreApplication.translate("Channels_View", u"Bold on amber has its own diameter. Italic on grey is disabled and not cut. Underlined has been moved.", None))
-        self.btn_set_tandem.setText(QCoreApplication.translate("Channels_View", u"Set as Tandem", None))
         self.btn_enable.setText(QCoreApplication.translate("Channels_View", u"Disable", None))
         self.group_selected_channel.setTitle(QCoreApplication.translate("Channels_View", u"Selected Channel", None))
         self.label_channel_diameter.setText(QCoreApplication.translate("Channels_View", u"Channel Diameter", None))
