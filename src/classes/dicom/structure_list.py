@@ -31,10 +31,10 @@ def _label_for(structure: Structure, name_counts: dict[str, int], used: set[str]
 def anatomy_structures(
     structures: tuple[Structure, ...] | None,
 ) -> tuple[Structure, ...]:
-    """Keep organs and tumours for the Structures tab.
+    """Keep organs, tumours and the external BODY outline for the Structures tab.
 
-    Needles, body outlines, markers and other ROIs stay in DicomData and on
-    the Import inventory. None or an empty tuple yields no rows.
+    Needles, markers and other ROIs stay in DicomData and on the Import
+    inventory. None or an empty tuple yields no rows.
     """
     if not structures:
         return ()
@@ -42,6 +42,7 @@ def anatomy_structures(
         structure
         for structure in structures
         if structure.category in (StructureType.ORGAN, StructureType.TUMOUR)
+        or structure.interpreted_type == "EXTERNAL"
     )
 
 
