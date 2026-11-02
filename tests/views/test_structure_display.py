@@ -850,3 +850,14 @@ def test_clicking_after_colour_change_can_rehighlight_the_row(cylinder_window):
     QTest.mouseClick(
         view.structure_list.viewport(), Qt.MouseButton.LeftButton, pos=pos)
     assert model.highlighted == 2
+
+
+def test_structures_tab_copy_uses_black_text(cylinder_window):
+    """Keep Structures labels readable on the light sidebar.
+
+    Missing black copy fails. The test looks for color: rgb(0, 0, 0) in the
+    view stylesheet. Without that rule the stacked widget colour can leave
+    the mode and opacity hint unreadable.
+    """
+    view = cylinder_window.navigationmodel.views[5]
+    assert "color: rgb(0, 0, 0)" in view.styleSheet()
