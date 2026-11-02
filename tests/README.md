@@ -73,7 +73,7 @@ tests/
 │   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
 │   ├── test_export_tandem_warning.py  the Export tab's missing tandem hole warning
-│   ├── test_import_view.py  exists: Import structure list after DICOM import
+│   ├── test_import_view.py  exists: Import structure list, and no tandem carried into a new plan
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   ├── test_tandem_channel.py  the tandem channel at import and when cleared
 │   ├── test_tandem_channel_choice.py  the Tandem tab's Tandem Channel box
