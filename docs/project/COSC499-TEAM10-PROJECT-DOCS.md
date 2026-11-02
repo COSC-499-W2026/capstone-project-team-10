@@ -1547,9 +1547,13 @@ The grid uses `brepbndlib.AddOptimal` bounds of the displayed non-null model sha
 `grid_ticks` rounds outward with 1/2/5-based steps of at least 10 mm; larger scenes use
 larger steps. `ReferenceGrid` holds the outer bounds, unique line segments and `GridLabel`
 text/positions. Lines occupy three outer walls (minimum X, maximum Y and minimum Z);
-there are no translucent planes through the model. White ticks and X/Y/Z titles on a dark
+there are no translucent planes through the model. White ticks and X/Y/Z titles on the original grey
 background denote **model coordinates in millimetres**, not patient Left/Posterior/Superior.
 The Cylinder tab's mm/cm selector does not change these labels.
+`InitDriver` leaves the background from OpenCASCADE `Create` unchanged, restoring the
+pre-grid appearance instead of overriding it with RGB (12, 17, 23). *Verified 2026-11-01
+on macOS: native Ex1 framebuffer captures show the original grey background and the
+previous dark override with the same probe and grid. Windows/Linux not visually checked.*
 
 Both overlays are native AIS presentations deactivated for selection and kept outside
 `DisplayModel.shapes`, so they never enter mesh exports. On redraw the old presentations
