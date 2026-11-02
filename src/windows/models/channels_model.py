@@ -8,7 +8,7 @@ from classes.app import get_app
 from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
-from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec, custom_needle_points
+from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec, custom_needle_points, cut_is_clean
 from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from windows.models.shape_model import ShapeModel, ShapeTypes
 
@@ -121,7 +121,10 @@ class ChannelsModel(QObject):
             raise CustomNeedleError(f"An applicator named {label} already exists")
         cylinder = get_app().window.cylindermodel.cylinder
         points = custom_needle_points(spec, cylinder.diameter, cylinder.length, self.diameter)
-        return [[x, y, z - self.height_offset] for x, y, z in points]  # get_points adds the offset back
+        points = [[x, y, z - self.height_offset] for x, y, z in points]  # get_points adds the offset back
+        if not cut_is_clean(cylinder.shape(), self.make_custom_needle(replace(spec, label=label), points, "0").shape()):
+            raise CustomNeedleError("The cylinder cannot be cut cleanly at these numbers, so change the start, a length or Phi a little")
+        return points
 
     def custom_needle_error(self, spec: CustomNeedleSpec, editing: str = "") -> str:
         """The reason a spec is refused, or an empty string when it would be added or, when editing, applied."""
