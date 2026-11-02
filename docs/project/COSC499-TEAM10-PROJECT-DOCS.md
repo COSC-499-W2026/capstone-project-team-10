@@ -743,6 +743,7 @@ StructuresModel.changed()                   ─→ StructuresView.action_update_
                                              └─→ OrbitCameraViewer3d.refresh_structure_outlines
 StructuresModel.opacity_changed(int, float) ─→ OrbitCameraViewer3d.update_structure_opacity
                                              └─→ StructuresView.update_opacity_controls
+StructuresModel.highlight_changed()         ─→ OrbitCameraViewer3d.update_structure_highlight
 SurfaceSignals.finished(SurfaceResult)      ─→ StructuresModel._accept_surface (queued to GUI)
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
@@ -755,7 +756,9 @@ An ordinary `shapes_changed([], False)` refresh does not clear imported anatomy.
 pool has one thread; it never manipulates viewport actors. `opacity_changed(int, float)` is
 connected separately to the viewport and slider in #125: it updates existing actors and
 selected-ROI controls without rebuilding geometry or the structure list.
-*Reasoned from code.*
+`highlight_changed()` is the same kind of signal. It recolours existing anatomy actors
+in the channel-selection blue, or restores the DICOM colour, and does not rebuild the
+list or the meshes. *Reasoned from code.*
 
 ### 4.5 The display pipeline
 
@@ -1230,6 +1233,10 @@ when still visible in a surface mode. `clear` advances the generation and clears
 visibility, caches and errors. It cannot cancel the task already running, whose result is
 ignored. Hiding an ROI preserves its cache. `set_opacity` accepts a known ROI and a finite
 value in 0..1 (default 0.45), emits only `opacity_changed`, and never rebuilds geometry.
+`set_highlight` stores one ROI number, or `None`. It emits only `highlight_changed` and
+does not create a presentation, so a listed organ with no contour is not added to the
+preview. `clear` drops the highlight with the rest of the plan. A second click on the
+highlighted row sets `None` while that row stays current.
 The current window keeps its selected mode across `clear`; visibility, caches and per-ROI
 opacity are cleared. These display preferences are not exported to configuration. Controls
 and native surface actors are supplied by #125 (§5.6–5.7).
@@ -1282,6 +1289,7 @@ PR #125; widget assertions are in `tests/views/test_structure_display.py`.*
 | Mode dropdown | Outlines, Surface or Both for all ROIs; starts at Surface. No automatic outline fallback. |
 | Structure list | Organs, tumours and BODY (`EXTERNAL`), from `anatomy_structures`. Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Needles, markers and other ROIs stay on the Import inventory. Pending and failure reasons appear directly in wrapped row text and tooltips. |
 | Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
+| Row highlight | The current row emphasises that organ in the preview with the channel-selection blue (0.2, 0.2, 0.7). Outlines also use width 3. Choosing another row moves the highlight. Clicking the highlighted row again, or clearing the selection, drops it. A row with no geometry stays listed and gains no shape. |
 
 Rows are checked when a representation is available, or when visibility was requested and
 surface work is pending. A pending row remains checkable so the user can hide it. Permanent
@@ -1585,12 +1593,16 @@ were inspected locally and are not archived in this PR.
 **Anatomy surfaces and outlines (#125).** Despite its older name,
 `refresh_structure_outlines` draws both representations according to the model's mode.
 It removes old anatomy actors, creates `AIS_Triangulation` for available surfaces and
-`AIS_Shape` for available outlines, and records each actor by ROI. Outlines use width 1.0;
-both use DICOM colour and transparency `1 - opacity`. Surface-only mode does not draw wires.
+`AIS_Shape` for available outlines, and records each actor by ROI. An unhighlighted
+outline uses width 1.0. Both representations use DICOM colour, except the highlighted
+ROI, which uses the channel-selection blue (0.2, 0.2, 0.7) and outline width 3.
+Transparency is `1 - opacity`. Surface-only mode does not draw wires.
 `anatomy_surface_presentation` explicitly sets mesh display mode 0 and its shading colour:
 inheriting the solid viewer's mode can otherwise leave a valid triangulation invisible.
 
 `update_structure_opacity` changes only the requested ROI's existing actors in place.
+`update_structure_highlight` recolours the existing actors for the current highlight
+and does not rebuild them. The native canvas is not initialised by the highlight tests.
 Both refresh paths repaint without fitting the camera. Geometry changes or a normal model
 redraw recreate actors; pure opacity changes reuse them. All anatomy actors are deactivated
 for selection, stay outside export geometry, and do not contribute to the grid bounds.
