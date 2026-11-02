@@ -208,6 +208,7 @@ class ChannelsView(CustomView):
         log.debug(f"toggling channel's disabled status")
         model = get_app().window.channelsmodel
         channel_label = model.get_selected_channel()   
+        if model.is_channel_tandem(channel_label): return
         model.toggle_channel_enabled(channel_label)
 
     @display_action
