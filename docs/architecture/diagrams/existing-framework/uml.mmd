@@ -51,6 +51,7 @@ classDiagram
     changed()
     opacity_changed(roi, opacity)
     highlight_changed()
+    color_changed(roi, rgb)
   }
   class SurfaceTask {
     run()
@@ -63,12 +64,14 @@ classDiagram
   DicomModel ..> StructuresModel : values_changed via MainWindow
   CylinderModel ..> StructuresModel : current length via MainWindow
   DisplayModel ..> StructuresModel : reset_completed
-  StructuresView --> StructuresModel : set_visible, set_highlight, set_mode, set_opacity
+  StructuresView --> StructuresModel : set_visible, set_highlight, set_mode, set_opacity, set_color
   StructuresModel ..> StructuresView : changed
   StructuresModel ..> OrbitCameraViewer3d : changed, surface and outline refresh
   StructuresModel ..> OrbitCameraViewer3d : opacity_changed, update existing actors
   StructuresModel ..> OrbitCameraViewer3d : highlight_changed, recolour existing actors
+  StructuresModel ..> OrbitCameraViewer3d : color_changed, recolour existing actors
   StructuresModel ..> StructuresView : opacity_changed, selected ROI slider
+  StructuresModel ..> StructuresView : color_changed, list swatch
   StructuresModel --> SurfaceTask : QThreadPool, one worker
   SurfaceTask --> SurfaceSignals
   SurfaceSignals ..> StructuresModel : finished, queued to GUI thread
