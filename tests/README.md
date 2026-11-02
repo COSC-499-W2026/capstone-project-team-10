@@ -257,8 +257,11 @@ actor's mode 0, shading colour and transparency. Selecting a row stores that ROI
 the highlight, another row replaces it, a second click or a cleared row drops it, and
 an empty organ gains no presentation. A highlighted triangulation uses the channel
 selection blue, 0.2 0.2 0.7. Toggling a checkbox keeps the highlight, a click after
-keyboard navigation can drop it, and leaving the tab clears it. They do not initialise
-a native viewer; previous native observations are recorded separately in PR #125.
+keyboard navigation can drop it, and leaving the tab clears it. Change colour stores
+an RGB override, updates that row's swatch, leaves the imported ROI colour, ignores
+a cancelled pick, clears the highlight and resets `_just_selected` so a subsequent
+click can re-highlight. They do not initialise a native viewer; previous native
+observations are recorded separately in PR #125.
 
 The documentation pass ran full isolated suites: 258 passed for #133 and 287 for #134.
 `Path.home` was redirected before collection as well as fixture-level filesystem isolation,
