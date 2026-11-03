@@ -274,7 +274,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-update-delete, 20 passed in test_tandem_template_controls.py and 489 passed with the 2 failures inherited from main, and 2, the Tandem tab after Update renamed Long bend to Long bend sharp](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0e962d084d2f2ea3a7fe5e29a92081b51b0f5d5c/docs/logs/ariq/screenshots/week-9/pr-217-1-update-template.png)
 
-### For PR #**218** (7 of 8, on #217)
+### For PR #**218** (7 of 9, on #217)
 
 - As part of requirement **FR-CN-06 and issue #210, catch a tandem template that cannot be built**, the user needs to do **load a template and learn before Generate Tandem whether this cylinder can take it**.
 - Therefore, I implemented/generated code so that **clinicians are told on Load when a template cannot be built on the current cylinder, and which settings to change**.
