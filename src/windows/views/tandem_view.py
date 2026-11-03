@@ -1,10 +1,15 @@
 import math
 from collections.abc import Callable
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from PySide6.QtCore import QSignalBlocker
-from PySide6.QtWidgets import QFileDialog, QFrame, QLayout, QMessageBox, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFileDialog, QFrame, QLayout, QListWidgetItem, QMessageBox, QScrollArea, QVBoxLayout, QWidget,
+)
 
 from classes.app import get_app
+from classes.info import USER_PATH
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
 from classes.pdf.template_reference import extract_points_from_channels2
@@ -13,6 +18,9 @@ from windows.ui.tandem_view_ui import Ui_Tandem_View
 from windows.views.custom_view import display_action, CustomView
 
 from settings.reset import getCurrentValues
+from settings.tandem_templates import (
+    LIBRARY_FILE_NAME, TandemDesign, TandemTemplate, TandemTemplateError, add_template, load_templates, make_template,
+)
 
 materials = {
     ShapeTypes.CYLINDER: {"rgb": [0.8, 0.8, 0.8], "transparent": True},
@@ -33,6 +41,16 @@ def off_axis_warning(label: str, distance: float, tandem_diameter: float) -> str
     if distance <= tandem_diameter / 2: return ""
     return (f"{label} crosses the base {distance:.1f} mm from the cylinder axis. "
             f"The tandem hole stays on the axis, so {label} gets no hole of its own.")
+
+
+def template_summary(template: TandemTemplate) -> str:
+    """A saved template's tooltip: its note, its dates and its tandem in one line, with no colons."""
+    design = template.design
+    lines = [template.note] if template.note else []
+    lines += [f"Created {template.created.astimezone():%d %b %Y}",
+              f"Modified {template.modified.astimezone():%d %b %Y}",
+              f"{design.height_mm:g} mm high, {design.bend_angle_deg:g}° bend, rotated {design.rotation_deg:g}°"]
+    return "\n".join(lines)
 
 
 class TandemView(CustomView):
@@ -180,6 +198,46 @@ class TandemView(CustomView):
         self.ui.tandem_rotation_2.setValue(self.ui.tandem_rotation.value())
 
 
+    def tandem_design(self) -> TandemDesign:
+        """Read the Generate sub-tab's eight settings, its own Rotation box included."""
+        ui = self.ui
+        return TandemDesign(
+            height_mm=ui.sb_tandem_height.value(),
+            channel_diameter_mm=ui.sp_channel_diameter.value(),
+            stopper_diameter_mm=ui.sp_stopper_diameter.value(),
+            bend_angle_deg=ui.sp_bend_angle.value(),
+            bend_radius_mm=ui.sb_bend_radius.value(),
+            threading_depth_mm=ui.sb_threading_depth.value(),
+            threading_diameter_mm=ui.sb_threading_diameter.value(),
+            rotation_deg=ui.tandem_rotation_2.value())
+
+    def action_load_templates(self) -> None:
+        """Show every saved template, or none, with the reason, if the library cannot be read."""
+        try:
+            self.show_templates(load_templates(self.templates_path))
+        except TandemTemplateError as error:
+            self.show_templates(())
+            self.ui.label_template_status.setText(str(error))
+
+    def show_templates(self, templates: tuple[TandemTemplate, ...]) -> None:
+        self.templates = templates
+        self.ui.list_templates.clear()
+        for template in templates:
+            row = QListWidgetItem(template.name)
+            row.setToolTip(template_summary(template))
+            self.ui.list_templates.addItem(row)
+
+    def action_save_template(self) -> None:
+        """Save the Generate settings under the typed name and note, or say in the status line why not."""
+        now = datetime.now(timezone.utc)
+        try:
+            template = make_template(uuid4().hex, self.ui.le_template_name.text(), self.ui.le_template_note.text(),
+                                     self.tandem_design(), now, now)
+            self.show_templates(add_template(self.templates_path, template))
+            self.ui.label_template_status.setText(f"Saved {template.name}")
+        except TandemTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
     def on_close(self):
         log.debug(f"on view close")
 
@@ -250,6 +308,8 @@ class TandemView(CustomView):
         self.hasShownRotationWarning = False
         # the rotation warning asks through this, so a test can answer for the clinician
         self.confirm_rotation: Callable[[], bool] = self.ask_rotation_change
+        self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
+        self.action_load_templates()
 
         # signals and slots
         self.ui.btn_apply.pressed.connect(self.action_set_tandem)
@@ -258,6 +318,7 @@ class TandemView(CustomView):
         self.ui.btn_clear_import.pressed.connect(self.action_clear_tandem)     
         self.ui.btn_apply_import.pressed.connect(self.action_set_import)
         self.ui.cb_tandem_channel.activated.connect(self.action_choose_tandem_channel)
+        self.ui.btn_save_template.pressed.connect(self.action_save_template)
         self.channelsmodel.values_changed.connect(self.refresh_tandem_channels)
 
         self.update_settings()
