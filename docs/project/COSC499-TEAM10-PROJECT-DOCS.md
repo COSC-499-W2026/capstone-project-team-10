@@ -2483,6 +2483,17 @@ generated!"). A 100 mm bend radius failed at 120 mm alone, with OpenCASCADE's
 trial build instead of checking a number (§5.6). Typed values still reach only *Generate
 Tandem*'s error dialog. Not changed.
 
+### 7.22 Trap — `tests/mesh` and a `cylinder_window` test run alone together raise fixture errors
+
+*Verified* 2026-11-02 on macOS. `python -m pytest tests/mesh/test_tandem.py
+tests/views/test_tandem_template_controls.py` gives 7 passed and 21 errors, each
+`AttributeError: 'RadiotherapyApp' object has no attribute 'window'` in `tests/views/conftest.py`,
+and `tests/views/test_cylinder_template_controls.py` in place of the second file fails the same way.
+`geometry_app` (root `conftest.py`) starts the one QApplication without a `window` attribute,
+`units_app` reuses it, and only sets `window` when it creates the app, and `cylinder_window`
+reads `units_app.window` before replacing it. In the whole suite an earlier `tests/views` module's
+`channels_window` sets `window` first, so it passes. Run such files separately. Not changed.
+
 ### 7.23 HIGH — *Generate Tandem* can show settings it did not build
 
 *Verified* 2026-11-02 on macOS, offscreen on `main` with Ex2, and in the real window after
