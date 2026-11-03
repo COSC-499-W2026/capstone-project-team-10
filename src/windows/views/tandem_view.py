@@ -168,10 +168,9 @@ class TandemView(CustomView):
         tan = get_app().window.tandemmodel
         tan.change_tandem_rotation(self.ui.tandem_rotation_2.value())
 
-        #updates the spin box value of rotation
-        rotation = window.tandemmodel.rotation
-        self.ui.tandem_rotation.setValue(rotation)
-        self.ui.tandem_rotation_2.setValue(rotation)
+        # show the tandem that was built: Generate can put a box back on the way and still build
+        # with its new value (section 7.23), and the next Generate reads the boxes
+        self.update_settings()
         # update the config_values dict
         # merge, so a setting the snapshot does not list keeps its value
         get_app().values.config_values.update(getCurrentValues())
