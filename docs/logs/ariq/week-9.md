@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #213, at a glance
+## Stack #212 to #214, at a glance
 
 Eight stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -12,6 +12,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 |---|---|---|---|---|---|---|
 | [#212](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/212) | `main` | #204 | `TandemDesign`, `make_template` and the eight Generate ranges | 9, +291/−10 | 18 | 444 |
 | [#213](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/213) | #212 | #205 | JSON library: `load_templates`, `add_template`, a shared safe save | 7, +358/−18 | 20 | 464 |
+| [#214](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/214) | #213 | #206 | `update_template`, `delete_template`; diagram names the file | 9, +212/−9 | 7 | 471 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -118,4 +119,47 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 462 passed and the 2 failures inherited from `main` (444 tests after #212, screenshot 1)**.
 
   ![1, python -m pytest on feat/tandem-template-library, 38 passed in test_tandem_templates.py and 462 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c450d4893a22f6fe93cae65085a44d3c94ac6c70/docs/logs/ariq/screenshots/week-9/pr-213-1-pytest-464.png)
+- Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**214** (3 of 8, on #213)
+
+- As part of requirement **FR-CN-06 and issue #206, manage tandem templates**, the user needs to do **rename a saved tandem template, change its settings or note, or delete it**.
+- Therefore, I implemented/generated code so that **a tandem template can be updated in place, keeping its ID, created date and place, or deleted, and the system architecture names `tandem_templates.json`**.
+
+#### Data Modeling and Integrity
+
+- This data **an updated template** uses the input validation to ensure it adheres to **#212's checks again, a name no other template uses in any case, and an ID still in the library**.
+- Not applicable: **data model, security and privacy sanitization (as in #213)**.
+
+#### Backend
+
+- The system uses **the same pure module, finding a template by ID with `position`** because **two templates may share nothing but a name in another case**. Benefits for using this pattern include **a rename keeps the same template**. Possible risks include **a template deleted by another copy of brachify**.
+  - To mitigate **a template that has gone**, we implemented **"That tandem template no longer exists", changing nothing**.
+- The system architecture diagram consists of the following major components: **as in #212, with local storage now naming `tandem_templates.json`**. This structure has low coupling because **only the library writes the file**. This structure has high cohesion because **update and delete sit beside add**. This design is scalable because **the Tandem tab calls these three functions alone**.
+
+  **[System architecture, local storage names `tandem_templates.json`](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/92a590b/docs/architecture/diagrams/system-architecture.svg)**
+- The system uses **a local JSON file as its** database because **as in #213**. This method is done by **`update_template` and `delete_template`, each reading, changing and saving the whole file**. Benefits for using this approach include **the file is never half changed**. Possible risks include **an update racing another save**.
+  - To mitigate **a lost update**, we implemented **reading the file fresh on every change**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-06, #206: 7 new cases in `tests/settings/test_tandem_templates.py`**
+- Not applicable: **data processing, state management (no app state changed), Level 0 DFD, Level 1 DFD (nothing calls the module yet)**.
+
+#### Review and design
+
+- When I reviewed the **generated update and delete** for this functionality, I did not find any problems with it because **seven deliberate breaks each failed a test**.
+- The PR does not contain any temporary workaround because **it follows the cylinder library's tested update and delete**.
+- The PR only contains small functions that are **6 to 11 lines (module) and 3 to 18 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`src/settings/tandem_templates.py`** because **the library owns every change to its file**.
+- This work belongs in **Tandem** in the DFD because **as in #212**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_updating_a_template_keeps_its_id_created_date_and_place`, `test_deleting_removes_only_that_template` (7 new; 45 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **an unknown ID, a corrupt library, a 5 mm height on update** and they passed.
+- I checked that these negative cases involving **seven deliberate breaks (created date replaced, updated template moved, own name counted as taken, rename onto another name, a delete dropping the rest, an unknown ID taken as the first, checks skipped on update)** failed as expected.
+- Among these tests, **all 7 new** are unit tests and integration tests are not required because **the module reads and writes only the path it is given**.
+- These tests are included in the directory **`tests/settings/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 469 passed and the 2 failures inherited from `main` (464 tests after #213, screenshot 1)**.
+
+  ![1, python -m pytest on feat/tandem-template-changes, 45 passed in test_tandem_templates.py and 469 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ae7935035c6098aa62b794c20c0074d6667e21ba/docs/logs/ariq/screenshots/week-9/pr-214-1-pytest-471.png)
 - Not applicable: **generated-test review (no problem found)**.
