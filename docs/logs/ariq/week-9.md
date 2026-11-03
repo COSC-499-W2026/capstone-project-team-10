@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #214, at a glance
+## Stack #212 to #215, at a glance
 
 Eight stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -13,6 +13,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#212](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/212) | `main` | #204 | `TandemDesign`, `make_template` and the eight Generate ranges | 9, +291/−10 | 18 | 444 |
 | [#213](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/213) | #212 | #205 | JSON library: `load_templates`, `add_template`, a shared safe save | 7, +358/−18 | 20 | 464 |
 | [#214](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/214) | #213 | #206 | `update_template`, `delete_template`; diagram names the file | 9, +212/−9 | 7 | 471 |
+| [#215](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/215) | #214 | #207 | Templates group and *Save as Template* on the Generate sub-tab | 9, +387/−8 | 6 | 477 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -163,3 +164,42 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-changes, 45 passed in test_tandem_templates.py and 469 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ae7935035c6098aa62b794c20c0074d6667e21ba/docs/logs/ariq/screenshots/week-9/pr-214-1-pytest-471.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**215** (4 of 8, on #214)
+
+- As part of requirement **FR-CN-05 and issue #207, save tandem designs as templates**, the user needs to do **set the Generate boxes, type a name and a note, and press Save as Template**.
+- Therefore, I implemented/generated code so that **clinicians save the eight Generate settings as a named tandem template from the Tandem tab, and see why a save is refused**.
+
+#### Data Modeling and Integrity
+
+- This data **a saved template** uses the input validation to ensure it adheres to **#212's checks, with the rotation read from the Generate sub-tab's own box**.
+- Not applicable: **data model, security and privacy sanitization (as in #213)**.
+
+#### Frontend
+
+- The frontend uses **no cache: the list is refilled from the library file after every save** because **the file is the record**. Benefits for using this pattern include **the list never shows a template that was not saved**. Possible risks include **a library that cannot be read when the window is built**.
+  - To mitigate **an unreadable library**, we implemented **an empty list and the reason in the status line, never an exception**.
+- The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **a Templates group styled like the Cylinder tab's: name, note, list, button and status line**. Therefore, changing the design of **`group_templates` in `tandem_view.ui`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the view fills the list and status at runtime**.
+- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification: a refused input is described in text**. The aspects that demonstrate this principle in the system include **"A tandem template needs a name" in the status line, and the saved list (screenshot 1)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-05, #207: `tests/views/test_tandem_template_controls.py`, 5 tests, 6 cases**
+
+#### Review and design
+
+- When I reviewed the **Tandem tab in the default 770 by 472 window** for this functionality, I noticed **the taller page brought a vertical scroll bar, which left 272 px for a 276 px page, so the tab scrolled 4 px sideways (`test_the_tandem_tab_never_scrolls_sideways_in_the_default_window` failed)**. Therefore, I did **take the Generate page's side margins from 10 to 8 px, which passes it**.
+- The PR does not contain any temporary workaround because **Save calls #213's `add_template` directly**.
+- The PR only contains small functions that are **7 to 12 lines (view) and 4 to 18 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tandem_view.py` and `tandem_view.ui`** because **the Tandem tab owns the tandem's settings**.
+- This work belongs in **Tandem** in the DFD because **the template is saved from there**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_save_as_template_lists_the_template_and_writes_it`, `test_every_generate_setting_is_saved_from_its_own_box` (6 new; 6 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a blank or taken name and an unreadable library** and they passed.
+- I checked that these negative cases involving **seven deliberate breaks (rotation from the Import box, threading boxes swapped, listed but not written, refusal hidden, read error escaping, no tooltip summary, `RANGES` drift)** failed as expected.
+- When I reviewed the **`test_save_as_template_lists_the_template_and_writes_it`**, I noticed **its "saving generates no tandem" check stayed green when I made Save generate, because with no plan generating fails silently**. Therefore, I did **remove that assertion**.
+- Among these tests, **none** are unit tests and **all 6** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 475 passed and the 2 failures inherited from `main` (471 tests after #214, screenshot 1)**.
+
+  ![1, python -m pytest on feat/tandem-template-save, 6 passed in test_tandem_template_controls.py and 475 passed with the 2 failures inherited from main, and 2, the real Tandem tab on Ex2 after saving three tandem templates](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d0c5bab7dd19e2d7e1465e42998e5a5bed2eab63/docs/logs/ariq/screenshots/week-9/pr-215-1-save-template.png)
