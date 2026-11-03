@@ -240,7 +240,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-load, 14 passed in test_tandem_template_controls.py and 483 passed with the 2 failures inherited from main, 2, Load naming the rotation that replaces Tandem's, and 3, Load capping 170 mm at the 160 mm cylinder](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5201c5ced796376ddee007faf0c1e2fa07226ec7/docs/logs/ariq/screenshots/week-9/pr-216-1-load-template.png)
 
-### For PR #**217** (6 of 8, on #216)
+### For PR #**217** (6 of 9, on #216)
 
 - As part of requirement **FR-CN-06 and issue #209, manage tandem templates**, the user needs to do **load a template, change it and press Update, or select one and press Delete, and confirm**.
 - Therefore, I implemented/generated code so that **clinicians rename, change or delete a tandem template from the Tandem tab, only after answering Yes**.
