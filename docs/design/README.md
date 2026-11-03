@@ -99,7 +99,9 @@ the status line under the button. Saving does not generate a tandem. *Load*, bes
 the Generate boxes from the selected template but builds nothing: the status line says to press
 *Generate Tandem*. It also says when the Tandem Height was capped at a shorter cylinder, and when
 the saved rotation replaces the chosen tandem channel's direction, naming both, since the bend
-will then no longer point at that channel. *Verified* by offscreen widget tests.
+will then no longer point at that channel. *Update* and *Delete* each ask first, naming the
+template, with Cancel the default, using the Cylinder tab's dialog. *Verified* by offscreen widget
+tests.
 
 When a tandem channel is set but no tandem has been generated or imported, the Export tab shows
 a word-wrapped warning above its export buttons, and Export Mesh, Export Reference Sheet and
