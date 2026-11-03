@@ -1239,7 +1239,9 @@ docstring in the file: it applies each spin-box value one at a time, rebuilding 
 each; any value that throws is recorded, reverted in the UI, but *left in place internally* in
 case a later value fixes it. Survivors at the end trigger per-field error dialogs. The effect
 is that an invalid tandem parameter reverts itself rather than blocking the user.
-A box reverted on the way stays reverted even when the final shape uses its new value (§7.23).
+A box reverted on the way used to stay reverted even when the final shape used its new value. Since
+2026-11-03 `TandemView.action_set_tandem` refills every box from the model after Generate, with
+`update_settings`, so the tab shows the tandem that was built (§7.23).
 
 `ShapeModel` ([shape_model.py](../../src/windows/models/shape_model.py)) is the transport
 object between models and the viewport: `label`, `shape`, `type`, plus `selected` /
@@ -2496,6 +2498,12 @@ reads `units_app.window` before replacing it. In the whole suite an earlier `tes
 
 ### 7.23 HIGH — *Generate Tandem* can show settings it did not build
 
+**Fixed 2026-11-03.** After every Generate, `TandemView.action_set_tandem` now refills the boxes
+from the model with `update_settings`, after the rotation is applied, so they show the tandem that
+was cut and the next Generate builds the same one. *Verified* by `tests/views/test_tandem_view.py`.
+`_generate_tandem` itself is unchanged, so the steps still fail and are put back on the way. The
+entry is kept so the trap stays visible.
+
 *Verified* 2026-11-02 on macOS, offscreen on `main` with Ex2, and in the real window after
 loading a tandem template. Not changed. `TandemModel._generate_tandem` (§5.5) applies the
 diameter, stopper, angle, radius and height one at a time to a `Tandem` that starts from the live
@@ -2632,7 +2640,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_custom_needle_points.py` | a custom needle's points are not tissue end first at Length 1 plus Length 2, or a length of 0 or less, NaN, infinity, a Length 1 over the cylinder or a start 13.6 mm out, a Theta of 90 or below 0, or a bend with no radius is built, or a refusal has a colon or dash, or a start 13.5 mm out or a Length 1 of 100 mm is refused, or a bend's tip, its arc points or its straight case at Theta 0 are wrong (§5.4) |
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11). Or `tandem_from_design` drops or swaps a value, or `tandem_builds` calls a 30° bend at 60 or 170 mm buildable on a 160 by 30 mm cylinder, or refuses one at 120 mm or a straight one at 60 mm (§7.21) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
-| `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1) |
+| `views/test_tandem_view.py` | *Generate Tandem* drops a live setting that `getCurrentValues()` does not list (§7.1). Or, on Ex2 with the default tandem settings, the boxes after Generate do not show the 4.2 mm, 45° tandem that was built, or a second Generate rebuilds it at 3.8 mm and 30° (§7.23) |
 | `views/test_export_tandem_warning.py` | Ex2 imported with no tandem opens the Export tab without a warning naming its Tandem channel, or with a colon or an em dash in it, or the warning shows once a tandem is generated or with no tandem channel. Or exporting with the warning does not ask once with its text, goes ahead after No, or asks when the tandem hole exists (§7.15) |
 | `views/test_tandem_channel_choice.py` | the Tandem Channel box does not list *None* and Ex2's 13 channels with their numbers, or does not show channel 14 after import or a tandem set on the Channels tab. Or choosing Applicator7 does not make it the only channel left out of the cut and aim the tandem at 64.929°, *No* in the rotation warning keeps it, *None* leaves a tandem channel, a moved channel is accepted or not explained, the off-axis warning is missing, wrong, has a colon or an em dash, or shows for Tandem. Or a Generate spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§5.6) Or the warning does not follow a diameter changed with *Generate Tandem*, a missing tandem channel raises, or *No* after *None* leaves the rotation changed (#183). |
 | `views/test_tandem_channel.py` | importing Ex2 does not aim the tandem along its channel 14 at 359.996° or record the plan rotation, or `set_tandem(None)` leaves a tandem channel named, keeps the previous tandem channel disabled, puts `None` in the disabled set, or changes the tandem's rotation (§5.5) |
