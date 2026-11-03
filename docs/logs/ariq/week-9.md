@@ -5,7 +5,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 ## Stack #212 to #219, at a glance
 
-Eight stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them. Each PR is based on the one above it and closes its own issue.
+Nine stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, and make *Generate Tandem*'s boxes show the tandem it built. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
@@ -38,7 +38,7 @@ Stated once here instead of in each section.
 - **Two failures inherited from `main`.** **`test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` in `tests/views/test_structure_display.py` also fail on `main` (`6fa56b7`, 2 failed and 37 passed in that file). This stack does not touch the Structures tab**.
 - **Not applicable in every PR.** **Encryption and access controls (no stored secrets, no user roles), restricted pages (no logins), usability evaluation (none run), backend API (none), test coverage (no coverage tool)**.
 
-### For PR #**212** (1 of 8, on `main`)
+### For PR #**212** (1 of 9, on `main`)
 
 - As part of requirement **FR-CN-05 and issue #204, save tandem designs as templates**, the user needs to do **set up a tandem on the Tandem tab's Generate sub-tab and keep it under a name for later patients**.
 - Therefore, I implemented/generated code so that **a clinician's tandem template holds the eight Generate settings, rotation included, with a name, note and dates, and can never hold a value the sub-tab cannot show**.
@@ -81,7 +81,7 @@ Stated once here instead of in each section.
   ![1, python -m pytest on feat/tandem-template-values, 18 passed in test_tandem_templates.py and 442 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/1a6667acaaaae69cd2aa7516d910320406fa61d8/docs/logs/ariq/screenshots/week-9/pr-212-1-pytest-444.png)
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**213** (2 of 8, on #212)
+### For PR #**213** (2 of 9, on #212)
 
 - As part of requirement **FR-CN-05, FR-CN-06 and issue #205, keep tandem templates in a library**, the user needs to do **save a tandem template, close brachify, and find it again, even if the file was edited by hand**.
 - Therefore, I implemented/generated code so that **tandem templates are saved to and read from `~/brachify/tandem_templates.json`, with a bad file refused rather than overwritten**.
@@ -126,7 +126,7 @@ Stated once here instead of in each section.
   ![1, python -m pytest on feat/tandem-template-library, 38 passed in test_tandem_templates.py and 462 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c450d4893a22f6fe93cae65085a44d3c94ac6c70/docs/logs/ariq/screenshots/week-9/pr-213-1-pytest-464.png)
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**214** (3 of 8, on #213)
+### For PR #**214** (3 of 9, on #213)
 
 - As part of requirement **FR-CN-06 and issue #206, manage tandem templates**, the user needs to do **rename a saved tandem template, change its settings or note, or delete it**.
 - Therefore, I implemented/generated code so that **a tandem template can be updated in place, keeping its ID, created date and place, or deleted, and the system architecture names `tandem_templates.json`**.
@@ -169,7 +169,7 @@ Stated once here instead of in each section.
   ![1, python -m pytest on feat/tandem-template-changes, 45 passed in test_tandem_templates.py and 469 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ae7935035c6098aa62b794c20c0074d6667e21ba/docs/logs/ariq/screenshots/week-9/pr-214-1-pytest-471.png)
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**215** (4 of 8, on #214)
+### For PR #**215** (4 of 9, on #214)
 
 - As part of requirement **FR-CN-05 and issue #207, save tandem designs as templates**, the user needs to do **set the Generate boxes, type a name and a note, and press Save as Template**.
 - Therefore, I implemented/generated code so that **clinicians save the eight Generate settings as a named tandem template from the Tandem tab, and see why a save is refused**.
@@ -208,7 +208,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-save, 6 passed in test_tandem_template_controls.py and 475 passed with the 2 failures inherited from main, and 2, the real Tandem tab on Ex2 after saving three tandem templates](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d0c5bab7dd19e2d7e1465e42998e5a5bed2eab63/docs/logs/ariq/screenshots/week-9/pr-215-1-save-template.png)
 
-### For PR #**216** (5 of 8, on #215)
+### For PR #**216** (5 of 9, on #215)
 
 - As part of requirement **FR-CN-06 and issue #208, load a tandem template**, the user needs to do **select a saved template, press Load, read the status line, and press Generate Tandem**.
 - Therefore, I implemented/generated code so that **clinicians load a template's eight settings without generating, and are told when the height was capped at a shorter cylinder or the rotation replaces the tandem channel's direction**.
@@ -242,7 +242,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-load, 14 passed in test_tandem_template_controls.py and 483 passed with the 2 failures inherited from main, 2, Load naming the rotation that replaces Tandem's, and 3, Load capping 170 mm at the 160 mm cylinder](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5201c5ced796376ddee007faf0c1e2fa07226ec7/docs/logs/ariq/screenshots/week-9/pr-216-1-load-template.png)
 
-### For PR #**217** (6 of 8, on #216)
+### For PR #**217** (6 of 9, on #216)
 
 - As part of requirement **FR-CN-06 and issue #209, manage tandem templates**, the user needs to do **load a template, change it and press Update, or select one and press Delete, and confirm**.
 - Therefore, I implemented/generated code so that **clinicians rename, change or delete a tandem template from the Tandem tab, only after answering Yes**.
@@ -275,7 +275,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-update-delete, 20 passed in test_tandem_template_controls.py and 489 passed with the 2 failures inherited from main, and 2, the Tandem tab after Update renamed Long bend to Long bend sharp](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0e962d084d2f2ea3a7fe5e29a92081b51b0f5d5c/docs/logs/ariq/screenshots/week-9/pr-217-1-update-template.png)
 
-### For PR #**218** (7 of 8, on #217)
+### For PR #**218** (7 of 9, on #217)
 
 - As part of requirement **FR-CN-06 and issue #210, catch a tandem template that cannot be built**, the user needs to do **load a template and learn before Generate Tandem whether this cylinder can take it**.
 - Therefore, I implemented/generated code so that **clinicians are told on Load when a template cannot be built on the current cylinder, and which settings to change**.
@@ -317,7 +317,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-build-check, 7 passed in test_tandem.py, 21 in test_tandem_template_controls.py run alone, and 495 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a09af3d3e7b650b3c05f0b18f9db8f36e0d6044e/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
 
-### For test PR #**219** (8 of 8, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
+### For test PR #**219** (8 of 9, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
 
 - The functionality works correctly because the happy path tests involving **`test_the_exported_mesh_has_the_templates_tandem_hole`, `test_the_reference_sheet_draws_the_templates_tandem` (2 new; 2 in the file; screenshot 1)** passed.
 - I checked that these negative cases involving **four deliberate breaks (Load skipping the rotation or the diameter, Generate leaving the live settings, the export cutting no tandem)** failed as expected.
