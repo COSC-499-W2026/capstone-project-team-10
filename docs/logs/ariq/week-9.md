@@ -205,7 +205,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-save, 6 passed in test_tandem_template_controls.py and 475 passed with the 2 failures inherited from main, and 2, the real Tandem tab on Ex2 after saving three tandem templates](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d0c5bab7dd19e2d7e1465e42998e5a5bed2eab63/docs/logs/ariq/screenshots/week-9/pr-215-1-save-template.png)
 
-### For PR #**216** (5 of 8, on #215)
+### For PR #**216** (5 of 9, on #215)
 
 - As part of requirement **FR-CN-06 and issue #208, load a tandem template**, the user needs to do **select a saved template, press Load, read the status line, and press Generate Tandem**.
 - Therefore, I implemented/generated code so that **clinicians load a template's eight settings without generating, and are told when the height was capped at a shorter cylinder or the rotation replaces the tandem channel's direction**.
