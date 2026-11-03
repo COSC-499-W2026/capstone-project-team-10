@@ -316,7 +316,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 495 passed and the 2 failures inherited from `main` (491 tests after #217, screenshot 1)**.
 
-  ![1, python -m pytest on feat/tandem-template-build-check, 7 passed in test_tandem.py, 21 in test_tandem_template_controls.py run alone, and 495 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a09af3d3e7b650b3c05f0b18f9db8f36e0d6044e/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
+  ![1, python -m pytest on feat/tandem-template-build-check, 7 passed in test_tandem.py, 21 in test_tandem_template_controls.py run alone, and 495 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ff8fcf47fea69ec17a2b561c8aa6581dd3848d06/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
 
 ### For test PR #**219** (8 of 9, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
 
@@ -327,7 +327,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 497 passed and the 2 failures inherited from `main` (497 tests after #218, screenshot 1)**.
 
-  ![1, python -m pytest on test/tandem-template-exports, 2 passed in test_tandem_template_exports.py and 497 passed with the 2 failures inherited from main, 2, the Export tab after Long bend was generated, and 3, the Generate boxes showing 3.8 mm and 30 degrees after Generate, section 7.23](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a9a2bfaae5b5445d482a6400deff8ec3bbfaf07c/docs/logs/ariq/screenshots/week-9/pr-219-1-export.png)
+  ![1, python -m pytest on test/tandem-template-exports, 2 passed in test_tandem_template_exports.py and 497 passed with the 2 failures inherited from main, 2, the Export tab after Long bend was generated, and 3, the Generate boxes showing 3.8 mm and 30 degrees after Generate, section 7.23](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0f09dc4ad2c9a704bc8cf2d44a6159d190a1e28e/docs/logs/ariq/screenshots/week-9/pr-219-1-export.png)
 - Not applicable: **abnormal cases (the earlier PRs cover them)**.
 
 ### For PR #**221** (9 of 9, on #219)
