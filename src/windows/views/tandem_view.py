@@ -16,10 +16,12 @@ from classes.pdf.template_reference import extract_points_from_channels2
 from windows.models.shape_model import ShapeTypes
 from windows.ui.tandem_view_ui import Ui_Tandem_View
 from windows.views.custom_view import display_action, CustomView
+from windows.views.cylinder_view import template_change_dialog
 
 from settings.reset import getCurrentValues
 from settings.tandem_templates import (
-    LIBRARY_FILE_NAME, TandemDesign, TandemTemplate, TandemTemplateError, add_template, load_templates, make_template,
+    LIBRARY_FILE_NAME, TandemDesign, TandemTemplate, TandemTemplateError, add_template, delete_template,
+    load_templates, make_template, update_template,
 )
 
 materials = {
@@ -243,8 +245,37 @@ class TandemView(CustomView):
         ui.tandem_rotation.setValue(design.rotation_deg)
 
     def action_select_template(self, row: int) -> None:
-        """Load needs a selected template."""
-        self.ui.btn_load_template.setEnabled(row >= 0)
+        """Load, Update and Delete need a selected template."""
+        for button in (self.ui.btn_load_template, self.ui.btn_update_template, self.ui.btn_delete_template):
+            button.setEnabled(row >= 0)
+
+    def ask(self, title: str, question: str) -> bool:
+        """Ask the clinician to confirm, with Cancel the default."""
+        return template_change_dialog(title, question).exec() == QMessageBox.StandardButton.Yes
+
+    def action_update_template(self) -> None:
+        """Once confirmed, write the tab's name, note and Generate settings to the selected template."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        if not self.confirm("Update Template", f"Replace {template.name} with the Generate settings on this tab?"):
+            return
+        try:
+            self.show_templates(update_template(self.templates_path, template.template_id, self.ui.le_template_name.text(),
+                                                self.ui.le_template_note.text(), self.tandem_design(),
+                                                datetime.now(timezone.utc)))
+            self.ui.label_template_status.setText(f"Updated {self.ui.le_template_name.text().strip()}")
+        except TandemTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
+    def action_delete_template(self) -> None:
+        """Once confirmed, remove the selected template."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        if not self.confirm("Delete Template", f"Delete the template {template.name}?"):
+            return
+        try:
+            self.show_templates(delete_template(self.templates_path, template.template_id))
+            self.ui.label_template_status.setText(f"Deleted {template.name}")
+        except TandemTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
 
     def action_load_template(self) -> None:
         """Put the selected template on the Generate sub-tab, saying what the tab could not keep. Generate builds it."""
@@ -355,6 +386,8 @@ class TandemView(CustomView):
         # the rotation warning asks through this, so a test can answer for the clinician
         self.confirm_rotation: Callable[[], bool] = self.ask_rotation_change
         self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
+        # Update and Delete ask through this, so a test can answer for the clinician
+        self.confirm: Callable[[str, str], bool] = self.ask
         self.action_load_templates()
 
         # signals and slots
@@ -366,6 +399,8 @@ class TandemView(CustomView):
         self.ui.cb_tandem_channel.activated.connect(self.action_choose_tandem_channel)
         self.ui.btn_save_template.pressed.connect(self.action_save_template)
         self.ui.btn_load_template.pressed.connect(self.action_load_template)
+        self.ui.btn_update_template.pressed.connect(self.action_update_template)
+        self.ui.btn_delete_template.pressed.connect(self.action_delete_template)
         self.ui.list_templates.currentRowChanged.connect(self.action_select_template)
         self.channelsmodel.values_changed.connect(self.refresh_tandem_channels)
 

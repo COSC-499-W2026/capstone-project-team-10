@@ -318,3 +318,122 @@ def test_no_rotation_is_named_when_it_matches_the_channel_or_there_is_none(
     load_first_template(plan_tab)
 
     assert plan_tab.ui.label_template_status.text() == "Loaded Long bend. Press Generate Tandem to build it."
+
+
+class Answers:
+    """Stand in for the clinician answering the confirmation dialog, as a helper and not a test.
+
+    Assigned to TandemView.confirm, the view's seam for its dialog, so no module is patched.
+    It records each title and question asked and gives the chosen answer.
+    """
+
+    def __init__(self, answer: bool) -> None:
+        """Remember the answer to give. A helper, not a test."""
+        self.answer = answer
+        self.asked: list[tuple[str, str]] = []
+
+    def __call__(self, title: str, question: str) -> bool:
+        """Record the question, and answer. A helper, not a test."""
+        self.asked.append((title, question))
+        return self.answer
+
+
+def test_update_after_confirming_saves_the_tabs_name_note_and_settings(tandem_tab: TandemView) -> None:
+    """Check that Update, once confirmed, writes the tab's name, note and Generate settings to the selected template.
+
+    "Long bend" is loaded, renamed "Long bend sharp", its note cleared and its bend set to 60
+    degrees. Fails if the question does not name the template, the file still holds the old
+    values, the ID or created date changes, or the list and status line do not show the new
+    name. Update is how a template is renamed or corrected (FR-CN-06).
+    """
+    from datetime import datetime, timezone
+
+    from settings.tandem_templates import load_templates
+
+    saved_template(tandem_tab)
+    load_first_template(tandem_tab)
+    tandem_tab.ui.le_template_name.setText("Long bend sharp")
+    tandem_tab.ui.le_template_note.setText("")
+    tandem_tab.ui.sp_bend_angle.setValue(60.0)
+    tandem_tab.confirm = answers = Answers(True)
+
+    click(tandem_tab.ui.btn_update_template)
+
+    [updated] = load_templates(library_path())
+    assert answers.asked == [("Update Template", "Replace Long bend with the Generate settings on this tab?")]
+    assert (updated.template_id, updated.name, updated.note, updated.design.bend_angle_deg) == (
+        "id-Long bend", "Long bend sharp", "", 60.0)
+    assert updated.created == datetime(2026, 11, 2, 17, 5, tzinfo=timezone.utc)
+    assert tandem_tab.ui.list_templates.item(0).text() == "Long bend sharp"
+    assert tandem_tab.ui.label_template_status.text() == "Updated Long bend sharp"
+
+
+def test_delete_after_confirming_removes_the_template(tandem_tab: TandemView) -> None:
+    """Check that Delete, once confirmed, removes the selected template from the file and the list.
+
+    Fails if the question does not name the template, or the template is still saved or listed.
+    """
+    from settings.tandem_templates import load_templates
+
+    saved_template(tandem_tab)
+    tandem_tab.ui.list_templates.setCurrentRow(0)
+    tandem_tab.confirm = answers = Answers(True)
+
+    click(tandem_tab.ui.btn_delete_template)
+
+    assert answers.asked == [("Delete Template", "Delete the template Long bend?")]
+    assert load_templates(library_path()) == ()
+    assert tandem_tab.ui.list_templates.count() == 0
+    assert tandem_tab.ui.label_template_status.text() == "Deleted Long bend"
+
+
+@pytest.mark.parametrize("button", ["btn_update_template", "btn_delete_template"])
+def test_cancelling_update_or_delete_changes_nothing(tandem_tab: TandemView, button: str) -> None:
+    """Check that answering Cancel to Update or Delete leaves the library file byte for byte as it was.
+
+    Fails if the template is changed or removed after Cancel. Both overwrite a saved design for
+    good, so the clinician must be able to back out of a click on the wrong template.
+    """
+    saved_template(tandem_tab)
+    before = library_path().read_text(encoding="utf-8")
+    load_first_template(tandem_tab)
+    tandem_tab.ui.sp_bend_angle.setValue(60.0)
+    tandem_tab.confirm = Answers(False)
+
+    click(tandem_tab.ui.btn_update_template if button == "btn_update_template" else tandem_tab.ui.btn_delete_template)
+
+    assert library_path().read_text(encoding="utf-8") == before
+
+
+def test_update_to_a_taken_name_says_why_and_changes_nothing(tandem_tab: TandemView) -> None:
+    """Check that renaming one template to another's name is refused in the status line.
+
+    "Long bend" is renamed "Standard", which another template already uses. Fails if the file
+    changes or the status line does not say why, which would leave two templates the clinician
+    cannot tell apart.
+    """
+    saved_template(tandem_tab)
+    save_as(tandem_tab, "Standard")
+    before = library_path().read_text(encoding="utf-8")
+    load_first_template(tandem_tab)
+    tandem_tab.ui.le_template_name.setText("Standard")
+    tandem_tab.confirm = Answers(True)
+
+    click(tandem_tab.ui.btn_update_template)
+
+    assert library_path().read_text(encoding="utf-8") == before
+    assert tandem_tab.ui.label_template_status.text() == "A tandem template named Standard already exists"
+
+
+def test_update_and_delete_are_disabled_until_a_template_is_selected(tandem_tab: TandemView) -> None:
+    """Check that Update and Delete cannot be pressed with nothing selected, and can once a template is.
+
+    Fails if either starts enabled after the list is filled, or stays disabled after a selection.
+    With nothing selected there is no template for them to change.
+    """
+    saved_template(tandem_tab)
+    buttons = (tandem_tab.ui.btn_update_template, tandem_tab.ui.btn_delete_template)
+
+    assert [button.isEnabled() for button in buttons] == [False, False]
+    tandem_tab.ui.list_templates.setCurrentRow(0)
+    assert [button.isEnabled() for button in buttons] == [True, True]
