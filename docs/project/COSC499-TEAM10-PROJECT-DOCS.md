@@ -622,7 +622,9 @@ shows each channel's status in colour (§5.6). The Selected Channel group also s
 channel's diameter as a named needle template and applies one (§5.2, §6.3). On 2026-10-19
 `settings/cylinder_templates.py` began modelling a named cylinder template, the Cylinder tab's
 settings checked against its own limits, and saving them to `~/brachify/cylinder_templates.json`
-(§5.2, §6.3). The Cylinder tab's Templates group saves the tab's settings to it (§5.6).
+(§5.2, §6.3). The Cylinder tab's Templates group saves the tab's settings to it (§5.6). On
+2026-11-02 `settings/tandem_templates.py` began modelling a named tandem template, the Tandem
+tab's eight Generate settings checked against their own limits (§5.2).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -840,7 +842,7 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
 │   ├── project/               ← this document, and COSC499-BRACHIFY-INIT-DOCS.md (the
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr, make-weekly-log)
-├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle and cylinder template tests in settings/ (§8)
+├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle, cylinder and tandem template tests in settings/ (§8)
 ├── utils/                     README only
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
@@ -860,7 +862,7 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio, structure_contours, structure_surfaces
     │   └── pdf/               template_reference.py, canvas.py
-    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py, cylinder_templates.py
+    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py, cylinder_templates.py, tandem_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
@@ -967,6 +969,21 @@ modified date, and refuses a name another template uses in any case (its own nam
 case is allowed). `delete_template` removes one template. Both refuse an unknown ID with "That
 cylinder template no longer exists", and both read and write the file the same way as
 `add_template`. *Verified* by `tests/settings/test_cylinder_templates.py` (§8.2).
+
+**[`settings/tandem_templates.py`](../../src/settings/tandem_templates.py)** — tandem templates,
+added 2026-11-02. A `TandemTemplate` is a frozen dataclass of `template_id`, `name`, `note`,
+`created`, `modified` and a `TandemDesign`, which holds the Tandem tab's eight Generate
+settings with lengths in mm and angles in degrees: height, channel diameter, stopper diameter,
+bend angle, bend radius, threading depth, threading diameter and rotation. The Tandem Channel
+choice and the Import sub-tab are not part of it. `make_template` makes the same checks as the
+cylinder module's, against `RANGES`, the Generate spin box limits copied from
+`tandem_view.ui`: Tandem Height 10 to 500 mm, Channel and Stopper Diameter 0.5 to 99.99 mm, Bend
+Angle 0 to 99.99°, Bend Radius 10 to 1000 mm, both threading values 0 to 350 mm and Rotation
+−360 to 360°. The 99.99 limits are Qt's default maximum, since the `.ui` sets none for those
+boxes. It reuses `Range` from `cylinder_templates.py` and, like it, imports nothing from
+`classes` or `windows`. The limits do not include the cylinder: a Tandem Height can be taller
+than the cylinder it is later loaded onto. *Verified* by
+`tests/settings/test_tandem_templates.py` (§8.2).
 
 ### 5.3 DICOM ingest
 
@@ -2492,6 +2509,7 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
+| `settings/test_tandem_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside a Generate spin box range, NaN or infinity is accepted and the message does not name the setting, a range edge the tab allows is refused, a time with no zone or a modified time before the created one is accepted, or a value is changed (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
 | `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, a highlighted surface actor is not the channel-selection blue, a checkbox toggle drops the highlight, a click after keyboard navigation cannot toggle, or leaving the tab keeps the highlight. Or `set_color` mutates the DICOM RGB, changes another organ, accepts a component outside 0 to 255, leaves the list swatch on the old colour, a cancelled pick recodes the organ, or a click after a colour change cannot re-highlight the row. Or the Structures tab stylesheet does not contain `color: rgb(0, 0, 0)` (§5.5–5.7) |
