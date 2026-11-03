@@ -75,7 +75,7 @@ Stated once here instead of in each section.
   ![1, python -m pytest on feat/tandem-template-values, 18 passed in test_tandem_templates.py and 442 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/1a6667acaaaae69cd2aa7516d910320406fa61d8/docs/logs/ariq/screenshots/week-9/pr-212-1-pytest-444.png)
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**213** (2 of 8, on #212)
+### For PR #**213** (2 of 9, on #212)
 
 - As part of requirement **FR-CN-05, FR-CN-06 and issue #205, keep tandem templates in a library**, the user needs to do **save a tandem template, close brachify, and find it again, even if the file was edited by hand**.
 - Therefore, I implemented/generated code so that **tandem templates are saved to and read from `~/brachify/tandem_templates.json`, with a bad file refused rather than overwritten**.
