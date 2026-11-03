@@ -1506,7 +1506,24 @@ a tandem channel the plan does not have shows no warning.
 *Generate sub-tab:* `sb_tandem_height` (10 – 500), `sp_channel_diameter` (min 0.5),
 `sp_stopper_diameter` (min 0.5), `sp_bend_angle`, `sb_bend_radius` (10 – 1000),
 `sb_threading_depth` (max 350), `sb_threading_diameter` (max 350), `tandem_rotation_2`
-(−360 – 360), `btn_apply` "Generate Tandem", `btn_clear_generate`.
+(−360 – 360), `btn_apply` "Generate Tandem", `btn_clear_generate`. Since 2026-11-02 the page's
+left and right margins are 8 px rather than 10, because the Templates group below makes the page
+taller than the default window: the vertical scroll bar then takes 18 px, and the 276 px page no
+longer fitted the 272 px left beside it, so the tab scrolled 4 px sideways
+(`test_the_tandem_tab_never_scrolls_sideways_in_the_default_window` caught it).
+
+*Templates group* (`group_templates`, added 2026-11-02), under *Clear Tandem*, styled like the
+Cylinder tab's: `le_template_name` and `le_template_note` (placeholders), `list_templates`, every
+saved tandem template by name, whose tooltip gives the note, the created and modified dates and a
+summary such as `170 mm high, 30° bend, rotated 0°`, `btn_save_template` "Save as Template", and
+`label_template_status`. *Save as Template* reads the eight Generate settings with
+`TandemView.tandem_design()`, the rotation from this sub-tab's own `tandem_rotation_2`, and saves
+them with a new random ID through `settings.tandem_templates.add_template` to
+`~/brachify/tandem_templates.json`. It does not generate a tandem. A blank or taken name, or a
+library that cannot be read, is explained in `label_template_status`, and the tab reads the
+library when it is built without ever stopping brachify starting. `RANGES` is checked against
+these spin boxes' limits by a test, before any plan sets the Tandem Height maximum to a
+cylinder's length. *Verified* by `tests/views/test_tandem_template_controls.py` (§8.2).
 
 Note there are **two separate rotation spin boxes** (`tandem_rotation` on Import,
 `tandem_rotation_2` on Generate) kept manually in sync — every write to one writes the other.
@@ -1786,7 +1803,7 @@ Adding a setting touches **four** places: `settings/defaults.py`, `resetAllValue
 | `filepaths.json` | `MainWindow.closeEvent` | `most_recently_opened_config_file`, `most_recently_saved_config_file` |
 | `needle_templates.json` | `settings.needle_templates.save_template`, from the Channels tab's *Save as Template* | a JSON list of `{"name", "diameter_mm"}` objects |
 | `cylinder_templates.json` | `settings.cylinder_templates.add_template`, from the Cylinder tab's *Save as Template* (§5.6) | `{"version": 1, "templates": [...]}`, each template an `id`, `name`, `note`, ISO 8601 `created` and `modified`, and the 11 Cylinder tab settings in mm |
-| `tandem_templates.json` | `settings.tandem_templates.add_template`, `update_template` and `delete_template` (§5.2). Nothing in the app calls them yet | `{"version": 1, "templates": [...]}`, each template an `id`, `name`, `note`, ISO 8601 `created` and `modified`, and the eight Generate settings in mm and degrees |
+| `tandem_templates.json` | `settings.tandem_templates.add_template`, from the Tandem tab's *Save as Template* (§5.6) | `{"version": 1, "templates": [...]}`, each template an `id`, `name`, `note`, ISO 8601 `created` and `modified`, and the eight Generate settings in mm and degrees |
 
 `most_recently_saved_config_file` is stored but never read — it is reserved for future use.
 
@@ -2518,6 +2535,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `settings/test_tandem_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside a Generate spin box range, NaN or infinity is accepted and the message does not name the setting, a range edge the tab allows is refused, a time with no zone or a modified time before the created one is accepted, or a value is changed. Or a template does not read back identical, a name already used in another case or a saved ID is added, a missing library is not empty, a library of another version or shape, with a missing, mistyped or out-of-range value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `TandemTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
+| `views/test_tandem_template_controls.py` | *Save as Template* does not list and write a template, a Generate setting is saved from the wrong box (the rotation from the Import sub-tab's), the tooltip has no summary, a blank or taken name or an unreadable library is not explained in the status line or an error escapes, or `RANGES` and the Generate spin boxes disagree (§5.6) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
 | `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, a highlighted surface actor is not the channel-selection blue, a checkbox toggle drops the highlight, a click after keyboard navigation cannot toggle, or leaving the tab keeps the highlight. Or `set_color` mutates the DICOM RGB, changes another organ, accepts a component outside 0 to 255, leaves the list swatch on the old colour, a cancelled pick recodes the organ, or a click after a colour change cannot re-highlight the row. Or the Structures tab stylesheet does not contain `color: rgb(0, 0, 0)` (§5.5–5.7) |
