@@ -317,7 +317,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-build-check, 7 passed in test_tandem.py, 21 in test_tandem_template_controls.py run alone, and 495 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a09af3d3e7b650b3c05f0b18f9db8f36e0d6044e/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
 
-### For test PR #**219** (8 of 8, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
+### For test PR #**219** (8 of 9, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
 
 - The functionality works correctly because the happy path tests involving **`test_the_exported_mesh_has_the_templates_tandem_hole`, `test_the_reference_sheet_draws_the_templates_tandem` (2 new; 2 in the file; screenshot 1)** passed.
 - I checked that these negative cases involving **four deliberate breaks (Load skipping the rotation or the diameter, Generate leaving the live settings, the export cutting no tandem)** failed as expected.
