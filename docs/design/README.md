@@ -91,6 +91,13 @@ default 770 × 472 window, so the Generate spin boxes keep their full height. *V
 offscreen widget tests and in a run of the real window on macOS. A screenshot of it is linked
 from Ariq's week 8 log.
 
+Below *Clear Tandem* on the Generate sub-tab, a Templates group saves the eight Generate
+settings, rotation included, under a name: a name field, a note field, the list of saved tandem
+templates and *Save as Template*, laid out like the Cylinder tab's. Hovering a template shows its
+note, dates and a one-line summary. A refused save or an unreadable template file is explained in
+the status line under the button. Saving does not generate a tandem. *Verified* by offscreen
+widget tests.
+
 When a tandem channel is set but no tandem has been generated or imported, the Export tab shows
 a word-wrapped warning above its export buttons, and Export Mesh, Export Reference Sheet and
 Export Shape(s) ask before going ahead, with Cancel the default. *Verified* by offscreen tests and
