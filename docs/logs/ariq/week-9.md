@@ -361,4 +361,4 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 499 passed and the 2 failures inherited from `main` (499 tests after #219, screenshot 1)**.
 
-  ![1, python -m pytest on fix/generate-tandem-boxes, 3 passed in test_tandem_view.py and 499 passed with the 2 failures inherited from main, and 2, the Tandem tab right after Generate showing the 4.2 mm, 45 degree tandem it built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/84f5cec07f03cfa8fbe4f64a5dded4e229e5f17a/docs/logs/ariq/screenshots/week-9/pr-221-1-generate-boxes.png)
+  ![1, python -m pytest on fix/generate-tandem-boxes, 3 passed in test_tandem_view.py and 499 passed with the 2 failures inherited from main, and 2, the Tandem tab right after Generate showing the 4.2 mm, 45 degree tandem it built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b383e614af8b46df55a397c3adf77f0b7ffbb171/docs/logs/ariq/screenshots/week-9/pr-221-1-generate-boxes.png)
