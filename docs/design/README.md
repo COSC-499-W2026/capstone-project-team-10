@@ -95,8 +95,11 @@ Below *Clear Tandem* on the Generate sub-tab, a Templates group saves the eight 
 settings, rotation included, under a name: a name field, a note field, the list of saved tandem
 templates and *Save as Template*, laid out like the Cylinder tab's. Hovering a template shows its
 note, dates and a one-line summary. A refused save or an unreadable template file is explained in
-the status line under the button. Saving does not generate a tandem. *Verified* by offscreen
-widget tests.
+the status line under the button. Saving does not generate a tandem. *Load*, beside it, fills
+the Generate boxes from the selected template but builds nothing: the status line says to press
+*Generate Tandem*. It also says when the Tandem Height was capped at a shorter cylinder, and when
+the saved rotation replaces the chosen tandem channel's direction, naming both, since the bend
+will then no longer point at that channel. *Verified* by offscreen widget tests.
 
 When a tandem channel is set but no tandem has been generated or imported, the Export tab shows
 a word-wrapped warning above its export buttons, and Export Mesh, Export Reference Sheet and
