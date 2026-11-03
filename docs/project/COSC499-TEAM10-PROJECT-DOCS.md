@@ -1239,6 +1239,7 @@ docstring in the file: it applies each spin-box value one at a time, rebuilding 
 each; any value that throws is recorded, reverted in the UI, but *left in place internally* in
 case a later value fixes it. Survivors at the end trigger per-field error dialogs. The effect
 is that an invalid tandem parameter reverts itself rather than blocking the user.
+A box reverted on the way stays reverted even when the final shape uses its new value (§7.23).
 
 `ShapeModel` ([shape_model.py](../../src/windows/models/shape_model.py)) is the transport
 object between models and the viewport: `label`, `shape`, `type`, plus `selected` /
@@ -2481,6 +2482,20 @@ generated!"). A 100 mm bend radius failed at 120 mm alone, with OpenCASCADE's
 `Standard_ConstructionError`. There is no simple minimum, so the Tandem tab's *Load* makes a
 trial build instead of checking a number (§5.6). Typed values still reach only *Generate
 Tandem*'s error dialog. Not changed.
+
+### 7.23 HIGH — *Generate Tandem* can show settings it did not build
+
+*Verified* 2026-11-02 on macOS, offscreen on `main` with Ex2, and in the real window after
+loading a tandem template. Not changed. `TandemModel._generate_tandem` (§5.5) applies the
+diameter, stopper, angle, radius and height one at a time to a `Tandem` that starts from the live
+settings, and puts a box back when its step fails. With the default settings the live Tandem Height
+is 170 mm, which cannot be built on a 160 mm cylinder (§7.21), so every step before the height
+fails and its box is reset. The height step then succeeds, clears the error list, and builds the
+tandem with all the new values. Typing 140.5 mm, 4.2 mm, 6.5 mm, 45° and 40 mm and pressing
+*Generate Tandem* cut a 4.2 mm, 45° tandem while the boxes showed 3.8 mm, 5.0 mm, 30° and 35 mm.
+Pressing it again built what the boxes showed. No dialog appears. Typed values and *Load* then
+*Generate Tandem* on a new plan both reach it, until one tandem has been generated and the live
+height is buildable.
 
 ---
 
