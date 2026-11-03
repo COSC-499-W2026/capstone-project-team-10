@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #218, at a glance
+## Stack #212 to #219, at a glance
 
 Eight stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -17,6 +17,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#216](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/216) | #215 | #208 | *Load*, with the capped height and replaced rotation messages | 9, +290/−11 | 8 | 485 |
 | [#217](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/217) | #216 | #209 | *Update* and *Delete*, with confirmation | 9, +243/−8 | 6 | 491 |
 | [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +193/−10 | 6 | 497 |
+| [#219](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/219) | #218 | #211 | Tests only: the loaded template in the mesh and the sheet; §7.23 | 6, +166/−2 | 2 | 499 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -315,3 +316,15 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 495 passed and the 2 failures inherited from `main` (491 tests after #217, screenshot 1)**.
 
   ![1, python -m pytest on feat/tandem-template-build-check, 7 passed in test_tandem.py, 21 in test_tandem_template_controls.py run alone, and 495 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a09af3d3e7b650b3c05f0b18f9db8f36e0d6044e/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
+
+### For test PR #**219** (8 of 8, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
+
+- The functionality works correctly because the happy path tests involving **`test_the_exported_mesh_has_the_templates_tandem_hole`, `test_the_reference_sheet_draws_the_templates_tandem` (2 new; 2 in the file; screenshot 1)** passed.
+- I checked that these negative cases involving **four deliberate breaks (Load skipping the rotation or the diameter, Generate leaving the live settings, the export cutting no tandem)** failed as expected.
+- When I reviewed the **mesh test** for this functionality, I noticed **that a literal volume would only repeat what the code computes**. Therefore, I did **intersect the mesh with the template's cut-out built straight from `classes.mesh.tandem`, and with the default one to prove it can tell them apart**.
+- Among these tests, **none** are unit tests and **both** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 497 passed and the 2 failures inherited from `main` (497 tests after #218, screenshot 1)**.
+
+  ![1, python -m pytest on test/tandem-template-exports, 2 passed in test_tandem_template_exports.py and 497 passed with the 2 failures inherited from main, 2, the Export tab after Long bend was generated, and 3, the Generate boxes showing 3.8 mm and 30 degrees after Generate, section 7.23](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a9a2bfaae5b5445d482a6400deff8ec3bbfaf07c/docs/logs/ariq/screenshots/week-9/pr-219-1-export.png)
+- Not applicable: **abnormal cases (the earlier PRs cover them)**.
