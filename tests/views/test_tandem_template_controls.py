@@ -162,3 +162,159 @@ def test_the_template_ranges_match_the_generate_spin_boxes(tandem_tab: TandemVie
     }
     for key, box in boxes.items():
         assert (RANGES[key].minimum, RANGES[key].maximum) == (box.minimum(), box.maximum()), key
+
+
+LONG_BEND = (140.5, 4.2, 6.5, 45.0, 40.0, 8.0, 5.5, 258.697)
+
+
+def saved_template(view: TandemView, values: tuple[float, ...] = LONG_BEND, name: str = "Long bend") -> None:
+    """Write a template straight to the library and reread it, as a helper and not a test.
+
+    LONG_BEND's eight values all differ from the Generate defaults, so a setting Load skips
+    stays visible.
+    """
+    from datetime import datetime, timezone
+
+    from settings.tandem_templates import TandemDesign, add_template, make_template
+
+    saved_at = datetime(2026, 11, 2, 17, 5, tzinfo=timezone.utc)
+    template = make_template(f"id-{name}", name, "Deep cases", TandemDesign(*values), saved_at, saved_at)
+    add_template(library_path(), template)
+    view.action_load_templates()
+
+
+def load_first_template(view: TandemView) -> None:
+    """Select the first saved template and press Load, as a helper and not a test."""
+    view.ui.list_templates.setCurrentRow(0)
+    click(view.ui.btn_load_template)
+
+
+def shown_design(view: TandemView) -> tuple[float, ...]:
+    """Read the eight Generate boxes, in TandemDesign's order, as a helper and not a test."""
+    ui = view.ui
+    return (ui.sb_tandem_height.value(), ui.sp_channel_diameter.value(), ui.sp_stopper_diameter.value(),
+            ui.sp_bend_angle.value(), ui.sb_bend_radius.value(), ui.sb_threading_depth.value(),
+            ui.sb_threading_diameter.value(), ui.tandem_rotation_2.value())
+
+
+def test_load_fills_every_box_and_the_name_and_note_without_generating(
+    cylinder_window: MainWindow, tandem_tab: TandemView,
+) -> None:
+    """Check that Load puts the template's eight settings, name and note on the tab, and changes no model.
+
+    Fails if any box keeps its old value, the Import sub-tab's Rotation box, which keeps Qt's
+    default two decimals, is not given the same rotation, the name or note box is not filled, the status line does not say to
+    press Generate Tandem, or the tandem model takes the new bend angle. Load only fills the tab:
+    Generate Tandem builds the tandem, so loading the wrong template never changes the cut by itself.
+    """
+    view = tandem_tab
+    saved_template(view)
+
+    load_first_template(view)
+
+    assert shown_design(view) == LONG_BEND
+    assert view.ui.tandem_rotation.value() == 258.7
+    assert (view.ui.le_template_name.text(), view.ui.le_template_note.text()) == ("Long bend", "Deep cases")
+    assert view.ui.label_template_status.text() == "Loaded Long bend. Press Generate Tandem to build it."
+    assert cylinder_window.tandemmodel.tip_angle == 30
+
+
+def test_load_is_disabled_until_a_template_is_selected(tandem_tab: TandemView) -> None:
+    """Check that Load cannot be pressed while no template is selected, and can once one is.
+
+    Fails if Load starts enabled after the list is filled, or stays disabled after a selection.
+    With nothing selected, Load would have no template to put on the tab.
+    """
+    saved_template(tandem_tab)
+
+    assert not tandem_tab.ui.btn_load_template.isEnabled()
+    tandem_tab.ui.list_templates.setCurrentRow(0)
+    assert tandem_tab.ui.btn_load_template.isEnabled()
+
+
+@pytest.fixture
+def plan_tab(tandem_window: MainWindow) -> Iterator[TandemView]:
+    """Give a test the Tandem tab of the Ex2 window, with an empty library and the plan's own tandem.
+
+    A fixture, not a test. tandem_window is shared by the module, so the library is emptied and
+    channel 14, Tandem, made the tandem channel again before and after each test. The rotation
+    warning is marked as already shown, because Generate Tandem asks it through a modal dialog
+    no offscreen test can answer.
+    """
+    library_path().unlink(missing_ok=True)
+    tandem_window.channelsmodel.set_tandem("Tandem")
+    view = tandem_window.navigationmodel.views[TANDEM_TAB]
+    view.hasShownRotationWarning = True
+    view.action_load_templates()
+    yield view
+    library_path().unlink(missing_ok=True)
+    tandem_window.channelsmodel.set_tandem("Tandem")
+
+
+def test_load_then_generate_builds_the_templates_tandem(tandem_window: MainWindow, plan_tab: TandemView) -> None:
+    """Check that Load followed by Generate Tandem builds Ex2's tandem from the template.
+
+    Fails if a generated tandem's height, diameters, bend, threading or rotation is not the
+    template's. That is the point of a template: the tandem hole cut is the design saved.
+    """
+    saved_template(plan_tab)
+    load_first_template(plan_tab)
+
+    click(plan_tab.ui.btn_apply)
+
+    tandem = tandem_window.tandemmodel
+    assert tandem.exists()
+    assert (tandem.tandem_length, tandem.tandem_diameter, tandem.stopper_diameter, tandem.tip_angle,
+            tandem.bend_radius, tandem.threading_depth, tandem.threading_diameter, tandem.rotation) == LONG_BEND
+
+
+def test_a_height_taller_than_the_cylinder_is_capped_and_said(tandem_window: MainWindow, plan_tab: TandemView) -> None:
+    """Check that a 170 mm template loaded onto Ex2's 160 mm cylinder shows 160 mm and says so.
+
+    Apply Settings on the Cylinder tab sets the Tandem Height box's maximum to the cylinder's
+    length, as an import does. Fails if the status line does not name both heights. The box
+    would cap the value silently, and the clinician would generate a tandem that is not the
+    saved one without knowing.
+    """
+    tandem_window.navigationmodel.views[1].action_apply_settings()
+    saved_template(plan_tab, (170.0, 3.8, 5.0, 30.0, 35.0, 7.0, 5.0, 0.0), "Tall")
+
+    load_first_template(plan_tab)
+
+    assert plan_tab.ui.sb_tandem_height.value() == 160.0
+    assert plan_tab.ui.label_template_status.text() == (
+        "Loaded Tall. Its Tandem Height of 170 mm is capped at the 160 mm cylinder. "
+        "Press Generate Tandem to build it.")
+
+
+def test_a_rotation_unlike_the_tandem_channels_is_named(plan_tab: TandemView) -> None:
+    """Check that loading a 258.697 degree template while Tandem, aimed at 360 degrees, is chosen says so.
+
+    Fails if the status line does not name the channel and both directions. The tandem hole stays
+    on the axis, and only the rotation aims its bend, so after Generate the bend no longer points
+    at the plan's tandem channel. The clinician must see that before the device is printed.
+    """
+    saved_template(plan_tab)
+
+    load_first_template(plan_tab)
+
+    assert plan_tab.ui.label_template_status.text() == (
+        "Loaded Long bend. Its rotation of 258.697° replaces Tandem's 0°. Press Generate Tandem to build it.")
+
+
+@pytest.mark.parametrize("channel, rotation", [("Tandem", 0.0), ("Tandem", -0.004), (None, 258.697)])
+def test_no_rotation_is_named_when_it_matches_the_channel_or_there_is_none(
+    tandem_window: MainWindow, plan_tab: TandemView, channel: str | None, rotation: float,
+) -> None:
+    """Check that no rotation sentence is shown for Tandem's own direction, in any turn, or with no tandem channel.
+
+    Ex2's Tandem points at 359.996 degrees, the same direction as 0 and as -0.004. Fails if the
+    status line warns for any of the three, because a warning given when nothing changes
+    teaches the clinician to ignore it.
+    """
+    tandem_window.channelsmodel.set_tandem(channel)
+    saved_template(plan_tab, (140.5, 4.2, 6.5, 45.0, 40.0, 8.0, 5.5, rotation))
+
+    load_first_template(plan_tab)
+
+    assert plan_tab.ui.label_template_status.text() == "Loaded Long bend. Press Generate Tandem to build it."
