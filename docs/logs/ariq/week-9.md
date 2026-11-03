@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #216, at a glance
+## Stack #212 to #217, at a glance
 
 Eight stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -15,6 +15,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#214](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/214) | #213 | #206 | `update_template`, `delete_template`; diagram names the file | 9, +212/−9 | 7 | 471 |
 | [#215](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/215) | #214 | #207 | Templates group and *Save as Template* on the Generate sub-tab | 9, +387/−8 | 6 | 477 |
 | [#216](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/216) | #215 | #208 | *Load*, with the capped height and replaced rotation messages | 9, +290/−11 | 8 | 485 |
+| [#217](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/217) | #216 | #209 | *Update* and *Delete*, with confirmation | 9, +243/−8 | 6 | 491 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -238,3 +239,36 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 483 passed and the 2 failures inherited from `main` (477 tests after #215, screenshot 1)**.
 
   ![1, python -m pytest on feat/tandem-template-load, 14 passed in test_tandem_template_controls.py and 483 passed with the 2 failures inherited from main, 2, Load naming the rotation that replaces Tandem's, and 3, Load capping 170 mm at the 160 mm cylinder](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5201c5ced796376ddee007faf0c1e2fa07226ec7/docs/logs/ariq/screenshots/week-9/pr-216-1-load-template.png)
+
+### For PR #**217** (6 of 8, on #216)
+
+- As part of requirement **FR-CN-06 and issue #209, manage tandem templates**, the user needs to do **load a template, change it and press Update, or select one and press Delete, and confirm**.
+- Therefore, I implemented/generated code so that **clinicians rename, change or delete a tandem template from the Tandem tab, only after answering Yes**.
+
+#### Frontend
+
+- The frontend uses **no cache, as in #215** because **Update and Delete write the file and the list is refilled from it**. Benefits for using this pattern include **the list shows the result**. Possible risks include **a click on the wrong template**.
+  - To mitigate **a wrong click**, we implemented **a question naming the template, with Cancel the default, through the `TandemView.confirm` seam**.
+- The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **Update and Delete buttons and the Cylinder tab's `template_change_dialog`, reused**. Therefore, changing the design of **`template_change_dialog`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **each tab passes only its title and question**.
+- The frontend adopts accessibility principle **WCAG 3.3.4, Error Prevention: a change to saved data can be reversed or confirmed**. The aspects that demonstrate this principle in the system include **the Yes and Cancel question, and "Updated Long bend sharp" in the status line (screenshot 1)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-06, #209: 5 new tests, 6 cases, in `tests/views/test_tandem_template_controls.py`**
+
+#### Review and design
+
+- When I reviewed the **generated cancel test** for this functionality, I noticed **it reached the button with `getattr` and a computed name, which anti-slop flags (`no-string-attribute-access`)**. Therefore, I did **name both buttons directly**.
+- The PR does not contain any temporary workaround because **it calls #214's `update_template` and `delete_template`**.
+- The PR only contains small functions that are **3 to 12 lines (view) and 8 to 22 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tandem_view.py` and `tandem_view.ui`** because **as in #215**.
+- This work belongs in **Tandem** in the DFD because **as in #215**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_update_after_confirming_saves_the_tabs_name_note_and_settings`, `test_delete_after_confirming_removes_the_template` (6 new; 20 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **Cancel on either button, a taken name, nothing selected** and they passed.
+- I checked that these negative cases involving **seven deliberate breaks (Cancel ignored on either, the old name or settings kept, a refusal hidden, buttons always enabled, a deleted row still listed)** failed as expected.
+- Among these tests, **none** are unit tests and **all 6** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 489 passed and the 2 failures inherited from `main` (485 tests after #216, screenshot 1)**.
+
+  ![1, python -m pytest on feat/tandem-template-update-delete, 20 passed in test_tandem_template_controls.py and 489 passed with the 2 failures inherited from main, and 2, the Tandem tab after Update renamed Long bend to Long bend sharp](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0e962d084d2f2ea3a7fe5e29a92081b51b0f5d5c/docs/logs/ariq/screenshots/week-9/pr-217-1-update-template.png)
