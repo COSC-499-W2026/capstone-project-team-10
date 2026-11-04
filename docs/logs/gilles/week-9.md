@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR’s Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #222 to #225, at a glance
+## Stack #222 to #226, at a glance
 
 | PR | On | Issue | Adds | Own diff | New tests | Suite |
 |---|---|---|---|---|---|---|
@@ -11,6 +11,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR’s
 | #223 | #222 | #161 | background collision state | 8 files / 184 lines | 0 | 434 passed, 2 baseline failures |
 | #224 | #223 | #161 | warning controls and red needle overlays | 8 files / 389 lines | 7 | 441 passed, 2 baseline failures |
 | #225 | #224 | #161 | UML and data-flow diagrams | 9 files / 87 lines | 0 | 441 passed, 2 baseline failures (inherited) |
+| #226 | #225 | #161 | reference, design and test documentation | COUNT | 0 | 441 passed, 2 baseline failures (inherited) |
 
 ### Shared by every PR in this stack
 
@@ -124,6 +125,23 @@ _Individual log. One section per PR merged this week, each a copy of that PR’s
 - When I reviewed the **UML and DFD sources against the source code** for this functionality, I did not find any problems with it because **the generated diagrams include the collision worker and display-only signals; build.py --check passes**.
 - Code quality checklist: **see Shared**.
 - This work is written in **`docs/architecture/`** because **it owns UML and data-flow diagrams**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check`, the session-start hook and `git diff --check` (all exit 0)** passed.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code changed; checks are commands)**.
+- This new test PR did not break anything else in the system because **the suite reports 441 passed, 2 baseline failures (inherited) (441 passing cases inherited); the two failures match unchanged main and PR #154**.
+### For PR #**226** (5 of 5, on #225)
+
+- As part of requirement **FR-SV-07 / FR-SV-08, intersection warnings only; issue #161**, the user needs to do **identify possible needle contact with organs while editing a plan**.
+- Therefore, I implemented/generated code so that **reference, design and test documentation supports the collision-warning workflow**.
+
+#### Review and design
+
+- When I reviewed the **reference and design notes against code and regression evidence** for this functionality, I did not find any problems with it because **the documents distinguish approximate intersection warnings from unimplemented distance measurement and clinical validation**.
+- Code quality checklist: **see Shared**.
+- This work is written in **the project reference, init guide note, design README and tests README** because **it owns reference, design and test documentation**.
 - Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
 
 #### Testing receipts
