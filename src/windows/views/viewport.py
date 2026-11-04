@@ -233,6 +233,19 @@ def anatomy_surface_presentation(mesh: Poly_Triangulation, rgb: tuple[int, int, 
     return surface
 
 
+def collision_needle_presentation(shape: TopoDS_Shape) -> AIS_Shape:
+    """A non-exported opaque red overlay, visible even through the probe."""
+    actor = AIS_Shape(shape)
+    color = Quantity_Color(1., 0., 0., Quantity_TOC_sRGB)
+    actor.SetDisplayMode(1)
+    actor.Attributes().SetShadingAspect(Prs3d_ShadingAspect())
+    actor.Attributes().ShadingAspect().SetColor(color)
+    actor.SetColor(color)
+    actor.SetTransparency(0.)
+    actor.SetZLayer(TOPMOST_Z_LAYER)
+    return actor
+
+
 class OrbitCameraViewer3d(qtBaseViewer):
     # emit signal when selection is changed
     # is a list of TopoDS_*
@@ -245,6 +258,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_presentations.clear()
         self._structure_presentations.clear()
         self._structure_actors.clear()
+        self._collision_actors.clear()
         self._axis_presentation = None
         bounds = Bnd_Box()
 
@@ -267,6 +281,7 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_definition = None if self._grid_bounds is None else reference_grid(self._grid_bounds)
         self.set_grid_available(self._grid_definition is not None)
         self.refresh_structure_outlines()
+        self.refresh_collision_highlight()
         if resize:
             self._display.View.ZFitAll()
             self._display.View.FitAll(0.2, False)
@@ -275,6 +290,25 @@ class OrbitCameraViewer3d(qtBaseViewer):
         cylinder = get_app().window.cylindermodel.cylinder
         self.set_axis_length(cylinder.length if shapes and cylinder is not None else None)
         log.info(loggedinfo)
+
+    def refresh_collision_highlight(self):
+        """Replace only temporary needle overlays, preserving camera and exported shapes."""
+        if not self._inited:
+            return
+        context = self._display.Context
+        for actor in self._collision_actors:
+            context.Remove(actor, False)
+        self._collision_actors.clear()
+        window = get_app().window
+        for label in window.collisionmodel.highlighted:
+            channel = window.channelsmodel.channels.get(label)
+            if channel is None or window.channelsmodel.is_channel_disabled(label):
+                continue
+            actor = collision_needle_presentation(channel.shape())
+            context.Display(actor, False)
+            context.Deactivate(actor)
+            self._collision_actors.append(actor)
+        self._display.Repaint()
 
     def refresh_structure_outlines(self):
         """Draw unselectable anatomy outlines and surfaces without export geometry."""
@@ -375,6 +409,8 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._grid_definition: ReferenceGrid | None = None
         self._grid_presentations: list[AIS_InteractiveObject] = []
         self._structure_presentations: list[AIS_InteractiveObject] = []
+        self._collision_actors: list[AIS_Shape] = []
+        get_app().window.collisionmodel.highlight_changed.connect(self.refresh_collision_highlight)
         self._structure_actors: dict[int, list[AIS_InteractiveObject]] = {}
         self.grid_button = QtWidgets.QToolButton(self)
         self.grid_button.setText("XYZ grid (mm)")
