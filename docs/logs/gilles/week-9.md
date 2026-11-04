@@ -10,7 +10,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR’s
 | #222 | main | #161 | collision geometry | 7 files / 234 lines | 10 | 434 passed, 2 baseline failures |
 | #223 | #222 | #161 | background collision state | 8 files / 184 lines | 0 | 434 passed, 2 baseline failures |
 | #224 | #223 | #161 | warning controls and red needle overlays | 8 files / 389 lines | 7 | 441 passed, 2 baseline failures |
-| #225 | #224 | #161 | UML and data-flow diagrams | COUNT | 0 | 441 passed, 2 baseline failures (inherited) |
+| #225 | #224 | #161 | UML and data-flow diagrams | 9 files / 87 lines | 0 | 441 passed, 2 baseline failures (inherited) |
 
 ### Shared by every PR in this stack
 
