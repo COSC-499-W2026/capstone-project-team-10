@@ -8,7 +8,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR’s
 | PR | On | Issue | Adds | Own diff | New tests | Suite |
 |---|---|---|---|---|---|---|
 | #222 | main | #161 | collision geometry | 7 files / 234 lines | 10 | 434 passed, 2 baseline failures |
-| #223 | #222 | #161 | background collision state | COUNT | 0 | 434 passed, 2 baseline failures |
+| #223 | #222 | #161 | background collision state | 8 files / 184 lines | 0 | 434 passed, 2 baseline failures |
 
 ### Shared by every PR in this stack
 
