@@ -4853,6 +4853,8 @@ again. The collet boxes save themselves into the live settings every time their 
 > its button stays disabled until one does. Opening it then used to raise `AttributeError` while
 > building the solid, after the tabs had already recorded the switch. See [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
 
+> Out of date after the needle–organ warning feature: Structures now shows clickable possible-collision warnings and temporary red needle overlays. See [the current model and UI reference](COSC499-TEAM10-PROJECT-DOCS.md#55-models).
+
 ### 17.8 `viewport.py`, the 3D view
 
 > Out of date after the anatomy changes through PR #134: The viewport now draws nonselectable anatomy surfaces and wires independently of printable shapes. PR #125 supplies surface rendering and opacity updates; see the [current anatomy display path](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).

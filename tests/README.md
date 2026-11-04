@@ -310,3 +310,14 @@ nonoverlapping controls. The fixtures isolate user files before importing the vi
 These tests never initialise the native canvas. They cannot prove the grid is visually
 legible or the camera moves correctly; native Ex1/Ex2 checks supplement them, as recorded
 in [§5.7](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+
+## Needle–organ warnings
+
+`mesh/test_needle_collisions.py` uses literal closed cubes, disconnected components
+and a cavity to check crossings, containment, shaft radius, clear paths and invalid
+coordinates. `views/test_organ_collisions.py` drives real offscreen widgets and
+background workers: clicking **!** produces a toast and selects only matching
+needles; hide, move, disable, Outlines mode, length changes and reset keep results
+current. Stale worker results are rejected and uncheckable organs are reported.
+A real AIS actor assertion verifies red shading, opacity and the overlay depth layer.
+These tests do not initialize the native viewport or establish clinical accuracy.
