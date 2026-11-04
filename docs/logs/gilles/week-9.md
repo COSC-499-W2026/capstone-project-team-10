@@ -3,12 +3,13 @@
 _Individual log. One section per PR merged this week, each a copy of that PR’s Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #222 to #223, at a glance
+## Stack #222 to #224, at a glance
 
 | PR | On | Issue | Adds | Own diff | New tests | Suite |
 |---|---|---|---|---|---|---|
 | #222 | main | #161 | collision geometry | 7 files / 234 lines | 10 | 434 passed, 2 baseline failures |
 | #223 | #222 | #161 | background collision state | 8 files / 184 lines | 0 | 434 passed, 2 baseline failures |
+| #224 | #223 | #161 | warning controls and red needle overlays | COUNT | 7 | 441 passed, 2 baseline failures |
 
 ### Shared by every PR in this stack
 
@@ -79,3 +80,36 @@ _Individual log. One section per PR merged this week, each a copy of that PR’s
 - This new test PR did not break anything else in the system because **the suite reports 434 passed, 2 baseline failures (434 passing cases inherited); the two failures match unchanged main and PR #154**.
 
   ![Recorded test output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/17dfd2d2f03b5cd326c951ebdb7447c89b150b7c/docs/logs/gilles/screenshots/week-9/pr-223-regression.png)
+### For PR #**224** (3 of 5, on #223)
+
+- As part of requirement **FR-SV-07 / FR-SV-08, intersection warnings only; issue #161**, the user needs to do **identify possible needle contact with organs while editing a plan**.
+- Therefore, I implemented/generated code so that **warning controls and red needle overlays supports the collision-warning workflow**.
+
+#### Frontend
+
+- The frontend uses **CollisionModel signals and ROI-keyed results** received from the backend because **warnings must follow current needle edits**. Benefits for using this pattern include **clearing stale emphasis immediately**. Possible risks include **warnings affecting printable geometry**.
+  - To mitigate **export changes**, we implemented **temporary nonselectable red AIS overlays outside DisplayModel**.
+- The frontend is designed using **PySide6 and OpenCASCADE** with design components for **the warning delegate, toast label and needle actor**. Therefore, changing the design of **the delegate** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **needle names come from model results**.
+- The frontend adopts accessibility principle **keyboard operation**. The aspects that demonstrate this principle in the system include **Enter activating a selected warning, checked by the real-widget test**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-SV-08 warning/highlight portion → `test_warning_click_shows_toast_and_highlights_only_colliding_needles`; FR-SV-07 → the other model integration cases (7 new; 17 collision cases including 10 inherited)**.
+- Not applicable: **distance display and clinical clearance assessment (outside scope)**.
+
+#### Review and design
+
+- When I reviewed the **warning click and overlay paths** for this functionality, I did not find any problems with it because **native Ex1 plus a synthetic organ showed Applicator2 in the toast and red framebuffer; leaving Structures cleared the overlay**.
+- The PR does not contain any temporary workaround because **collision state and presentation use dedicated domain/model/view responsibilities without changing exports**.
+- The PR only contains small functions that are **2–18 lines for warning/overlay methods; existing constructors receive wiring additions** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`src/windows/views/` and `tests/views/`** because **it owns warning controls and red needle overlays**.
+- This work belongs in **the structure preview/check path** in the DFD because **it reports possible intersections without changing Export**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **7 new widget/model/actor cases (17 total collision cases with 10 inherited)** passed.
+- I wrote tests to cover abnormal situations involving **hidden and unavailable organs, Outlines mode, stale results, moved/disabled needles and length changes** and they passed.
+- I checked that these negative cases involving **omitting the generated shaft below the final dwell point** failed as expected.
+- Among these tests, **the red actor property case** is a unit test and **the six real-model/widget worker cases** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **the suite reports 441 passed, 2 baseline failures (434 passing cases inherited); the two failures match unchanged main and PR #154**.
+
+  ![Recorded test output and native collision UI](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/cfd24f8336b6c3cbb86a108c6ff15aed5e85d5e2/docs/logs/gilles/screenshots/week-9/pr-224-regression.png)
