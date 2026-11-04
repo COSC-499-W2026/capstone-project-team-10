@@ -40,5 +40,12 @@ flowchart TB
   p6 <-->|"aligned meshes or wires, status and opacity"| anatomy
   p6 -->|"nonselectable surface or outline preview; visible loading or failure reason"| physicist
   p1 -->|"new import clears state and invalidates old results"| anatomy
-  anatomy -->|"Surface/Both request"| worker
+  anatomy -->|"Surface/Both or organ-check request"| worker
   worker -->|"generation-tagged mesh or error, queued result"| anatomy
+
+  checks(("Possible needle-organ checks<br/>separate worker"))
+  p3 -->|"enabled needle paths, movement, diameter and dead space"| checks
+  anatomy -->|"cached registered organ surfaces, current alignment"| checks
+  checks -->|"revision-tagged hits or not-checked reasons"| p6
+  physicist -->|"click organ warning"| p6
+  p6 -->|"toast and temporary red needle overlays"| physicist

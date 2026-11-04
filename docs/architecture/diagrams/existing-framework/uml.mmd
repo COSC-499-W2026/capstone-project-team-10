@@ -75,3 +75,23 @@ classDiagram
   SurfaceTask --> AnatomySurface : reconstruct or reuse patient mesh
   StructuresModel o-- AnatomySurface : cache by ROI
   note for StructuresModel "Surface is the default, without automatic outline fallback.<br/>Opacity changes reuse per-ROI actors; anatomy never enters exports."
+
+  class CollisionModel {
+    collisions by organ ROI
+    revision and unchecked organs
+    changed()
+    highlight_changed()
+  }
+  class CollisionTask {
+    immutable needles and organ surfaces
+    run()
+  }
+  MainWindow --> CollisionModel
+  ChannelsModel ..> CollisionModel : values_changed
+  StructuresModel ..> CollisionModel : changed
+  CollisionModel --> StructuresModel : request cached organ surfaces
+  CollisionModel --> CollisionTask : separate single-worker pool
+  CollisionTask ..> CollisionModel : revision-tagged result
+  CollisionModel ..> StructuresView : changed, warning marks
+  StructuresView --> CollisionModel : select warning, clear on close
+  CollisionModel ..> OrbitCameraViewer3d : highlight_changed, red needle overlays
