@@ -6,6 +6,7 @@ from classes.app import get_app
 from windows.ui import main_window_ui
 from windows.views.viewport import OrbitCameraViewer3d
 from windows.models.structures_model import StructuresModel
+from windows.models.collision_model import CollisionModel
 from windows.models.display_model import DisplayModel
 from windows.models.dicom_model import DicomModel
 from windows.models.channels_model import ChannelsModel
@@ -138,6 +139,7 @@ class MainWindow(QMainWindow):
         self.channelsmodel = ChannelsModel()
         self.tandemmodel = TandemModel()
         self.structuresmodel = StructuresModel()
+        self.collisionmodel = CollisionModel(self.structuresmodel, self.channelsmodel)
 
         # TODO connect models to signals
         self.dicommodel.values_changed.connect(self.cylindermodel.load_data)
