@@ -7,7 +7,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR’s
 
 | PR | On | Issue | Adds | Own diff | New tests | Suite |
 |---|---|---|---|---|---|---|
-| #222 | main | #161 | collision geometry | 7 files / 235 lines | 10 | 434 passed, 2 baseline failures |
+| #222 | main | #161 | collision geometry | 7 files / 234 lines | 10 | 434 passed, 2 baseline failures |
 
 ### Shared by every PR in this stack
 
@@ -50,4 +50,3 @@ _Individual log. One section per PR merged this week, each a copy of that PR’s
 - This new test PR did not break anything else in the system because **the suite reports 434 passed, 2 baseline failures (424 passing cases inherited); the two failures match unchanged main and PR #154**.
 
   ![Recorded test output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ec326a9dfa00306127f2c01b2818aabaf17e6ed3/docs/logs/gilles/screenshots/week-9/pr-222-regression.png)
-
