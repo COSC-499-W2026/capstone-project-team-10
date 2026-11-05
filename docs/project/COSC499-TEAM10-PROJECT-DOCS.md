@@ -1239,7 +1239,11 @@ value in 0..1 (default 0.45), emits only `opacity_changed`, and never rebuilds g
 `set_highlight` stores one ROI number, or `None`. It emits only `highlight_changed` and
 does not create a presentation, so a listed organ with no contour is not added to the
 preview. `clear` drops the highlight with the rest of the plan. A second click on the
-highlighted row sets `None` while that row stays current.
+highlighted row sets `None` while that row stays current. The mouse press that first
+makes the row current does not also toggle it off. Moving there with the keyboard is
+not that press, so the next click does toggle. A visibility checkbox leaves the
+highlight in place.
+
 `color_for` returns a stored RGB override, or the imported DICOM colour. `set_color`
 accepts three integers 0 to 255, writes the override, and emits only `color_changed`.
 It does not mutate `Structure.color`. An unknown ROI or an invalid component raises
@@ -1298,7 +1302,7 @@ the black rule is in the view stylesheet. *Reasoned from code.*
 | Mode dropdown | Outlines, Surface or Both for all ROIs; starts at Surface. No automatic outline fallback. |
 | Structure list | Organs, tumours and BODY (`EXTERNAL`), from `anatomy_structures`. Name/category, DICOM colour swatch and ROI identity; checking requests visibility. Needles, markers and other ROIs stay on the Import inventory. Pending and failure reasons appear directly in wrapped row text and tooltips. |
 | Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
-| Row highlight | The current row emphasises that organ in the preview with the channel-selection blue (0.2, 0.2, 0.7). Outlines also use width 3. Choosing another row moves the highlight. Clicking the highlighted row again, or clearing the selection, drops it. A row with no geometry stays listed and gains no shape. |
+| Row highlight | The current row emphasises that organ in the preview with the channel-selection blue (0.2, 0.2, 0.7). Outlines also use width 3. Choosing another row moves the highlight. The mouse press that first makes a row current applies the highlight and does not also toggle it off. Clicking that row again, including after moving there with the keyboard, drops the highlight. A visibility checkbox leaves the highlight in place. Clearing the selection drops it. A row with no geometry stays listed and gains no shape. |
 | Change colour | Opens a colour dialog for the current row. OK stores the RGB override, updates the list swatch and clears the highlight so the new colour is visible immediately. Cancel, or an invalid colour, leaves the colour unchanged. |
 
 Rows are checked when a representation is available, or when visibility was requested and
@@ -1308,7 +1312,9 @@ usable representation leaves an unchecked, noncheckable row, but its reason stay
 In Both mode, one failed representation does not remove the other. Switching to Outlines
 explicitly can inspect a single slice or another stack that cannot be reconstructed.
 
-List refresh blocks item signals and restores the selected ROI by number. Opacity signals
+List refresh blocks item signals. When the ROI numbers are unchanged and stay in the
+same order, the same list items are rewritten, so a checkbox click does not delete
+the row. A new plan clears the list and restores the selected ROI by number. Opacity signals
 update the slider/label without recreating list items; setting opacity to zero does not
 uncheck visibility. The mode tooltip explains 1 mm organ / 2 mm EXTERNAL sampling and that
 grid-aligned boundaries can expand by half a sample step; this is not a universal error bound.
@@ -2393,6 +2399,30 @@ tab. Not changed. `action_update_settings` fills `sb_channel_diameter` only whil
 selected, and the box's minimum is 0.3 mm, so with nothing selected it shows 0.300 mm, the
 narrowest channel allowed, rather than a blank or the Channels Diameter. The group is disabled
 then, so nothing can be applied, but the number reads as a real width.
+
+### 7.21 Fixed — a Structures checkbox click deleted its row, and a click after keyboard movement left the highlight
+
+PR #154 highlights the current Structures row and clears that highlight on a later click.
+Two of its tests failed on the code that landed.
+
+`test_toggling_checkbox_does_not_drop_highlight` unticks the checkbox of a highlighted
+organ. The tick calls `set_visible`, which emits `changed`. The list refresh cleared
+every row and built new ones, so the checkbox's `QListWidgetItem` was deleted before
+the click finished (`RuntimeError: Internal C++ object already deleted`). The highlight
+assertion never ran. The physicist would lose the row in the middle of showing or
+hiding that organ.
+
+`test_click_after_keyboard_navigation_can_rehighlight` moves to a row without the
+mouse, then clicks it. `currentItemChanged` set `_just_selected` so the mouse press
+that first selects a row would not immediately toggle the highlight off. Arrow keys
+emit `currentItemChanged` and do not emit `itemClicked`, so the guard stayed set and
+the next click did nothing. The highlight stayed on. The physicist had to click twice.
+
+The list now rewrites the rows in place when the ROI numbers are unchanged and
+stay in the same order, and `_just_selected` is set only when a mouse press
+changes the current row. *Verified*
+2026-11-04 by those two tests, which failed before the change and passed after. The
+running app was not exercised.
 
 ---
 
