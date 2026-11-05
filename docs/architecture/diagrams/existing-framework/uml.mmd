@@ -63,7 +63,7 @@ classDiagram
   DicomModel ..> StructuresModel : values_changed via MainWindow
   CylinderModel ..> StructuresModel : current length via MainWindow
   DisplayModel ..> StructuresModel : reset_completed
-  StructuresView --> StructuresModel : set_visible, set_highlight, set_mode, set_opacity
+  StructuresView --> StructuresModel : set_visible, hide_all, set_highlight, set_mode, set_opacity
   StructuresModel ..> StructuresView : changed
   StructuresModel ..> OrbitCameraViewer3d : changed, surface and outline refresh
   StructuresModel ..> OrbitCameraViewer3d : opacity_changed, update existing actors
