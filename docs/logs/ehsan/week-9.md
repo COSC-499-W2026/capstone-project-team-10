@@ -3,13 +3,14 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #234 to #234, at a glance
+## Stack #234 to #235, at a glance
 
 Three stacked PRs for Hide all. Each is based on the one below it, closes its own issue, and should be retargeted to main once its parent merges. A row's counts are that PR's own diff only.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#234](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/234) | `main` | #150 | Hide all button | 8, +156/−5 | 1 | 419 passed, 8 failed |
+| [#235](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/235) | #234 | #232 | Hide all on the DFD and UML | 9, +38/−15 | 0 | inherited |
 
 ### Shared by every PR in this stack
 
@@ -60,3 +61,21 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest` on this branch is 419 passed, 8 failed. The new test passed. The 8 are pre-existing on main: `test_the_default_dome_tandem_cut_out_is_unchanged`, `test_channels_settings_keep_their_height_in_the_default_window`, `test_cylinder_spin_boxes_keep_their_height_in_the_default_window`, `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`, `test_generate_spin_boxes_keep_their_height_in_the_default_window`, `test_the_tandem_tab_never_scrolls_sideways_in_the_default_window`, `test_toggling_checkbox_does_not_drop_highlight`, and `test_click_after_keyboard_navigation_can_rehighlight`. [author: attach a screenshot of the pytest summary and the Hide all button]**
 - Not applicable: **generated-test review (no generated test)**.
+
+### For PR #**235** (2 of 3, on #234)
+
+- As part of requirement **FR-SV-03**, the user needs to do **read the flow pictures and see Hide all as an input to brachify**.
+- Therefore, I implemented/generated code so that **the DFD and UML name Hide all on the existing structures path**.
+
+#### Review and design
+
+- When I reviewed the **DFD and UML labels** for this functionality, I noticed **they named visibility, mode, opacity, and highlight, and not Hide all**. Therefore, I did **add Hide all on those three edges and render the pictures**.
+- Code quality checklist: **see Shared**.
+- This work is written in **`docs/architecture/`** because **that folder owns the pictures and the rule for when they change**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0) and the three `.mmd` labels containing `Hide all`** passed.
+- This new test PR did not break anything else in the system because **the diff against `feat/structures-hide-all` is documentation only, and `--check` exited 0**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the check is `build.py --check`)**.
