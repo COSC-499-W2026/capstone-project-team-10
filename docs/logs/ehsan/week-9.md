@@ -37,4 +37,6 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 - I checked that these negative cases involving **a forced list rebuild (deleted `QListWidgetItem`) and a guard left set after keyboard movement (`highlighted` stayed 2)** failed as expected.
 - Among these tests, **`test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight`** are integration tests and unit tests are not required because **the failure is in the list widget's click handling**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` on this branch is 420 passed, 6 failed. The 6 are `test_the_default_dome_tandem_cut_out_is_unchanged` and five default-window layout tests. The two highlight tests passed. [author: attach a screenshot of the pytest summary]**
+- This new test PR did not break anything else in the system because **`python -m pytest` on this branch is 420 passed, 6 failed. The 6 are `test_the_default_dome_tandem_cut_out_is_unchanged` and five default-window layout tests. The two highlight tests passed. The image is that summary.**
+
+  ![regression, pytest summary](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b586c49de26686d640a3ff5f1be51c5b869cc016/docs/logs/ehsan/screenshots/week-9/pr-228-regression-pytest.png)
