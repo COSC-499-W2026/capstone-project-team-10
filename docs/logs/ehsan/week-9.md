@@ -49,6 +49,7 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 |---|---|---|---|---|---|---|
 | [#234](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/234) | `main` | #150 | Hide all button | see PR files | 3 | hide-all tests 3 passed; full suite on Windows earlier 419 passed, 8 failed |
 | [#235](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/235) | #234 | #232 | Hide all on the DFD and UML | 9, +38/−15 | 0 | inherited |
+| [#236](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/236) | #235 | #233 | Hide all on the system architecture | 3, +23/−4 | 0 | inherited |
 
 ### Shared by every PR in this stack
 
@@ -116,4 +117,22 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 
 - The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0) and the three `.mmd` labels containing `Hide all`** passed.
 - This new test PR did not break anything else in the system because **the diff against `feat/structures-hide-all` is documentation only, and `--check` exited 0**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the check is `build.py --check`)**.
+
+### For PR #**236** (3 of 3, on #235)
+
+- As part of requirement **FR-SV-03**, the user needs to do **read the system architecture and see Hide all among the Structures controls**.
+- Therefore, I implemented/generated code so that **the presentation layer names Hide all**.
+
+#### Review and design
+
+- When I reviewed the **presentation-layer box** for this functionality, I noticed **it named Surface, Outlines, Both, opacity, and row highlight, and not Hide all**. Therefore, I did **add Hide all to that line and render the picture**.
+- Code quality checklist: **see Shared**.
+- This work is written in **`docs/architecture/diagrams/system-architecture.mmd`** because **that picture is the layer map, and `--check` compares it with `src/`**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0) and the presentation-layer line containing `Hide all`** passed.
+- This new test PR did not break anything else in the system because **the diff against #235 is the system architecture picture only, and `--check` exited 0**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the check is `build.py --check`)**.
