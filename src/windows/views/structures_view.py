@@ -48,10 +48,14 @@ class StructuresView(CustomView):
         self.change_colour_button = QPushButton("Change colour", self)
         self.change_colour_button.setToolTip("Change the selected structure colour")
         controls.addWidget(self.change_colour_button)
+        self.hide_all_button = QPushButton("Hide all", self)
+        self.hide_all_button.setToolTip("Hide every listed structure")
+        controls.addWidget(self.hide_all_button)
         layout.addLayout(controls)
         self.surface_mode.currentTextChanged.connect(lambda text: model.set_mode(StructureDisplayMode(text)))
         self.surface_opacity.valueChanged.connect(self.action_change_opacity)
         self.change_colour_button.clicked.connect(self.action_change_colour)
+        self.hide_all_button.clicked.connect(self.action_hide_all)
         model.opacity_changed.connect(self.update_opacity_controls)
         model.color_changed.connect(self.update_structure_swatch)
         self.structure_list = QListWidget(self)
@@ -100,6 +104,10 @@ class StructuresView(CustomView):
                 if roi == selected:
                     self.structure_list.setCurrentItem(item)
         self.update_opacity_controls()
+
+    def action_hide_all(self):
+        """Hide every listed structure. The list refresh unchecks the rows."""
+        get_app().window.structuresmodel.hide_all()
 
     def action_toggle_structure(self, item: QListWidgetItem):
         """Keep anatomy visibility separate from printable shapes."""

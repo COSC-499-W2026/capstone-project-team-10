@@ -861,3 +861,65 @@ def test_structures_tab_copy_uses_black_text(cylinder_window):
     """
     view = cylinder_window.navigationmodel.views[5]
     assert "color: rgb(0, 0, 0)" in view.styleSheet()
+
+
+def organs_for_hide_all() -> DicomData:
+    """Helper, not a test. Two drawn organs share the probe frame and one does not.
+
+    Three stacked triangles are enough for an outline. A single slice stays
+    unchecked, so a hide-all test built on it would pass without clearing a
+    drawn organ.
+    """
+    slices = tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (4., 0., z), (0., 4., z)))
+        for z in (2., 4., 6.)
+    )
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (
+        Structure(2, 'Bladder', '1.2.3', (0, 255, 0), 'ORGAN', StructureType.ORGAN, slices),
+        Structure(4, 'Rectum', '1.2.3', (255, 0, 0), 'ORGAN', StructureType.ORGAN, slices),
+        Structure(3, 'Other frame', '1.2.4', (0, 0, 255), 'ORGAN', StructureType.ORGAN, slices),
+    )
+    return plan
+
+
+def test_hide_all_clears_listed_organs_and_one_can_return(cylinder_window):
+    """Hide every listed structure in one click, then show one organ again.
+
+    A drawn organ that remains, a mismatched-frame row that becomes available,
+    or a row that cannot be checked afterwards fails. Clearing the view for a
+    review must not drop an organ the physicist still needs, and must not show
+    anatomy from another patient frame.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QPushButton
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(organs_for_hide_all(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    listed = [
+        view.structure_list.item(index).data(Qt.UserRole)
+        for index in range(view.structure_list.count())
+    ]
+    assert listed == [2, 4, 3]
+    assert {item.roi_number for item in model.presentations()} == {2, 4}
+    assert model.presentations()[0].outline is not None
+    assert view.structure_list.item(0).checkState() == Qt.Checked
+    assert view.structure_list.item(1).checkState() == Qt.Checked
+    buttons = [button for button in view.findChildren(QPushButton) if button.text() == 'Hide all']
+    assert len(buttons) == 1
+    QTest.mouseClick(buttons[0], Qt.MouseButton.LeftButton)
+    assert model.presentations() == ()
+    assert view.structure_list.item(0).checkState() == Qt.Unchecked
+    assert view.structure_list.item(1).checkState() == Qt.Unchecked
+    mismatched = view.structure_list.item(2)
+    assert not mismatched.flags() & Qt.ItemIsEnabled
+    assert 'frame' in model.unavailable[3].lower()
+    view.structure_list.item(0).setCheckState(Qt.Checked)
+    wait_for_surfaces(model)
+    assert [item.roi_number for item in model.presentations()] == [2]
