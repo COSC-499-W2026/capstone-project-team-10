@@ -48,6 +48,7 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#234](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/234) | `main` | #150 | Hide all button | see PR files | 3 | hide-all tests 3 passed; full suite on Windows earlier 419 passed, 8 failed |
+| [#235](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/235) | #234 | #232 | Hide all on the DFD and UML | 9, +38/−15 | 0 | inherited |
 
 ### Shared by every PR in this stack
 
@@ -98,3 +99,21 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest tests/views/test_structure_display.py -k "hide_all or highlight" -q` on this Windows machine is 11 passed after rebasing onto main with #228.** Evidence: [before](screenshots/week-9/pr-234-1-hide-all-before.png), [after Hide all](screenshots/week-9/pr-234-2-hide-all-after.png), [pytest hide-all](screenshots/week-9/pr-234-3-pytest-hide-all.png).
 - Not applicable: **generated-test review (no generated test)**.
+
+### For PR #**235** (2 of 3, on #234)
+
+- As part of requirement **FR-SV-03**, the user needs to do **read the flow pictures and see Hide all as an input to brachify**.
+- Therefore, I implemented/generated code so that **the DFD and UML name Hide all on the existing structures path**.
+
+#### Review and design
+
+- When I reviewed the **DFD and UML labels** for this functionality, I noticed **they named visibility, mode, opacity, and highlight, and not Hide all**. Therefore, I did **add Hide all on those three edges and render the pictures**.
+- Code quality checklist: **see Shared**.
+- This work is written in **`docs/architecture/`** because **that folder owns the pictures and the rule for when they change**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`python docs/architecture/build.py --check` (exit 0) and the three `.mmd` labels containing `Hide all`** passed.
+- This new test PR did not break anything else in the system because **the diff against `feat/structures-hide-all` is documentation only, and `--check` exited 0**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the check is `build.py --check`)**.
