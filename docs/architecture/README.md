@@ -25,7 +25,8 @@ controls display either unit, and an Export tab that stays disabled until a cyli
 from `structure_list`. Structures now owns per-ROI outline visibility through
 `StructuresModel` and `mesh/structure_contours.py`. PR #134 adds background surface state
 and `mesh/structure_surfaces.py`; PR #125 connects Surface/Outlines/Both and selected-ROI
-opacity controls to native mesh/wire actors. Other additions include
+opacity controls to native mesh/wire actors. Hide all clears every listed structure
+through the existing `changed` signal. Other additions include
 `settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from,
 and `settings/cylinder_templates.py`, a tested cylinder template library saved to `~/brachify/cylinder_templates.json`.
 
@@ -110,6 +111,8 @@ plans; a changed length realigns cached patient meshes. `opacity_changed` is sep
 geometry changes: it updates existing ROI actors and the selected ROI slider without
 rebuilding geometry or list rows. `highlight_changed` recolours those actors in the
 channel-selection blue, or restores the DICOM colour, without rebuilding the list.
+`hide_all` clears requested visibility and emits that same `changed` signal. It does not
+add a signal, and anatomy still never enters Export.
 Surface is the default; failed reconstruction does not
 automatically fall back to outlines. *Reasoned from code, PRs #134/#125.*
 
@@ -124,7 +127,8 @@ The app as one process.
 The six tabs now include Structures at `views[5]`. Printable shapes still flow through
 `ShapeModel` and `DisplayModel`. Anatomy has its own visibility, alignment and cache state;
 no anatomy edge enters Export. Surface/Both modes request reconstruction from the worker;
-results update the preview or its visible status. Opacity affects existing actors only.
+results update the preview or its visible status. Hide all clears every listed structure
+through that same preview path. Opacity affects existing actors only.
 The highlighted row recolours its actors through `highlight_changed` and adds no shape
 for an organ that has no geometry.
 
@@ -139,7 +143,7 @@ Six tabs, with Structures appended at index 5. The code addresses them by index.
 | Channels | Bore diameter, dead space, threading. A channel can be disabled or given its own diameter, directly or from a saved needle template. The list shows each channel's status, and leaves out the tandem channel. |
 | Tandem | Choose which plan channel is the tandem channel. Generate a curved channel, or import a STEP model. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
-| Structures | Surface/Outlines/Both, default Surface; per-ROI visibility and opacity, DICOM colours and visible loading/failure status. The current row highlights that organ in the channel-selection blue. Pending ROIs can be hidden; failed surfaces do not fall back automatically. |
+| Structures | Surface/Outlines/Both, default Surface; per-ROI visibility and opacity, DICOM colours and visible loading/failure status. Hide all clears every listed structure through the existing `changed` signal. The current row highlights that organ in the channel-selection blue. Pending ROIs can be hidden; failed surfaces do not fall back automatically. |
 
 A view method that changes geometry must use `@display_action`, or the model updates and the viewport does not. The shape path is in the UML above.
 
@@ -161,7 +165,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | This documentation set, agent rules, commit and PR workflows | Comprehensive coverage of the remaining geometry and settings functions |
 | Tooling tests, the main window tests in `tests/windows/`, the Channels and Cylinder units tests in `tests/views/`, and the manually run anti-slop-py linter | CI |
 | macOS setup notes and Cylinder display units | Server or database |
-| `DicomData` reset tests, RTSTRUCT decode at import, read-only Import inventory, and Structures surface/outline/opacity controls | Clinical reconstruction validation |
+| `DicomData` reset tests, RTSTRUCT decode at import, read-only Import inventory, Structures surface/outline/opacity controls, and Hide all | Clinical reconstruction validation |
 | The Channels list selection fix in `channels_view.py` | |
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
 | A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, saved and applied on the Channels tab. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
