@@ -277,6 +277,15 @@ class StructuresModel(QObject):
             self.visible.discard(roi)
         self.changed.emit()
 
+    def hide_all(self):
+        """Drop every requested structure from the preview.
+
+        Unavailable rows keep their reasons. A later set_visible can show one
+        ROI again. The surface cache that hiding already preserves stays.
+        """
+        self.visible.clear()
+        self.changed.emit()
+
     def set_length(self, length: float):
         if self.alignment is None or self.alignment.length == length:
             return
