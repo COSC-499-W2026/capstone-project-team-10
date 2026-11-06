@@ -15,9 +15,9 @@ from classes.mesh.channel import NeedleChannel
 from classes.mesh.tandem import tandem_builds, tandem_from_design
 from classes.pdf.template_reference import extract_points_from_channels2
 from windows.models.shape_model import ShapeTypes
+from windows.template_dialog import ask_to_change
 from windows.ui.tandem_view_ui import Ui_Tandem_View
 from windows.views.custom_view import display_action, CustomView
-from windows.views.cylinder_view import template_change_dialog
 
 from settings.reset import getCurrentValues
 from settings.tandem_templates import (
@@ -264,10 +264,6 @@ class TandemView(CustomView):
         for button in (self.ui.btn_load_template, self.ui.btn_update_template, self.ui.btn_delete_template):
             button.setEnabled(row >= 0)
 
-    def ask(self, title: str, question: str) -> bool:
-        """Ask the clinician to confirm, with Cancel the default."""
-        return template_change_dialog(title, question).exec() == QMessageBox.StandardButton.Yes
-
     def selected_template(self) -> TandemTemplate | None:
         """The template selected in the list, or None, never the last one that row -1 would index."""
         row = self.ui.list_templates.currentRow()
@@ -423,7 +419,7 @@ class TandemView(CustomView):
         self.confirm_rotation: Callable[[], bool] = self.ask_rotation_change
         self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
         # Update and Delete ask through this, so a test can answer for the clinician
-        self.confirm: Callable[[str, str], bool] = self.ask
+        self.confirm: Callable[[str, str], bool] = ask_to_change
         self.action_load_templates()
 
         # signals and slots
