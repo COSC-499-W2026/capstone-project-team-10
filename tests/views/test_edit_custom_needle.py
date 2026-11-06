@@ -1,6 +1,9 @@
-"""Exercise editing a custom applicator on the Channels tab: the model rules, the Edit Applicator button and the form."""
+"""Exercise editing an applicator, plan or custom, on the Channels tab: the model rules, the Edit Applicator button and the form."""
 from __future__ import annotations
 
+from collections.abc import Iterator
+from dataclasses import replace
+from math import dist
 from typing import TYPE_CHECKING
 
 import pytest
@@ -38,6 +41,19 @@ class StubbedEdit:
         return self.answer
 
 
+@pytest.fixture
+def restored_plan(channels_window: MainWindow) -> Iterator[None]:
+    """Reload the imported plan after a test that edits a plan applicator. A fixture, not a test.
+
+    The window is shared by every test in this file, so a plan applicator turned into a custom
+    one by one test would be different in the next. Loading the plan again rebuilds every plan
+    applicator, as a new import does.
+    """
+    yield
+    channels_window.channelsmodel.load_data(channels_window.dicommodel.data)
+    channels_window.navigationmodel.views[CHANNELS_TAB].create_channels_list()
+
+
 def test_editing_rebuilds_the_needle_but_keeps_its_name_number_place_diameter_and_disabled_state(channels_window: MainWindow) -> None:
     """Check an edit to x -4 and Length 2 of 40 moves the tip from 65 to 80 and keeps everything else of the applicator.
 
@@ -53,7 +69,7 @@ def test_editing_rebuilds_the_needle_but_keeps_its_name_number_place_diameter_an
     model.move_channel("Custom Applicator83", 1.0, 2.0, 0.0)
     place = list(model.channels).index("Custom Applicator83")
 
-    new = model.edit_custom_needle("Custom Applicator83", spec("Custom Applicator83", x=-4.0, length2=40.0))
+    new = model.edit_channel("Custom Applicator83", spec("Custom Applicator83", x=-4.0, length2=40.0))
 
     assert [list(point) for point in new.get_points()] == [[-3.0, 0.0, 80.0], [-3.0, 0.0, 0.0]]
     assert new.channel_number == old.channel_number and new.label == "Custom Applicator83"
@@ -62,20 +78,114 @@ def test_editing_rebuilds_the_needle_but_keeps_its_name_number_place_diameter_an
     assert model.custom_specs["Custom Applicator83"].length2 == 40.0
 
 
-def test_a_plan_applicator_cannot_be_edited_and_nothing_changes(channels_window: MainWindow) -> None:
-    """Check editing an imported applicator raises CustomNeedleError and leaves the channels as they were.
+def test_the_edit_form_for_a_plan_applicator_starts_from_numbers_estimated_from_its_points(channels_window: MainWindow) -> None:
+    """Check Applicator6, an imported needle, is offered Ex1's estimated numbers, and a custom one its stored spec.
 
-    Fails if it is accepted. The imported needles come from the treatment plan, so rebuilding
-    one from typed numbers would replace a needle the plan asked for with one it never had.
+    Fails if a plan needle is offered defaults or the stored-spec lookup raises KeyError, so the
+    clinician would retype every number for a needle the plan already placed, or if a custom one
+    is estimated from its points, which loses the bend radius they typed.
     """
     model = channels_window.channelsmodel
-    label = next(iter(model.channels))
+    stored = spec("Custom Applicator95")
+    model.add_custom_needle(stored)
+
+    estimate = model.spec_for_edit("Applicator6")
+
+    assert (estimate.label, estimate.length1, estimate.theta) == ("Applicator6", pytest.approx(102.82, abs=0.05), pytest.approx(14.59, abs=0.05))
+    assert (estimate.x, estimate.y, estimate.length2, estimate.phi) == pytest.approx((5.84, 3.43, 66.12, 29.87), abs=0.05)
+    assert model.spec_for_edit("Custom Applicator95") == stored
+
+
+def test_a_plan_applicator_is_rebuilt_from_the_form_and_keeps_its_number_place_diameter_disabled_state_and_move(
+        channels_window: MainWindow, restored_plan: None) -> None:
+    """Check editing Applicator6 with a Length 2 5 mm longer keeps everything of it but its path, which is now a custom one.
+
+    Fails if the channel number, list place, own diameter, disabled state or move is lost, if the
+    path is not rebuilt, or if the record of the numbers is missing, because the Edit form
+    would then offer an estimate again instead of what the clinician typed.
+    """
+    model = channels_window.channelsmodel
+    old = model.channels["Applicator6"]
+    model.toggle_channel_enabled("Applicator6")
+    model.set_channel_diameter("Applicator6", 4.0)
+    model.move_channel("Applicator6", 1.0, 2.0, 0.0)
+    place = list(model.channels).index("Applicator6")
+    estimate = model.spec_for_edit("Applicator6")
+
+    new = model.edit_channel("Applicator6", replace(estimate, length2=estimate.length2 + 5.0))
+
+    assert new is not old and model.channels["Applicator6"] is new and new.channel_number == old.channel_number
+    assert list(model.channels).index("Applicator6") == place and "Applicator6" in model.disabled_channels
+    assert new.get_diameter() == 4.0 and new.translation == (1.0, 2.0, 0.0)
+    assert model.is_custom_needle("Applicator6") and model.custom_specs["Applicator6"].length2 == pytest.approx(estimate.length2 + 5.0)
+    assert dist(new.points_raw[0], old.points_raw[0]) == pytest.approx(5.0, abs=0.5)
+
+
+def test_pressing_ok_on_the_estimate_alone_leaves_the_tip_of_a_plan_applicator_where_the_plan_put_it(
+        channels_window: MainWindow, restored_plan: None) -> None:
+    """Check rebuilding Applicator6 from its own estimated numbers puts the new tip within 0.5 mm of the plan's.
+
+    Fails if the estimate and the builder disagree about the frame, the angle or a length, which
+    would move the needle's tip by millimetres the moment the clinician pressed OK to change
+    only its name. The source stops at the tip, so a moved tip is a moved dose.
+    """
+    model = channels_window.channelsmodel
+    plan_tip = list(model.channels["Applicator6"].points_raw[0])
+
+    new = model.edit_channel("Applicator6", model.spec_for_edit("Applicator6"))
+
+    assert dist(new.points_raw[0], plan_tip) < 0.5
+
+
+def test_a_plan_applicator_edit_with_bad_numbers_is_refused_and_the_plan_needle_is_left_as_it_was(channels_window: MainWindow) -> None:
+    """Check an edit of Applicator7 that starts 50 mm out raises CustomNeedleError and keeps its plan points and no spec.
+
+    Fails if the needle is replaced before the numbers are checked, which would swap a needle the
+    plan asked for with one that cannot be cut, or if a spec is recorded for the refused edit, so
+    the Remove button would stop asking before it deleted a plan needle.
+    """
+    model = channels_window.channelsmodel
+    old = model.channels["Applicator7"]
+    points = [list(point) for point in old.points_raw]
+
+    with pytest.raises(CustomNeedleError, match="base"):
+        model.edit_channel("Applicator7", replace(model.spec_for_edit("Applicator7"), x=50.0))
+
+    assert model.channels["Applicator7"] is old and old.points_raw == points and not model.is_custom_needle("Applicator7")
+
+
+def test_editing_an_unknown_label_raises_key_error_and_changes_nothing(channels_window: MainWindow) -> None:
+    """Check editing a label no applicator has raises KeyError and leaves the channels as they were.
+
+    Fails if it passes silently or adds a channel, so a stale list row would seem to be edited
+    while the printed device kept its old needle.
+    """
+    model = channels_window.channelsmodel
     before = dict(model.channels)
 
-    with pytest.raises(CustomNeedleError, match="custom"):
-        model.edit_custom_needle(label, spec(label))
+    with pytest.raises(KeyError):
+        model.edit_channel("No Such Applicator", spec("No Such Applicator"))
 
     assert model.channels == before
+
+
+def test_an_edited_plan_applicator_follows_the_cylinder_length_like_any_other_needle(channels_window: MainWindow, restored_plan: None) -> None:
+    """Check that after a 5 mm height change the estimate and the edited needle both sit 5 mm higher.
+
+    Fails if the estimate ignores height_offset, so the form shows the plan's old numbers for a
+    cylinder that has since grown, or if the edited needle is stored without the offset taken
+    out, so it moves twice as far as the others, and the printed channel misses the tissue.
+    """
+    model = channels_window.channelsmodel
+    plan_tip = list(model.channels["Applicator6"].points_raw[0])
+    model.update_height_offset(5.0)
+    try:
+        estimate = model.spec_for_edit("Applicator6")
+        new = model.edit_channel("Applicator6", estimate)
+        assert estimate.length1 == pytest.approx(107.82, abs=0.05)
+        assert dist(new.get_points()[0], [plan_tip[0], plan_tip[1], plan_tip[2] + 5.0]) < 0.5
+    finally:
+        model.update_height_offset(0.0)
 
 
 def test_an_edit_with_bad_numbers_is_refused_and_the_needle_is_left_as_it_was(channels_window: MainWindow) -> None:
@@ -90,20 +200,19 @@ def test_an_edit_with_bad_numbers_is_refused_and_the_needle_is_left_as_it_was(ch
     old_points = [list(point) for point in old.get_points()]
 
     with pytest.raises(CustomNeedleError, match="base"):
-        model.edit_custom_needle("Custom Applicator84", spec("Custom Applicator84", x=50.0))
+        model.edit_channel("Custom Applicator84", spec("Custom Applicator84", x=50.0))
 
     assert model.channels["Custom Applicator84"] is old
     assert [list(point) for point in old.get_points()] == old_points
     assert model.custom_specs["Custom Applicator84"] == spec("Custom Applicator84")
 
 
-def test_the_edit_button_is_on_only_for_a_selected_custom_applicator(channels_window: MainWindow) -> None:
-    """Check Edit Applicator is off with nothing or a plan applicator selected and on for a custom one, tandem or not.
+def test_the_edit_button_is_on_for_any_selected_applicator(channels_window: MainWindow) -> None:
+    """Check Edit Applicator is off with nothing selected and on for a plan applicator, a custom one and the tandem.
 
-    Fails if it is on for a plan needle, which invites rebuilding one the plan asked for, off
-    for a custom one, which leaves no way to change it, off for a custom tandem, which can be
-    edited though it cannot be removed, or if its style has no disabled look, since an off
-    button that looks live gets pressed again and again.
+    Fails if it is off for a plan needle, which leaves no way to change one, off for a custom
+    one, off for the tandem, which can be edited though it cannot be removed, or if its style has
+    no disabled look, since an off button that looks live gets pressed again and again.
     """
     view = channels_window.navigationmodel.views[CHANNELS_TAB]
     model = channels_window.channelsmodel
@@ -111,7 +220,7 @@ def test_the_edit_button_is_on_only_for_a_selected_custom_applicator(channels_wi
     model.clear_selected_channels()
     off_when_none = not view.btn_edit_applicator.isEnabled()
     model.set_selected_channels(next(iter(model.channels)))
-    off_for_plan = not view.btn_edit_applicator.isEnabled()
+    on_for_plan = view.btn_edit_applicator.isEnabled()
     model.set_selected_channels("Custom Applicator85")
     on_for_custom = view.btn_edit_applicator.isEnabled()
     data = channels_window.dicommodel.data
@@ -122,8 +231,54 @@ def test_the_edit_button_is_on_only_for_a_selected_custom_applicator(channels_wi
     finally:
         data.tandem_channel = old_tandem
 
-    assert off_when_none and off_for_plan and on_for_custom and on_for_tandem
+    assert off_when_none and on_for_plan and on_for_custom and on_for_tandem
     assert ":disabled" in view.btn_edit_applicator.styleSheet()
+
+
+def test_the_edit_button_on_a_plan_applicator_offers_the_estimate_and_cancel_leaves_the_plan_path_alone(
+        channels_window: MainWindow, restored_plan: None) -> None:
+    """Check Edit on Applicator6 offers the estimated numbers, Cancel keeps the plan needle and OK replaces it.
+
+    Fails if the form is offered anything but the estimate, if Cancel rebuilds or changes the
+    needle, or if OK does not replace it. A Cancel that quietly swapped the plan path for a
+    rebuilt one would change a needle the clinician chose to leave alone.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    plan_needle = model.channels["Applicator6"]
+    plan_points = [list(point) for point in plan_needle.points_raw]
+    model.set_selected_channels("Applicator6")
+    cancel = view.ask_edit = StubbedEdit(None)
+    QTest.mouseClick(view.btn_edit_applicator, Qt.MouseButton.LeftButton)
+    assert cancel.offered == [("Applicator6", model.spec_for_edit("Applicator6"))]
+    assert model.channels["Applicator6"] is plan_needle and plan_needle.points_raw == plan_points
+
+    view.ask_edit = StubbedEdit(replace(model.spec_for_edit("Applicator6"), length2=70.0))
+    QTest.mouseClick(view.btn_edit_applicator, Qt.MouseButton.LeftButton)
+
+    assert model.channels["Applicator6"] is not plan_needle and model.is_custom_needle("Applicator6")
+
+
+def test_only_an_imported_applicator_gets_the_note_that_ok_replaces_its_plan_path(channels_window: MainWindow) -> None:
+    """Check the form's note is shown for a plan applicator, naming Cancel, and is empty for a custom one.
+
+    Fails if the note is missing for a plan needle, so the clinician presses OK without knowing it
+    discards the plan's own path, or shown for a custom one, where nothing is replaced and the
+    warning teaches them to ignore it. The text must also have no colon or em dash.
+    """
+    from windows.views.add_applicator_dialog import AddApplicatorDialog
+
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    model.add_custom_needle(spec("Custom Applicator96"))
+
+    plan_note, custom_note = view.edit_note("Applicator6"), view.edit_note("Custom Applicator96")
+    with_note = AddApplicatorDialog("a", model.custom_needle_error, spec("a"), plan_note)
+    without_note = AddApplicatorDialog("a", model.custom_needle_error, spec("a"))
+
+    assert "replaces the plan path" in plan_note and "Cancel" in plan_note and ":" not in plan_note and "—" not in plan_note
+    assert custom_note == "" and with_note.label_note.text() == plan_note
+    assert not with_note.label_note.isHidden() and without_note.label_note.isHidden()
 
 
 def test_the_edit_button_offers_the_current_numbers_applies_the_answer_and_cancel_changes_nothing(channels_window: MainWindow) -> None:
@@ -180,7 +335,7 @@ def test_renaming_moves_the_label_through_every_record_and_keeps_the_rest(channe
     model.set_selected_channels("Custom Applicator91")
     place = list(model.channels).index("Custom Applicator91")
 
-    new = model.edit_custom_needle("Custom Applicator91", spec("  Renamed Needle  ", x=-4.0))
+    new = model.edit_channel("Custom Applicator91", spec("  Renamed Needle  ", x=-4.0))
 
     assert "Custom Applicator91" not in model.channels and "Custom Applicator91" not in model.custom_specs
     assert "Custom Applicator91" not in model.own_diameters and "Custom Applicator91" not in model.disabled_channels
@@ -204,9 +359,9 @@ def test_a_rename_to_an_existing_or_blank_name_is_refused_and_nothing_changes(ch
     before = dict(model.channels)
 
     with pytest.raises(CustomNeedleError, match="already exists"):
-        model.edit_custom_needle("Custom Applicator92", spec(plan_label))
+        model.edit_channel("Custom Applicator92", spec(plan_label))
     with pytest.raises(CustomNeedleError, match="Name"):
-        model.edit_custom_needle("Custom Applicator92", spec("   "))
+        model.edit_channel("Custom Applicator92", spec("   "))
 
     assert model.channels == before and model.channels["Custom Applicator92"] is old
 
@@ -224,7 +379,7 @@ def test_renaming_the_tandem_keeps_the_tandem_tab_pointing_at_it(channels_window
     model.add_custom_needle(spec("Custom Applicator93"))
     old_tandem, data.tandem_channel = data.tandem_channel, "Custom Applicator93"
     try:
-        new = model.edit_custom_needle("Custom Applicator93", spec("Renamed Tandem"))
+        new = model.edit_channel("Custom Applicator93", spec("Renamed Tandem"))
 
         assert data.tandem_channel == "Renamed Tandem" and model.get_tandem_channel() is new
         assert tandem_box.currentData() == "Renamed Tandem"

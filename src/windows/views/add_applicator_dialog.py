@@ -11,10 +11,11 @@ class AddApplicatorDialog(QDialog):
     """Asks for a custom applicator's name, start, lengths and bend (mm and degrees), with no parent like MoveChannelDialog.
 
     Given the numbers of an existing applicator it edits that one, name included. OK checks
-    the numbers with the model's own rules and stays open, showing the reason, until they pass.
+    the numbers with the model's own rules and stays open, showing the reason, until they pass. A note, when given,
+    is shown above the buttons.
     """
 
-    def __init__(self, label: str, check: Callable[[CustomNeedleSpec], str], current: CustomNeedleSpec | None = None):
+    def __init__(self, label: str, check: Callable[[CustomNeedleSpec], str], current: CustomNeedleSpec | None = None, note: str = ""):
         super().__init__()
         self.check = check
         self.setWindowTitle("Add Applicator" if current is None else "Edit Applicator")
@@ -34,6 +35,11 @@ class AddApplicatorDialog(QDialog):
                              ("Bend radius", self.spin_radius), ("Theta tilt from the axis", self.spin_theta),
                              ("Phi direction from X towards Y", self.spin_phi)):
             form.addRow(name, widget)
+        self.label_note = QLabel(note)
+        self.label_note.setWordWrap(True)
+        self.label_note.setMinimumWidth(360)
+        self.label_note.setHidden(not note)
+        form.addRow(self.label_note)
         self.label_error = QLabel()
         self.label_error.setWordWrap(True)
         self.label_error.setMinimumWidth(360)
