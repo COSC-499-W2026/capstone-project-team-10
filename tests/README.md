@@ -76,7 +76,7 @@ tests/
 │   ├── test_cylinder_template_controls.py
 │   ├── test_cylinder_template_exports.py
 │   ├── test_cylinder_view.py
-│   ├── test_edit_custom_needle.py    editing and renaming a custom applicator: model, button and form
+│   ├── test_edit_custom_needle.py    editing and renaming any applicator: model, estimate, button, note and form
 │   ├── test_export_tandem_warning.py  the Export tab's missing tandem hole warning
 │   ├── test_import_view.py  exists: Import structure list, and no tandem carried into a new plan
 │   ├── test_remove_custom_needle.py  removing any applicator: model rules, confirm and button
