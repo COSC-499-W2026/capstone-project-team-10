@@ -8,7 +8,7 @@ from classes.app import get_app
 from classes.dicom.data import DicomData
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
-from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec, custom_needle_points, cut_is_clean
+from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec, custom_needle_points, cut_is_clean, spec_from_points
 from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from windows.models.shape_model import ShapeModel, ShapeTypes
 
@@ -151,9 +151,15 @@ class ChannelsModel(QObject):
         self.update()
         return needle
 
-    def require_custom_needle(self, label: str) -> None:
-        if not self.is_custom_needle(label):
-            raise CustomNeedleError("Only a custom applicator can be edited or removed")
+    def spec_for_edit(self, label: str) -> CustomNeedleSpec:
+        """The numbers the Edit form starts from: a custom applicator's own spec, or an estimate from a plan applicator's points.
+
+        The estimate uses the plan points at the current cylinder length and without the applicator's move,
+        which edit_channel keeps, so the numbers describe the needle as built before the move.
+        """
+        if self.is_custom_needle(label): return self.custom_specs[label]
+        points = [[x, y, z + self.height_offset] for x, y, z in self.channels[label].points_raw]
+        return spec_from_points(label, points)
 
     def rename_channel(self, label: str, new_label: str) -> None:
         """Move a label to a new name in every record that keys on it, keeping the list place."""
@@ -167,18 +173,20 @@ class ChannelsModel(QObject):
         if data.tandem_channel == label: data.tandem_channel = new_label
         get_app().window.displaymodel.remove_shape(label)  # add_shapes never drops a shape, so the old name would still be drawn
 
-    def edit_custom_needle(self, label: str, spec: CustomNeedleSpec) -> NeedleChannel:
-        """Rebuild a custom applicator from new numbers and a new name, keeping its number, place, diameter, disabled state and move."""
-        self.require_custom_needle(label)
+    def edit_channel(self, label: str, spec: CustomNeedleSpec) -> NeedleChannel:
+        """Rebuild any applicator, plan or custom, from new numbers and a new name, keeping its number, place, diameter, disabled state and move.
+
+        A plan applicator's path is replaced by one built from the numbers, and it is a custom applicator from then on.
+        """
+        old = self.channels[label]  # a missing label raises KeyError before anything is checked or changed
         spec = replace(spec, label=spec.label.strip())
         points = self.check_custom_needle(spec, editing=label)
-        old = self.channels[label]
         self.rename_channel(label, spec.label)
         needle = self.make_custom_needle(spec, points, old.channel_number)
         needle.set_translation(old.translation)
         self.channels[spec.label] = needle
         self.custom_specs[spec.label] = spec
-        log.info(f"edited custom applicator {label} into {spec.label}, now starting at ({spec.x}, {spec.y}) mm")
+        log.info(f"edited applicator {label} into {spec.label}, now starting at ({spec.x}, {spec.y}) mm")
         self.update()
         return needle
 

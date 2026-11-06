@@ -139,6 +139,9 @@ class MoveChannelDialog(QDialog):
         return (self.spin_x.value(), self.spin_y.value(), self.spin_z.value())
 
 
+PLAN_EDIT_NOTE = "Pressing OK replaces the plan path of this applicator with a path built from these numbers. Cancel leaves the plan path as it is."
+
+
 class ChannelsView(CustomView):
 
     @display_action
@@ -176,9 +179,9 @@ class ChannelsView(CustomView):
     @display_action
     def action_edit_applicator(self) -> None:
         label = self.channelsmodel.get_selected_channel()
-        spec = self.ask_edit(label, self.channelsmodel.custom_specs[label])
+        spec = self.ask_edit(label, self.channelsmodel.spec_for_edit(label))
         if spec is None: return
-        self.channelsmodel.edit_custom_needle(label, spec)
+        self.channelsmodel.edit_channel(label, spec)
         self.create_channels_list()
 
     @display_action
@@ -204,8 +207,12 @@ class ChannelsView(CustomView):
         dialog = AddApplicatorDialog(label, self.channelsmodel.custom_needle_error)
         return dialog.spec() if dialog.exec() == QDialog.DialogCode.Accepted else None
 
+    def edit_note(self, label: str) -> str:
+        """The note on the Edit form: nothing for a custom applicator, the warning that OK replaces the path for a plan one."""
+        return "" if self.channelsmodel.is_custom_needle(label) else PLAN_EDIT_NOTE
+
     def ask_edited_needle(self, label: str, current: CustomNeedleSpec) -> CustomNeedleSpec | None:
-        dialog = AddApplicatorDialog(label, lambda spec: self.channelsmodel.custom_needle_error(spec, editing=label), current)
+        dialog = AddApplicatorDialog(label, lambda spec: self.channelsmodel.custom_needle_error(spec, editing=label), current, self.edit_note(label))
         return dialog.spec() if dialog.exec() == QDialog.DialogCode.Accepted else None
 
     @display_action
@@ -342,7 +349,7 @@ class ChannelsView(CustomView):
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
         self.btn_add_applicator.setEnabled(self.channelsmodel.has_plan())
-        self.btn_edit_applicator.setEnabled(self.channelsmodel.is_custom_needle(selected_channel))
+        self.btn_edit_applicator.setEnabled(any_selected)
         self.btn_remove_applicator.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
