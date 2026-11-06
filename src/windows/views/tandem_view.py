@@ -21,7 +21,7 @@ from windows.views.cylinder_view import template_change_dialog
 from settings.reset import getCurrentValues
 from settings.tandem_templates import (
     LIBRARY_FILE_NAME, TandemDesign, TandemTemplate, TandemTemplateError, add_template, delete_template,
-    load_templates, make_template, update_template,
+    load_templates, make_template, position, update_template,
 )
 
 materials = {
@@ -61,6 +61,14 @@ def load_message(name: str, saved_height: float, shown_height: float, rotation: 
         sentences.append(f"Its rotation of {rotation:g}° replaces {channel.label}'s {aim:g}°.")
     sentences.append("Press Generate Tandem to build it.")
     return " ".join(sentences)
+
+
+def update_question(name: str, new_name: str, note_changed: bool) -> str:
+    """Update's question, naming the rename and the new note as well as the settings, so neither happens unannounced."""
+    changes = ([f"rename it {new_name}"] if new_name != name else []) + (["replace its note"] if note_changed else [])
+    if len(changes) == 2: return f"Replace {name} with the Generate settings on this tab, {changes[0]} and {changes[1]}?"
+    if changes: return f"Replace {name} with the Generate settings on this tab and {changes[0]}?"
+    return f"Replace {name} with the Generate settings on this tab?"
 
 
 def template_summary(template: TandemTemplate) -> str:
@@ -253,22 +261,37 @@ class TandemView(CustomView):
         """Ask the clinician to confirm, with Cancel the default."""
         return template_change_dialog(title, question).exec() == QMessageBox.StandardButton.Yes
 
+    def selected_template(self) -> TandemTemplate | None:
+        """The template selected in the list, or None, never the last one that row -1 would index."""
+        row = self.ui.list_templates.currentRow()
+        return self.templates[row] if row >= 0 else None
+
     def action_update_template(self) -> None:
-        """Once confirmed, write the tab's name, note and Generate settings to the selected template."""
-        template = self.templates[self.ui.list_templates.currentRow()]
-        if not self.confirm("Update Template", f"Replace {template.name} with the Generate settings on this tab?"):
+        """Once confirmed, write the tab's name, note and Generate settings to the selected template and keep it selected."""
+        template = self.selected_template()
+        if template is None: return
+        name, note = self.ui.le_template_name.text().strip(), self.ui.le_template_note.text().strip()
+        if not name:
+            self.ui.label_template_status.setText("A tandem template needs a name")
+            return
+        if not self.confirm("Update Template", update_question(template.name, name, note != template.note)):
             return
         try:
-            self.show_templates(update_template(self.templates_path, template.template_id, self.ui.le_template_name.text(),
-                                                self.ui.le_template_note.text(), self.tandem_design(),
-                                                datetime.now(timezone.utc)))
-            self.ui.label_template_status.setText(f"Updated {self.ui.le_template_name.text().strip()}")
+            # a created date ahead of this clock would refuse every update, so the modified date is never earlier
+            templates = update_template(self.templates_path, template.template_id, name, note, self.tandem_design(),
+                                        max(datetime.now(timezone.utc), template.created))
         except TandemTemplateError as error:
             self.ui.label_template_status.setText(str(error))
+            return
+        self.show_templates(templates)
+        index = position(templates, template.template_id)
+        self.ui.list_templates.setCurrentRow(index)
+        self.ui.label_template_status.setText(f"Updated {templates[index].name}")
 
     def action_delete_template(self) -> None:
         """Once confirmed, remove the selected template."""
-        template = self.templates[self.ui.list_templates.currentRow()]
+        template = self.selected_template()
+        if template is None: return
         if not self.confirm("Delete Template", f"Delete the template {template.name}?"):
             return
         try:
