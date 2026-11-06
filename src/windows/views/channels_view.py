@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QListWidgetItem, QPushButton, QWidget,
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QListWidgetItem, QMessageBox, QPushButton, QWidget,
 )
 
 from classes.app import get_app
@@ -183,7 +183,9 @@ class ChannelsView(CustomView):
 
     @display_action
     def action_remove_applicator(self) -> None:
-        self.channelsmodel.remove_custom_needle(self.channelsmodel.get_selected_channel())
+        label = self.channelsmodel.get_selected_channel()
+        if not self.channelsmodel.is_custom_needle(label) and not self.confirm_remove(label): return
+        self.channelsmodel.remove_channel(label)
         self.create_channels_list()
 
     def make_applicator_button(self, text: str, action: Callable[[], None]) -> QPushButton:
@@ -193,6 +195,10 @@ class ChannelsView(CustomView):
         self.ui.verticalLayout_4.addWidget(button)
         button.pressed.connect(action)
         return button
+
+    def ask_remove_plan_needle(self, label: str) -> bool:
+        answer = QMessageBox.question(self, "Remove Applicator", f"Remove {label} from the plan? It comes back only when you import the plan again.")
+        return answer == QMessageBox.StandardButton.Yes
 
     def ask_new_needle(self, label: str) -> CustomNeedleSpec | None:
         dialog = AddApplicatorDialog(label, self.channelsmodel.custom_needle_error)
@@ -336,9 +342,8 @@ class ChannelsView(CustomView):
         any_selected = selected_channel != None
         self.ui.btn_enable.setEnabled(any_selected)
         self.btn_add_applicator.setEnabled(self.channelsmodel.has_plan())
-        is_custom = self.channelsmodel.is_custom_needle(selected_channel)
-        self.btn_edit_applicator.setEnabled(is_custom)
-        self.btn_remove_applicator.setEnabled(is_custom and not self.channelsmodel.is_channel_tandem(selected_channel))
+        self.btn_edit_applicator.setEnabled(self.channelsmodel.is_custom_needle(selected_channel))
+        self.btn_remove_applicator.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
         self.ui.group_selected_channel.setEnabled(any_selected)
         if any_selected:
@@ -399,6 +404,7 @@ class ChannelsView(CustomView):
         self.ask_translation: Callable[[str, Translation], Translation | None] = self.ask_move
         self.ask_needle: Callable[[str], CustomNeedleSpec | None] = self.ask_new_needle
         self.ask_edit: Callable[[str, CustomNeedleSpec], CustomNeedleSpec | None] = self.ask_edited_needle
+        self.confirm_remove: Callable[[str], bool] = self.ask_remove_plan_needle
 
         #sets default needle length
         config_values = get_app().values.config_values

@@ -54,7 +54,7 @@ def test_numbers_the_export_cannot_cut_are_refused_in_plain_text_and_change_noth
         assert model.channels == before and model.channels["Custom Applicator71"] is kept
         assert ":" not in str(add_refusal.value) and "—" not in str(add_refusal.value)
     finally:
-        model.remove_custom_needle("Custom Applicator71")  # leaves the spot free for the next test, which measures a volume there
+        model.remove_channel("Custom Applicator71")  # leaves the spot free for the next test, which measures a volume there
 
 
 def test_the_same_bend_towards_another_direction_is_accepted_and_the_export_loses_its_volume(channels_window: MainWindow) -> None:
