@@ -230,7 +230,9 @@ boxes' height in the default window.
 `views/test_tandem_template_controls.py` checks the Tandem tab's Templates group on a window with
 no plan: *Save as Template* writes every Generate setting from its own box, a blank or taken name
 or an unreadable library is explained in the status line, and the library's ranges match the
-Generate spin boxes.
+Generate spin boxes. *Load* fills every box without generating, and on Ex2 says when the height
+was capped or the rotation replaces the tandem channel's, and *Generate Tandem* then builds the
+template's tandem.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.

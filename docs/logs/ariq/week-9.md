@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #215, at a glance
+## Stack #212 to #216, at a glance
 
 Ten stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, make *Generate Tandem*'s boxes show the tandem it built, and share one confirmation dialog between the Cylinder and Tandem tabs. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -14,6 +14,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#213](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/213) | #212 | #205 | JSON library: `load_templates`, `add_template`, a shared safe save | 7, +358/−18 | 20 | 464 |
 | [#214](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/214) | #213 | #206 | `update_template`, `delete_template`; diagram names the file | 9, +212/−9 | 7 | 471 |
 | [#215](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/215) | #214 | #207 | Templates group and *Save as Template* on the Generate sub-tab | 9, +387/−8 | 6 | 477 |
+| [#216](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/216) | #215 | #208 | *Load*, with the capped height and replaced rotation messages | 9, +290/−11 | 8 | 485 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -203,3 +204,37 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 475 passed and the 2 failures inherited from `main` (471 tests after #214, screenshot 1)**.
 
   ![1, python -m pytest on feat/tandem-template-save, 6 passed in test_tandem_template_controls.py and 475 passed with the 2 failures inherited from main, and 2, the real Tandem tab on Ex2 after saving three tandem templates](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d0c5bab7dd19e2d7e1465e42998e5a5bed2eab63/docs/logs/ariq/screenshots/week-9/pr-215-1-save-template.png)
+
+### For PR #**216** (5 of 10, on #215)
+
+- As part of requirement **FR-CN-06 and issue #208, load a tandem template**, the user needs to do **select a saved template, press Load, read the status line, and press Generate Tandem**.
+- Therefore, I implemented/generated code so that **clinicians load a template's eight settings without generating, and are told when the height was capped at a shorter cylinder or the rotation replaces the tandem channel's direction**.
+
+#### Frontend
+
+- The frontend uses **the Generate boxes as the only state Load changes** because **Generate Tandem already builds from them**. Benefits for using this pattern include **a loaded template behaves exactly like typed values**. Possible risks include **a box capping a value silently**.
+  - To mitigate **a silent cap**, we implemented **`load_message` naming both heights, such as "Its Tandem Height of 170 mm is capped at the 160 mm cylinder."**
+  - To mitigate **a bend no longer aimed at the tandem channel**, we implemented **"Its rotation of 258.697° replaces Tandem's 0°.", compared in any whole turn by `same_direction` (screenshot 1)**.
+- The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **a Load button beside Save as Template, disabled until a template is selected**. Therefore, changing the design of **`layout_template_buttons`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the status text is built in `load_message`**.
+- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification**. The aspects that demonstrate this principle in the system include **the cap and rotation sentences in the status line (screenshot 1)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-06, #208: 6 new tests, 8 cases, in `tests/views/test_tandem_template_controls.py`**
+
+#### Review and design
+
+- When I reviewed the **generated Load test** for this functionality, I noticed **it expected the Import Rotation box to hold 258.697, but that box keeps Qt's two decimals and shows 258.70**. Therefore, I did **assert 258.7 for that box and record the difference in §5.6**.
+- The PR does not contain any temporary workaround because **Load fills the boxes and Generate Tandem is unchanged**.
+- The PR only contains small functions that are **3 to 18 lines (view) and 4 to 22 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tandem_view.py` and `tandem_view.ui`** because **as in #215**.
+- This work belongs in **Tandem** in the DFD because **as in #215**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_load_fills_every_box_and_the_name_and_note_without_generating`, `test_load_then_generate_builds_the_templates_tandem` (8 new; 14 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a 170 mm template on Ex2's 160 mm cylinder, and rotations of 0, -0.004 and no tandem channel** and they passed.
+- I checked that these negative cases involving **eight deliberate breaks (a box not filled, the Import rotation left, no cap or rotation sentence, no turn in the comparison, a warning with no channel, Load always enabled, Load generating)** failed as expected.
+- Among these tests, **none** are unit tests and **all 8** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 483 passed and the 2 failures inherited from `main` (477 tests after #215, screenshot 1)**.
+
+  ![1, python -m pytest on feat/tandem-template-load, 14 passed in test_tandem_template_controls.py and 483 passed with the 2 failures inherited from main, 2, Load naming the rotation that replaces Tandem's, and 3, Load capping 170 mm at the 160 mm cylinder](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5201c5ced796376ddee007faf0c1e2fa07226ec7/docs/logs/ariq/screenshots/week-9/pr-216-1-load-template.png)

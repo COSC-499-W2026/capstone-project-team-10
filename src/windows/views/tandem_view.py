@@ -43,6 +43,24 @@ def off_axis_warning(label: str, distance: float, tandem_diameter: float) -> str
             f"The tandem hole stays on the axis, so {label} gets no hole of its own.")
 
 
+def same_direction(first: float, second: float) -> bool:
+    """Whether two rotations in degrees aim the tandem the same way, to the box's 0.01 degree."""
+    return round((first - second) % 360.0, 2) % 360.0 == 0.0
+
+
+def load_message(name: str, saved_height: float, shown_height: float, rotation: float,
+                 channel: NeedleChannel | None) -> str:
+    """The status line after Load: what was loaded, a capped height, a rotation that replaces the channel's."""
+    sentences = [f"Loaded {name}."]
+    if shown_height < saved_height:
+        sentences.append(f"Its Tandem Height of {saved_height:g} mm is capped at the {shown_height:g} mm cylinder.")
+    if channel is not None and not same_direction(rotation, channel.get_rotation()):
+        aim = round(channel.get_rotation(), 1) % 360.0
+        sentences.append(f"Its rotation of {rotation:g}° replaces {channel.label}'s {aim:g}°.")
+    sentences.append("Press Generate Tandem to build it.")
+    return " ".join(sentences)
+
+
 def template_summary(template: TandemTemplate) -> str:
     """A saved template's tooltip: its note, its dates and its tandem in one line, with no colons."""
     design = template.design
@@ -211,6 +229,33 @@ class TandemView(CustomView):
             threading_diameter_mm=ui.sb_threading_diameter.value(),
             rotation_deg=ui.tandem_rotation_2.value())
 
+    def set_tandem_design(self, design: TandemDesign) -> None:
+        """Show a design in the Generate boxes without generating, both Rotation boxes kept equal."""
+        ui = self.ui
+        ui.sb_tandem_height.setValue(design.height_mm)
+        ui.sp_channel_diameter.setValue(design.channel_diameter_mm)
+        ui.sp_stopper_diameter.setValue(design.stopper_diameter_mm)
+        ui.sp_bend_angle.setValue(design.bend_angle_deg)
+        ui.sb_bend_radius.setValue(design.bend_radius_mm)
+        ui.sb_threading_depth.setValue(design.threading_depth_mm)
+        ui.sb_threading_diameter.setValue(design.threading_diameter_mm)
+        ui.tandem_rotation_2.setValue(design.rotation_deg)
+        ui.tandem_rotation.setValue(design.rotation_deg)
+
+    def action_select_template(self, row: int) -> None:
+        """Load needs a selected template."""
+        self.ui.btn_load_template.setEnabled(row >= 0)
+
+    def action_load_template(self) -> None:
+        """Put the selected template on the Generate sub-tab, saying what the tab could not keep. Generate builds it."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        self.set_tandem_design(template.design)
+        self.ui.le_template_name.setText(template.name)
+        self.ui.le_template_note.setText(template.note)
+        self.ui.label_template_status.setText(load_message(
+            template.name, template.design.height_mm, self.ui.sb_tandem_height.value(),
+            template.design.rotation_deg, self.channelsmodel.get_tandem_channel()))
+
     def action_load_templates(self) -> None:
         """Show every saved template, or none, with the reason, if the library cannot be read."""
         try:
@@ -226,6 +271,7 @@ class TandemView(CustomView):
             row = QListWidgetItem(template.name)
             row.setToolTip(template_summary(template))
             self.ui.list_templates.addItem(row)
+        self.action_select_template(self.ui.list_templates.currentRow())
 
     def action_save_template(self) -> None:
         """Save the Generate settings under the typed name and note, or say in the status line why not."""
@@ -319,6 +365,8 @@ class TandemView(CustomView):
         self.ui.btn_apply_import.pressed.connect(self.action_set_import)
         self.ui.cb_tandem_channel.activated.connect(self.action_choose_tandem_channel)
         self.ui.btn_save_template.pressed.connect(self.action_save_template)
+        self.ui.btn_load_template.pressed.connect(self.action_load_template)
+        self.ui.list_templates.currentRowChanged.connect(self.action_select_template)
         self.channelsmodel.values_changed.connect(self.refresh_tandem_channels)
 
         self.update_settings()
