@@ -16,7 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDoubleSpinBox, QGridLayout,
-    QHBoxLayout, QLabel, QLayout, QPushButton,
+    QGroupBox, QHBoxLayout, QLabel, QLayout,
+    QLineEdit, QListWidget, QListWidgetItem, QPushButton,
     QSizePolicy, QSpacerItem, QTabWidget, QVBoxLayout,
     QWidget)
 
@@ -201,7 +202,7 @@ class Ui_Tandem_View(object):
         self.Generate.setObjectName(u"Generate")
         self.verticalLayout_6 = QVBoxLayout(self.Generate)
         self.verticalLayout_6.setObjectName(u"verticalLayout_6")
-        self.verticalLayout_6.setContentsMargins(10, 10, 10, 10)
+        self.verticalLayout_6.setContentsMargins(8, 10, 8, 10)
         self.gridLayout = QGridLayout()
         self.gridLayout.setObjectName(u"gridLayout")
         self.gridLayout.setSizeConstraint(QLayout.SetNoConstraint)
@@ -388,6 +389,45 @@ class Ui_Tandem_View(object):
 
         self.verticalLayout_6.addWidget(self.btn_clear_generate)
 
+        self.group_templates = QGroupBox(self.Generate)
+        self.group_templates.setObjectName(u"group_templates")
+        self.group_templates.setStyleSheet(u"QGroupBox, QLabel { color: rgb(0, 0, 0); }\n"
+"QLineEdit, QListWidget { background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); }\n"
+"QPushButton { color: rgb(0, 0, 0); background-color: rgb(199, 219, 237); border: 0px solid; padding: 6px; }\n"
+"QPushButton:hover { color: rgb(250, 250, 250); background-color: rgb(48, 88, 162); }\n"
+"QPushButton:disabled { color: rgb(150, 150, 150); }")
+        self.layout_templates = QVBoxLayout(self.group_templates)
+        self.layout_templates.setObjectName(u"layout_templates")
+        self.le_template_name = QLineEdit(self.group_templates)
+        self.le_template_name.setObjectName(u"le_template_name")
+
+        self.layout_templates.addWidget(self.le_template_name)
+
+        self.le_template_note = QLineEdit(self.group_templates)
+        self.le_template_note.setObjectName(u"le_template_note")
+
+        self.layout_templates.addWidget(self.le_template_note)
+
+        self.list_templates = QListWidget(self.group_templates)
+        self.list_templates.setObjectName(u"list_templates")
+        self.list_templates.setMaximumSize(QSize(16777215, 90))
+
+        self.layout_templates.addWidget(self.list_templates)
+
+        self.btn_save_template = QPushButton(self.group_templates)
+        self.btn_save_template.setObjectName(u"btn_save_template")
+
+        self.layout_templates.addWidget(self.btn_save_template)
+
+        self.label_template_status = QLabel(self.group_templates)
+        self.label_template_status.setObjectName(u"label_template_status")
+        self.label_template_status.setWordWrap(True)
+
+        self.layout_templates.addWidget(self.label_template_status)
+
+
+        self.verticalLayout_6.addWidget(self.group_templates)
+
         self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_6.addItem(self.verticalSpacer_2)
@@ -435,6 +475,10 @@ class Ui_Tandem_View(object):
         self.tandem_rotation_2.setSuffix(QCoreApplication.translate("Tandem_View", u"\u00b0", None))
         self.btn_apply.setText(QCoreApplication.translate("Tandem_View", u"Generate Tandem", None))
         self.btn_clear_generate.setText(QCoreApplication.translate("Tandem_View", u"Clear Tandem", None))
+        self.group_templates.setTitle(QCoreApplication.translate("Tandem_View", u"Templates", None))
+        self.le_template_name.setPlaceholderText(QCoreApplication.translate("Tandem_View", u"Template name", None))
+        self.le_template_note.setPlaceholderText(QCoreApplication.translate("Tandem_View", u"Note", None))
+        self.btn_save_template.setText(QCoreApplication.translate("Tandem_View", u"Save as Template", None))
         self.ab.setTabText(self.ab.indexOf(self.Generate), QCoreApplication.translate("Tandem_View", u"Generate", None))
     # retranslateUi
 
