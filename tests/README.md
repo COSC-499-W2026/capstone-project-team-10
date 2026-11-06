@@ -150,8 +150,8 @@ mocked. The pure functions below still have no tests.
 It imports no Qt and no `classes` module. `settings/test_cylinder_templates.py` checks cylinder
 templates against every Cylinder tab range edge, and their library, including update and delete,
 against files in `tmp_path`, with no Qt either. `settings/test_tandem_templates.py` checks tandem
-templates against every Generate sub-tab range edge, and their library against files in `tmp_path`,
-with no Qt.
+templates against every Generate sub-tab range edge, and their library, including update and delete,
+against files in `tmp_path`, with no Qt.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows. It also checks that the Structures button sits under Import and opens

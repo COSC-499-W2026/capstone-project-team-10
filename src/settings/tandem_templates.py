@@ -152,3 +152,33 @@ def add_template(path: Path, template: TandemTemplate) -> tuple[TandemTemplate, 
     templates += (template,)
     write_templates(path, templates)
     return templates
+
+
+def position(templates: tuple[TandemTemplate, ...], template_id: str) -> int:
+    """Where the template with this ID sits in the library, or an error if it has gone."""
+    for index, saved in enumerate(templates):
+        if saved.template_id == template_id:
+            return index
+    raise TandemTemplateError("That tandem template no longer exists")
+
+
+def update_template(path: Path, template_id: str, name: str, note: str,
+                    design: TandemDesign, now: datetime) -> tuple[TandemTemplate, ...]:
+    """Replace a template's name, note and design, keeping its ID, created date and place in the list."""
+    templates = load_templates(path)
+    index = position(templates, template_id)
+    updated = make_template(template_id, name, note, design, templates[index].created, now)
+    if name_taken(templates, updated.name, template_id):
+        raise TandemTemplateError(f"A tandem template named {updated.name} already exists")
+    templates = templates[:index] + (updated,) + templates[index + 1:]
+    write_templates(path, templates)
+    return templates
+
+
+def delete_template(path: Path, template_id: str) -> tuple[TandemTemplate, ...]:
+    """Remove one template and write the library back."""
+    templates = load_templates(path)
+    index = position(templates, template_id)
+    templates = templates[:index] + templates[index + 1:]
+    write_templates(path, templates)
+    return templates
