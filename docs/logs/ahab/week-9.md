@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #238 to #239, at a glance
+## Stack #238 to #241, at a glance
 
 Four stacked PRs for issue #156, edit and remove any applicator, imported or custom. Each PR is
 based on the one above it and is retargeted to `main` once its parent merges. A row's counts are
@@ -13,6 +13,7 @@ based on the one above it and is retargeted to `main` once its parent merges. A 
 |---|---|---|---|---|---|---|
 | [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 243 lines | 5 (11 in the file) | 428 passed, 2 failed |
 | [#239](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/239) | #238 | #156 | an editable Name in the Edit form, moved through every record, the tandem included | 7 files, 184 lines | 4 (10 in the file) | 432 passed, 2 failed |
+| [#241](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/241) | #239 | #156 | `spec_from_points`, the estimate of a plan needle's form numbers (nothing calls it yet) | 6 files, 209 lines | 13 (13 in the file) | 445 passed, 2 failed |
 
 The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_drop_highlight` and
 `::test_click_after_keyboard_navigation_can_rehighlight`. They also fail on `main`.
@@ -112,5 +113,51 @@ The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_d
 - This new test PR did not break anything else in the system because **`python -m pytest` (432 passed, 428 after #238, 2 failed, the same two on `main`), and brachify run on macOS with Ex1, driven by a script that opened the real form and pressed the real Edit button (screenshot 1)**.
 
   ![1, Ex1 on macOS, the Edit form with an editable Name, the list after OK with the new name selected, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9b842c06673e0e80ed49693bb48f5bc11035c7ea/docs/logs/ahab/screenshots/week-9/pr-239-1-rename.png)
+
+- Not applicable: **generated-test review (no generated test)**.
+
+### For PR #**241** (3 of 4, on #239)
+
+- As part of requirement **FR-CN-14, define a needle by points or by an entry point, an angle from the axis, an azimuth and a length**, the user needs to do **have the Edit form show the numbers that describe an imported needle, which the next PR wires to the form and this PR provides**.
+- Therefore, I implemented/generated code so that **medical physicists editing a plan needle start from estimated numbers instead of typing every one**.
+
+#### Data Modeling and Integrity
+
+- This data **a needle's points, given to `spec_from_points`** uses the input validation to ensure it adheres to **at least two points, every value finite, and a tip above the base, each refused with a `CustomNeedleError` that has no colon or dash**.
+- Not applicable: **data model (reuses `CustomNeedleSpec`), see Shared for the rest**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **as in #238, with the geometry helpers in `mesh/helper.py` gaining one function**. This structure has low coupling because **`spec_from_points` takes points and a label and returns a spec, and imports nothing from the models or views**. This structure has high cohesion because **it sits beside `custom_needle_points`, its inverse**. This design is scalable because **a better estimate, for example a fitted radius, replaces one function**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **as in #238**. **Nothing reaches the STL or the PDF in this PR**.
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **as in #238**. **Channels will call this function when Edit is pressed, which the next PR does**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-14 → `test_a_straight_vertical_needle_keeps_its_start_and_its_total_length`, `test_a_needle_that_drops_straight_to_the_base_after_a_tilt_gives_the_drop_as_length_1`, `test_a_needle_that_crosses_the_base_starts_where_it_meets_it`**
+- Not applicable: **see Shared**.
+
+#### Review and design
+
+- When I reviewed **Ex1's real plan needles before writing `path_down_to_base`**, I noticed **they stop at z 102.8, above the base, and the export drops them straight down from there, so Length 1 is that drop and not zero**. Therefore, I did **end every path on the base first, the way `down_to_end` and the PDF do, and the result is a ring of needles with Phi stepping by about 30 degrees (screenshot 1, panel 2)**.
+- The PR does not contain any temporary workaround because **the two guesses, the 1 mm bend radius and the 0.001 mm minimum length, are named constants with a comment saying when to replace them, and a curved path becoming one corner is stated in the docstring and §5.4**.
+- The PR only contains small functions that are **14 lines (`path_down_to_base`) and 24 lines, 8 of them docstring (`spec_from_points`)** long.
+- I did **`anti_slop review --base feat/rename-applicator src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
+- This work is written in **`mesh/helper.py` and `tests/mesh/`** because **the function is pure geometry beside `custom_needle_points`, so it needs no window or models**.
+- This work belongs in **3 Channels** in the DFD because **it prepares a channel's numbers for editing**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_straight_vertical_needle_keeps_its_start_and_its_total_length`, `test_a_needle_that_drops_straight_to_the_base_after_a_tilt_gives_the_drop_as_length_1` and `test_phi_is_the_direction_of_the_tilt_from_x_towards_y_in_every_quadrant` (13 new; 13 in `test_spec_from_points.py`)** passed.
+- I wrote tests to cover abnormal situations involving **a needle ending on the base, one crossing it, a curved path, a tilt past 89 degrees, and no points, one point, NaN and infinity** and they passed.
+- I checked that these negative cases involving **dropping `% 360` (the quadrant test failed), using the rise for Length 2 (4 failed) and skipping the base cut (the crossing test failed)** failed as expected.
+- Among these tests, **all 13** are unit tests and integration tests are not required because **the function is pure and takes only points and a label**.
+- These tests are included in the directory **`tests/mesh/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (445 passed, 432 after #239, 2 failed, the same two on `main`). I did not run the app, since nothing calls the function yet. The evidence is the function run on every Ex1 and Ex2 needle (screenshot 1, panel 2)**.
+
+  ![1, the pytest output for the new test file and the suite, and the estimate for every Ex1 and Ex2 needle](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d2c4328de61387b2b449cb7c96a68fb13368594d/docs/logs/ahab/screenshots/week-9/pr-241-1-estimate.png)
 
 - Not applicable: **generated-test review (no generated test)**.
