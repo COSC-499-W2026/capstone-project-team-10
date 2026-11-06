@@ -235,7 +235,8 @@ or an unreadable library is explained in the status line, and the library's rang
 Generate spin boxes. *Load* fills every box without generating, and on Ex2 says when the height
 was capped or the rotation replaces the tandem channel's, and *Generate Tandem* then builds the
 template's tandem, or that it cannot be built on the cylinder. *Update* and *Delete* change the
-file only after Yes, through `TandemView.confirm`.
+file only after Yes, through `TandemView.confirm`, *Update*'s question names a rename or a new note,
+and neither acts with no row selected.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
