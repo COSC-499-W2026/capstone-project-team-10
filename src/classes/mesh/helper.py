@@ -261,6 +261,52 @@ def bent_needle_points(spec: CustomNeedleSpec) -> list[list[float]]:
     return [tip, *reversed(arc), [spec.x, spec.y, 0.0]]
 
 
+MIN_LENGTH_MM = 0.001  # the smallest length the Edit form can hold, since its boxes show three decimals
+ESTIMATED_BEND_RADIUS_MM = 1.0  # shortcut: a plan path is a sharp cornered line, so this radius is a fixed guess, replace it if a clinic needs the real corner
+
+
+def path_down_to_base(points: list[list[float]]) -> list[list[float]]:
+    """A needle's points, tip first, ending on the base at z 0, the way the export and the sheet draw it.
+
+    A path that stops above the base drops straight down to it, and one that crosses the base is cut
+    where it meets it. A path that never rises above the base raises CustomNeedleError.
+    """
+    if points[0][2] <= 0:
+        raise CustomNeedleError("The needle never rises above the base")
+    for index, (above, below) in enumerate(zip(points, points[1:])):
+        if above[2] > 0 >= below[2]:
+            along = above[2] / (above[2] - below[2])
+            meets = [above[0] + along * (below[0] - above[0]), above[1] + along * (below[1] - above[1]), 0.0]
+            return [*points[:index + 1], meets]
+    return [*points, [points[-1][0], points[-1][1], 0.0]]
+
+
+def spec_from_points(label: str, points: list[list[float]]) -> CustomNeedleSpec:
+    """Estimate the Edit form's numbers for a needle given as points, tip first, in the cylinder's frame.
+
+    Start X and Y are where the path meets the base, Length 1 the vertical run up from it, and Theta
+    and Phi the direction of the straight line from the end of that run to the tip. Length 2 is the
+    length of that line, so the rebuilt needle ends at the same tip. The bend radius is a fixed small
+    guess, and a needle with no vertical run or no tilt gets the smallest length the form allows,
+    since it refuses a length of 0. A path that curves is rebuilt as that one corner, so it is an estimate.
+    """
+    if len(points) < 2 or not all(math.isfinite(value) for point in points for value in point):
+        raise CustomNeedleError("The needle needs at least two points, and every value must be a number")
+    path = path_down_to_base(points)
+    start, tip = path[-1], path[0]
+    corner = len(path) - 1
+    while corner > 0 and math.hypot(path[corner - 1][0] - start[0], path[corner - 1][1] - start[1]) < 1e-6:
+        corner -= 1
+    rise = tip[2] - path[corner][2]
+    sideways = math.hypot(tip[0] - path[corner][0], tip[1] - path[corner][1])
+    if corner == 0 or sideways < 1e-9:
+        return CustomNeedleSpec(label, start[0], start[1], max(tip[2] - MIN_LENGTH_MM, MIN_LENGTH_MM), MIN_LENGTH_MM)
+    theta = min(math.degrees(math.atan2(sideways, rise)), MAX_THETA_DEGREES)
+    phi = math.degrees(math.atan2(tip[1] - path[corner][1], tip[0] - path[corner][0])) % 360
+    return CustomNeedleSpec(label, start[0], start[1], max(path[corner][2], MIN_LENGTH_MM), math.hypot(sideways, rise),
+                            ESTIMATED_BEND_RADIUS_MM, theta, phi)
+
+
 def cut_is_clean(solid: TopoDS_Shape, tool: TopoDS_Shape) -> bool:
     """Whether cutting the tool out of the solid finishes without an OpenCASCADE error or warning.
 
