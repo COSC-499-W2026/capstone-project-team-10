@@ -10,7 +10,7 @@ RANGE_MM = 300.0  # the longest cylinder the Cylinder tab allows
 class AddApplicatorDialog(QDialog):
     """Asks for a custom applicator's name, start, lengths and bend (mm and degrees), with no parent like MoveChannelDialog.
 
-    Given the numbers of an existing applicator it edits that one, and its name cannot be changed. OK checks
+    Given the numbers of an existing applicator it edits that one, name included. OK checks
     the numbers with the model's own rules and stays open, showing the reason, until they pass.
     """
 
@@ -22,7 +22,6 @@ class AddApplicatorDialog(QDialog):
         form = QFormLayout(self)
         form.setSizeConstraint(QFormLayout.SizeConstraint.SetFixedSize)
         self.edit_label = QLineEdit(label)
-        self.edit_label.setEnabled(current is None)
         self.spin_x = self.make_spin_box(start.x, -RANGE_MM)
         self.spin_y = self.make_spin_box(start.y, -RANGE_MM)
         self.spin_length1 = self.make_spin_box(start.length1, 0.0)

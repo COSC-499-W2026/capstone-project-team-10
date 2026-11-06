@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #238 to #238, at a glance
+## Stack #238 to #239, at a glance
 
 Four stacked PRs for issue #156, edit and remove any applicator, imported or custom. Each PR is
 based on the one above it and is retargeted to `main` once its parent merges. A row's counts are
@@ -12,6 +12,7 @@ based on the one above it and is retargeted to `main` once its parent merges. A 
 | PR | On | Closes | Adds | Own diff | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 243 lines | 5 (11 in the file) | 428 passed, 2 failed |
+| [#239](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/239) | #238 | #156 | an editable Name in the Edit form, moved through every record, the tandem included | 7 files, 184 lines | 4 (10 in the file) | 432 passed, 2 failed |
 
 The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_drop_highlight` and
 `::test_click_after_keyboard_navigation_can_rehighlight`. They also fail on `main`.
@@ -65,5 +66,51 @@ The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_d
 - This new test PR did not break anything else in the system because **`python -m pytest` (428 passed, 424 on main by test count, 2 failed, the same two on `main`), and brachify run on macOS with Ex1, driven by a script that pressed the real Remove button (screenshot 1)**.
 
   ![1, Ex1 on macOS, Applicator6 selected with Remove Applicator on, after Remove and Yes with the list and the 3D view one needle fewer, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6d141a8e91eaeaeff52fcabdf016a807179c31e/docs/logs/ahab/screenshots/week-9/pr-238-1-remove.png)
+
+- Not applicable: **generated-test review (no generated test)**.
+
+### For PR #**239** (2 of 4, on #238)
+
+- As part of requirement **FR-CN-02, edit the properties of any needle, the name included**, the user needs to do **import Ex1, press Add Applicator..., select the new applicator, press Edit Applicator..., type a new name, press OK, and see the new name in the Channels list**.
+- Therefore, I implemented/generated code so that **medical physicists can rename a custom applicator, the tandem included, without losing its disabled state, own diameter, move or place in the list**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **as in #238**. This structure has low coupling because **the view only calls `edit_custom_needle`, which calls `rename_channel`**. This structure has high cohesion because **`rename_channel` moves a label through every record that holds it in one method**. This design is scalable because **a new label-keyed record is one more line in that method**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **as in #238**. **A renamed needle keeps its place in the STL and the PDF, since only its label changed**.
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **as in #238**. **Channels renames the channel, and the Tandem tab, which refreshes on `values_changed`, keeps showing the renamed tandem as chosen (screenshot 2)**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 → `test_renaming_moves_the_label_through_every_record_and_keeps_the_rest`, `test_a_rename_to_an_existing_or_blank_name_is_refused_and_nothing_changes`, `test_renaming_the_tandem_keeps_the_tandem_tab_pointing_at_it`, `test_the_edit_button_with_a_new_name_renames_the_list_row`**
+- Not applicable: **see Shared**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 3.3.1, Error Identification**. The aspects that demonstrate this principle in the system include **a name another applicator has is refused with the text `An applicator named X already exists`, which the form's existing `try_accept` shows in its error label (the text is tested, the label display is reasoned from that existing code). I did not run a screen reader**.
+- Not applicable: **see Shared, and traceability matrix (in Backend)**.
+
+#### Review and design
+
+- When I reviewed **`rename_channel`**, I noticed **the old name's shape would stay in the display model, as in #238's §7.21, so the renamed needle would be drawn twice**. Therefore, I did **drop it with `remove_shape` inside `rename_channel`, and assert it in `test_renaming_moves_the_label_through_every_record_and_keeps_the_rest`**.
+- The PR does not contain any temporary workaround because **it changes `edit_custom_needle` to use the typed name, and adds no flag or second path**.
+- The PR only contains small functions that are **11 lines (`rename_channel`) and 14 lines (`edit_custom_needle`)** long.
+- I did **`anti_slop review --base feat/remove-any-applicator src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
+- This work is written in **`channels_model.py` and `add_applicator_dialog.py`** because **the label records are the model's and the lock was one line in the form**.
+- This work belongs in **3 Channels** in the DFD because **it changes a channel's name**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_renaming_moves_the_label_through_every_record_and_keeps_the_rest`, `test_the_edit_button_with_a_new_name_renames_the_list_row` and `test_the_form_opened_to_edit_shows_the_stored_numbers_and_lets_the_name_change` (4 new; 10 in `test_edit_custom_needle.py`)** passed.
+- I wrote tests to cover abnormal situations involving **a name an existing applicator has, a blank name, a name with spaces around it, and the tandem** and they passed.
+- I checked that these negative cases involving **leaving `data.tandem_channel` on the old name (`test_renaming_the_tandem_keeps_the_tandem_tab_pointing_at_it` failed)** failed as expected.
+- Among these tests, **none are pure unit tests** and **all 10** are integration tests through the real window.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (432 passed, 428 after #238, 2 failed, the same two on `main`), and brachify run on macOS with Ex1, driven by a script that opened the real form and pressed the real Edit button (screenshot 1)**.
+
+  ![1, Ex1 on macOS, the Edit form with an editable Name, the list after OK with the new name selected, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9b842c06673e0e80ed49693bb48f5bc11035c7ea/docs/logs/ahab/screenshots/week-9/pr-239-1-rename.png)
 
 - Not applicable: **generated-test review (no generated test)**.
