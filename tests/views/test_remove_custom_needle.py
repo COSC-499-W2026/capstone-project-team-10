@@ -102,6 +102,26 @@ def test_a_plan_applicator_can_be_removed_and_leaves_the_export_and_the_sheet(ch
     assert label not in [channel.label for channel in model.get_visible_channels()]
 
 
+def test_a_removed_applicator_leaves_the_viewport(channels_window: MainWindow, restored_plan: None) -> None:
+    """Check a removed plan applicator and a removed custom one are gone from the display model's shapes.
+
+    Fails if the label stays in displaymodel.shapes, because DisplayModel.add_shapes only adds
+    or replaces shapes and never drops one whose channel is gone. The 3D view would keep drawing
+    a needle the clinician deleted, so they would trust a model the export no longer matches.
+    """
+    model = channels_window.channelsmodel
+    shapes = channels_window.displaymodel.shapes
+    label = next(iter(model.channels))
+    model.add_custom_needle(spec("Custom Applicator88"))
+    model.set_selected_channels(label)
+    assert label in shapes and "Custom Applicator88" in shapes
+
+    model.remove_channel(label)
+    model.remove_channel("Custom Applicator88")
+
+    assert label not in shapes and "Custom Applicator88" not in shapes
+
+
 def test_removing_an_unknown_label_raises_key_error_and_changes_nothing(channels_window: MainWindow) -> None:
     """Check removing a label no applicator has raises KeyError and leaves the channels as they were.
 

@@ -176,6 +176,7 @@ class ChannelsModel(QObject):
         if self.is_channel_tandem(label):
             raise CustomNeedleError("Choose another tandem before removing the applicator that is the tandem")
         del self.channels[label]
+        get_app().window.displaymodel.remove_shape(label)  # add_shapes never drops a shape, so a removed one would still be drawn
         self.custom_specs.pop(label, None)
         self.own_diameters.pop(label, None)
         self.disabled_channels = [disabled for disabled in self.disabled_channels if disabled != label]
