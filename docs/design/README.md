@@ -100,8 +100,10 @@ the Generate boxes from the selected template but builds nothing: the status lin
 *Generate Tandem*. It also says when the Tandem Height was capped at a shorter cylinder, and when
 the saved rotation replaces the chosen tandem channel's direction, naming both, since the bend
 will then no longer point at that channel. *Update* and *Delete* each ask first, naming the
-template, with Cancel the default, using the Cylinder tab's dialog. *Verified* by offscreen widget
-tests.
+template, with Cancel the default, using the Cylinder tab's dialog. When the name or note boxes no
+longer match the selected template, *Update*'s question also says it will rename the template or
+replace its note, and after *Update* the template stays selected. *Verified* by offscreen widget
+tests and in a run of the real window on macOS.
 
 When a tandem channel is set but no tandem has been generated or imported, the Export tab shows
 a word-wrapped warning above its export buttons, and Export Mesh, Export Reference Sheet and
