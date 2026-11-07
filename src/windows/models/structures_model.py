@@ -290,8 +290,8 @@ class StructuresModel(QObject):
     def presentations(self) -> tuple[StructurePresentation, ...]:
         return tuple(self._outlines[roi] for roi in sorted(self.visible))
 
-    def organ_collision_surfaces(self) -> tuple[dict[int, AnatomySurface], dict[int, str]]:
-        """Supply registered organ meshes even when hidden or in Outlines mode."""
+    def prepare_organ_collision_surfaces(self, request_missing: bool = True) -> tuple[dict[int, AnatomySurface], dict[int, str]]:
+        """Return ready meshes and status; optionally request missing organ surfaces."""
         surfaces: dict[int, AnatomySurface] = {}
         unchecked: dict[int, str] = {}
         for roi, structure in self.structures.items():
@@ -299,10 +299,11 @@ class StructuresModel(QObject):
                 continue
             reason = self.unavailable.get(roi) or self.surface_errors.get(roi)
             if reason:
-                unchecked[roi] = reason
+                unchecked[roi] = 'Organ surface unavailable. Check its contours and frame.'
             elif roi in self._surfaces:
                 surfaces[roi] = self._surfaces[roi]
             else:
                 unchecked[roi] = 'Waiting for organ surface'
-                self._attach_surface(roi)
+                if request_missing:
+                    self._attach_surface(roi)
         return surfaces, unchecked
