@@ -163,6 +163,8 @@ the window shows. It also checks that the Structures button sits under Import an
 boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
 test a fresh copy of the defaults as the live settings. The literals for the default cylinder
 were measured on `main` before the notch settings existed, so the defaults are proven unchanged.
+`mesh/test_tandem.py` also checks that `tandem_from_design` copies every setting and that
+`tandem_builds` agrees with `generate_shape` on a buildable and an unbuildable height.
 `geometry_app` and `default_settings` live in the root `tests/conftest.py`, because `pdf/` needs
 them too.
 
@@ -232,9 +234,9 @@ no plan: *Save as Template* writes every Generate setting from its own box, a bl
 or an unreadable library is explained in the status line, and the library's ranges match the
 Generate spin boxes. *Load* fills every box without generating, and on Ex2 says when the height
 was capped or the rotation replaces the tandem channel's, and *Generate Tandem* then builds the
-template's tandem. *Update* and *Delete* change the file only after Yes, through
-`TandemView.confirm`, *Update*'s question names a rename or a new note, and neither acts with
-no row selected.
+template's tandem, or that it cannot be built on the cylinder. *Update* and *Delete* change the
+file only after Yes, through `TandemView.confirm`, *Update*'s question names a rename or a new note,
+and neither acts with no row selected.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
