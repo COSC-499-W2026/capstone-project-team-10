@@ -16,7 +16,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#215](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/215) | #214 | #207 | Templates group and *Save as Template* on the Generate sub-tab | 9, +387/−8 | 6 | 477 |
 | [#216](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/216) | #215 | #208 | *Load*, with the capped height and replaced rotation messages | 9, +290/−11 | 8 | 485 |
 | [#217](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/217) | #216 | #209 | *Update* and *Delete*, asking first and naming a rename or new note | 9, +390/−10 | 13 | 498 |
-| [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +193/−10 | 6 | 504 |
+| [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +194/−11 | 6 | 504 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -317,4 +317,4 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 502 passed and the 2 failures inherited from `main` (498 tests after #217, screenshot 1)**.
 
-  ![1, python -m pytest on feat/tandem-template-build-check, 7 passed in test_tandem.py, 21 in test_tandem_template_controls.py run alone, and 495 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ff8fcf47fea69ec17a2b561c8aa6581dd3848d06/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
+  ![1, python -m pytest on feat/tandem-template-build-check, 28 passed in test_tandem_template_controls.py, 7 in test_tandem.py, and 502 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/062255c8f1433efb21b028a5978d16b9ef0cfaff/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
