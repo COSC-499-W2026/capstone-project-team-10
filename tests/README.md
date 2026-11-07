@@ -84,6 +84,7 @@ tests/
 │   ├── test_tandem_channel.py  the tandem channel at import and when cleared
 │   ├── test_tandem_channel_choice.py  the Tandem tab's Tandem Channel box
 │   ├── test_tandem_template_controls.py  the Tandem tab's Templates group
+│   ├── test_tandem_template_exports.py   a loaded tandem template in the mesh and the sheet's inputs
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -237,6 +238,10 @@ was capped or the rotation replaces the tandem channel's, and *Generate Tandem* 
 template's tandem, or that it cannot be built on the cylinder. *Update* and *Delete* change the
 file only after Yes, through `TandemView.confirm`, *Update*'s question names a rename or a new note,
 and neither acts with no row selected.
+
+`views/test_tandem_template_exports.py` checks that a tandem template loaded and generated on Ex2
+reaches the Export tab's mesh, by intersecting the mesh with the template's cut-out built straight
+from `classes.mesh.tandem`, and the two values the reference sheet draws the tandem from.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.

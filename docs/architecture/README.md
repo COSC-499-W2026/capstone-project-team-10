@@ -137,7 +137,7 @@ Six tabs, with Structures appended at index 5. The code addresses them by index.
 | Import | Reads the first RTPLAN and RTSTRUCT. Needs a channel named `Central Axis`. Varian is the path the sample data exercises. Nucletron exists in code and has no sample here. |
 | Cylinder | Diameter, length, optional collar displayed in mm or cm; Apply uses mm. Length changes move needles by an offset. Original DICOM points stay put. |
 | Channels | Bore diameter, dead space, threading. A channel can be disabled or given its own diameter, directly or from a saved needle template. The list shows each channel's status, and leaves out the tandem channel. |
-| Tandem | Choose which plan channel is the tandem channel. Generate a curved channel, or import a STEP model. |
+| Tandem | Choose which plan channel is the tandem channel. Generate a curved channel, or import a STEP model. The Generate settings can be saved as named tandem templates and loaded, updated or deleted. |
 | Export | Cuts channels and tandem out of the cylinder. Writes STL, STEP, the PDF, and a JSON config. |
 | Structures | Surface/Outlines/Both, default Surface; per-ROI visibility and opacity, DICOM colours and visible loading/failure status. The current row highlights that organ in the channel-selection blue. Pending ROIs can be hidden; failed surfaces do not fall back automatically. |
 
@@ -183,6 +183,7 @@ which is the proposed framework below.
 | A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
 | No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
 | Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
+| *Generate Tandem* can leave boxes showing values it did not build | The tandem hole is cut with other values than the tab shows, until Generate is pressed again. Recorded in §7.23. |
 | Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
 
 ## Proposed project framework
