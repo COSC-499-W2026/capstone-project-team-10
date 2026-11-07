@@ -316,3 +316,6 @@ in [§5.7](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 `mesh/test_needle_collisions.py` covers crossings, containment, radius contact,
 disconnected tissue and cavities, invalid paths and mesh topology, later segments
 and sampling chunks. These synthetic cases do not establish clinical validity.
+
+`views/test_organ_collision_inputs.py` checks hidden/Outlines surface requests and
+frame refusal without requiring the collision worker or warning UI.
