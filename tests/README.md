@@ -253,7 +253,11 @@ leave stale geometry or stuck pending state. No application module is mocked. Th
 canvas remains uninitialised, so these assertions do not prove native rendering. The #125
 cases drive the real mode dropdown and selected-ROI opacity slider, check visible failure
 text with unchecked state and no outline fallback, and inspect a real `AIS_Triangulation`
-actor's mode 0, shading colour and transparency. Selecting a row stores that ROI as
+actor's mode 0, shading colour and transparency. Hide all is a real `hide_all_button`
+click: both drawn organs leave `presentations()`, the highlight clears, the button
+disables when nothing is visible, a second click is a no-op, Surface mode clears the
+same way, the mismatched-frame row stays disabled, and checking one organ brings only
+that organ back. Selecting a row stores that ROI as
 the highlight, another row replaces it, a second click or a cleared row drops it, and
 an empty organ gains no presentation. A highlighted triangulation uses the channel
 selection blue, 0.2 0.2 0.7. Toggling a checkbox keeps the highlight, a click after
