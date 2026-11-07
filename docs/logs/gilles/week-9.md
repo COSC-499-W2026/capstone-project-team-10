@@ -35,3 +35,29 @@
 - Regression: **see the recorded layer/full-stack checks below; baseline failures are retained explicitly**.
 - Negative cases: **red-before-green review tests and deliberate mutation checks are recorded with the update evidence**. Tests use real geometry/models/widgets with isolated files.
 - Tests live in **tests/mesh/** or **tests/views/**; unit geometry and integrated model/widget coverage are counted separately.
+
+### For PR #**pending** (2 of 6, on #222)
+
+- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to **identify possible needle contact with organs while editing a plan**.
+- Therefore, I implemented/generated code so that **request registered organ meshes independently of display visibility**.
+
+#### Backend and frontend
+
+- The system uses **domain geometry, model-owned state and view-owned presentation** because **warnings must not modify printable geometry**. The worker receives immutable paths; revision checks refuse stale results. Approximate reconstruction and sampling remain limitations.
+- Traceability: **the focused tests below exercise the intersection-warning requirement; native rendering evidence supplements offscreen widget tests. Distance measurement is not implemented.**
+- Not applicable: **database, backend API, security roles, usability evaluation, coverage percentage (none added or measured)**.
+
+#### Review and design
+
+- When I reviewed **the organ inputs changes against the requested feedback**, I checked **hidden Outlines organ requests and mismatched-frame refusal**.
+- Code quality checklist: **see Shared; no new blocking anti-slop findings, no module mocking or export changes**.
+- This work is written in **structures_model.py and tests/views/test_organ_collision_inputs.py** because **that layer owns this behaviour or documentation**.
+- The PR does not contain a temporary workaround; **warnings use the existing anatomy cache and a separate collision state, and stay outside Export**.
+- This work belongs in **Structures preview/checks** in the DFD.
+
+#### Testing receipts
+
+- Happy path: **hidden Outlines organ requests and mismatched-frame refusal; 3 new cases in this layer**.
+- Regression: **see the recorded layer/full-stack checks below; baseline failures are retained explicitly**.
+- Negative cases: **red-before-green review tests and deliberate mutation checks are recorded with the update evidence**. Tests use real geometry/models/widgets with isolated files.
+- Tests live in **tests/mesh/** or **tests/views/**; unit geometry and integrated model/widget coverage are counted separately.
