@@ -11,6 +11,7 @@ Merge order: **#222 → #243 → #223 → #224 → #225 → #226**.
 | #222 | main | #161 | Detect needle contact with reconstructed organ surfaces | 9 / 323 | 22 |
 | #243 | #222 | #161 | Prepare hidden organ surfaces for collision checks | 5 / 133 | 3 |
 | #223 | #243 | #161 | Check needle-organ collisions in a background worker | 9 / 437 | 9 |
+| #224 | #223 | #161 | Show organ collision warnings and highlight affected needles | 9 / 343 | 7 |
 
 Counts below refer to each PR’s own diff. The shared full-stack result is reported separately.
 
@@ -120,6 +121,38 @@ Counts below refer to each PR’s own diff. The shared full-stack result is repo
 - I wrote tests for abnormal situations involving **unexpected path errors and stale worker results** and they passed.
 - I checked negative cases by deliberately breaking **the unchanged-input guard**; the corresponding regression tests failed.
 - Among these tests, **9 are integration cases** in **tests/views/**.
+- Regression: **the final full-stack run and native check are recorded in Shared; the two named baseline failures remain. Focused tests also ran on the independently prepared prerequisite/model layers.**
+- Not applicable: **formal usability evaluation, coverage percentage (not performed)**.
+
+  ![Shared review regression, 41 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9d6dca61351ced424eee9eb01b592bf4445ed831/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
+
+### For PR #**224** (4 of 6, on #223)
+
+- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to do **identify possible needle contact with organs while editing a plan**.
+- Therefore, I implemented/generated code so that **show accessible organ warnings and temporary red needles without misreporting failed outlines as visible**.
+
+#### Frontend
+
+- The frontend uses **ROI-keyed model results and Qt signals** because **warnings must follow the current geometry without modifying exports**. Results and emphasis remain through selection and display preferences, and stale geometry clears them.
+- The frontend is designed using **PySide6 and OpenCASCADE**, with **CollisionWarningDelegate, toast/status labels and nonselectable red actors**. Content comes from model results, separate from painting and hit testing.
+- The frontend adopts accessibility principle **keyboard operation and scalable hit areas**: **Enter activates warnings, warning rectangles follow font metrics, and the same warning can clear emphasis**.
+- Traceability: **FR-SV-08 warning/highlight portion → warning click/toggle, no-organ status, font scaling and red-actor tests**.
+- Not applicable: **restricted pages, usability evaluation, coverage percentage, distance display (outside this feature)**.
+
+#### Review and design
+
+- When I reviewed **warning controls against the requested feedback**, I checked **warning activation/toggling, empty eligibility, font-scaled hit areas, red actors and pending failed outlines** and corrected the reported behaviour or documentation.
+- Code quality checklist: **see Shared**.
+- This work is written in **views and tests/views** because **that layer owns this change**.
+- The PR only contains small new functions that are **3–22 lines; existing constructors receive integration wiring** long.
+- The PR does not contain a temporary workaround because **validated geometry, model state and UI actors keep their existing responsibilities**. This work belongs in **Structures preview/checks** in the DFD.
+
+#### Testing receipts
+
+- The functionality works correctly because **warning activation/toggling, empty eligibility, font-scaled hit areas, red actors and pending failed outlines passed (7 new; 34 inherited collision cases; 41 in the complete stack)**.
+- I wrote tests for abnormal situations involving **empty eligibility and unavailable outlines** and they passed.
+- I checked negative cases by deliberately breaking **the pending-outline visibility guard**; the corresponding regression tests failed.
+- Among these tests, **7 are integration cases** in **tests/views/**.
 - Regression: **the final full-stack run and native check are recorded in Shared; the two named baseline failures remain. Focused tests also ran on the independently prepared prerequisite/model layers.**
 - Not applicable: **formal usability evaluation, coverage percentage (not performed)**.
 
