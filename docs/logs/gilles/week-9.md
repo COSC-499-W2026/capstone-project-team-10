@@ -17,7 +17,7 @@ Counts below refer to each PR’s own diff. The shared full-stack result is repo
 
 - Scope: **issue #161, Gilles week 9; approximate organ-intersection warnings only. Targets and BODY, needle–needle detection, distance measurement and clinical clearance are excluded.**
 - Code quality checklist: **diff and anti-slop review found no new blocking findings. Input contracts, duplicate/dead code, call frequency, branches/nesting, function responsibilities and sampling constants were reviewed. The repository exempts the existing OpenCASCADE shape-name warning.**
-- Regression: **40 focused collision cases passed. The final full stack passed 464 tests with only `test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` failing, as on main `6fa56b75`. #228 fixes them separately; publishing with those failures was explicitly authorized. User paths were isolated before application imports. No tests were skipped or weakened.**
+- Regression: **41 focused collision cases passed. The final full stack passed 465 tests with only `test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` failing, as on main `6fa56b75`. #228 fixes them separately; publishing with those failures was explicitly authorized. User paths were isolated before application imports. No tests were skipped or weakened.**
 - Native evidence: **macOS Ex1 needles plus a synthetic organ showed Applicator2 in the corrected toast and red overlay. Hide/show preserved emphasis; leaving Structures cleared it. This is UI regression evidence, not clinical validation.**
 - Split: **code PRs carry their own reference/test-index updates; the authorized diagram/reference companions hold shared evidence. All own diffs stay below 10 files and 500 changed lines; smaller-target exceptions were previously authorized.**
 - Not applicable: **database, network API, authentication, formal usability evaluation and coverage percentage (none introduced or measured).**
@@ -47,14 +47,14 @@ Counts below refer to each PR’s own diff. The shared full-stack result is repo
 
 #### Testing receipts
 
-- The functionality works correctly because **cube contact, invalid topology/path and later-segment/chunk cases passed (22 new; 0 inherited collision cases; 40 in the complete stack)**.
+- The functionality works correctly because **cube contact, invalid topology/path and later-segment/chunk cases passed (22 new; 0 inherited collision cases; 41 in the complete stack)**.
 - I wrote tests for abnormal situations involving **invalid path radii and unsafe mesh topology** and they passed.
 - I checked negative cases by deliberately breaking **mesh topology rejection**; the corresponding regression tests failed.
 - Among these tests, **22 are unit geometry cases** in **tests/mesh/**.
 - Regression: **the final full-stack run and native check are recorded in Shared; the two named baseline failures remain. Focused tests also ran on the independently prepared prerequisite/model layers.**
 - Not applicable: **formal usability evaluation, coverage percentage (not performed)**.
 
-  ![Shared review regression, 40 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dbf635ca0639a585e40575bff82c8ceded0b1844/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
+  ![Shared review regression, 41 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9d6dca61351ced424eee9eb01b592bf4445ed831/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
 
 ### For PR #**243** (2 of 6, on #222)
 
@@ -81,11 +81,11 @@ Counts below refer to each PR’s own diff. The shared full-stack result is repo
 
 #### Testing receipts
 
-- The functionality works correctly because **hidden Outlines requests, frame refusal and read-only snapshots passed (3 new; 22 inherited collision cases; 40 in the complete stack)**.
+- The functionality works correctly because **hidden Outlines requests, frame refusal and read-only snapshots passed (3 new; 22 inherited collision cases; 41 in the complete stack)**.
 - I wrote tests for abnormal situations involving **unregistered anatomy and read-only requests** and they passed.
 - I checked negative cases by deliberately breaking **the read-only request guard**; the corresponding regression tests failed.
 - Among these tests, **3 are integration cases** in **tests/views/**.
 - Regression: **the final full-stack run and native check are recorded in Shared; the two named baseline failures remain. Focused tests also ran on the independently prepared prerequisite/model layers.**
 - Not applicable: **formal usability evaluation, coverage percentage (not performed)**.
 
-  ![Shared review regression, 40 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dbf635ca0639a585e40575bff82c8ceded0b1844/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
+  ![Shared review regression, 41 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9d6dca61351ced424eee9eb01b592bf4445ed831/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
