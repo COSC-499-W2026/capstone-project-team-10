@@ -2,62 +2,90 @@
 
 ## Part A
 
+## Stack #222 to #226, at a glance
+
+Merge order: **#222 → #243 → #223 → #224 → #225 → #226**.
+
+| PR | Based on | Issue | Own change | Files / changed lines | New tests |
+|---|---|---|---|---|---|
+| #222 | main | #161 | Detect needle contact with reconstructed organ surfaces | 9 / 323 | 22 |
+| #243 | #222 | #161 | Prepare hidden organ surfaces for collision checks | 5 / 133 | 3 |
+
+Counts below refer to each PR’s own diff. The shared full-stack result is reported separately.
+
 ### Shared by every PR in this stack
 
-- Scope: **issue #161, Gilles week 9; approximate organ intersections only. BODY, targets, needle–needle detection and distance measurement are excluded.**
-- Checks: **isolated user files, focused tests for each layer, full-stack regression, architecture build/check and anti-slop. Native evidence uses Ex1 plus synthetic anatomy, not clinical validation.**
-- Baseline: **the two Structures-highlight failures reproduce on main `6fa56b75`; #228 fixes them separately. The user authorized publishing with these failures. No tests are skipped or weakened.**
-- Split: **dependency-ordered code and companion documentation PRs, with smaller-target exceptions authorized. Each own diff remains below 10 files and 500 changed lines. Screenshots are shared from the final documentation companion.**
-- Not applicable: **database, network API, authentication, coverage percentage, formal usability evaluation (none introduced or measured).**
+- Scope: **issue #161, Gilles week 9; approximate organ-intersection warnings only. Targets and BODY, needle–needle detection, distance measurement and clinical clearance are excluded.**
+- Code quality checklist: **diff and anti-slop review found no new blocking findings. Input contracts, duplicate/dead code, call frequency, branches/nesting, function responsibilities and sampling constants were reviewed. The repository exempts the existing OpenCASCADE shape-name warning.**
+- Regression: **40 focused collision cases passed. The final full stack passed 464 tests with only `test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` failing, as on main `6fa56b75`. #228 fixes them separately; publishing with those failures was explicitly authorized. User paths were isolated before application imports. No tests were skipped or weakened.**
+- Native evidence: **macOS Ex1 needles plus a synthetic organ showed Applicator2 in the corrected toast and red overlay. Hide/show preserved emphasis; leaving Structures cleared it. This is UI regression evidence, not clinical validation.**
+- Split: **code PRs carry their own reference/test-index updates; the authorized diagram/reference companions hold shared evidence. All own diffs stay below 10 files and 500 changed lines; smaller-target exceptions were previously authorized.**
+- Not applicable: **database, network API, authentication, formal usability evaluation and coverage percentage (none introduced or measured).**
 
 ### For PR #**222** (1 of 6, on main)
 
-- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to **identify possible needle contact with organs while editing a plan**.
-- Therefore, I implemented/generated code so that **validate closed, consistently wound meshes and check complete needle paths**.
+- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to do **identify possible needle contact with organs while editing a plan**.
+- Therefore, I implemented/generated code so that **validate closed, consistently wound organ meshes and check complete needle paths**.
 
-#### Backend and frontend
+#### Backend
 
-- The system uses **domain geometry, model-owned state and view-owned presentation** because **warnings must not modify printable geometry**. The worker receives immutable paths; revision checks refuse stale results. Approximate reconstruction and sampling remain limitations.
-- Traceability: **the focused tests below exercise the intersection-warning requirement; native rendering evidence supplements offscreen widget tests. Distance measurement is not implemented.**
-- Not applicable: **database, backend API, security roles, usability evaluation, coverage percentage (none added or measured)**.
-
-#### Review and design
-
-- When I reviewed **the geometry changes against the requested feedback**, I checked **geometry rejection and full-path coverage**.
-- Code quality checklist: **see Shared; no new blocking anti-slop findings, no module mocking or export changes**.
-- This work is written in **src/classes/mesh/needle_collisions.py and tests/mesh/test_needle_collisions.py** because **that layer owns this behaviour or documentation**.
-- The PR does not contain a temporary workaround; **warnings use the existing anatomy cache and a separate collision state, and stay outside Export**.
-- This work belongs in **Structures preview/checks** in the DFD.
-
-#### Testing receipts
-
-- Happy path: **geometry rejection and full-path coverage; 22 new cases in this layer**.
-- Regression: **see the recorded layer/full-stack checks below; baseline failures are retained explicitly**.
-- Negative cases: **red-before-green review tests and deliberate mutation checks are recorded with the update evidence**. Tests use real geometry/models/widgets with isolated files.
-- Tests live in **tests/mesh/** or **tests/views/**; unit geometry and integrated model/widget coverage are counted separately.
-
-### For PR #**pending** (2 of 6, on #222)
-
-- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to **identify possible needle contact with organs while editing a plan**.
-- Therefore, I implemented/generated code so that **request registered organ meshes independently of display visibility**.
-
-#### Backend and frontend
-
-- The system uses **domain geometry, model-owned state and view-owned presentation** because **warnings must not modify printable geometry**. The worker receives immutable paths; revision checks refuse stale results. Approximate reconstruction and sampling remain limitations.
-- Traceability: **the focused tests below exercise the intersection-warning requirement; native rendering evidence supplements offscreen widget tests. Distance measurement is not implemented.**
-- Not applicable: **database, backend API, security roles, usability evaluation, coverage percentage (none added or measured)**.
+- The system uses **a pure geometry service with validated NeedlePath and CollisionSurface values** because **checking anatomy must remain independent of printable geometry**. Benefits include **testable inputs**; the risk is **unchecked geometry appearing clear**, mitigated by **validation and explicit unavailable status**.
+- The system uses **synchronous pure geometry queries, called by the later worker PR**. The risk of **missing contact or stale results** is mitigated by **bounded sample spacing, registered frames and generation/revision checks in the owning layer**.
+- The system adopts a **validated triangle index with immutable paths** approach. Benefits include **reusing tissue geometry while needles change**; invalid anatomy is refused instead of silently treated as clear.
+- The system architecture diagram shows **domain geometry, application state and presentation**, with exports separate. [System architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/feat/needle-collision-geometry/docs/architecture/diagrams/system-architecture.svg).
+- The Level 0 DFD keeps **physicist/TPS input and printable output unchanged**; Level 1 adds **the display-only anatomy check path**. The completed flow is in companion #225: [Level 0](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/docs/needle-collision-architecture/docs/architecture/diagrams/existing-framework/dfd-0.svg), [Level 1](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/docs/needle-collision-architecture/docs/architecture/diagrams/existing-framework/dfd-1.svg).
+- Traceability: **FR-SV-07 intersection portion → cube contact, invalid topology/path and later-segment/chunk cases**.
+- Not applicable: **database, backend API, security roles, coverage percentage (none introduced or measured)**.
 
 #### Review and design
 
-- When I reviewed **the organ inputs changes against the requested feedback**, I checked **hidden Outlines organ requests and mismatched-frame refusal**.
-- Code quality checklist: **see Shared; no new blocking anti-slop findings, no module mocking or export changes**.
-- This work is written in **structures_model.py and tests/views/test_organ_collision_inputs.py** because **that layer owns this behaviour or documentation**.
-- The PR does not contain a temporary workaround; **warnings use the existing anatomy cache and a separate collision state, and stay outside Export**.
-- This work belongs in **Structures preview/checks** in the DFD.
+- When I reviewed **geometry against the requested feedback**, I checked **cube contact, invalid topology/path and later-segment/chunk cases** and corrected the reported behaviour or documentation.
+- Code quality checklist: **see Shared**.
+- This work is written in **domain geometry and tests/mesh** because **that layer owns this change**.
+- The PR only contains small new functions that are **4–22 lines; existing constructors receive integration wiring** long.
+- The PR does not contain a temporary workaround because **validated geometry, model state and UI actors keep their existing responsibilities**. This work belongs in **Structures preview/checks** in the DFD.
 
 #### Testing receipts
 
-- Happy path: **hidden Outlines organ requests and mismatched-frame refusal; 3 new cases in this layer**.
-- Regression: **see the recorded layer/full-stack checks below; baseline failures are retained explicitly**.
-- Negative cases: **red-before-green review tests and deliberate mutation checks are recorded with the update evidence**. Tests use real geometry/models/widgets with isolated files.
-- Tests live in **tests/mesh/** or **tests/views/**; unit geometry and integrated model/widget coverage are counted separately.
+- The functionality works correctly because **cube contact, invalid topology/path and later-segment/chunk cases passed (22 new; 0 inherited collision cases; 40 in the complete stack)**.
+- I wrote tests for abnormal situations involving **invalid path radii and unsafe mesh topology** and they passed.
+- I checked negative cases by deliberately breaking **mesh topology rejection**; the corresponding regression tests failed.
+- Among these tests, **22 are unit geometry cases** in **tests/mesh/**.
+- Regression: **the final full-stack run and native check are recorded in Shared; the two named baseline failures remain. Focused tests also ran on the independently prepared prerequisite/model layers.**
+- Not applicable: **formal usability evaluation, coverage percentage (not performed)**.
+
+  ![Shared review regression, 40 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dbf635ca0639a585e40575bff82c8ceded0b1844/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
+
+### For PR #**243** (2 of 6, on #222)
+
+- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to do **identify possible needle contact with organs while editing a plan**.
+- Therefore, I implemented/generated code so that **supply registered organ meshes independently of display preferences, with a read-only snapshot option**.
+
+#### Backend
+
+- The system uses **the existing StructuresModel surface cache with explicit request/read-only access** because **checking anatomy must remain independent of printable geometry**. Benefits include **testable inputs**; the risk is **unchecked geometry appearing clear**, mitigated by **validation and explicit unavailable status**.
+- The system uses **surface requests through the existing single reconstruction worker**. The risk of **missing contact or stale results** is mitigated by **bounded sample spacing, registered frames and generation/revision checks in the owning layer**.
+- The system adopts a **patient-space mesh cache with explicit surface requests** approach. Benefits include **reusing tissue geometry while needles change**; invalid anatomy is refused instead of silently treated as clear.
+- The system architecture diagram shows **domain geometry, application state and presentation**, with exports separate. [System architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/feat/organ-collision-inputs/docs/architecture/diagrams/system-architecture.svg).
+- The Level 0 DFD keeps **physicist/TPS input and printable output unchanged**; Level 1 adds **the display-only anatomy check path**. The completed flow is in companion #225: [Level 0](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/docs/needle-collision-architecture/docs/architecture/diagrams/existing-framework/dfd-0.svg), [Level 1](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/docs/needle-collision-architecture/docs/architecture/diagrams/existing-framework/dfd-1.svg).
+- Traceability: **FR-SV-07 intersection portion → hidden Outlines requests, frame refusal and read-only snapshots**.
+- Not applicable: **database, backend API, security roles, coverage percentage (none introduced or measured)**.
+
+#### Review and design
+
+- When I reviewed **organ-surface inputs against the requested feedback**, I checked **hidden Outlines requests, frame refusal and read-only snapshots** and corrected the reported behaviour or documentation.
+- Code quality checklist: **see Shared**.
+- This work is written in **models and tests/views** because **that layer owns this change**.
+- The PR only contains small new functions that are **18 lines; existing constructors receive integration wiring** long.
+- The PR does not contain a temporary workaround because **validated geometry, model state and UI actors keep their existing responsibilities**. This work belongs in **Structures preview/checks** in the DFD.
+
+#### Testing receipts
+
+- The functionality works correctly because **hidden Outlines requests, frame refusal and read-only snapshots passed (3 new; 22 inherited collision cases; 40 in the complete stack)**.
+- I wrote tests for abnormal situations involving **unregistered anatomy and read-only requests** and they passed.
+- I checked negative cases by deliberately breaking **the read-only request guard**; the corresponding regression tests failed.
+- Among these tests, **3 are integration cases** in **tests/views/**.
+- Regression: **the final full-stack run and native check are recorded in Shared; the two named baseline failures remain. Focused tests also ran on the independently prepared prerequisite/model layers.**
+- Not applicable: **formal usability evaluation, coverage percentage (not performed)**.
+
+  ![Shared review regression, 40 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/dbf635ca0639a585e40575bff82c8ceded0b1844/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
