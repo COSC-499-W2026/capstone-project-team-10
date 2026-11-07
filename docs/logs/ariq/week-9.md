@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #221, at a glance
+## Stack #212 to #240, at a glance
 
 Ten stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, make *Generate Tandem*'s boxes show the tandem it built, and share one confirmation dialog between the Cylinder and Tandem tabs. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -19,6 +19,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +194/−11 | 6 | 504 |
 | [#219](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/219) | #218 | #211 | Tests only: the loaded template in the mesh and the sheet; §7.23 | 6, +166/−2 | 2 | 506 |
 | [#221](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/221) | #219 | #220 | Generate's boxes show the tandem it built; §7.23 fixed | 7, +120/−9 | 2 | 508 |
+| [#240](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/240) | #221 | #237 | Both template tabs share one confirmation dialog | 9, +94/−37 | 1 | 509 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -365,3 +366,34 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 506 passed and the 2 failures inherited from `main` (506 tests after #219, screenshot 1)**.
 
   ![1, python -m pytest on fix/generate-tandem-boxes, 3 passed in test_tandem_view.py and 506 passed with the 2 failures inherited from main, and 2, the Tandem tab right after Generate showing the 4.2 mm, 45 degree tandem it built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/f56f2027cd3ddf90d4e420fee5a31dd03ea14230/docs/logs/ariq/screenshots/week-9/pr-221-1-generate-boxes.png)
+
+### For PR #**240** (10 of 10, on #221)
+
+- As part of requirement **issue #237, one confirmation for both template tabs**, the user needs to do **press Update or Delete on the Cylinder or Tandem tab and answer the same Yes or Cancel question**.
+- Therefore, I implemented/generated code so that **both template tabs ask through one neutral module, and the Tandem tab no longer depends on the Cylinder tab**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6** with design components for **one confirmation dialog, `template_change_dialog` in the new `windows/template_dialog.py`, shown by `ask_to_change`**. Therefore, changing the design of **the confirmation dialog** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **each tab passes only its title and question**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#237: `test_both_template_tabs_ask_through_the_shared_dialog`, and `test_the_confirmation_dialog_offers_yes_and_cancel_with_cancel_the_default` now importing the new module**
+- Not applicable: **data caching, accessibility (the dialog itself is unchanged)**.
+
+#### Review and design
+
+- When I reviewed the **two tabs' update and delete code** for this functionality, I noticed **merging them would need one interface over two libraries, and would change the Cylinder tab's question, which still has the §7.24 gap**. Therefore, I did **share only the dialog and the ask, and leave each tab's flow its own**.
+- The PR does not contain any temporary workaround because **the dialog moved as it was, with its test**.
+- The PR only contains small functions that are **3 to 13 lines (module) and 12 lines (test)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **new `src/windows/template_dialog.py`, beside `length_field.py`** because **two views share it and it belongs to neither**.
+- This work belongs in **Cylinder and Tandem** in the DFD because **both tabs ask with it**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_both_template_tabs_ask_through_the_shared_dialog`, `test_the_confirmation_dialog_offers_yes_and_cancel_with_cancel_the_default` (1 new; 28 in the Tandem controls file; screenshot 1)** passed.
+- I checked that these negative cases involving **three deliberate breaks (either tab keeping its own ask, Yes the default)** failed as expected.
+- Among these tests, **none** are unit tests and **both** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 507 passed and the 2 failures inherited from `main` (508 tests after #221, screenshot 1)**.
+
+  ![1, python -m pytest on refactor/template-confirm-dialog, 29 passed in test_tandem_template_controls.py and 507 passed with the 2 failures inherited from main, 2, the real Update question now asked through windows/template_dialog.py, and 3, the tab after Yes](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b98977af5668093ae3247d54aa61fd2cbe4b3e79/docs/logs/ariq/screenshots/week-9/pr-240-1-shared-dialog.png)
+- Not applicable: **abnormal cases, generated-test review (the dialog moved unchanged)**.

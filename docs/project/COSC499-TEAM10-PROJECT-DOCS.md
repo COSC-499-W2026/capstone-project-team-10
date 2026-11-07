@@ -867,6 +867,7 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
         ├── length_field.py    LengthField and LengthUnit, mm-backed Cylinder controls
+        ├── template_dialog.py the Update and Delete question both template tabs ask
         ├── models/            six QObject models (including structures_model), NavigationModel and ShapeModel
         ├── views/             six views + custom_view.py + add_applicator_dialog.py + viewport.py
         └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
@@ -1378,6 +1379,14 @@ The notch ranges are Team 10's choice, added 2026-10-15. No clinical document se
 *Tip Shape* was added the same day, below the notch rows. `set_tip` fills it from the model or a
 config, and Apply writes `CONFIG_CYLINDER_FLAT_TIP`.
 
+**[`windows/template_dialog.py`](../../src/windows/template_dialog.py)** — added 2026-11-06 after
+Ayyhab's review of #217. `template_change_dialog(title, question)` builds the Update and Delete
+question, Yes and Cancel with Cancel the default and no parent widget, and `ask_to_change` shows it
+and returns whether Yes was pressed. The Cylinder and Tandem tabs both ask through it, so neither
+tab imports the other. Their update and delete code stays separate: they call different libraries,
+and the Tandem tab's question also names a rename or a new note (§7.24). *Verified* by
+`tests/views/test_cylinder_template_controls.py` and `test_tandem_template_controls.py`.
+
 **[`windows/length_field.py`](../../src/windows/length_field.py)** — `LengthUnit` names mm
 and cm; each `LengthField` owns one `QDoubleSpinBox` and an exact mm value. User edits
 convert to mm. Programmatic updates and unit switches block widget signals, preserving
@@ -1418,12 +1427,13 @@ in the running app on macOS.
 Yes to "Replace 30 mm standard with the settings on this tab?" or "Delete the template 30 mm
 standard?". *Update* is also how a template is renamed: *Load* fills the name and note, the
 physicist edits them, and *Update* saves them with the settings, keeping the template's ID and
-created date. The question is asked by `template_change_dialog` in `cylinder_view.py`, not in
-`main_window.py` with the app's other dialogs, to keep that change under the size limit. It offers
+created date. The question is asked by `template_change_dialog`, since 2026-11-06 in
+`windows/template_dialog.py` and shared with the Tandem tab, not in `main_window.py` with the app's
+other dialogs. Before, it lived in `cylinder_view.py`, which the Tandem tab imported. It offers
 Yes and Cancel with Cancel the default, so Return changes nothing, and it has no parent widget
 (§7.6). Qt drops a message box's title on macOS, so the question names the action itself. The view
-asks through `CylinderView.confirm`, which tests replace to answer for the physicist without
-patching a module. *Verified* by offscreen tests and, for the dialog in dark mode, in the running app.
+asks through `CylinderView.confirm`, `template_dialog.ask_to_change` unless a test replaces it to
+answer for the physicist without patching a module. *Verified* by offscreen tests and, for the dialog in dark mode, in the running app.
 
 Since 2026-10-19 the Cylinder tab's controls sit in a scroll area, `scroll_cylinder`, which
 `CylinderView.__init__` builds in code around the generated UI, so the tab scrolls up and down
@@ -1556,8 +1566,8 @@ where the Generate box shows 258.697. *Verified* by offscreen tests on Ex2 (§8.
 
 *Update* and *Delete* (added 2026-11-02) act on the selected template once the clinician answers
 Yes to "Replace Long bend with the Generate settings on this tab?" or "Delete the template Long
-bend?", asked through the `TandemView.confirm` seam with the Cylinder tab's
-`template_change_dialog`, so Cancel is the default and the dialog has no parent. *Update* is also
+bend?", asked through the `TandemView.confirm` seam, `template_dialog.ask_to_change`, the same
+dialog as the Cylinder tab's (§5.6, Cylinder), so Cancel is the default and the dialog has no parent. *Update* is also
 how a template is renamed, as on the Cylinder tab: *Load* fills the name and note, and *Update*
 saves them with the eight settings, keeping the ID and created date. Since Ayyhab's review of #217
 (2026-11-06), `update_question` names every change: when the name or note boxes differ from the
@@ -2632,7 +2642,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `settings/test_tandem_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside a Generate spin box range, NaN or infinity is accepted and the message does not name the setting, a range edge the tab allows is refused, a time with no zone or a modified time before the created one is accepted, or a value is changed. Or a template does not read back identical, a name already used in another case or a saved ID is added, a missing library is not empty, a library of another version or shape, with a missing, mistyped or out-of-range value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `TandemTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
-| `views/test_tandem_template_controls.py` | *Save as Template* does not list and write a template, a Generate setting is saved from the wrong box (the rotation from the Import sub-tab's), the tooltip has no summary, a blank or taken name or an unreadable library is not explained in the status line or an error escapes, or `RANGES` and the Generate spin boxes disagree. Or *Load* leaves a box, the Import Rotation box, the name or the note unfilled, generates, is enabled with nothing selected, does not say a height was capped, or names a rotation that matches the tandem channel's in any turn, or none is chosen, or does not name one that differs, or *Load* then *Generate Tandem* does not build the template's tandem. Or *Update* or *Delete* changes the file after Cancel, is enabled with nothing selected, does not name the template in its question, keeps the old name or settings, leaves a deleted template listed, or does not explain a taken name. Or *Load* of a template that cannot be built on Ex2's cylinder still says to press *Generate Tandem*. Or *Update*'s question leaves out a rename or a new note, asks with a blank name, acts with no row selected, loses the selection, or refuses a template created after the clock (§5.6) |
+| `views/test_tandem_template_controls.py` | *Save as Template* does not list and write a template, a Generate setting is saved from the wrong box (the rotation from the Import sub-tab's), the tooltip has no summary, a blank or taken name or an unreadable library is not explained in the status line or an error escapes, or `RANGES` and the Generate spin boxes disagree. Or *Load* leaves a box, the Import Rotation box, the name or the note unfilled, generates, is enabled with nothing selected, does not say a height was capped, or names a rotation that matches the tandem channel's in any turn, or none is chosen, or does not name one that differs, or *Load* then *Generate Tandem* does not build the template's tandem. Or *Update* or *Delete* changes the file after Cancel, is enabled with nothing selected, does not name the template in its question, keeps the old name or settings, leaves a deleted template listed, or does not explain a taken name. Or *Load* of a template that cannot be built on Ex2's cylinder still says to press *Generate Tandem*. Or *Update*'s question leaves out a rename or a new note, asks with a blank name, acts with no row selected, loses the selection, or refuses a template created after the clock. Or either template tab confirms through anything other than `windows.template_dialog.ask_to_change` (§5.6) |
 | `views/test_tandem_template_exports.py` | after a tandem template is loaded and generated on Ex2, the Export tab's mesh is not cut with the template's own tandem, built independently and turned to its rotation, or is cut where the default tandem would be, or the reference sheet's inputs, the live `CONFIG_TANDEM_CHANNEL_DIAMETER` and `TandemModel.rotation`, keep the defaults (§5.6) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |

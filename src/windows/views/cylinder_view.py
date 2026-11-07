@@ -2,7 +2,7 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from PySide6.QtWidgets import QFrame, QLayout, QListWidgetItem, QMessageBox, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QLayout, QListWidgetItem, QScrollArea, QVBoxLayout, QWidget
 
 from classes.app import get_app
 from classes.info import USER_PATH
@@ -14,6 +14,7 @@ from windows.models.shape_model import ShapeTypes
 from windows.ui.cylinder_view_ui import Ui_Cylinder_View
 from windows.views.custom_view import display_action, CustomView
 from windows.length_field import LengthField, LengthUnit
+from windows.template_dialog import ask_to_change
 
 from settings.cylinder_templates import (
     LIBRARY_FILE_NAME, CylinderDesign, CylinderTemplate, CylinderTemplateError, add_template, delete_template,
@@ -39,21 +40,6 @@ def template_summary(template: CylinderTemplate) -> str:
               f"Modified {template.modified.astimezone():%d %b %Y}",
               f"{design.diameter_mm:.2f} mm by {design.length_mm:g} mm, {tip.value}"]
     return "\n".join(lines)
-
-
-def template_change_dialog(title: str, question: str) -> QMessageBox:
-    """The dialog Update and Delete ask with. Cancel is the default, so pressing Return changes nothing.
-
-    It has no parent, like the app's other dialogs: parented to the tab it inherited the main
-    window's light stylesheet, and its dark-mode white text could not be read.
-    """
-    dialog = QMessageBox()
-    dialog.setIcon(QMessageBox.Icon.Question)
-    dialog.setWindowTitle(title)
-    dialog.setText(question)
-    dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel)
-    dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
-    return dialog
 
 
 class CylinderView(CustomView):
@@ -208,10 +194,6 @@ class CylinderView(CustomView):
         for button in (self.ui.btn_load_template, self.ui.btn_update_template, self.ui.btn_delete_template):
             button.setEnabled(row >= 0)
 
-    def ask(self, title: str, question: str) -> bool:
-        """Ask the physicist to confirm, with Cancel the default."""
-        return template_change_dialog(title, question).exec() == QMessageBox.StandardButton.Yes
-
     def action_update_template(self) -> None:
         """Once confirmed, write the tab's name, note and settings to the selected template."""
         template = self.templates[self.ui.list_templates.currentRow()]
@@ -305,7 +287,7 @@ class CylinderView(CustomView):
         self.set_tip(tip_shape_from_config(config))
         self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
         # Update and Delete ask through this, so a test can answer for the physicist
-        self.confirm: Callable[[str, str], bool] = self.ask
+        self.confirm: Callable[[str, str], bool] = ask_to_change
         self.action_load_templates()
 
         # signals and slots
