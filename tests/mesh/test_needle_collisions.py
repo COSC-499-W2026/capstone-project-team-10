@@ -76,3 +76,50 @@ def test_closed_cavity_remains_clear():
     surface = CollisionSurface(hollow)
     assert not surface.intersects(NeedlePath('inside cavity', ((0.,0.,-1.),(0.,0.,1.)), 0.2))
     assert surface.intersects(NeedlePath('through wall', ((0.,0.,0.),(0.,0.,5.)), 0.2))
+
+
+@pytest.mark.parametrize('damage', ['open', 'flipped', 'duplicate', 'empty', 'degenerate', 'nonfinite'])
+def test_invalid_organ_mesh_is_rejected(damage):
+    """Reject unsafe surfaces instead of presenting an untrusted inside test as clear.
+
+    Missing topology, winding or finite-triangle validation fails the exception
+    assertion; a broken organ mesh must become an unchecked warning.
+    """
+    from classes.mesh.needle_collisions import CollisionSurface
+    from classes.mesh.structure_surfaces import AnatomySurface
+    part = cube()
+    vertices, faces = part.vertices.copy(), part.triangles.copy()
+    if damage == 'open': faces = faces[:-1]
+    elif damage == 'flipped': faces[0] = faces[0, ::-1]
+    elif damage == 'duplicate': faces = np.concatenate((faces, faces[:1]))
+    elif damage == 'empty': faces = faces[:0]
+    elif damage == 'degenerate': vertices[0] = vertices[1]
+    else: vertices[0, 0] = np.nan
+    with pytest.raises(ValueError):
+        CollisionSurface(AnatomySurface(vertices, faces))
+
+
+@pytest.mark.parametrize('points,radius', [(((0.,0.,0.),), .2),
+                                          (((0.,0.,0.),(1.,0.,0.)), 0.),
+                                          (((0.,0.,0.),(1.,0.,0.)), -1.)])
+def test_invalid_needle_extent_is_rejected(points, radius):
+    """Refuse a missing segment and non-positive radii with ValueError.
+
+    Removing the path guard fails; these inputs cannot establish organ clearance.
+    """
+    from classes.mesh.needle_collisions import NeedlePath
+    with pytest.raises(ValueError):
+        NeedlePath('invalid', points, radius)
+
+
+@pytest.mark.parametrize('points', [((-3.,0.,0.),(0.,0.,0.)),
+                                   ((-3.,3.,0.),(3.,3.,0.),(0.,0.,0.)),
+                                   ((-300.,0.,0.),(3.,0.,0.))])
+def test_later_path_contact_is_not_skipped(points):
+    """Find entry, a later segment, and contact beyond the first sampling chunk.
+
+    Testing only the first point, segment or chunk misses one of these literal
+    crossings and fails; long or bent needles still need the entire shaft checked.
+    """
+    from classes.mesh.needle_collisions import CollisionSurface, NeedlePath
+    assert CollisionSurface(cube()).intersects(NeedlePath('entry', points, .1))

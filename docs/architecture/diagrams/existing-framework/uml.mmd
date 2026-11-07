@@ -78,17 +78,17 @@ classDiagram
 
   class CollisionModel {
     collisions by organ ROI
-    revision and unchecked organs
+    geometry snapshots, revision and unchecked organs
     changed()
     highlight_changed()
   }
   class CollisionTask {
-    immutable needles and organ surfaces
+    immutable needles and cached aligned organ indexes
     run()
   }
   MainWindow --> CollisionModel
-  ChannelsModel ..> CollisionModel : values_changed
-  StructuresModel ..> CollisionModel : changed
+  ChannelsModel ..> CollisionModel : values_changed, compare inputs
+  StructuresModel ..> CollisionModel : changed, compare inputs
   CollisionModel --> StructuresModel : request cached organ surfaces
   CollisionModel --> CollisionTask : separate single-worker pool
   CollisionTask ..> CollisionModel : revision-tagged result
