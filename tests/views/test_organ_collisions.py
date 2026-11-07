@@ -113,3 +113,24 @@ def test_background_check_does_not_mark_failed_outline_visible(cylinder_window):
     view = cylinder_window.navigationmodel.views[5]
     view.action_update_structure_list()
     assert view.structure_list.item(0).checkState() == Qt.Unchecked
+
+
+def test_switching_organs_with_same_needle_keeps_emphasis(cylinder_window):
+    """Keep emphasis when a different organ warning names the same needle.
+
+    Comparing only needle labels clears the second organ's warning and fails;
+    only activating the same organ warning twice should toggle emphasis off.
+    """
+    from dataclasses import replace
+    window = cylinder_window
+    load_collision_scene(window)
+    plan = organ_plan()
+    plan.structures += (replace(plan.structures[0], roi_number=5, name='Rectum'),)
+    window.structuresmodel.load_plan(plan, 10.)
+    wait_for_checks(window)
+    view = window.navigationmodel.views[5]
+    view.show_collision(2)
+    view.show_collision(5)
+    assert window.collisionmodel.highlighted == ('Needle 1',)
+    view.show_collision(5)
+    assert window.collisionmodel.highlighted == ()
