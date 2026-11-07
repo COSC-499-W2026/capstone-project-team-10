@@ -699,7 +699,7 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 | 2 | `ChannelsView` | [channels_view.py](../../src/windows/views/channels_view.py) | `ChannelsModel` |
 | 3 | `TandemView` | [tandem_view.py](../../src/windows/views/tandem_view.py) | `TandemModel` |
 | 4 | `Export_View` | [export_view.py](../../src/windows/views/export_view.py) | — (composes all) |
-| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | `StructuresModel` |
+| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | `StructuresModel`, `CollisionModel` |
 
 The Structures nav button sits directly under Import in `verticalLayout_31`. The view itself is
 appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export stays 4.
@@ -747,6 +747,12 @@ StructuresModel.highlight_changed()         ─→ OrbitCameraViewer3d.update_st
 StructuresModel.color_changed(int, tuple)   ─→ OrbitCameraViewer3d.update_structure_color
                                              └─→ StructuresView.update_structure_swatch
 SurfaceSignals.finished(SurfaceResult)      ─→ StructuresModel._accept_surface (queued to GUI)
+ChannelsModel.values_changed()             ─→ CollisionModel.invalidate (compare snapshots)
+StructuresModel.changed()                   ─→ CollisionModel.invalidate (compare snapshots)
+CollisionSignals.finished(CollisionResult)  ─→ CollisionModel.accept (reject stale revisions)
+CollisionModel.changed()                    ─→ StructuresView.update_collision_warnings
+CollisionModel.highlight_changed()          ─→ OrbitCameraViewer3d.refresh_collision_highlight
+                                             └─→ StructuresView.clear_collision_toast
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
                                                  (connected on_open, disconnected on_close)
@@ -1163,13 +1169,18 @@ printable solid; the Structures display integration was added by PR #121.
 
 **[`needle_collisions.py`](../../src/classes/mesh/needle_collisions.py)** — approximate
 organ checks on closed reconstructed meshes. `NeedlePath` validates finite model-mm
-points and radius. `CollisionSurface` indexes triangle centres with SciPy's KD tree;
-point-to-triangle distances detect shaft contact, and signed solid angles detect a
-needle wholly inside tissue while preserving closed cavities. Paths are sampled at
+points and radius. Importing the collision module loads SciPy and scikit-image
+through `structure_surfaces`; reconstruction and collision work run off the GUI
+thread. `CollisionSurface` indexes triangle centres with SciPy's KD tree;
+Each edge must belong to exactly two oppositely directed faces; empty, nonfinite,
+degenerate, open and inconsistently wound meshes are rejected. Point-to-triangle
+distances detect shaft contact. Signed solid angles test the first path point for
+containment; sampled segment checks find later entry while preserving closed cavities. Paths are sampled at
 no more than 0.5 mm with a conservative 0.25 mm radius allowance so intersections
 between samples are not skipped. This allowance is numerical, not a clinical clearance
-threshold. Channel diameter is used as the shaft envelope, including tip dead space;
-the automatically generated vertical shaft to z = -1 mm is included. Threading
+threshold. `SAMPLING_ALLOWANCE_MM` is derived from `SAMPLE_SPACING_MM`. Shaft
+radius is half the channel diameter; dead space extends the path without enlarging
+that radius. The automatically generated vertical shaft to z = -1 mm is included. Threading
 widening is excluded because the check models the needle shaft, not the screw bore.
 *Reasoned from code; synthetic geometry regression coverage is in §8.2.*
 
@@ -1205,6 +1216,7 @@ emitting change signals. They hold no widgets.
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `StructuresModel` | imported ROIs, visibility, alignment, presentations, surface cache and worker state | display only; defaults to Surface; details below |
+| `CollisionModel` | revision-tagged organ hits, unchecked reasons, cached indexes and temporary needle emphasis | display-only checks; details below |
 | `NavigationModel` | the six views | not a `QObject`; plain class |
 
 `TandemModel` deserves attention. It distinguishes **imported** from **generated** tandems
@@ -1232,18 +1244,21 @@ object between models and the viewport: `label`, `shape`, `type`, plus `selected
 
 **[`collision_model.py`](../../src/windows/models/collision_model.py)** — owns possible
 needle–organ warnings independently of printable shapes. `MainWindow` constructs it
-with the channels and structures models. Their change signals invalidate warnings
-and temporary red selection immediately; a 150 ms timer batches edits. A single
-background worker uses immutable needle snapshots and cached organ surfaces, aligned
-to the current cylinder length. Revision-tagged results reject stale plans/edits.
+with the channels and structures models. Their change signals compare anatomy and
+needle snapshots before invalidating results. Input comparison never queues surface jobs; the debounced check requests them.
+Selection, visibility and display mode changes keep completed warnings and red emphasis. Actual geometry changes clear stale
+results immediately; a 150 ms timer batches edits. A single background worker uses
+immutable needle snapshots and caches validated, aligned organ indexes across needle
+edits. New surface availability triggers a fresh check; unchanged display state does not. Revision-tagged results reject stale plans/edits.
 Hidden organs and Outlines mode are checked by requesting the same surface cache;
-unavailable geometry is explicitly reported as **not checked**. Only `ORGAN` ROIs
+unavailable geometry is explicitly reported as **not checked**. Unexpected path or
+mesh errors are logged, while the UI receives a fixed explanation without exception text. Only `ORGAN` ROIs
 are checked; tumour targets and BODY are excluded. Disabled needles and the tandem
 channel are excluded. `changed` updates row warnings; `highlight_changed` updates
 nonselectable red needle overlays without fitting the camera or changing exports.
 *Reasoned from code; synthetic offscreen integration tests cover the signal path.*
 
-**[`structures_model.py`](../../src/windows/models/structures_model.py)** — keyed by ROI
+**[`structures_model.py`](../../src/windows/models/structures_model.py)** — `prepare_organ_collision_surfaces` explicitly requests missing registered ORGAN meshes even when hidden or in Outlines mode, returning ready meshes and fixed unchecked reasons. `request_missing=False` reads a snapshot without starting jobs. It excludes targets and BODY. The model is keyed by ROI
 number, so duplicate names are safe. `load_plan` clears previous state, validates alignment,
 and rejects missing/mismatched frames, empty geometry and unsupported contour types. Valid
 ORGAN/TUMOUR ROIs are requested visible by default; OTHER (including BODY) requires selection.
@@ -1330,7 +1345,7 @@ the black rule is in the view stylesheet. *Reasoned from code.*
 | Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
 | Row highlight | The current row emphasises that organ in the preview with the channel-selection blue (0.2, 0.2, 0.7). Outlines also use width 3. Choosing another row moves the highlight. Clicking the highlighted row again, or clearing the selection, drops it. A row with no geometry stays listed and gains no shape. |
 | Change colour | Opens a colour dialog for the current row. OK stores the RGB override, updates the list swatch and clears the highlight so the new colour is visible immediately. Cancel, or an invalid colour, leaves the colour unchanged. |
-| Red **!** | Appears at the right of an organ row with possible needle contact. Click it (or press Enter on that row) to show a six-second “Possible collision detected” toast naming the affected needles, and opaque red needle overlays. Red emphasis remains until leaving Structures, clicking another warning, or invalidating the check by editing/reloading. These warnings are approximate, not a clearance certification. |
+| Red **!** | Appears at the right of an organ row with possible needle contact. Click it (or press Enter on that row) to show a six-second “Possible collision detected. …” toast naming the affected needles, and opaque red needle overlays. Clicking the same warning again clears red emphasis. It otherwise remains until leaving Structures, selecting another warning, or changing check geometry. Selection, visibility and display mode changes preserve it; a persistent status explains red needles after the toast hides. Plans without eligible ORGAN entries show “No organs to check.” These warnings are approximate, not a clearance certification. |
 
 Rows are checked when a representation is available, or when visibility was requested and
 surface work is pending. A pending row remains checkable so the user can hide it. Permanent
@@ -1551,6 +1566,11 @@ selected button.
 functions and `CapWords` classes, not colours.)
 
 ### 5.7 The 3D viewport
+
+`refresh_collision_highlight` replaces nonselectable red AIS overlays when
+`CollisionModel.highlight_changed` fires. `update_display` restores them after a
+scene redraw without fitting the camera. Overlay actors never enter Export inputs.
+
 
 [`views/viewport.py`](../../src/windows/views/viewport.py) — `qtBaseViewer` sets
 `WA_PaintOnScreen`, `WA_NativeWindow` and `WA_NoSystemBackground`, then `OrbitCameraViewer3d`
@@ -1847,24 +1867,6 @@ developers. Read the manual for them:
 
 ## 7. Known bugs, traps, and dead code
 
-*Existing Structures selection regressions (verified 2026-11-04 on unchanged
-`main` at `6fa56b75` and the collision feature branch):*
-`test_toggling_checkbox_does_not_drop_highlight` dereferences a deleted
-`QListWidgetItem` after the visibility change rebuilds the list.
-`test_click_after_keyboard_navigation_can_rehighlight` fails because
-`_just_selected` suppresses the first mouse click after keyboard/programmatic
-selection. These are separate from the collision-warning click path and remain
-unresolved; neither test is skipped or weakened by this feature.
-
-*Needle–organ warning limitations (reasoned from code):* warnings use the existing
-approximate reconstructed organ surface, channel radius and sampled capsule path.
-They are not clinically validated. Missing/mismatched frames, unsupported contours
-and reconstruction errors leave an organ **not checked**, not collision-free. No
-needle–needle check, target/BODY avoidance rule, export blocking or clearance-distance
-measurement is implemented by this feature. The legacy `intersections.are_colliding`
-remains unused.
-
-
 Everything here was found by reading the code during the 2026-09-21 audit, unless its entry
 gives a later date. §7.7 to §7.9 were found between 2026-09-29 and 2026-10-02, while writing
 [COSC499-BRACHIFY-INIT-DOCS.md](COSC499-BRACHIFY-INIT-DOCS.md) (the init guide), by reading the code and by running
@@ -1987,7 +1989,7 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | `benchmarks/channels.py` | imports `Application.BRep.Channel` and `testing.data.channels`, neither of which exists; contains a hardcoded `C://Users//nsmel//...` path |
 | `requirements.txt` | unused and stale — typo `matlplotlib`, and every pin disagrees with `spec-file.txt` (PySide6 6.9.3 vs 6.8.1, pydicom 2.4.3 vs 3.0.2, pyinstaller 6.0.0 vs 6.20.0). It has no `pytest`. **Do not use it.** The dependency list is in §1.1 |
 | **Fixed 2026-09-30.** `build_executable.py` hidden imports `pydicom.encoders.gdcm` and `pydicom.encoders.pylibjpeg` | found 2026-09-30. pydicom 3, the version pinned since the lockfile was made, moved both modules to `pydicom.pixels.encoders.*`. PyInstaller logged `ERROR: Hidden import 'pydicom.encoders.gdcm' not found` (and the same for `pylibjpeg`) and built anyway with exit 0 (*Verified* 2026-09-30 by a trial build on macOS). Both now name `pydicom.pixels.encoders.*`, the trial build analyses them with no error, and `tests/tooling/test_build_executable.py` guards the list. Probably harmless before the fix, since the app never decodes pixel data (*Reasoned from code*). *Not verified:* a Windows `.exe` build |
-| `intersections.are_colliding()` | defined, never called — needle collision detection is not performed |
+| `intersections.are_colliding()` | defined, never called — needle–needle collision detection is not performed; the separate needle–organ check is described in §5.4–§5.7 |
 | `AppSignals.exportFile` | declared, never emitted, never connected |
 | `DicomData.central_axis_flag` | set in `__init__`, never read. **Fixed 2026-10-10:** it was missing from `reset()`. `reset()` now clears it, guarded by `tests/dicom/test_data.py`. *Verified*: the test failed naming `central_axis_flag` before the fix |
 | `add_notch(z_offset=...)` | the parameter is computed and passed but the translation is commented out, so the notch is always at `z=0` even with a collar |
@@ -2445,6 +2447,18 @@ then, so nothing can be applied, but the number reads as a real width.
 
 ---
 
+### 7.22 Needle–organ warning limitations
+
+*Reasoned from code.* The check uses approximate reconstructed surfaces, channel
+radius and sampled paths, and has not been clinically validated. Missing/mismatched
+frames, unsupported contours, failed reconstruction and rejected mesh topology leave
+an organ **not checked**. Only `ORGAN` entries are eligible; BODY, targets and `OTHER`
+(including blank or `AVOIDANCE` interpreted types) are excluded. No eligible organs
+produces an explicit status rather than implying clearance. No needle–needle check,
+export blocking or clearance-distance measurement is implemented. Very large meshes
+can still make solid-angle and nearest-triangle queries expensive, especially when
+one large face broadens the centroid search; this remains a performance limitation.
+
 ## 8. Testing
 
 ### 8.1 Policy
@@ -2542,8 +2556,10 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
-| `mesh/test_needle_collisions.py` | missed crossing, containment or radius contact; false tissue in disconnected gaps or closed cavities; nonfinite path accepted (§5.4) |
-| `views/test_organ_collisions.py` | wrong warning/needle identity, missing toast or red actor, stale move/disable/reset results, hidden/Outlines organ omitted, unavailable anatomy presented as checked, or length/dead-space alignment lost (§5.5–5.7) |
+| `mesh/test_needle_collisions.py` | missed crossing, containment or radius contact; false tissue in disconnected gaps or closed cavities; invalid path or unsafe mesh accepted; later segment or sampling chunk missed (§5.4) |
+| `views/test_organ_collision_inputs.py` | hidden/Outlines organ omitted, BODY/target included, mismatched frame submitted, or a read-only snapshot starting jobs (§5.5) |
+| `views/test_collision_model.py` | stale revisions accepted, display-only changes erase warnings, failed paths look clear, cached organ index discarded on needle movement, or length/dead-space alignment lost (§5.5) |
+| `views/test_organ_collisions.py` | wrong warning/needle identity, missing toast or red actor, inability to clear emphasis, missing no-organ status, fixed-size warning hit area, or a failed outline marked visible during background checks (§5.6–5.7) |
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
 | `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, a highlighted surface actor is not the channel-selection blue, a checkbox toggle drops the highlight, a click after keyboard navigation cannot toggle, or leaving the tab keeps the highlight. Or `set_color` mutates the DICOM RGB, changes another organ, accepts a component outside 0 to 255, leaves the list swatch on the old colour, a cancelled pick recodes the organ, or a click after a colour change cannot re-highlight the row. Or the Structures tab stylesheet does not contain `color: rgb(0, 0, 0)` (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |

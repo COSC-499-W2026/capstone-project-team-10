@@ -133,7 +133,10 @@ X/Y titles sit below the bottom wall and the Z title sits outside the minimum-X/
 of an organ row indicates possible contact with an enabled needle. Click the mark,
 or select the row and press Enter, for a six-second toast naming the needles and
 opaque red overlays in the viewport. The overlays stay until another warning is
-selected, the plan is edited/reloaded, or the Structures tab closes. Checkboxes,
+selected, the same warning is clicked again, check geometry changes, or the Structures
+tab closes. Display-only changes preserve emphasis; persistent status explains the
+red needles after the toast hides. A plan without eligible ORGAN entries explicitly
+says there are no organs to check. The warning hit area scales with the list font. Checkboxes,
 organ colour swatches and ordinary row selection keep their existing behavior.
 Targets and BODY are excluded. Hidden organs remain checked; unsupported or pending
 geometry is labelled **not checked** in the status and row tooltip. The check uses

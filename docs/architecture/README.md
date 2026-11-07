@@ -182,7 +182,7 @@ which is the proposed framework below.
 | A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
 | No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
 | Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
-| Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
+| Needle–needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
 
 ## Proposed project framework
 
@@ -226,8 +226,11 @@ thresholds and the concrete UI arrangement still need implementation decisions.
 ### Needle–organ checks
 
 *Reasoned from code.* `CollisionModel` listens to channel and anatomy changes,
-requests cached surfaces for organs even when hidden, and submits immutable needle
-paths to a separate single-worker pool. Revision tags reject stale results. Its
+compares geometry snapshots so display changes preserve warnings, requests cached
+surfaces for organs even when hidden, and submits immutable needle
+paths to a separate single-worker pool. Validated aligned organ indexes are reused
+across needle edits. Revision tags reject stale results. Failures produce fixed
+unchecked messages; exception details stay in the log. Its
 `changed` signal updates Structures warnings and `highlight_changed` drives temporary
 red AIS needle overlays. Only organs are checked; targets/BODY and disabled/tandem
 channels are excluded. No collision state flows into Export. The four existing-system

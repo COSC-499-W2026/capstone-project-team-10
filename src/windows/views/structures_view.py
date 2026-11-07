@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 )
 
 from classes.app import get_app
+from classes.dicom.structures import StructureType
 from classes.dicom.structure_list import anatomy_structures, structure_list_rows
 from windows.views.custom_view import CustomView
 from windows.models.structures_model import StructureDisplayMode
@@ -16,30 +17,31 @@ class CollisionWarningDelegate(QStyledItemDelegate):
     activated = Signal(int)
 
     @staticmethod
-    def warning_rect(rect: QRect) -> QRect:
-        return QRect(rect.right() - 26, rect.top(), 26, rect.height())
+    def warning_rect(option: QStyleOptionViewItem) -> QRect:
+        width = 2 * option.fontMetrics.height()
+        return QRect(option.rect.right() - width, option.rect.top(), width, option.rect.height())
 
     def paint(self, painter, option, index):
         content = QStyleOptionViewItem(option)
         warned = bool(index.data(Qt.UserRole + 1))
         if warned:
-            content.rect.adjust(0, 0, -26, 0)
+            content.rect.adjust(0, 0, -self.warning_rect(option).width(), 0)
         super().paint(painter, content, index)
         if warned:
             painter.save()
             painter.setPen(QColor('#c62828'))
             font = painter.font()
             font.setBold(True)
-            font.setPointSize(18)
+            font.setPixelSize(option.fontMetrics.height())
             painter.setFont(font)
-            painter.drawText(self.warning_rect(option.rect), Qt.AlignCenter, '!')
+            painter.drawText(self.warning_rect(option), Qt.AlignCenter, '!')
             painter.restore()
 
     def editorEvent(self, event, model, option, index):
         if index.data(Qt.UserRole + 1):
             if (event.type() in (QEvent.MouseButtonPress, QEvent.MouseButtonRelease)
                     and event.button() == Qt.LeftButton
-                    and self.warning_rect(option.rect).contains(event.position().toPoint())):
+                    and self.warning_rect(option).contains(event.position().toPoint())):
                 if event.type() == QEvent.MouseButtonRelease:
                     self.activated.emit(index.data(Qt.UserRole))
                 return True
@@ -138,7 +140,8 @@ class StructuresView(CustomView):
                 roi = structure.roi_number
                 item.setData(Qt.UserRole, roi)
                 item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                requested = model.is_displayed(roi) or (roi in model.visible and roi in model.pending)
+                pending_visible = model.mode != StructureDisplayMode.OUTLINES and roi in model.pending
+                requested = model.is_displayed(roi) or (roi in model.visible and pending_visible)
                 item.setCheckState(Qt.Checked if requested else Qt.Unchecked)
                 reason = model.status_message(roi)
                 if reason:
@@ -146,7 +149,7 @@ class StructuresView(CustomView):
                 item.setToolTip(reason or "Show or hide this structure")
                 if roi in model.unavailable:
                     item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
-                elif reason and not model.is_displayed(roi) and roi not in model.pending:
+                elif reason and not model.is_displayed(roi) and not pending_visible:
                     item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
                 swatch = QPixmap(12, 12)
                 swatch.fill(QColor(*model.color_for(roi)))
@@ -248,20 +251,25 @@ class StructuresView(CustomView):
                 item.setData(Qt.UserRole + 1, hits)
                 reason = get_app().window.structuresmodel.status_message(roi)
                 if hits:
-                    reason += '\nPossible collision detected: ' + ', '.join(hits) + '. Click ! or press Enter.'
+                    reason += '\nPossible collision detected. ' + ', '.join(hits) + '. Click ! or press Enter.'
                 elif roi in model.unchecked:
-                    reason += '\nCollision not checked: ' + model.unchecked[roi]
+                    reason += '\nCollision not checked. ' + model.unchecked[roi]
                 item.setToolTip(reason.strip() or 'Show or hide this structure')
         status = 'Checking needle–organ intersections…' if model.busy else 'Approximate organ check; targets and BODY excluded.'
+        if not any(s.category == StructureType.ORGAN for s in get_app().window.structuresmodel.structures.values()):
+            status = 'No organs to check. Targets and BODY are excluded.'
+        if model.highlighted:
+            status += ' Red needles indicate possible contact. Click the same warning to clear.'
         if model.unchecked:
             status += f' {len(model.unchecked)} organ(s) not checked; see row tooltips.'
         self.collision_status.setText(status)
 
     def show_collision(self, roi: int):
         model = get_app().window.collisionmodel
-        model.highlight(roi)
+        model.highlight(None if model.highlighted == model.collisions.get(roi, ()) else roi)
+        self.update_collision_warnings()
         if model.highlighted:
-            self.collision_toast.setText('Possible collision detected: ' + ', '.join(model.highlighted))
+            self.collision_toast.setText('Possible collision detected. ' + ', '.join(model.highlighted))
             self.collision_toast.show()
             self.toast_timer.start()
 
