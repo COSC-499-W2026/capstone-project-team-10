@@ -84,12 +84,12 @@ libraries and disk. Two arrows point back up: outputs leave through the Export v
 |---|---|---|
 | External | TPS DICOM export, config JSON, tandem STEP file, STL and STEP out, PDF out | outside the repo |
 | Presentation | `MainWindow`, the six views, `LengthField` and `LengthUnit`, the OpenCASCADE canvas | `src/windows/` |
-| Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel`, `ShapeModel`, `StructuresModel` and its single surface worker | `src/classes/app.py`, `src/windows/models/` |
+| Application state | `RadiotherapyApp`, `NavigationModel`, `DicomModel`, the geometry models, `DisplayModel`, `ShapeModel`, `StructuresModel`, `CollisionModel` and their separate single-worker pools | `src/classes/app.py`, `src/windows/models/` |
 | Domain services | DICOM readers, OpenCASCADE geometry, PDF sheet, config load and reset | `src/classes/dicom/`, `mesh/`, `pdf/`, `src/settings/` |
-| Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib, NumPy, SciPy and scikit-image (surface worker imports) | conda environment |
+| Libraries | PySide6, pythonocc-core, pydicom, reportlab, matplotlib, NumPy, SciPy and scikit-image (anatomy reconstruction and collision geometry) | conda environment |
 | Local storage | `app.log`, `filepaths.json`, `needle_templates.json` and `cylinder_templates.json` in `~/brachify` | `src/classes/info.py`, `src/settings/needle_templates.py`, `src/settings/cylinder_templates.py` |
 
-It is a single process desktop app, with a single QThreadPool worker for anatomy surfaces. There is no server, database or network call. Views reach
+It is a single process desktop app, with separate single-worker QThreadPools for anatomy surfaces and needle–organ checks. There is no server, database or network call. Views reach
 other views by index and reach the models through `get_app().window`, so the layering above is the
 intended direction of dependency, not one the code enforces. Export is the exception that shows it:
 `Export_View` reads the cylinder, channel and tandem models directly and runs the boolean cut
@@ -182,7 +182,7 @@ which is the proposed framework below.
 | A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
 | No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
 | Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
-| Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
+| Needle–needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
 
 ## Proposed project framework
 
@@ -222,3 +222,16 @@ and anatomy checks. FR-CN-01–20 maps to design editing, templates, history, va
 and exports. Milestone 2 describes the corresponding review and editing controls.
 Class names in the projected UML express a design proposal; storage formats, clinical
 thresholds and the concrete UI arrangement still need implementation decisions.
+
+### Needle–organ checks
+
+*Reasoned from code.* `CollisionModel` listens to channel and anatomy changes,
+compares geometry snapshots so display changes preserve warnings, requests cached
+surfaces for organs even when hidden, and submits immutable needle
+paths to a separate single-worker pool. Validated aligned organ indexes are reused
+across needle edits. Revision tags reject stale results. Failures produce fixed
+unchecked messages; exception details stay in the log. Its
+`changed` signal updates Structures warnings and `highlight_changed` drives temporary
+red AIS needle overlays. Only organs are checked; targets/BODY and disabled/tandem
+channels are excluded. No collision state flows into Export. The four existing-system
+diagrams include this display-only path; projected diagrams remain proposals.
