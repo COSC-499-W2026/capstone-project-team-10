@@ -329,5 +329,5 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 504 passed and the 2 failures inherited from `main` (504 tests after #218, screenshot 1)**.
 
-  ![1, python -m pytest on test/tandem-template-exports, 2 passed in test_tandem_template_exports.py and 497 passed with the 2 failures inherited from main, 2, the Export tab after Long bend was generated, and 3, the Generate boxes showing 3.8 mm and 30 degrees after Generate, section 7.23](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0f09dc4ad2c9a704bc8cf2d44a6159d190a1e28e/docs/logs/ariq/screenshots/week-9/pr-219-1-export.png)
+  ![1, python -m pytest on test/tandem-template-exports, 2 passed in test_tandem_template_exports.py and 504 passed with the 2 failures inherited from main, 2, the Export tab after Long bend was generated, and 3, the Generate boxes showing 3.8 mm and 30 degrees after Generate, section 7.23](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ba74616d0296980f4b6e911936e2f57e48993c4b/docs/logs/ariq/screenshots/week-9/pr-219-1-export.png)
 - Not applicable: **abnormal cases (the earlier PRs cover them)**.
