@@ -310,3 +310,9 @@ nonoverlapping controls. The fixtures isolate user files before importing the vi
 These tests never initialise the native canvas. They cannot prove the grid is visually
 legible or the camera moves correctly; native Ex1/Ex2 checks supplement them, as recorded
 in [§5.7](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
+
+## Needle–organ checks
+
+`mesh/test_needle_collisions.py` covers crossings, containment, radius contact,
+disconnected tissue and cavities, invalid paths and mesh topology, later segments
+and sampling chunks. These synthetic cases do not establish clinical validity.
