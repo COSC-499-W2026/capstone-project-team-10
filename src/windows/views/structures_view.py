@@ -50,6 +50,7 @@ class StructuresView(CustomView):
         controls.addWidget(self.change_colour_button)
         self.hide_all_button = QPushButton("Hide all", self)
         self.hide_all_button.setToolTip("Hide every listed structure")
+        self.hide_all_button.setEnabled(False)
         controls.addWidget(self.hide_all_button)
         layout.addLayout(controls)
         self.surface_mode.currentTextChanged.connect(lambda text: model.set_mode(StructureDisplayMode(text)))
@@ -101,12 +102,22 @@ class StructuresView(CustomView):
                 swatch.fill(QColor(*model.color_for(roi)))
                 item.setIcon(QIcon(swatch))
                 self.structure_list.addItem(item)
-                if roi == selected:
+                # After hide_all the model clears the highlight; do not put the
+                # previous row back or the viewport keeps the selection colour.
+                if roi == selected and (
+                        selected in model.visible or model.highlighted == selected):
                     self.structure_list.setCurrentItem(item)
+        self.hide_all_button.setEnabled(bool(model.visible))
         self.update_opacity_controls()
 
     def action_hide_all(self):
-        """Hide every listed structure. The list refresh unchecks the rows."""
+        """Hide every listed structure. The list refresh unchecks the rows.
+
+        Clear the current row first so the rebuild cannot re-select it and put
+        the highlight back on an organ that just left the preview.
+        """
+        with QSignalBlocker(self.structure_list):
+            self.structure_list.setCurrentItem(None)
         get_app().window.structuresmodel.hide_all()
 
     def action_toggle_structure(self, item: QListWidgetItem):

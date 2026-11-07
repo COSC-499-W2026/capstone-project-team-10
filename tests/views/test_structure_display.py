@@ -896,7 +896,6 @@ def test_hide_all_clears_listed_organs_and_one_can_return(cylinder_window):
     """
     from PySide6.QtCore import Qt
     from PySide6.QtTest import QTest
-    from PySide6.QtWidgets import QPushButton
     from windows.models.structures_model import StructureDisplayMode
     model = cylinder_window.structuresmodel
     model.set_mode(StructureDisplayMode.OUTLINES)
@@ -911,10 +910,13 @@ def test_hide_all_clears_listed_organs_and_one_can_return(cylinder_window):
     assert model.presentations()[0].outline is not None
     assert view.structure_list.item(0).checkState() == Qt.Checked
     assert view.structure_list.item(1).checkState() == Qt.Checked
-    buttons = [button for button in view.findChildren(QPushButton) if button.text() == 'Hide all']
-    assert len(buttons) == 1
-    QTest.mouseClick(buttons[0], Qt.MouseButton.LeftButton)
+    assert view.hide_all_button.isEnabled()
+    view.structure_list.setCurrentRow(0)
+    assert model.highlighted == 2
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
     assert model.presentations() == ()
+    assert model.highlighted is None
+    assert not view.hide_all_button.isEnabled()
     assert view.structure_list.item(0).checkState() == Qt.Unchecked
     assert view.structure_list.item(1).checkState() == Qt.Unchecked
     mismatched = view.structure_list.item(2)
@@ -923,3 +925,53 @@ def test_hide_all_clears_listed_organs_and_one_can_return(cylinder_window):
     view.structure_list.item(0).setCheckState(Qt.Checked)
     wait_for_surfaces(model)
     assert [item.roi_number for item in model.presentations()] == [2]
+    assert view.hide_all_button.isEnabled()
+
+
+def test_hide_all_clears_surface_mode_presentations(cylinder_window):
+    """Hide all also clears organs drawn in Surface mode, then one can return.
+
+    A surface that stays in presentations(), or a second check that brings both
+    organs back, fails. The Outlines test alone would miss a mode that keeps a
+    pending or cached mesh while the list looks empty.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.SURFACE)
+    model.load_plan(organs_for_hide_all(), 20.)
+    wait_for_surfaces(model)
+    view = cylinder_window.navigationmodel.views[5]
+    assert {item.roi_number for item in model.presentations()} == {2, 4}
+    assert all(item.surface is not None for item in model.presentations())
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
+    assert model.presentations() == ()
+    assert not model.visible
+    view.structure_list.item(0).setCheckState(Qt.Checked)
+    wait_for_surfaces(model)
+    assert [item.roi_number for item in model.presentations()] == [2]
+
+
+def test_hide_all_does_nothing_when_nothing_is_visible(cylinder_window):
+    """A second Hide all, or Hide all with an empty plan, must not rebuild the list.
+
+    Emitting changed when visible is already empty fails the signal count. A no-op
+    click would otherwise flicker the list and opacity controls for no reason.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    view = cylinder_window.navigationmodel.views[5]
+    assert not view.hide_all_button.isEnabled()
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(organs_for_hide_all(), 20.)
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
+    assert not model.visible
+    assert not view.hide_all_button.isEnabled()
+    changed = []
+    model.changed.connect(lambda: changed.append(True))
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
+    model.hide_all()
+    assert changed == []
