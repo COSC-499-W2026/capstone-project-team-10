@@ -126,3 +126,26 @@ The XYZ grid refines from 10 mm to 5 mm and 1 mm as the camera zooms in, then co
 on zoom-out. Its outer walls stay fixed. Numeric labels sit closer to the walls;
 X/Y titles sit below the bottom wall and the Z title sits outside the minimum-X/Y corner. The grid tooltip reports the current interval.
 *Reasoned from code; native zoom transitions not yet visually verified.*
+
+### Needle–organ warnings
+
+*Reasoned from code and synthetic offscreen widget tests.* A red **!** at the right
+of an organ row indicates possible contact with an enabled needle. Click the mark,
+or select the row and press Enter, for a six-second toast naming the needles and
+opaque red overlays in the viewport. The overlays stay until another warning is
+selected, the same warning is clicked again, check geometry changes, or the Structures
+tab closes. Display-only changes preserve emphasis; persistent status explains the
+red needles after the toast hides. A plan without eligible ORGAN entries explicitly
+says there are no organs to check. The warning hit area scales with the list font. Checkboxes,
+organ colour swatches and ordinary row selection keep their existing behavior.
+Targets and BODY are excluded. Hidden organs remain checked; unsupported or pending
+geometry is labelled **not checked** in the status and row tooltip. The check uses
+approximate surfaces and channel diameters, so lack of a warning is not a clinical
+clearance result. Export behavior is unchanged.
+
+*Verified 2026-11-04 on macOS:* with the de-identified Ex1 needles and a synthetic
+organ enclosing part of Applicator2, clicking **!** displayed the named toast and
+an opaque red Applicator2 in the native framebuffer. Leaving Structures removed
+the overlay. Qt control and native framebuffer captures are archived with the week 9
+collision-warning PR receipt in `docs/logs/gilles/screenshots/week-9/`. This is a synthetic UI regression, not
+clinical collision validation.

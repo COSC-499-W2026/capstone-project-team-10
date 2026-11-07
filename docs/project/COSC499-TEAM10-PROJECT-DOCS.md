@@ -769,6 +769,11 @@ in the channel-selection blue, or restores the DICOM colour, and does not rebuil
 list or the meshes. `color_changed(roi, rgb)` updates the list swatch and existing actors
 to the stored RGB override. *Reasoned from code.*
 
+`ChannelsModel.values_changed` and `StructuresModel.changed` also invalidate
+`CollisionModel` results. Its revision-tagged worker result emits `changed` to the
+Structures warning delegate; `highlight_changed` refreshes temporary red needle
+actors on the canvas. Both flows stay outside `DisplayModel` and exports.
+
 ### 4.5 The display pipeline
 
 Rendering is strictly one-way:
@@ -1249,11 +1254,11 @@ Hidden organs and Outlines mode are checked by requesting the same surface cache
 unavailable geometry is explicitly reported as **not checked**. Unexpected path or
 mesh errors are logged, while the UI receives a fixed explanation without exception text. Only `ORGAN` ROIs
 are checked; tumour targets and BODY are excluded. Disabled needles and the tandem
-channel are excluded. `changed` and `highlight_changed` expose warning and selection state; the following
-UI PR connects their consumers without altering printable shapes.
+channel are excluded. `changed` updates row warnings; `highlight_changed` updates
+nonselectable red needle overlays without fitting the camera or changing exports.
 *Reasoned from code; synthetic offscreen integration tests cover the signal path.*
 
-**[`structures_model.py`](../../src/windows/models/structures_model.py)** — `prepare_organ_collision_surfaces` explicitly requests missing registered ORGAN meshes even when hidden or in Outlines mode, returning ready meshes and fixed unchecked reasons. `request_missing=False` reads inputs without starting work. Targets and BODY are excluded. The model is keyed by ROI
+**[`structures_model.py`](../../src/windows/models/structures_model.py)** — `prepare_organ_collision_surfaces` explicitly requests missing registered ORGAN meshes even when hidden or in Outlines mode, returning ready meshes and fixed unchecked reasons. `request_missing=False` reads a snapshot without starting jobs. It excludes targets and BODY. The model is keyed by ROI
 number, so duplicate names are safe. `load_plan` clears previous state, validates alignment,
 and rejects missing/mismatched frames, empty geometry and unsupported contour types. Valid
 ORGAN/TUMOUR ROIs are requested visible by default; OTHER (including BODY) requires selection.
@@ -1562,9 +1567,10 @@ functions and `CapWords` classes, not colours.)
 
 ### 5.7 The 3D viewport
 
-`refresh_collision_highlight` replaces nonselectable red AIS overlays on selection
-changes. `update_display` restores them after scene redraws without camera fitting.
-They never enter printable shapes or Export inputs.
+`refresh_collision_highlight` replaces nonselectable red AIS overlays when
+`CollisionModel.highlight_changed` fires. `update_display` restores them after a
+scene redraw without fitting the camera. Overlay actors never enter Export inputs.
+
 
 [`views/viewport.py`](../../src/windows/views/viewport.py) — `qtBaseViewer` sets
 `WA_PaintOnScreen`, `WA_NativeWindow` and `WA_NoSystemBackground`, then `OrbitCameraViewer3d`
@@ -1983,7 +1989,7 @@ is defined to take **no** arguments — a `TypeError` inside an already-failing 
 | `benchmarks/channels.py` | imports `Application.BRep.Channel` and `testing.data.channels`, neither of which exists; contains a hardcoded `C://Users//nsmel//...` path |
 | `requirements.txt` | unused and stale — typo `matlplotlib`, and every pin disagrees with `spec-file.txt` (PySide6 6.9.3 vs 6.8.1, pydicom 2.4.3 vs 3.0.2, pyinstaller 6.0.0 vs 6.20.0). It has no `pytest`. **Do not use it.** The dependency list is in §1.1 |
 | **Fixed 2026-09-30.** `build_executable.py` hidden imports `pydicom.encoders.gdcm` and `pydicom.encoders.pylibjpeg` | found 2026-09-30. pydicom 3, the version pinned since the lockfile was made, moved both modules to `pydicom.pixels.encoders.*`. PyInstaller logged `ERROR: Hidden import 'pydicom.encoders.gdcm' not found` (and the same for `pylibjpeg`) and built anyway with exit 0 (*Verified* 2026-09-30 by a trial build on macOS). Both now name `pydicom.pixels.encoders.*`, the trial build analyses them with no error, and `tests/tooling/test_build_executable.py` guards the list. Probably harmless before the fix, since the app never decodes pixel data (*Reasoned from code*). *Not verified:* a Windows `.exe` build |
-| `intersections.are_colliding()` | defined, never called — needle collision detection is not performed |
+| `intersections.are_colliding()` | defined, never called — needle–needle collision detection is not performed; the separate needle–organ check is described in §5.4–§5.7 |
 | `AppSignals.exportFile` | declared, never emitted, never connected |
 | `DicomData.central_axis_flag` | set in `__init__`, never read. **Fixed 2026-10-10:** it was missing from `reset()`. `reset()` now clears it, guarded by `tests/dicom/test_data.py`. *Verified*: the test failed naming `central_axis_flag` before the fix |
 | `add_notch(z_offset=...)` | the parameter is computed and passed but the translation is commented out, so the notch is always at `z=0` even with a collar |
@@ -2441,6 +2447,18 @@ then, so nothing can be applied, but the number reads as a real width.
 
 ---
 
+### 7.22 Needle–organ warning limitations
+
+*Reasoned from code.* The check uses approximate reconstructed surfaces, channel
+radius and sampled paths, and has not been clinically validated. Missing/mismatched
+frames, unsupported contours, failed reconstruction and rejected mesh topology leave
+an organ **not checked**. Only `ORGAN` entries are eligible; BODY, targets and `OTHER`
+(including blank or `AVOIDANCE` interpreted types) are excluded. No eligible organs
+produces an explicit status rather than implying clearance. No needle–needle check,
+export blocking or clearance-distance measurement is implemented. Very large meshes
+can still make solid-angle and nearest-triangle queries expensive, especially when
+one large face broadens the centroid search; this remains a performance limitation.
+
 ## 8. Testing
 
 ### 8.1 Policy
@@ -2538,11 +2556,11 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `mesh/test_structure_contours.py` | rotation or tip translation differs from literal coordinates, the input contour changes, missing-frame/zero-axis/reversed-Z alignment is accepted, an open contour becomes closed, or a triangular wire loses an edge or gains a filled face; array alignment also checks literal rotated coordinates and unchanged input (§5.4) |
-| `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
 | `mesh/test_needle_collisions.py` | missed crossing, containment or radius contact; false tissue in disconnected gaps or closed cavities; invalid path or unsafe mesh accepted; later segment or sampling chunk missed (§5.4) |
 | `views/test_organ_collision_inputs.py` | hidden/Outlines organ omitted, BODY/target included, mismatched frame submitted, or a read-only snapshot starting jobs (§5.5) |
 | `views/test_collision_model.py` | stale revisions accepted, display-only changes erase warnings, failed paths look clear, cached organ index discarded on needle movement, or length/dead-space alignment lost (§5.5) |
 | `views/test_organ_collisions.py` | wrong warning/needle identity or cross-organ toggling, missing toast/red actor, missing no-organ status, fixed-size hit area, or a failed outline marked visible during background checks (§5.6–5.7) |
+| `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
 | `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, a highlighted surface actor is not the channel-selection blue, a checkbox toggle drops the highlight, a click after keyboard navigation cannot toggle, or leaving the tab keeps the highlight. Or `set_color` mutates the DICOM RGB, changes another organ, accepts a component outside 0 to 255, leaves the list swatch on the old colour, a cancelled pick recodes the organ, or a click after a colour change cannot re-highlight the row. Or the Structures tab stylesheet does not contain `color: rgb(0, 0, 0)` (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
