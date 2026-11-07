@@ -100,6 +100,7 @@ class StructuresView(CustomView):
         self.structure_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.structure_list.setStyleSheet("background-color: white; color: black;")
         layout.addWidget(self.structure_list)
+        self._collision_roi: int | None = None
         self.collision_delegate = CollisionWarningDelegate(self.structure_list)
         self.structure_list.setItemDelegate(self.collision_delegate)
         self.collision_delegate.activated.connect(self.show_collision)
@@ -266,7 +267,9 @@ class StructuresView(CustomView):
 
     def show_collision(self, roi: int):
         model = get_app().window.collisionmodel
-        model.highlight(None if model.highlighted == model.collisions.get(roi, ()) else roi)
+        selected = None if self._collision_roi == roi and model.highlighted else roi
+        self._collision_roi = selected
+        model.highlight(selected)
         self.update_collision_warnings()
         if model.highlighted:
             self.collision_toast.setText('Possible collision detected. ' + ', '.join(model.highlighted))
@@ -275,6 +278,7 @@ class StructuresView(CustomView):
 
     def clear_collision_toast(self):
         if not get_app().window.collisionmodel.highlighted:
+            self._collision_roi = None
             self.toast_timer.stop()
             self.collision_toast.hide()
 
