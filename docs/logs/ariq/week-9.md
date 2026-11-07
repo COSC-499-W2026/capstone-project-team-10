@@ -5,7 +5,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 ## Stack #212 to #219, at a glance
 
-Nine stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, and make *Generate Tandem*'s boxes show the tandem it built. Each PR is based on the one above it and closes its own issue.
+Ten stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, make *Generate Tandem*'s boxes show the tandem it built, and share one confirmation dialog between the Cylinder and Tandem tabs. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
@@ -15,9 +15,9 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#214](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/214) | #213 | #206 | `update_template`, `delete_template`; diagram names the file | 9, +212/−9 | 7 | 471 |
 | [#215](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/215) | #214 | #207 | Templates group and *Save as Template* on the Generate sub-tab | 9, +387/−8 | 6 | 477 |
 | [#216](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/216) | #215 | #208 | *Load*, with the capped height and replaced rotation messages | 9, +290/−11 | 8 | 485 |
-| [#217](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/217) | #216 | #209 | *Update* and *Delete*, with confirmation | 9, +243/−8 | 6 | 491 |
-| [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +193/−10 | 6 | 497 |
-| [#219](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/219) | #218 | #211 | Tests only: the loaded template in the mesh and the sheet; §7.23 | 6, +166/−2 | 2 | 499 |
+| [#217](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/217) | #216 | #209 | *Update* and *Delete*, asking first and naming a rename or new note | 9, +390/−10 | 13 | 498 |
+| [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +194/−11 | 6 | 504 |
+| [#219](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/219) | #218 | #211 | Tests only: the loaded template in the mesh and the sheet; §7.23 | 6, +166/−2 | 2 | 506 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -38,7 +38,7 @@ Stated once here instead of in each section.
 - **Two failures inherited from `main`.** **`test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` in `tests/views/test_structure_display.py` also fail on `main` (`6fa56b7`, 2 failed and 37 passed in that file). This stack does not touch the Structures tab**.
 - **Not applicable in every PR.** **Encryption and access controls (no stored secrets, no user roles), restricted pages (no logins), usability evaluation (none run), backend API (none), test coverage (no coverage tool)**.
 
-### For PR #**212** (1 of 9, on `main`)
+### For PR #**212** (1 of 10, on `main`)
 
 - As part of requirement **FR-CN-05 and issue #204, save tandem designs as templates**, the user needs to do **set up a tandem on the Tandem tab's Generate sub-tab and keep it under a name for later patients**.
 - Therefore, I implemented/generated code so that **a clinician's tandem template holds the eight Generate settings, rotation included, with a name, note and dates, and can never hold a value the sub-tab cannot show**.
@@ -81,7 +81,7 @@ Stated once here instead of in each section.
   ![1, python -m pytest on feat/tandem-template-values, 18 passed in test_tandem_templates.py and 442 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/1a6667acaaaae69cd2aa7516d910320406fa61d8/docs/logs/ariq/screenshots/week-9/pr-212-1-pytest-444.png)
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**213** (2 of 9, on #212)
+### For PR #**213** (2 of 10, on #212)
 
 - As part of requirement **FR-CN-05, FR-CN-06 and issue #205, keep tandem templates in a library**, the user needs to do **save a tandem template, close brachify, and find it again, even if the file was edited by hand**.
 - Therefore, I implemented/generated code so that **tandem templates are saved to and read from `~/brachify/tandem_templates.json`, with a bad file refused rather than overwritten**.
@@ -126,7 +126,7 @@ Stated once here instead of in each section.
   ![1, python -m pytest on feat/tandem-template-library, 38 passed in test_tandem_templates.py and 462 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c450d4893a22f6fe93cae65085a44d3c94ac6c70/docs/logs/ariq/screenshots/week-9/pr-213-1-pytest-464.png)
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**214** (3 of 9, on #213)
+### For PR #**214** (3 of 10, on #213)
 
 - As part of requirement **FR-CN-06 and issue #206, manage tandem templates**, the user needs to do **rename a saved tandem template, change its settings or note, or delete it**.
 - Therefore, I implemented/generated code so that **a tandem template can be updated in place, keeping its ID, created date and place, or deleted, and the system architecture names `tandem_templates.json`**.
@@ -169,7 +169,7 @@ Stated once here instead of in each section.
   ![1, python -m pytest on feat/tandem-template-changes, 45 passed in test_tandem_templates.py and 469 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ae7935035c6098aa62b794c20c0074d6667e21ba/docs/logs/ariq/screenshots/week-9/pr-214-1-pytest-471.png)
 - Not applicable: **generated-test review (no problem found)**.
 
-### For PR #**215** (4 of 9, on #214)
+### For PR #**215** (4 of 10, on #214)
 
 - As part of requirement **FR-CN-05 and issue #207, save tandem designs as templates**, the user needs to do **set the Generate boxes, type a name and a note, and press Save as Template**.
 - Therefore, I implemented/generated code so that **clinicians save the eight Generate settings as a named tandem template from the Tandem tab, and see why a save is refused**.
@@ -208,7 +208,7 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-save, 6 passed in test_tandem_template_controls.py and 475 passed with the 2 failures inherited from main, and 2, the real Tandem tab on Ex2 after saving three tandem templates](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d0c5bab7dd19e2d7e1465e42998e5a5bed2eab63/docs/logs/ariq/screenshots/week-9/pr-215-1-save-template.png)
 
-### For PR #**216** (5 of 9, on #215)
+### For PR #**216** (5 of 10, on #215)
 
 - As part of requirement **FR-CN-06 and issue #208, load a tandem template**, the user needs to do **select a saved template, press Load, read the status line, and press Generate Tandem**.
 - Therefore, I implemented/generated code so that **clinicians load a template's eight settings without generating, and are told when the height was capped at a shorter cylinder or the rotation replaces the tandem channel's direction**.
@@ -242,40 +242,43 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on feat/tandem-template-load, 14 passed in test_tandem_template_controls.py and 483 passed with the 2 failures inherited from main, 2, Load naming the rotation that replaces Tandem's, and 3, Load capping 170 mm at the 160 mm cylinder](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5201c5ced796376ddee007faf0c1e2fa07226ec7/docs/logs/ariq/screenshots/week-9/pr-216-1-load-template.png)
 
-### For PR #**217** (6 of 9, on #216)
+### For PR #**217** (6 of 10, on #216)
 
 - As part of requirement **FR-CN-06 and issue #209, manage tandem templates**, the user needs to do **load a template, change it and press Update, or select one and press Delete, and confirm**.
-- Therefore, I implemented/generated code so that **clinicians rename, change or delete a tandem template from the Tandem tab, only after answering Yes**.
+- Therefore, I implemented/generated code so that **clinicians rename, change or delete a tandem template from the Tandem tab, only after a question that names every change**.
 
 #### Frontend
 
 - The frontend uses **no cache, as in #215** because **Update and Delete write the file and the list is refilled from it**. Benefits for using this pattern include **the list shows the result**. Possible risks include **a click on the wrong template**.
   - To mitigate **a wrong click**, we implemented **a question naming the template, with Cancel the default, through the `TandemView.confirm` seam**.
+  - To mitigate **a rename the question did not mention**, we implemented **`update_question`, which adds "rename it Alpha 2" or "replace its note" when the boxes differ from the selected template (screenshot 1)**.
 - The frontend is designed using **Qt Designer `.ui` files and PySide6** with design components for **Update and Delete buttons and the Cylinder tab's `template_change_dialog`, reused**. Therefore, changing the design of **`template_change_dialog`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **each tab passes only its title and question**.
-- The frontend adopts accessibility principle **WCAG 3.3.4, Error Prevention: a change to saved data can be reversed or confirmed**. The aspects that demonstrate this principle in the system include **the Yes and Cancel question, checked by `test_cancelling_update_or_delete_changes_nothing`, and "Updated Long bend sharp" in the status line (screenshot 1)**.
-- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-06, #209: 5 new tests, 6 cases, in `tests/views/test_tandem_template_controls.py`**
+- The frontend adopts accessibility principle **WCAG 3.3.4, Error Prevention: a change to saved data can be reversed or confirmed**. The aspects that demonstrate this principle in the system include **the Yes and Cancel question naming the rename, and "Updated Long bend sharp" with the template still selected (screenshot 1)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-06, #209: 9 new tests, 13 cases, in `tests/views/test_tandem_template_controls.py`**
 
 #### Review and design
 
 - When I reviewed the **generated cancel test** for this functionality, I noticed **it reached the button with `getattr` and a computed name, which anti-slop flags (`no-string-attribute-access`)**. Therefore, I did **name both buttons directly**.
+- When I reviewed the **`test_update_and_delete_with_no_template_selected_change_nothing`**, I noticed **it stayed green with Update's row guard removed, because the empty name box stopped Update first**. Therefore, I did **put a valid name in the box, and watched it fail without the guard**.
+- The review by **Ayyhab** identified **that Update wrote the name and note boxes into the selected template while asking only about the settings, so Beta could be renamed "Alpha 2" with Alpha's note; that row -1 picked the last template; that the selection was lost after Update; and that a created date ahead of the clock refused every update**. Therefore, I did **name the rename and the new note in the question, guard row -1, reselect the updated template, clamp the modified date to `max(now, created)`, and record the Cylinder tab's same gap as §7.24. The shared dialog moves to a neutral module in #240**.
 - The PR does not contain any temporary workaround because **it calls #214's `update_template` and `delete_template`**.
-- The PR only contains small functions that are **3 to 12 lines (view) and 8 to 22 lines (tests)** long.
+- The PR only contains small functions that are **3 to 21 lines (view) and 12 to 32 lines (tests)** long.
 - Code quality checklist: **see Shared**.
 - This work is written in **`tandem_view.py` and `tandem_view.ui`** because **as in #215**.
 - This work belongs in **Tandem** in the DFD because **as in #215**.
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_update_after_confirming_saves_the_tabs_name_note_and_settings`, `test_delete_after_confirming_removes_the_template` (6 new; 20 in the file; screenshot 1)** passed.
-- I wrote tests to cover abnormal situations involving **Cancel on either button, a taken name, nothing selected** and they passed.
-- I checked that these negative cases involving **seven deliberate breaks (Cancel ignored on either, the old name or settings kept, a refusal hidden, buttons always enabled, a deleted row still listed)** failed as expected.
+- The functionality works correctly because the happy path tests involving **`test_update_after_confirming_saves_the_tabs_name_note_and_settings`, `test_update_names_a_rename_or_a_new_note_in_its_question` (13 new; 27 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **Cancel on either button, a taken or blank name, no row selected, Beta selected with Alpha's name or note in the boxes, a template dated 2099** and they passed.
+- I checked that these negative cases involving **fourteen deliberate breaks (Cancel ignored on either, the old name or settings kept, a refusal hidden, buttons always enabled, a deleted row still listed, the rename or note left out of the question, either row guard removed, a blank name asked about, the selection dropped, the clock not clamped)** failed as expected.
 - Among these tests, **none** are unit tests and **all 6** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest`, 489 passed and the 2 failures inherited from `main` (485 tests after #216, screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 496 passed and the 2 failures inherited from `main` (485 tests after #216, screenshot 1)**.
 
-  ![1, python -m pytest on feat/tandem-template-update-delete, 20 passed in test_tandem_template_controls.py and 489 passed with the 2 failures inherited from main, and 2, the Tandem tab after Update renamed Long bend to Long bend sharp](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0e962d084d2f2ea3a7fe5e29a92081b51b0f5d5c/docs/logs/ariq/screenshots/week-9/pr-217-1-update-template.png)
+  ![1, python -m pytest on feat/tandem-template-update-delete, 27 passed in test_tandem_template_controls.py and 496 passed with the 2 failures inherited from main, 2, the real Update question naming the rename, and 3, the renamed template still selected after Yes](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c60f1bf3cea6e106fac1f0aac35a99146ff616ae/docs/logs/ariq/screenshots/week-9/pr-217-1-update-template.png)
 
-### For PR #**218** (7 of 9, on #217)
+### For PR #**218** (7 of 10, on #217)
 
 - As part of requirement **FR-CN-06 and issue #210, catch a tandem template that cannot be built**, the user needs to do **load a template and learn before Generate Tandem whether this cylinder can take it**.
 - Therefore, I implemented/generated code so that **clinicians are told on Load when a template cannot be built on the current cylinder, and which settings to change**.
@@ -308,23 +311,23 @@ Stated once here instead of in each section.
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_a_tandem_is_built_from_every_design_value_and_the_cylinder`, `test_a_template_that_cannot_be_built_on_the_cylinder_says_so` (6 new; 7 in `test_tandem.py`, 21 in the controls file; screenshot 1)** passed.
+- The functionality works correctly because the happy path tests involving **`test_a_tandem_is_built_from_every_design_value_and_the_cylinder`, `test_a_template_that_cannot_be_built_on_the_cylinder_says_so` (6 new; 7 in `test_tandem.py`, 28 in the controls file; screenshot 1)** passed.
 - I wrote tests to cover abnormal situations involving **60 and 170 mm bends, and a straight 60 mm tandem** and they passed.
 - I checked that these negative cases involving **five deliberate breaks (every design buildable, threading not copied, angle and radius swapped, no trial build, the uncapped height tried)** failed as expected.
 - Among these tests, **5** are unit tests and **1** is an integration test.
 - These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest`, 495 passed and the 2 failures inherited from `main` (491 tests after #217, screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 502 passed and the 2 failures inherited from `main` (498 tests after #217, screenshot 1)**.
 
-  ![1, python -m pytest on feat/tandem-template-build-check, 7 passed in test_tandem.py, 21 in test_tandem_template_controls.py run alone, and 495 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ff8fcf47fea69ec17a2b561c8aa6581dd3848d06/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
+  ![1, python -m pytest on feat/tandem-template-build-check, 28 passed in test_tandem_template_controls.py, 7 in test_tandem.py, and 502 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/062255c8f1433efb21b028a5978d16b9ef0cfaff/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)
 
-### For test PR #**219** (8 of 9, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
+### For test PR #**219** (8 of 10, on #218) written to assess functionality in **#215 to #218, a tandem template loaded and generated**
 
 - The functionality works correctly because the happy path tests involving **`test_the_exported_mesh_has_the_templates_tandem_hole`, `test_the_reference_sheet_draws_the_templates_tandem` (2 new; 2 in the file; screenshot 1)** passed.
 - I checked that these negative cases involving **four deliberate breaks (Load skipping the rotation or the diameter, Generate leaving the live settings, the export cutting no tandem)** failed as expected.
 - When I reviewed the **mesh test** for this functionality, I noticed **that a literal volume would only repeat what the code computes**. Therefore, I did **intersect the mesh with the template's cut-out built straight from `classes.mesh.tandem`, and with the default one to prove it can tell them apart**.
 - Among these tests, **none** are unit tests and **both** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest`, 497 passed and the 2 failures inherited from `main` (497 tests after #218, screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 504 passed and the 2 failures inherited from `main` (504 tests after #218, screenshot 1)**.
 
   ![1, python -m pytest on test/tandem-template-exports, 2 passed in test_tandem_template_exports.py and 497 passed with the 2 failures inherited from main, 2, the Export tab after Long bend was generated, and 3, the Generate boxes showing 3.8 mm and 30 degrees after Generate, section 7.23](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0f09dc4ad2c9a704bc8cf2d44a6159d190a1e28e/docs/logs/ariq/screenshots/week-9/pr-219-1-export.png)
 - Not applicable: **abnormal cases (the earlier PRs cover them)**.
