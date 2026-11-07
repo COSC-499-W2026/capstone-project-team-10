@@ -1,52 +1,37 @@
-# Week 9, Gilles
+# Gilles — Week 9
 
-_Individual log. One section per PR merged this week, each a copy of that PR’s Part A. See
-[docs/logs/README.md](../README.md)._
-
-## Stack #222 to #222, at a glance
-
-| PR | On | Issue | Adds | Own diff | New tests | Suite |
-|---|---|---|---|---|---|---|
-| #222 | main | #161 | collision geometry | 7 files / 234 lines | 10 | 434 passed, 2 baseline failures |
+## Part A
 
 ### Shared by every PR in this stack
 
-- Diagrams: [system architecture](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/docs/needle-collision-architecture/docs/architecture/diagrams/system-architecture.svg), [Level 0 DFD](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/docs/needle-collision-architecture/docs/architecture/diagrams/existing-framework/dfd-0.svg), [Level 1 DFD](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/docs/needle-collision-architecture/docs/architecture/diagrams/existing-framework/dfd-1.svg). Companion PR contains the completed flow.
-- Scope: **issue #161, Gilles week 9; the intersection-warning portions of backend FR-SV-07 and frontend FR-SV-08 only. Distance measurement and clinical validation remain outside this stack.**
-- Code quality checklist: **diff review, architecture check and session-start hook; Python changes have no blocking anti-slop findings. Fixed sampling and UI timings are explicit, so no blanket claim of no hardcoded values is made.**
-- Baseline: **`test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` fail on unchanged main `6fa56b75` and independently on PR #154 commit `a2dbc06c`; neither is skipped or changed. Publishing with these failures was explicitly authorized.**
-- Split: **companion documentation and the smaller file/line target exceptions were explicitly authorized; every PR remains below 10 files and 500 changed lines. Merge in dependency order, retargeting each successor to main.**
-- Not applicable: **database, network backend API, authentication, test coverage percentage (none introduced or measured); teammate review and formal usability evaluation (not performed for this stack).**
+- Scope: **issue #161, Gilles week 9; approximate organ intersections only. BODY, targets, needle–needle detection and distance measurement are excluded.**
+- Checks: **isolated user files, focused tests for each layer, full-stack regression, architecture build/check and anti-slop. Native evidence uses Ex1 plus synthetic anatomy, not clinical validation.**
+- Baseline: **the two Structures-highlight failures reproduce on main `6fa56b75`; #228 fixes them separately. The user authorized publishing with these failures. No tests are skipped or weakened.**
+- Split: **dependency-ordered code and companion documentation PRs, with smaller-target exceptions authorized. Each own diff remains below 10 files and 500 changed lines. Screenshots are shared from the final documentation companion.**
+- Not applicable: **database, network API, authentication, coverage percentage, formal usability evaluation (none introduced or measured).**
 
-### For PR #**222** (1 of 5, on main)
+### For PR #**222** (1 of 6, on main)
 
-- As part of requirement **FR-SV-07 / FR-SV-08, intersection warnings only; issue #161**, the user needs to do **identify possible needle contact with organs while editing a plan**.
-- Therefore, I implemented/generated code so that **collision geometry supports the collision-warning workflow**.
+- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to **identify possible needle contact with organs while editing a plan**.
+- Therefore, I implemented/generated code so that **validate closed, consistently wound meshes and check complete needle paths**.
 
-#### Backend
+#### Backend and frontend
 
-- The system uses **a pure geometry service** because **collision queries need deterministic model-mm inputs**. Benefits for using this pattern include **testing without widgets**. Possible risks include **sampling past contact**.
-  - To mitigate **missed contact**, we implemented **at most 0.5 mm sample spacing with a 0.25 mm radius allowance**.
-- The system adopts a **stateless query** approach to state management because **each NeedlePath supplies its own coordinates and radius**. This method is done by **querying a CollisionSurface triangle index**. Benefits for using this approach include **reusing the index for multiple needles**. Possible risks include **invalid mesh winding affecting containment**.
-- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-SV-07 intersection portion → `test_needle_capsule_intersects_organ`, disconnected-gap and cavity tests (10 new cases)**.
-- Not applicable: **UI integration and signal-flow diagrams (follow in the state/UI and companion architecture PRs); distance calculation (not implemented)**.
+- The system uses **domain geometry, model-owned state and view-owned presentation** because **warnings must not modify printable geometry**. The worker receives immutable paths; revision checks refuse stale results. Approximate reconstruction and sampling remain limitations.
+- Traceability: **the focused tests below exercise the intersection-warning requirement; native rendering evidence supplements offscreen widget tests. Distance measurement is not implemented.**
+- Not applicable: **database, backend API, security roles, usability evaluation, coverage percentage (none added or measured)**.
 
 #### Review and design
 
-- When I reviewed the **collision sampling and signed-angle containment** for this functionality, I did not find any problems with it because **literal cube, radius, disconnected-component and cavity cases passed**.
-- The PR does not contain any temporary workaround because **collision state and presentation use dedicated domain/model/view responsibilities without changing exports**.
-- The PR only contains small functions that are **4–22 lines for the new query methods; existing constructors receive wiring additions** long.
-- Code quality checklist: **see Shared**.
-- This work is written in **`src/classes/mesh/` and `tests/mesh/`** because **it owns collision geometry**.
-- This work belongs in **the structure preview/check path** in the DFD because **it reports possible intersections without changing Export**.
+- When I reviewed **the geometry changes against the requested feedback**, I checked **geometry rejection and full-path coverage**.
+- Code quality checklist: **see Shared; no new blocking anti-slop findings, no module mocking or export changes**.
+- This work is written in **src/classes/mesh/needle_collisions.py and tests/mesh/test_needle_collisions.py** because **that layer owns this behaviour or documentation**.
+- The PR does not contain a temporary workaround; **warnings use the existing anatomy cache and a separate collision state, and stay outside Export**.
+- This work belongs in **Structures preview/checks** in the DFD.
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **10 new geometry cases (10 in the file), including crossings and enclosed needles** passed.
-- I wrote tests to cover abnormal situations involving **disconnected components, a closed cavity and nonfinite path rejection** and they passed.
-- I checked that these negative cases involving **removing the shaft radius from the query allowance** failed as expected.
-- Among these tests, **the 10 literal geometry cases** are unit tests and integration tests are not required because **this PR introduces a pure geometry service; UI integration follows**.
-- These tests are included in the directory **`tests/mesh/`**.
-- This new test PR did not break anything else in the system because **the suite reports 434 passed, 2 baseline failures (424 passing cases inherited); the two failures match unchanged main and PR #154**.
-
-  ![Recorded test output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ec326a9dfa00306127f2c01b2818aabaf17e6ed3/docs/logs/gilles/screenshots/week-9/pr-222-regression.png)
+- Happy path: **geometry rejection and full-path coverage; 22 new cases in this layer**.
+- Regression: **see the recorded layer/full-stack checks below; baseline failures are retained explicitly**.
+- Negative cases: **red-before-green review tests and deliberate mutation checks are recorded with the update evidence**. Tests use real geometry/models/widgets with isolated files.
+- Tests live in **tests/mesh/** or **tests/views/**; unit geometry and integrated model/widget coverage are counted separately.

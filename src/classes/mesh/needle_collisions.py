@@ -10,6 +10,11 @@ from classes.mesh.structure_contours import Point
 from classes.mesh.structure_surfaces import AnatomySurface
 
 
+SAMPLE_SPACING_MM = 0.5
+SAMPLING_ALLOWANCE_MM = SAMPLE_SPACING_MM / 2
+SAMPLE_BATCH_SIZE = 512
+
+
 @dataclass(frozen=True)
 class NeedlePath:
     label: str
@@ -43,7 +48,7 @@ def triangle_distances(point: NDArray[np.float64], triangles: NDArray[np.float64
 
 
 class CollisionSurface:
-    """Cache a triangle index; the closed surface must have consistent winding."""
+    """Validate a closed, consistently wound mesh and cache its triangle index."""
 
     def __init__(self, surface: AnatomySurface):
         self.triangles = surface.vertices[surface.triangles]
@@ -53,6 +58,13 @@ class CollisionSurface:
                            self.triangles[:, 2] - self.triangles[:, 0])
         if np.any(np.linalg.norm(normals, axis=1) == 0):
             raise ValueError('Organ collision mesh contains degenerate triangles')
+        faces = surface.triangles
+        edges = np.concatenate((faces[:, [0, 1]], faces[:, [1, 2]], faces[:, [2, 0]]))
+        ordered = np.sort(edges, axis=1)
+        _, inverse, counts = np.unique(ordered, axis=0, return_inverse=True, return_counts=True)
+        winding = np.bincount(inverse, weights=np.where(edges[:, 0] < edges[:, 1], 1, -1))
+        if np.any(counts != 2) or np.any(winding != 0):
+            raise ValueError('Organ collision mesh must be closed with consistent winding')
         centres = self.triangles.mean(axis=1)
         self.tree = cKDTree(centres)
         self.reach = float(np.linalg.norm(self.triangles - centres[:, None, :], axis=2).max())
@@ -77,15 +89,15 @@ class CollisionSurface:
         skipping a crossing between samples. This is not a clinical clearance margin.
         """
         points = np.asarray(needle.points, dtype=float)
-        radius = needle.radius + 0.25
+        radius = needle.radius + SAMPLING_ALLOWANCE_MM
         if np.any(points.max(axis=0) + radius < self.lower) or np.any(points.min(axis=0) - radius > self.upper):
             return False
         if self.contains(points[0]):
             return True
         for start, end in zip(points[:-1], points[1:]):
-            count = max(1, ceil(float(np.linalg.norm(end - start)) / 0.5))
-            for offset in range(0, count + 1, 512):
-                steps = np.arange(offset, min(offset + 512, count + 1)) / count
+            count = max(1, ceil(float(np.linalg.norm(end - start)) / SAMPLE_SPACING_MM))
+            for offset in range(0, count + 1, SAMPLE_BATCH_SIZE):
+                steps = np.arange(offset, min(offset + SAMPLE_BATCH_SIZE, count + 1)) / count
                 samples = start + steps[:, None] * (end - start)
                 neighbours = self.tree.query_ball_point(samples, self.reach + radius)
                 for point, indices in zip(samples, neighbours):
