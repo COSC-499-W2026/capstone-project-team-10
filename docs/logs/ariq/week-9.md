@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #212, at a glance
+## Stack #212 to #213, at a glance
 
 Ten stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, make *Generate Tandem*'s boxes show the tandem it built, and share one confirmation dialog between the Cylinder and Tandem tabs. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -11,6 +11,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#212](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/212) | `main` | #204 | `TandemDesign`, `make_template` and the eight Generate ranges | 9, +291/−10 | 18 | 444 |
+| [#213](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/213) | #212 | #205 | JSON library: `load_templates`, `add_template`, a shared safe save | 7, +358/−18 | 20 | 464 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -72,4 +73,49 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 442 passed and the 2 failures inherited from `main` (426 tests on `main`, screenshot 1)**.
 
   ![1, python -m pytest on feat/tandem-template-values, 18 passed in test_tandem_templates.py and 442 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/1a6667acaaaae69cd2aa7516d910320406fa61d8/docs/logs/ariq/screenshots/week-9/pr-212-1-pytest-444.png)
+- Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**213** (2 of 10, on #212)
+
+- As part of requirement **FR-CN-05, FR-CN-06 and issue #205, keep tandem templates in a library**, the user needs to do **save a tandem template, close brachify, and find it again, even if the file was edited by hand**.
+- Therefore, I implemented/generated code so that **tandem templates are saved to and read from `~/brachify/tandem_templates.json`, with a bad file refused rather than overwritten**.
+
+#### Data Modeling and Integrity
+
+- This data **the tandem template library** is modeled as **a versioned JSON object, `{"version": 1, "templates": [...]}`, decoded into #212's `TandemTemplate` in `load_templates` only** because **AGENTS.md asks to decode at the boundary**. We considered alternative models such as **one file with the cylinder templates, rejected until the whole-cylinder template is designed**.
+- This data **each saved template** uses the input validation to ensure it adheres to **JSON numbers that are not booleans, ISO 8601 dates, unique IDs and names ignoring case, then #212's range checks**.
+- This data **the library file** may be vulnerable to **a hand edit or a crash corrupting every saved template**. Therefore, it uses a security-based sanitization by **refusing the whole file on any bad entry, never writing over a file it could not read, and saving through `write_atomically`**. We considered alternative security solutions such as **skipping bad entries, rejected because the next save would delete them**.
+- Not applicable: **privacy sanitization (no patient data, as in #212)**.
+
+#### Backend
+
+- The system uses **a pure settings module that takes the file path from its caller** because **the Tandem tab will pass `~/brachify` and the tests pass `tmp_path`**. Benefits for using this pattern include **the 20 new tests never touch the developer's home folder**. Possible risks include **a third copy of the cylinder library's save**.
+  - To mitigate **duplicated save code**, we implemented **`write_atomically` in `cylinder_templates.py`, now called by both libraries, with the cylinder's 44 tests still passing**.
+- The system architecture diagram consists of the following major components: **as in #212**. This structure has low coupling because **the module imports the cylinder library's decoders instead of copying them**. This structure has high cohesion because **it only checks, reads and writes tandem templates**. This design is scalable because **a version 2 file can be read beside version 1**.
+
+  **[System architecture, unchanged since #212; #214 names the file](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/17d4a80/docs/architecture/diagrams/system-architecture.svg)**
+- The system uses **a local JSON file as its** database because **templates are a few small records on one clinic machine, like `cylinder_templates.json`**. This method is done by **`load_templates` and `add_template`**. Benefits for using this approach include **no server and a file a physicist can read**. Possible risks include **a hand edit breaking it**.
+  - To mitigate **a broken hand edit**, we implemented **all-or-nothing decoding with the reason in the error, such as `Tandem Height must be from 10 to 500 mm`**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-05, FR-CN-06, #205: 20 new cases in `tests/settings/test_tandem_templates.py`**
+- Not applicable: **data processing, state management (no app state changed), Level 0 DFD, Level 1 DFD (nothing calls the module yet)**.
+
+#### Review and design
+
+- When I reviewed the **generated save** for this functionality, I noticed **it repeated `cylinder_templates.write_templates` line for line**. Therefore, I did **move the `.tmp` and `os.replace` steps into a shared `write_atomically`**.
+- The PR does not contain any temporary workaround because **the save is the cylinder library's tested pattern, now shared**.
+- The PR only contains small functions that are **3 to 17 lines (module) and 3 to 25 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`src/settings/tandem_templates.py`, with the shared save in `cylinder_templates.py`** because **the file belongs with the template it stores**.
+- This work belongs in **Tandem** in the DFD because **the library stores the Tandem tab's settings**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_saved_template_loads_back_with_identical_values`, `test_no_library_file_means_no_templates_yet` (20 new; 38 in the file with #212's 18; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a corrupt, malformed, unreadable or unwritable library, 10 to the 400, and a failed `os.replace`** and they passed.
+- I checked that these negative cases involving **nine deliberate breaks (case-sensitive names, `true` as a number, writing in place, `OverflowError` escaping, a shared ID, any version, a missing file refused, decoded values unchecked, a reused ID added)** failed as expected.
+- Among these tests, **all 20 new** are unit tests and integration tests are not required because **the module reads and writes only the path it is given**.
+- These tests are included in the directory **`tests/settings/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 462 passed and the 2 failures inherited from `main` (444 tests after #212, screenshot 1)**.
+
+  ![1, python -m pytest on feat/tandem-template-library, 38 passed in test_tandem_templates.py and 462 passed with the 2 failures inherited from main](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c450d4893a22f6fe93cae65085a44d3c94ac6c70/docs/logs/ariq/screenshots/week-9/pr-213-1-pytest-464.png)
 - Not applicable: **generated-test review (no problem found)**.
