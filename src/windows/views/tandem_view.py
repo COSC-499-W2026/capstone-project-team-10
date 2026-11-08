@@ -12,6 +12,7 @@ from classes.app import get_app
 from classes.info import USER_PATH
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
+from classes.mesh.tandem import tandem_builds, tandem_from_design
 from classes.pdf.template_reference import extract_points_from_channels2
 from windows.models.shape_model import ShapeTypes
 from windows.ui.tandem_view_ui import Ui_Tandem_View
@@ -51,9 +52,16 @@ def same_direction(first: float, second: float) -> bool:
 
 
 def load_message(name: str, saved_height: float, shown_height: float, rotation: float,
-                 channel: NeedleChannel | None) -> str:
-    """The status line after Load: what was loaded, a capped height, a rotation that replaces the channel's."""
+                 channel: NeedleChannel | None, builds: bool) -> str:
+    """The status line after Load: what was loaded, a capped height, a rotation that replaces the channel's.
+
+    A template the cylinder cannot take is said instead of the rest, since Generate would refuse it.
+    """
     sentences = [f"Loaded {name}."]
+    if not builds:
+        sentences += ["It cannot be built on this cylinder.",
+                      "Change its Tandem Height, Bend Angle or Bend Radius before pressing Generate Tandem."]
+        return " ".join(sentences)
     if shown_height < saved_height:
         sentences.append(f"Its Tandem Height of {saved_height:g} mm is capped at the {shown_height:g} mm cylinder.")
     if channel is not None and not same_direction(rotation, channel.get_rotation()):
@@ -308,7 +316,13 @@ class TandemView(CustomView):
         self.ui.le_template_note.setText(template.note)
         self.ui.label_template_status.setText(load_message(
             template.name, template.design.height_mm, self.ui.sb_tandem_height.value(),
-            template.design.rotation_deg, self.channelsmodel.get_tandem_channel()))
+            template.design.rotation_deg, self.channelsmodel.get_tandem_channel(), self.shown_design_builds()))
+
+    def shown_design_builds(self) -> bool:
+        """Whether Generate Tandem could build the boxes' tandem in the current cylinder. With no cylinder it cannot try."""
+        cylinder = get_app().window.cylindermodel.cylinder
+        if cylinder is None: return True
+        return tandem_builds(tandem_from_design(self.tandem_design(), cylinder.length, cylinder.diameter))
 
     def action_load_templates(self) -> None:
         """Show every saved template, or none, with the reason, if the library cannot be read."""

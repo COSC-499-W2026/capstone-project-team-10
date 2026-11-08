@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #217, at a glance
+## Stack #212 to #218, at a glance
 
 Ten stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, make *Generate Tandem*'s boxes show the tandem it built, and share one confirmation dialog between the Cylinder and Tandem tabs. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -16,6 +16,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#215](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/215) | #214 | #207 | Templates group and *Save as Template* on the Generate sub-tab | 9, +387/−8 | 6 | 477 |
 | [#216](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/216) | #215 | #208 | *Load*, with the capped height and replaced rotation messages | 9, +290/−11 | 8 | 485 |
 | [#217](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/217) | #216 | #209 | *Update* and *Delete*, asking first and naming a rename or new note | 9, +390/−10 | 13 | 498 |
+| [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +194/−11 | 6 | 504 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -275,3 +276,45 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 496 passed and the 2 failures inherited from `main` (485 tests after #216, screenshot 1)**.
 
   ![1, python -m pytest on feat/tandem-template-update-delete, 27 passed in test_tandem_template_controls.py and 496 passed with the 2 failures inherited from main, 2, the real Update question naming the rename, and 3, the renamed template still selected after Yes](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/c60f1bf3cea6e106fac1f0aac35a99146ff616ae/docs/logs/ariq/screenshots/week-9/pr-217-1-update-template.png)
+
+### For PR #**218** (7 of 10, on #217)
+
+- As part of requirement **FR-CN-06 and issue #210, catch a tandem template that cannot be built**, the user needs to do **load a template and learn before Generate Tandem whether this cylinder can take it**.
+- Therefore, I implemented/generated code so that **clinicians are told on Load when a template cannot be built on the current cylinder, and which settings to change**.
+
+#### Backend
+
+- The system uses **a trial build with the same `Tandem.generate_shape` that Generate calls** because **trial builds on a 160 by 30 mm cylinder showed no simple lowest height: a 30° bend failed from 10 to 80 mm, a straight tandem built at every height, an 80° bend also failed at 150 mm (§7.21)**. Benefits for using this pattern include **the check can never disagree with Generate**. Possible risks include **Load taking longer**.
+  - To mitigate **a slow Load**, we implemented **one build only, skipped with no cylinder**.
+- The system architecture diagram consists of the following major components: **as in #214**. This structure has low coupling because **`tandem.py` gains two functions and imports only `TandemDesign`**. This structure has high cohesion because **the geometry module answers whether its own geometry builds**. This design is scalable because **a whole-cylinder template can use the same check**.
+
+  **[System architecture, unchanged since #214](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/92a590b/docs/architecture/diagrams/system-architecture.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#210: 5 cases in `tests/mesh/test_tandem.py`, 1 in `tests/views/test_tandem_template_controls.py`**
+- Not applicable: **database, data processing, state management, Level 0 DFD, Level 1 DFD (unchanged)**.
+
+#### Frontend
+
+- The frontend uses **the status line from #216** because **Load already speaks there**. Benefits for using this pattern include **one place to read**. Possible risks include **the clinician missing it**.
+  - To mitigate **a missed sentence**, we implemented **replacing "Press Generate Tandem" with "It cannot be built on this cylinder." and the settings to change (screenshot 1)**.
+- The frontend adopts accessibility principle **WCAG 3.3.3, Error Suggestion**. The aspects that demonstrate this principle in the system include **"Change its Tandem Height, Bend Angle or Bend Radius" (screenshot 1)**.
+- Not applicable: **design components (no new widget)**.
+
+#### Review and design
+
+- When I reviewed the **lowest Tandem Height** for this functionality, I noticed **no fixed minimum exists, and that `tests/mesh` run alone with the controls file raises fixture errors (§7.22)**. Therefore, I did **check by trial build, record §7.21, and record the fixture trap as §7.22**.
+- The PR does not contain any temporary workaround because **the check is the real geometry**.
+- The PR only contains small functions that are **5 to 18 lines (code) and 5 to 14 lines (tests)** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`classes/mesh/tandem.py` and `tandem_view.py`** because **the geometry decides, and the tab says it**.
+- This work belongs in **Tandem** in the DFD because **as in #215**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_tandem_is_built_from_every_design_value_and_the_cylinder`, `test_a_template_that_cannot_be_built_on_the_cylinder_says_so` (6 new; 7 in `test_tandem.py`, 28 in the controls file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **60 and 170 mm bends, and a straight 60 mm tandem** and they passed.
+- I checked that these negative cases involving **five deliberate breaks (every design buildable, threading not copied, angle and radius swapped, no trial build, the uncapped height tried)** failed as expected.
+- Among these tests, **5** are unit tests and **1** is an integration test.
+- These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 502 passed and the 2 failures inherited from `main` (498 tests after #217, screenshot 1)**.
+
+  ![1, python -m pytest on feat/tandem-template-build-check, 28 passed in test_tandem_template_controls.py, 7 in test_tandem.py, and 502 passed with the 2 failures inherited from main, and 2, Load of a 60 mm template saying it cannot be built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/062255c8f1433efb21b028a5978d16b9ef0cfaff/docs/logs/ariq/screenshots/week-9/pr-218-1-cannot-be-built.png)

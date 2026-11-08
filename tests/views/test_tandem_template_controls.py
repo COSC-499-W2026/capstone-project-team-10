@@ -444,6 +444,22 @@ def test_update_and_delete_are_disabled_until_a_template_is_selected(tandem_tab:
     assert [button.isEnabled() for button in buttons] == [True, True]
 
 
+def test_a_template_that_cannot_be_built_on_the_cylinder_says_so(plan_tab: TandemView) -> None:
+    """Check that loading a 60 mm, 30 degree template onto Ex2's 160 by 30 mm cylinder says it cannot be built.
+
+    At 60 mm the bend reaches the cylinder's wall before its dome, so Generate Tandem would
+    refuse it with an error dialog and put the previous values back. Fails if the status line
+    still tells the clinician to press Generate Tandem, or does not name the settings to change.
+    """
+    saved_template(plan_tab, (60.0, 3.8, 5.0, 30.0, 35.0, 7.0, 5.0, 0.0), "Low")
+
+    load_first_template(plan_tab)
+
+    assert plan_tab.ui.label_template_status.text() == (
+        "Loaded Low. It cannot be built on this cylinder. "
+        "Change its Tandem Height, Bend Angle or Bend Radius before pressing Generate Tandem.")
+
+
 @pytest.mark.parametrize("name, note, question", [
     ("Beta", "Beta's note", "Replace Beta with the Generate settings on this tab?"),
     ("Alpha 2", "Beta's note", "Replace Beta with the Generate settings on this tab and rename it Alpha 2?"),
