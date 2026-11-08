@@ -414,10 +414,21 @@ class Ui_Tandem_View(object):
 
         self.layout_templates.addWidget(self.list_templates)
 
+        self.layout_template_buttons = QHBoxLayout()
+        self.layout_template_buttons.setObjectName(u"layout_template_buttons")
         self.btn_save_template = QPushButton(self.group_templates)
         self.btn_save_template.setObjectName(u"btn_save_template")
 
-        self.layout_templates.addWidget(self.btn_save_template)
+        self.layout_template_buttons.addWidget(self.btn_save_template)
+
+        self.btn_load_template = QPushButton(self.group_templates)
+        self.btn_load_template.setObjectName(u"btn_load_template")
+        self.btn_load_template.setEnabled(False)
+
+        self.layout_template_buttons.addWidget(self.btn_load_template)
+
+
+        self.layout_templates.addLayout(self.layout_template_buttons)
 
         self.label_template_status = QLabel(self.group_templates)
         self.label_template_status.setObjectName(u"label_template_status")
@@ -479,6 +490,7 @@ class Ui_Tandem_View(object):
         self.le_template_name.setPlaceholderText(QCoreApplication.translate("Tandem_View", u"Template name", None))
         self.le_template_note.setPlaceholderText(QCoreApplication.translate("Tandem_View", u"Note", None))
         self.btn_save_template.setText(QCoreApplication.translate("Tandem_View", u"Save as Template", None))
+        self.btn_load_template.setText(QCoreApplication.translate("Tandem_View", u"Load", None))
         self.ab.setTabText(self.ab.indexOf(self.Generate), QCoreApplication.translate("Tandem_View", u"Generate", None))
     # retranslateUi
 
