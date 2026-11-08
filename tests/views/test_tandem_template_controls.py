@@ -552,3 +552,17 @@ def test_a_template_dated_after_the_clock_can_still_be_updated(tandem_tab: Tande
     [updated] = load_templates(library_path())
     assert (updated.design.bend_angle_deg, updated.modified) == (60.0, later)
     assert tandem_tab.ui.label_template_status.text() == "Updated Ahead"
+
+
+def test_both_template_tabs_ask_through_the_shared_dialog(cylinder_window: MainWindow, tandem_tab: TandemView) -> None:
+    """Check that the Cylinder and Tandem tabs both confirm Update and Delete with windows.template_dialog.
+
+    Fails if either tab asks through its own copy of the question, or the Tandem tab through the
+    Cylinder tab's module, as it did before Ayyhab's review of #217. One shared dialog keeps Cancel
+    the default and the dialog parentless on both tabs, so a fix to one cannot miss the other.
+    """
+    from windows.template_dialog import ask_to_change
+
+    cylinder_tab = cylinder_window.navigationmodel.views[1]
+
+    assert (cylinder_tab.confirm, tandem_tab.confirm) == (ask_to_change, ask_to_change)
