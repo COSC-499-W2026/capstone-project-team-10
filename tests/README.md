@@ -83,6 +83,7 @@ tests/
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   ├── test_tandem_channel.py  the tandem channel at import and when cleared
 │   ├── test_tandem_channel_choice.py  the Tandem tab's Tandem Channel box
+│   ├── test_tandem_template_controls.py  the Tandem tab's Templates group
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -225,6 +226,11 @@ tandem channel, and answers the export question through `Export_View.confirm_exp
 lists, choosing a channel or *None*, the rotation warning answered through
 `TandemView.confirm_rotation`, the off-axis and moved-channel warnings, and the Generate spin
 boxes' height in the default window.
+
+`views/test_tandem_template_controls.py` checks the Tandem tab's Templates group on a window with
+no plan: *Save as Template* writes every Generate setting from its own box, a blank or taken name
+or an unreadable library is explained in the status line, and the library's ranges match the
+Generate spin boxes.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
