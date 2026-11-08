@@ -3,7 +3,6 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-<<<<<<< HEAD
 ### For PR #**228**
 
 - As part of requirement **FR-SV-01**, the user needs to do **select a listed organ, hide it with its checkbox or move to it with the keyboard, and still control that highlight**.
@@ -42,10 +41,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
   ![regression, pytest summary](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/b586c49de26686d640a3ff5f1be51c5b869cc016/docs/logs/ehsan/screenshots/week-9/pr-228-regression-pytest.png)
 
-## Stack #234 to #234, at a glance
-=======
 ## Stack #234 to #236, at a glance
->>>>>>> 5b8341a (docs: correct Hide all Part A and attach regression screenshots)
 
 Three stacked PRs for Hide all. Each is based on the one below it, closes its own issue, and should be retargeted to main once its parent merges. A row's counts are that PR's own diff only. This PR is first; #235 and #236 follow on stacked branches.
 
@@ -100,5 +96,5 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 - I checked that these negative cases involving **`hide_all` emitting `changed` without `visible.clear()` (bladder and rectum stayed in `presentations()`)** failed as expected.
 - Among these tests, **the three Hide all cases** are integration tests and unit tests are not required because **the failure is the button not clearing the model the list shows**.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest tests/views/test_structure_display.py -k hide_all -q` on this Windows machine is 3 passed. An earlier full `python -m pytest` on this Windows branch was 419 passed, 8 failed. The 8 named below are Windows layout and Structures-highlight failures on this machine; a macOS review of the same branch saw 424 passed, 3 failed, with two of those also failing on main.** The eight Windows names: `test_the_default_dome_tandem_cut_out_is_unchanged`, `test_channels_settings_keep_their_height_in_the_default_window`, `test_cylinder_spin_boxes_keep_their_height_in_the_default_window`, `test_the_cylinder_tab_never_scrolls_sideways_in_the_default_window`, `test_generate_spin_boxes_keep_their_height_in_the_default_window`, `test_the_tandem_tab_never_scrolls_sideways_in_the_default_window`, `test_toggling_checkbox_does_not_drop_highlight`, and `test_click_after_keyboard_navigation_can_rehighlight`. Evidence: [before](screenshots/week-9/pr-234-1-hide-all-before.png), [after Hide all](screenshots/week-9/pr-234-2-hide-all-after.png), [pytest hide-all](screenshots/week-9/pr-234-3-pytest-hide-all.png).
+- This new test PR did not break anything else in the system because **`python -m pytest tests/views/test_structure_display.py -k "hide_all or highlight" -q` on this Windows machine is 11 passed after rebasing onto main with #228.** Evidence: [before](screenshots/week-9/pr-234-1-hide-all-before.png), [after Hide all](screenshots/week-9/pr-234-2-hide-all-after.png), [pytest hide-all](screenshots/week-9/pr-234-3-pytest-hide-all.png).
 - Not applicable: **generated-test review (no generated test)**.
