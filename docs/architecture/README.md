@@ -172,6 +172,7 @@ edits and exact mm values across switches; config files and exports use mm.
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
 | The Export tab stays disabled until a cylinder exists, in `main_window.py`. The UML gains `CylinderModel ..> MainWindow`. The other three diagrams are unchanged, because no data flows differently | |
 | The collar round-trips through config files, and *Generate Tandem* merges its settings snapshot instead of replacing the live settings (§7.1). No diagram changes, because the same files are read and written | |
+| *Generate Tandem* refills its boxes from the tandem it built, so the tab shows what is cut (§7.23). No diagram changes, because no data flows differently | |
 
 ## Known gaps in the existing code
 
@@ -183,7 +184,6 @@ which is the proposed framework below.
 | A tandem channel's rotation is measured from `(1, 0)` instead of the cylinder axis | The generated tandem points away from the planned channel. Recorded in §7.7. |
 | No tests for the DICOM-to-cylinder rotation, config load, point cleanup, or the PDF length maths | Those functions decide needle position and the sheet a clinician reads. Listed in §8. |
 | Nucletron import has no sample plan in the repo | Half of the DICOM reader is unexercised. |
-| *Generate Tandem* can leave boxes showing values it did not build | The tandem hole is cut with other values than the tab shows, until Generate is pressed again. Recorded in §7.23. |
 | Needle collision checks are not called | Intersecting needles are a clinical precondition the app does not enforce. Two pairs of base holes in `SI_C_D30 Brachify_Ex2/` already overlap (§7.9). |
 
 ## Proposed project framework

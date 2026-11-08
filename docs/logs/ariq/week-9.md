@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #212 to #219, at a glance
+## Stack #212 to #221, at a glance
 
 Ten stacked PRs that let a clinician save the Tandem tab's Generate settings as named tandem templates and load, update and delete them, make *Generate Tandem*'s boxes show the tandem it built, and share one confirmation dialog between the Cylinder and Tandem tabs. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -18,6 +18,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#217](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/217) | #216 | #209 | *Update* and *Delete*, asking first and naming a rename or new note | 9, +390/−10 | 13 | 498 |
 | [#218](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/218) | #217 | #210 | *Load* says when a template cannot be built | 9, +194/−11 | 6 | 504 |
 | [#219](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/219) | #218 | #211 | Tests only: the loaded template in the mesh and the sheet; §7.23 | 6, +166/−2 | 2 | 506 |
+| [#221](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/221) | #219 | #220 | Generate's boxes show the tandem it built; §7.23 fixed | 7, +120/−9 | 2 | 508 |
 
 The suite had 426 tests on `main` before the stack (`6fa56b7`). Each suite total includes the two inherited failures named below.
 
@@ -331,3 +332,36 @@ Stated once here instead of in each section.
 
   ![1, python -m pytest on test/tandem-template-exports, 2 passed in test_tandem_template_exports.py and 504 passed with the 2 failures inherited from main, 2, the Export tab after Long bend was generated, and 3, the Generate boxes showing 3.8 mm and 30 degrees after Generate, section 7.23](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/ba74616d0296980f4b6e911936e2f57e48993c4b/docs/logs/ariq/screenshots/week-9/pr-219-1-export.png)
 - Not applicable: **abnormal cases (the earlier PRs cover them)**.
+
+### For PR #**221** (9 of 10, on #219)
+
+- As part of requirement **issue #220, show the tandem that is cut**, the user needs to do **type or load tandem values, press Generate Tandem, and check the Generate boxes before exporting**.
+- Therefore, I implemented/generated code so that **after every Generate the boxes show the tandem that was built, and a second Generate builds the same one**.
+
+#### Frontend
+
+- The frontend uses **the tandem model as the source the Generate boxes are refilled from after Generate, with the view's existing `update_settings`** because **`_generate_tandem` can put a box back on the way and still build with its new value (§7.23)**. Benefits for using this pattern include **the tab and the cut always agree, so the next Generate builds the same tandem**. Possible risks include **refilling before the rotation is applied, which would undo a typed rotation**.
+  - To mitigate **a lost rotation**, we implemented **the refill after the rotation, guarded by #216's `test_load_then_generate_builds_the_templates_tandem`, which failed when the refill moved before it**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#220: 2 tests in `tests/views/test_tandem_view.py`**
+- Not applicable: **design components, accessibility (no widget or text changed)**.
+
+#### Review and design
+
+- When I reviewed the **fix in `_generate_tandem`** for this functionality, I noticed **changing its step-by-step build would change upstream's error recovery and its error dialogs**. Therefore, I did **leave `_generate_tandem` unchanged and refill the boxes from the model in `action_set_tandem`**.
+- The PR does not contain any temporary workaround because **the boxes are refilled from the model, which holds the values the tandem was built with**.
+- The PR only contains small functions that are **4 to 20 lines (tests); the inherited `action_set_tandem` lost one line** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tandem_view.py`** because **the view owns the Generate boxes**.
+- This work belongs in **Tandem** in the DFD because **Generate Tandem runs there**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_generate_shows_the_values_the_tandem_was_built_with`, `test_generating_again_keeps_the_tandem_that_was_typed` (2 new; 3 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **the default 170 mm Tandem Height over Ex2's 160 mm cylinder** and they passed.
+- I checked that these negative cases involving **two deliberate breaks (no refill, the refill before the rotation)** failed as expected.
+- When I reviewed the **`test_generating_again_keeps_the_tandem_that_was_typed`**, I noticed **it passed on the unfixed code, because the test before it had already put 4.2 mm and 45° into the live settings**. Therefore, I did **reset all five tandem settings to the defaults in the helper, and watched both tests fail**.
+- Among these tests, **none** are unit tests and **both** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 506 passed and the 2 failures inherited from `main` (506 tests after #219, screenshot 1)**.
+
+  ![1, python -m pytest on fix/generate-tandem-boxes, 3 passed in test_tandem_view.py and 506 passed with the 2 failures inherited from main, and 2, the Tandem tab right after Generate showing the 4.2 mm, 45 degree tandem it built](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/f56f2027cd3ddf90d4e420fee5a31dd03ea14230/docs/logs/ariq/screenshots/week-9/pr-221-1-generate-boxes.png)

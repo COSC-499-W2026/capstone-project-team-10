@@ -216,7 +216,8 @@ Run alone, a small `tests/views` file can crash at exit after passing (§7.13 of
 reference sheet's cylinder table and the Export tab's mesh, and moves Ex1's needles with the tip.
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
-snapshot does not list.
+snapshot does not list, and on Ex2 that its boxes show the tandem it built and a second Generate
+builds the same one.
 
 `views/test_tandem_channel.py` checks that importing Ex2 aims the tandem along its channel named
 Tandem, and that `set_tandem(None)` leaves no tandem channel, enables the previous one again and
