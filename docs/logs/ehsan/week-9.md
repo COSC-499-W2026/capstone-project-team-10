@@ -48,8 +48,8 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#234](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/234) | `main` | #150 | Hide all button | 9 files, +275/-7 | 4 | hide-all tests 4 passed |
-| [#245](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/245) | #234 | #232 | Hide all on the DFD and UML | 9 files, +41/-19 | 0 | inherited |
-| [#246](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/246) | #245 | #233 | Hide all on the system architecture | 4 files | 0 | inherited |
+| [#245](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/245) | #234 | #232 | Hide all on the DFD and UML | 9 files, +44/-21 | 0 | inherited |
+| [#246](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/246) | #245 | #233 | Hide all on the system architecture | 5 files, +30/-9 | 0 | inherited |
 
 ### Shared by every PR in this stack
 
@@ -118,4 +118,22 @@ Three stacked PRs for Hide all. Each is based on the one below it, closes its ow
 - The functionality works correctly because the happy path checks involving **`python docs/architecture/build.py --check` (exit 0), `dfd-0.mmd` and `dfd-1.mmd` containing `Hide all`, and `uml.mmd` containing `hide_all`** passed.
 - This new test PR did not break anything else in the system because **the diff against `feat/structures-hide-all` is documentation only, and `--check` exited 0**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the check is `build.py --check`)**.
+
+### For PR #**246** (3 of 3, on #245)
+
+- As part of requirement **FR-SV-03**, the user needs to do **read the system architecture and see Hide all among the Structures controls**.
+- Therefore, I implemented/generated code so that **the presentation and state layers name Hide all and `hide_all`**.
+
+#### Review and design
+
+- When I reviewed the **presentation-layer and state boxes** for this functionality, I noticed **they named Surface, Outlines, Both, opacity, highlight, and collision warnings, and not Hide all**. Therefore, I did **add Hide all and `hide_all` clearing visibility to those lines and render the picture**. This PR also lands the `tests/README.md` Hide all sentence deferred from #234 and #245 so those PRs stay under 10 files.
+- Code quality checklist: **see Shared**.
+- This work is written in **`docs/architecture/diagrams/system-architecture.mmd` and `tests/README.md`** because **that picture is the layer map, and the tests README records what the Hide all tests check**.
+- Not applicable: **temporary workaround, function length, DFD process (no application code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because **`python docs/architecture/build.py --check` exited 0 and the presentation-layer line contains `Hide all` while the state line contains `hide_all`**. The check compares `src/` module names with the diagram; the label wording is confirmed by reading those lines.
+- This new test PR did not break anything else in the system because **the diff against #245 is documentation only, and `--check` exited 0**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no application code)**.
 
