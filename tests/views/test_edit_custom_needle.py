@@ -1,6 +1,7 @@
 """Exercise editing a custom applicator on the Channels tab: the model rules, the Edit Applicator button and the form."""
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -230,6 +231,30 @@ def test_renaming_the_tandem_keeps_the_tandem_tab_pointing_at_it(channels_window
         assert tandem_box.currentData() == "Renamed Tandem"
     finally:
         data.tandem_channel = old_tandem
+
+
+@pytest.mark.parametrize(("old", "new"), [("Wide Needle A", "Wide Needle A Renamed"), ("Wide Needle B", "Wide Needle B")])
+def test_an_edit_is_checked_with_the_needles_own_diameter_whether_or_not_it_is_renamed(channels_window: MainWindow, old: str, new: str) -> None:
+    """Check a 6 mm applicator edited to start 0.05 mm inside the limit of a default needle is refused, and 0.05 mm inside its own limit is kept at 6 mm.
+
+    Fails if the edit is validated with the default channel diameter, which is what happened when the
+    trial needle looked its diameter up under the new name before the old override had moved. The
+    start would then pass, the real needle would be built at 6 mm, and its wall would break through
+    the side of the cylinder, leaving a slot in the printed device instead of a channel. The second
+    case without a rename shows the check used the global diameter even then.
+    """
+    model = channels_window.channelsmodel
+    cylinder_diameter = channels_window.cylindermodel.cylinder.diameter
+    before = model.add_custom_needle(spec(old))
+    model.set_channel_diameter(old, 6.0)
+
+    with pytest.raises(CustomNeedleError, match="base"):
+        model.edit_custom_needle(old, replace(spec(new), x=(cylinder_diameter - model.diameter) / 2 - 0.05, y=0.0))
+    assert model.channels[old] is before and (new == old or new not in model.channels)
+
+    edited = model.edit_custom_needle(old, replace(spec(new), x=(cylinder_diameter - 6.0) / 2 - 0.05, y=0.0))
+
+    assert edited.get_diameter() == 6.0 and model.channels[new] is edited
 
 
 def test_the_edit_button_with_a_new_name_renames_the_list_row(channels_window: MainWindow) -> None:

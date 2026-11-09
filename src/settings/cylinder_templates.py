@@ -190,17 +190,28 @@ def load_templates(path: Path) -> tuple[CylinderTemplate, ...]:
     return templates
 
 
-def write_templates(path: Path, templates: tuple[CylinderTemplate, ...]) -> None:
-    """Write the library to a .tmp file beside it and swap that in, so a failed save keeps the old file."""
-    library = {"version": LIBRARY_VERSION, "templates": [encode_template(template) for template in templates]}
+def write_atomically(path: Path, text: str) -> None:
+    """Write text to a .tmp file beside path and swap that in, so a failed write keeps the old file.
+
+    Raises the OSError, after removing the .tmp file, for the caller to report.
+    """
     temporary = path.with_name(path.name + ".tmp")
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        temporary.write_text(json.dumps(library, indent=2), encoding="utf-8")
+        temporary.write_text(text, encoding="utf-8")
         os.replace(temporary, path)
-    except OSError as error:
+    except OSError:
         with contextlib.suppress(OSError):
             temporary.unlink(missing_ok=True)
+        raise
+
+
+def write_templates(path: Path, templates: tuple[CylinderTemplate, ...]) -> None:
+    """Write the library through write_atomically, so a failed save keeps the old file."""
+    library = {"version": LIBRARY_VERSION, "templates": [encode_template(template) for template in templates]}
+    try:
+        write_atomically(path, json.dumps(library, indent=2))
+    except OSError as error:
         raise CylinderTemplateError(f"{path.name} could not be saved") from error
 
 
