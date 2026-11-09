@@ -282,8 +282,11 @@ keyboard navigation can drop it, and leaving the tab clears it. Change colour st
 an RGB override, updates that row's swatch, leaves the imported ROI colour, ignores
 a cancelled pick, clears the highlight and resets `_just_selected` so a subsequent
 click can re-highlight. The tab's own stylesheet must contain `color: rgb(0, 0, 0)`.
-They do not initialise a native viewer; previous native observations are recorded
-separately in PR #125.
+Hide all is a real `hide_all_button` click that clears listed organs in Outlines and
+Surface modes, clears pending surface work, stays a no-op when nothing is visible, and
+leaves a mismatched-frame row disabled so one organ can be checked again. They do not
+initialise a native viewer; previous native observations are recorded separately in
+PR #125.
 
 The documentation pass ran full isolated suites: 258 passed for #133 and 287 for #134.
 `Path.home` was redirected before collection as well as fixture-level filesystem isolation,
