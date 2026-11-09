@@ -1,18 +1,29 @@
 import math
 from collections.abc import Callable
+from datetime import datetime, timezone
+from uuid import uuid4
 
 from PySide6.QtCore import QSignalBlocker
-from PySide6.QtWidgets import QFileDialog, QFrame, QLayout, QMessageBox, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QFileDialog, QFrame, QLayout, QListWidgetItem, QMessageBox, QScrollArea, QVBoxLayout, QWidget,
+)
 
 from classes.app import get_app
+from classes.info import USER_PATH
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel
+from classes.mesh.tandem import tandem_builds, tandem_from_design
 from classes.pdf.template_reference import extract_points_from_channels2
 from windows.models.shape_model import ShapeTypes
+from windows.template_dialog import ask_to_change
 from windows.ui.tandem_view_ui import Ui_Tandem_View
 from windows.views.custom_view import display_action, CustomView
 
 from settings.reset import getCurrentValues
+from settings.tandem_templates import (
+    LIBRARY_FILE_NAME, TandemDesign, TandemTemplate, TandemTemplateError, add_template, delete_template,
+    load_templates, make_template, position, update_template,
+)
 
 materials = {
     ShapeTypes.CYLINDER: {"rgb": [0.8, 0.8, 0.8], "transparent": True},
@@ -33,6 +44,49 @@ def off_axis_warning(label: str, distance: float, tandem_diameter: float) -> str
     if distance <= tandem_diameter / 2: return ""
     return (f"{label} crosses the base {distance:.1f} mm from the cylinder axis. "
             f"The tandem hole stays on the axis, so {label} gets no hole of its own.")
+
+
+def same_direction(first: float, second: float) -> bool:
+    """Whether two rotations in degrees aim the tandem the same way, to the box's 0.01 degree."""
+    return round((first - second) % 360.0, 2) % 360.0 == 0.0
+
+
+def load_message(name: str, saved_height: float, shown_height: float, rotation: float,
+                 channel: NeedleChannel | None, builds: bool) -> str:
+    """The status line after Load: what was loaded, a capped height, a rotation that replaces the channel's.
+
+    A template the cylinder cannot take is said instead of the rest, since Generate would refuse it.
+    """
+    sentences = [f"Loaded {name}."]
+    if not builds:
+        sentences += ["It cannot be built on this cylinder.",
+                      "Change its Tandem Height, Bend Angle or Bend Radius before pressing Generate Tandem."]
+        return " ".join(sentences)
+    if shown_height < saved_height:
+        sentences.append(f"Its Tandem Height of {saved_height:g} mm is capped at the {shown_height:g} mm cylinder.")
+    if channel is not None and not same_direction(rotation, channel.get_rotation()):
+        aim = round(channel.get_rotation(), 1) % 360.0
+        sentences.append(f"Its rotation of {rotation:g}° replaces {channel.label}'s {aim:g}°.")
+    sentences.append("Press Generate Tandem to build it.")
+    return " ".join(sentences)
+
+
+def update_question(name: str, new_name: str, note_changed: bool) -> str:
+    """Update's question, naming the rename and the new note as well as the settings, so neither happens unannounced."""
+    changes = ([f"rename it {new_name}"] if new_name != name else []) + (["replace its note"] if note_changed else [])
+    if len(changes) == 2: return f"Replace {name} with the Generate settings on this tab, {changes[0]} and {changes[1]}?"
+    if changes: return f"Replace {name} with the Generate settings on this tab and {changes[0]}?"
+    return f"Replace {name} with the Generate settings on this tab?"
+
+
+def template_summary(template: TandemTemplate) -> str:
+    """A saved template's tooltip: its note, its dates and its tandem in one line, with no colons."""
+    design = template.design
+    lines = [template.note] if template.note else []
+    lines += [f"Created {template.created.astimezone():%d %b %Y}",
+              f"Modified {template.modified.astimezone():%d %b %Y}",
+              f"{design.height_mm:g} mm high, {design.bend_angle_deg:g}° bend, rotated {design.rotation_deg:g}°"]
+    return "\n".join(lines)
 
 
 class TandemView(CustomView):
@@ -122,10 +176,9 @@ class TandemView(CustomView):
         tan = get_app().window.tandemmodel
         tan.change_tandem_rotation(self.ui.tandem_rotation_2.value())
 
-        #updates the spin box value of rotation
-        rotation = window.tandemmodel.rotation
-        self.ui.tandem_rotation.setValue(rotation)
-        self.ui.tandem_rotation_2.setValue(rotation)
+        # show the tandem that was built: Generate can put a box back on the way and still build
+        # with its new value (section 7.23), and the next Generate reads the boxes
+        self.update_settings()
         # update the config_values dict
         # merge, so a setting the snapshot does not list keeps its value
         get_app().values.config_values.update(getCurrentValues())
@@ -179,6 +232,120 @@ class TandemView(CustomView):
         tan.change_tandem_rotation(self.ui.tandem_rotation.value())
         self.ui.tandem_rotation_2.setValue(self.ui.tandem_rotation.value())
 
+
+    def tandem_design(self) -> TandemDesign:
+        """Read the Generate sub-tab's eight settings, its own Rotation box included."""
+        ui = self.ui
+        return TandemDesign(
+            height_mm=ui.sb_tandem_height.value(),
+            channel_diameter_mm=ui.sp_channel_diameter.value(),
+            stopper_diameter_mm=ui.sp_stopper_diameter.value(),
+            bend_angle_deg=ui.sp_bend_angle.value(),
+            bend_radius_mm=ui.sb_bend_radius.value(),
+            threading_depth_mm=ui.sb_threading_depth.value(),
+            threading_diameter_mm=ui.sb_threading_diameter.value(),
+            rotation_deg=ui.tandem_rotation_2.value())
+
+    def set_tandem_design(self, design: TandemDesign) -> None:
+        """Show a design in the Generate boxes without generating, both Rotation boxes kept equal."""
+        ui = self.ui
+        ui.sb_tandem_height.setValue(design.height_mm)
+        ui.sp_channel_diameter.setValue(design.channel_diameter_mm)
+        ui.sp_stopper_diameter.setValue(design.stopper_diameter_mm)
+        ui.sp_bend_angle.setValue(design.bend_angle_deg)
+        ui.sb_bend_radius.setValue(design.bend_radius_mm)
+        ui.sb_threading_depth.setValue(design.threading_depth_mm)
+        ui.sb_threading_diameter.setValue(design.threading_diameter_mm)
+        ui.tandem_rotation_2.setValue(design.rotation_deg)
+        ui.tandem_rotation.setValue(design.rotation_deg)
+
+    def action_select_template(self, row: int) -> None:
+        """Load, Update and Delete need a selected template."""
+        for button in (self.ui.btn_load_template, self.ui.btn_update_template, self.ui.btn_delete_template):
+            button.setEnabled(row >= 0)
+
+    def selected_template(self) -> TandemTemplate | None:
+        """The template selected in the list, or None, never the last one that row -1 would index."""
+        row = self.ui.list_templates.currentRow()
+        return self.templates[row] if row >= 0 else None
+
+    def action_update_template(self) -> None:
+        """Once confirmed, write the tab's name, note and Generate settings to the selected template and keep it selected."""
+        template = self.selected_template()
+        if template is None: return
+        name, note = self.ui.le_template_name.text().strip(), self.ui.le_template_note.text().strip()
+        if not name:
+            self.ui.label_template_status.setText("A tandem template needs a name")
+            return
+        if not self.confirm("Update Template", update_question(template.name, name, note != template.note)):
+            return
+        try:
+            # a created date ahead of this clock would refuse every update, so the modified date is never earlier
+            templates = update_template(self.templates_path, template.template_id, name, note, self.tandem_design(),
+                                        max(datetime.now(timezone.utc), template.created))
+        except TandemTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+            return
+        self.show_templates(templates)
+        index = position(templates, template.template_id)
+        self.ui.list_templates.setCurrentRow(index)
+        self.ui.label_template_status.setText(f"Updated {templates[index].name}")
+
+    def action_delete_template(self) -> None:
+        """Once confirmed, remove the selected template."""
+        template = self.selected_template()
+        if template is None: return
+        if not self.confirm("Delete Template", f"Delete the template {template.name}?"):
+            return
+        try:
+            self.show_templates(delete_template(self.templates_path, template.template_id))
+            self.ui.label_template_status.setText(f"Deleted {template.name}")
+        except TandemTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
+
+    def action_load_template(self) -> None:
+        """Put the selected template on the Generate sub-tab, saying what the tab could not keep. Generate builds it."""
+        template = self.templates[self.ui.list_templates.currentRow()]
+        self.set_tandem_design(template.design)
+        self.ui.le_template_name.setText(template.name)
+        self.ui.le_template_note.setText(template.note)
+        self.ui.label_template_status.setText(load_message(
+            template.name, template.design.height_mm, self.ui.sb_tandem_height.value(),
+            template.design.rotation_deg, self.channelsmodel.get_tandem_channel(), self.shown_design_builds()))
+
+    def shown_design_builds(self) -> bool:
+        """Whether Generate Tandem could build the boxes' tandem in the current cylinder. With no cylinder it cannot try."""
+        cylinder = get_app().window.cylindermodel.cylinder
+        if cylinder is None: return True
+        return tandem_builds(tandem_from_design(self.tandem_design(), cylinder.length, cylinder.diameter))
+
+    def action_load_templates(self) -> None:
+        """Show every saved template, or none, with the reason, if the library cannot be read."""
+        try:
+            self.show_templates(load_templates(self.templates_path))
+        except TandemTemplateError as error:
+            self.show_templates(())
+            self.ui.label_template_status.setText(str(error))
+
+    def show_templates(self, templates: tuple[TandemTemplate, ...]) -> None:
+        self.templates = templates
+        self.ui.list_templates.clear()
+        for template in templates:
+            row = QListWidgetItem(template.name)
+            row.setToolTip(template_summary(template))
+            self.ui.list_templates.addItem(row)
+        self.action_select_template(self.ui.list_templates.currentRow())
+
+    def action_save_template(self) -> None:
+        """Save the Generate settings under the typed name and note, or say in the status line why not."""
+        now = datetime.now(timezone.utc)
+        try:
+            template = make_template(uuid4().hex, self.ui.le_template_name.text(), self.ui.le_template_note.text(),
+                                     self.tandem_design(), now, now)
+            self.show_templates(add_template(self.templates_path, template))
+            self.ui.label_template_status.setText(f"Saved {template.name}")
+        except TandemTemplateError as error:
+            self.ui.label_template_status.setText(str(error))
 
     def on_close(self):
         log.debug(f"on view close")
@@ -250,6 +417,10 @@ class TandemView(CustomView):
         self.hasShownRotationWarning = False
         # the rotation warning asks through this, so a test can answer for the clinician
         self.confirm_rotation: Callable[[], bool] = self.ask_rotation_change
+        self.templates_path = USER_PATH.joinpath(LIBRARY_FILE_NAME)
+        # Update and Delete ask through this, so a test can answer for the clinician
+        self.confirm: Callable[[str, str], bool] = ask_to_change
+        self.action_load_templates()
 
         # signals and slots
         self.ui.btn_apply.pressed.connect(self.action_set_tandem)
@@ -258,6 +429,11 @@ class TandemView(CustomView):
         self.ui.btn_clear_import.pressed.connect(self.action_clear_tandem)     
         self.ui.btn_apply_import.pressed.connect(self.action_set_import)
         self.ui.cb_tandem_channel.activated.connect(self.action_choose_tandem_channel)
+        self.ui.btn_save_template.pressed.connect(self.action_save_template)
+        self.ui.btn_load_template.pressed.connect(self.action_load_template)
+        self.ui.btn_update_template.pressed.connect(self.action_update_template)
+        self.ui.btn_delete_template.pressed.connect(self.action_delete_template)
+        self.ui.list_templates.currentRowChanged.connect(self.action_select_template)
         self.channelsmodel.values_changed.connect(self.refresh_tandem_channels)
 
         self.update_settings()
