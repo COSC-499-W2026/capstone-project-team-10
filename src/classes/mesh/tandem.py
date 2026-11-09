@@ -14,6 +14,7 @@ from OCC.Core.TopoDS import TopoDS_Shape
 #from OCC.Core.BRep import BRep_Builder                                 # for testing
 #from OCC.Extend.DataExchange import write_step_file, read_step_file    # for testing 
 from classes.app import get_app                                         # must be commented out for testing
+from settings.tandem_templates import TandemDesign
 
 # TODO create a step file that shows the points and measurements here to visualize what is being done
 
@@ -428,6 +429,29 @@ class Tandem():
         self.bend_end = gp_Pnt(0, 0, 0)
         self.bend_direction = gp_Dir(0, 0, 1)
 
+
+def tandem_from_design(design: TandemDesign, cylinder_length: float, cylinder_diameter: float) -> Tandem:
+    """The Tandem that Generate Tandem builds from these settings in this cylinder. Rotation only turns it."""
+    tandem = Tandem()
+    tandem.tandem_height = design.height_mm
+    tandem.tandem_diameter = design.channel_diameter_mm
+    tandem.stopper_diameter = design.stopper_diameter_mm
+    tandem.tandem_angle = design.bend_angle_deg
+    tandem.bend_radius = design.bend_radius_mm
+    tandem.threading_depth = design.threading_depth_mm
+    tandem.threading_diameter = design.threading_diameter_mm
+    tandem.cylinder_height = cylinder_length
+    tandem.cylinder_diameter = cylinder_diameter
+    return tandem
+
+
+def tandem_builds(tandem: Tandem) -> bool:
+    """Whether generate_shape builds this tandem. It raises a bare Exception, or OpenCASCADE's own, when it cannot."""
+    try:
+        tandem.generate_shape()
+    except Exception:
+        return False
+    return True
 
 
 def fuse_shapes(shapes: list):
