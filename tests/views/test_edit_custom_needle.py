@@ -1,6 +1,7 @@
 """Exercise editing a custom applicator on the Channels tab: the model rules, the Edit Applicator button and the form."""
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -146,12 +147,12 @@ def test_the_edit_button_offers_the_current_numbers_applies_the_answer_and_cance
     assert model.channels["Custom Applicator87"].get_points()[0][2] == 70.0
 
 
-def test_the_form_opened_to_edit_shows_the_stored_numbers_with_the_name_locked(channels_window: MainWindow) -> None:
-    """Check the form built from a bent spec shows each number, a locked name and the title Edit Applicator.
+def test_the_form_opened_to_edit_shows_the_stored_numbers_and_lets_the_name_change(channels_window: MainWindow) -> None:
+    """Check the form built from a bent spec shows each number, an editable name and the title Edit Applicator.
 
-    Fails if a field shows its default instead of the stored value, or the name can be typed
-    over. The needle's name is its identity in the list, the disabled set and the own
-    diameters, so a renamed needle would lose its state.
+    Fails if a field shows its default instead of the stored value, or the name is locked. A
+    locked name leaves a wrongly named applicator with no fix except deleting it, and the name
+    is what the list, the Tandem tab and the sheet show the clinician.
     """
     from windows.views.add_applicator_dialog import AddApplicatorDialog
 
@@ -160,4 +161,117 @@ def test_the_form_opened_to_edit_shows_the_stored_numbers_with_the_name_locked(c
     dialog = AddApplicatorDialog(bent.label, channels_window.channelsmodel.custom_needle_error, bent)
 
     assert dialog.spec() == bent
-    assert not dialog.edit_label.isEnabled() and dialog.windowTitle() == "Edit Applicator"
+    assert dialog.edit_label.isEnabled() and dialog.windowTitle() == "Edit Applicator"
+
+
+def test_renaming_moves_the_label_through_every_record_and_keeps_the_rest(channels_window: MainWindow) -> None:
+    """Check an edit that renames a disabled, moved, selected applicator with its own diameter keeps all of that under the new name.
+
+    Fails if the old label stays in channels, custom_specs, own_diameters, disabled_channels,
+    selected_channels or the display model's shapes, if the new one is missing from any, if the
+    list place or channel number changes, or if the needle still carries its old label. A label
+    left behind would be a ghost row, a needle that is no longer disabled and cut, or a viewport
+    needle with no channel behind it.
+    """
+    model = channels_window.channelsmodel
+    old = model.add_custom_needle(spec("Custom Applicator91"))
+    model.toggle_channel_enabled("Custom Applicator91")
+    model.set_channel_diameter("Custom Applicator91", 4.0)
+    model.move_channel("Custom Applicator91", 1.0, 2.0, 0.0)
+    model.set_selected_channels("Custom Applicator91")
+    place = list(model.channels).index("Custom Applicator91")
+
+    new = model.edit_custom_needle("Custom Applicator91", spec("  Renamed Needle  ", x=-4.0))
+
+    assert "Custom Applicator91" not in model.channels and "Custom Applicator91" not in model.custom_specs
+    assert "Custom Applicator91" not in model.own_diameters and "Custom Applicator91" not in model.disabled_channels
+    assert "Custom Applicator91" not in model.selected_channels and "Custom Applicator91" not in channels_window.displaymodel.shapes
+    assert list(model.channels).index("Renamed Needle") == place and model.channels["Renamed Needle"] is new
+    assert new.label == "Renamed Needle" and new.channel_number == old.channel_number and new.translation == (1.0, 2.0, 0.0)
+    assert model.custom_specs["Renamed Needle"].label == "Renamed Needle" and new.get_diameter() == 4.0
+    assert "Renamed Needle" in model.disabled_channels and model.selected_channels == ["Renamed Needle"]
+
+
+def test_a_rename_to_an_existing_or_blank_name_is_refused_and_nothing_changes(channels_window: MainWindow) -> None:
+    """Check renaming to a plan applicator's name or to blank text raises CustomNeedleError and keeps the old name.
+
+    Fails if it is accepted, because two channels cannot share a label. The second would replace
+    the first in the dict, silently deleting an applicator from the printed device, and a blank
+    label cannot be told apart in the list or on the sheet.
+    """
+    model = channels_window.channelsmodel
+    old = model.add_custom_needle(spec("Custom Applicator92"))
+    plan_label = next(iter(model.channels))
+    before = dict(model.channels)
+
+    with pytest.raises(CustomNeedleError, match="already exists"):
+        model.edit_custom_needle("Custom Applicator92", spec(plan_label))
+    with pytest.raises(CustomNeedleError, match="Name"):
+        model.edit_custom_needle("Custom Applicator92", spec("   "))
+
+    assert model.channels == before and model.channels["Custom Applicator92"] is old
+
+
+def test_renaming_the_tandem_keeps_the_tandem_tab_pointing_at_it(channels_window: MainWindow) -> None:
+    """Check renaming the applicator that is the tandem moves data.tandem_channel and the Tandem tab's choice with it.
+
+    Fails if tandem_channel keeps the old label, because get_tandem_channel then raises
+    KeyError, which stops the Tandem tab and the export, or if the Tandem tab's box no longer
+    shows the renamed channel as chosen, so the clinician would think no tandem is set.
+    """
+    model = channels_window.channelsmodel
+    data = channels_window.dicommodel.data
+    tandem_box = channels_window.navigationmodel.views[3].ui.cb_tandem_channel
+    model.add_custom_needle(spec("Custom Applicator93"))
+    old_tandem, data.tandem_channel = data.tandem_channel, "Custom Applicator93"
+    try:
+        new = model.edit_custom_needle("Custom Applicator93", spec("Renamed Tandem"))
+
+        assert data.tandem_channel == "Renamed Tandem" and model.get_tandem_channel() is new
+        assert tandem_box.currentData() == "Renamed Tandem"
+    finally:
+        data.tandem_channel = old_tandem
+
+
+@pytest.mark.parametrize(("old", "new"), [("Wide Needle A", "Wide Needle A Renamed"), ("Wide Needle B", "Wide Needle B")])
+def test_an_edit_is_checked_with_the_needles_own_diameter_whether_or_not_it_is_renamed(channels_window: MainWindow, old: str, new: str) -> None:
+    """Check a 6 mm applicator edited to start 0.05 mm inside the limit of a default needle is refused, and 0.05 mm inside its own limit is kept at 6 mm.
+
+    Fails if the edit is validated with the default channel diameter, which is what happened when the
+    trial needle looked its diameter up under the new name before the old override had moved. The
+    start would then pass, the real needle would be built at 6 mm, and its wall would break through
+    the side of the cylinder, leaving a slot in the printed device instead of a channel. The second
+    case without a rename shows the check used the global diameter even then.
+    """
+    model = channels_window.channelsmodel
+    cylinder_diameter = channels_window.cylindermodel.cylinder.diameter
+    before = model.add_custom_needle(spec(old))
+    model.set_channel_diameter(old, 6.0)
+
+    with pytest.raises(CustomNeedleError, match="base"):
+        model.edit_custom_needle(old, replace(spec(new), x=(cylinder_diameter - model.diameter) / 2 - 0.05, y=0.0))
+    assert model.channels[old] is before and (new == old or new not in model.channels)
+
+    edited = model.edit_custom_needle(old, replace(spec(new), x=(cylinder_diameter - 6.0) / 2 - 0.05, y=0.0))
+
+    assert edited.get_diameter() == 6.0 and model.channels[new] is edited
+
+
+def test_the_edit_button_with_a_new_name_renames_the_list_row(channels_window: MainWindow) -> None:
+    """Check pressing Edit Applicator and answering with a new name shows that name in the list and keeps it selected.
+
+    Fails if the row keeps the old name or the selection is lost, because the Disable, Move and
+    Remove buttons then act on nothing and the clinician cannot tell which row was edited.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    model.add_custom_needle(spec("Custom Applicator94"))
+    view.create_channels_list()
+    model.set_selected_channels("Custom Applicator94")
+    view.ask_edit = StubbedEdit(spec("Renamed Row"))
+
+    QTest.mouseClick(view.btn_edit_applicator, Qt.MouseButton.LeftButton)
+
+    assert view.ui.listwidget_channels.findItems("Renamed Row", Qt.MatchFlag.MatchExactly)
+    assert not view.ui.listwidget_channels.findItems("Custom Applicator94", Qt.MatchFlag.MatchExactly)
+    assert model.get_selected_channel() == "Renamed Row"

@@ -120,9 +120,10 @@ class ChannelsModel(QObject):
         if label in self.channels and label != editing:
             raise CustomNeedleError(f"An applicator named {label} already exists")
         cylinder = get_app().window.cylindermodel.cylinder
-        points = custom_needle_points(spec, cylinder.diameter, cylinder.length, self.diameter)
+        diameter = self.own_diameters.get(editing, self.diameter)  # the applicator being edited keeps its own diameter, whatever it is renamed to
+        points = custom_needle_points(spec, cylinder.diameter, cylinder.length, diameter)
         points = [[x, y, z - self.height_offset] for x, y, z in points]  # get_points adds the offset back
-        if not cut_is_clean(cylinder.shape(), self.make_custom_needle(replace(spec, label=label), points, "0").shape()):
+        if not cut_is_clean(cylinder.shape(), self.make_custom_needle(replace(spec, label=label), points, "0", diameter).shape()):
             raise CustomNeedleError("The cylinder cannot be cut cleanly at these numbers, so change the start, a length or Phi a little")
         return points
 
@@ -134,9 +135,9 @@ class ChannelsModel(QObject):
             return str(error)
         return ""
 
-    def make_custom_needle(self, spec: CustomNeedleSpec, points: list[list[float]], channel_number: str) -> NeedleChannel:
+    def make_custom_needle(self, spec: CustomNeedleSpec, points: list[list[float]], channel_number: str, diameter: float | None = None) -> NeedleChannel:
         needle = NeedleChannel(roi_number="custom", channel_number=channel_number, label=spec.label, points=points)
-        needle.set_diameter(self.own_diameters.get(spec.label, self.diameter))
+        needle.set_diameter(self.own_diameters.get(spec.label, self.diameter) if diameter is None else diameter)
         needle.set_offset(self.height_offset)
         return needle
 
@@ -155,17 +156,30 @@ class ChannelsModel(QObject):
         if not self.is_custom_needle(label):
             raise CustomNeedleError("Only a custom applicator can be edited or removed")
 
+    def rename_channel(self, label: str, new_label: str) -> None:
+        """Move a label to a new name in every record that keys on it, keeping the list place."""
+        if new_label == label: return
+        self.channels = {(new_label if name == label else name): channel for name, channel in self.channels.items()}
+        self.custom_specs = {(new_label if name == label else name): spec for name, spec in self.custom_specs.items()}
+        self.own_diameters = {(new_label if name == label else name): diameter for name, diameter in self.own_diameters.items()}
+        self.disabled_channels = [new_label if name == label else name for name in self.disabled_channels]
+        self.selected_channels = [new_label if name == label else name for name in self.selected_channels]
+        data = get_app().window.dicommodel.data
+        if data.tandem_channel == label: data.tandem_channel = new_label
+        get_app().window.displaymodel.remove_shape(label)  # add_shapes never drops a shape, so the old name would still be drawn
+
     def edit_custom_needle(self, label: str, spec: CustomNeedleSpec) -> NeedleChannel:
-        """Rebuild a custom applicator from new numbers, keeping its name, number, place, diameter, disabled state and move."""
+        """Rebuild a custom applicator from new numbers and a new name, keeping its number, place, diameter, disabled state and move."""
         self.require_custom_needle(label)
-        spec = replace(spec, label=label)
+        spec = replace(spec, label=spec.label.strip())
         points = self.check_custom_needle(spec, editing=label)
         old = self.channels[label]
+        self.rename_channel(label, spec.label)
         needle = self.make_custom_needle(spec, points, old.channel_number)
         needle.set_translation(old.translation)
-        self.channels[label] = needle
-        self.custom_specs[label] = spec
-        log.info(f"edited custom applicator {label}, now starting at ({spec.x}, {spec.y}) mm")
+        self.channels[spec.label] = needle
+        self.custom_specs[spec.label] = spec
+        log.info(f"edited custom applicator {label} into {spec.label}, now starting at ({spec.x}, {spec.y}) mm")
         self.update()
         return needle
 
