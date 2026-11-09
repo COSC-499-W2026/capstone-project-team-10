@@ -421,7 +421,7 @@ def test_the_confirmation_dialog_offers_yes_and_cancel_with_cancel_the_default(c
     """
     from PySide6.QtWidgets import QMessageBox
 
-    from windows.views.cylinder_view import template_change_dialog
+    from windows.template_dialog import template_change_dialog
 
     dialog = template_change_dialog("Delete Template", "Delete the template Flat collar?")
 

@@ -91,6 +91,22 @@ default 770 × 472 window, so the Generate spin boxes keep their full height. *V
 offscreen widget tests and in a run of the real window on macOS. A screenshot of it is linked
 from Ariq's week 8 log.
 
+Below *Clear Tandem* on the Generate sub-tab, a Templates group saves the eight Generate
+settings, rotation included, under a name: a name field, a note field, the list of saved tandem
+templates and *Save as Template*, laid out like the Cylinder tab's. Hovering a template shows its
+note, dates and a one-line summary. A refused save or an unreadable template file is explained in
+the status line under the button. Saving does not generate a tandem. *Load*, beside it, fills
+the Generate boxes from the selected template but builds nothing: the status line says to press
+*Generate Tandem*. It also says when the Tandem Height was capped at a shorter cylinder, and when
+the saved rotation replaces the chosen tandem channel's direction, naming both, since the bend
+will then no longer point at that channel. When the template cannot be built on the current
+cylinder, such as a bend set too low to leave through the dome, the line says so and names the
+settings to change instead of saying to press *Generate Tandem*. *Update* and *Delete* each ask first, naming the
+template, with Cancel the default, using the Cylinder tab's dialog. When the name or note boxes no
+longer match the selected template, *Update*'s question also says it will rename the template or
+replace its note, and after *Update* the template stays selected. *Verified* by offscreen widget
+tests and in a run of the real window on macOS.
+
 When a tandem channel is set but no tandem has been generated or imported, the Export tab shows
 a word-wrapped warning above its export buttons, and Export Mesh, Export Reference Sheet and
 Export Shape(s) ask before going ahead, with Cancel the default. *Verified* by offscreen tests and

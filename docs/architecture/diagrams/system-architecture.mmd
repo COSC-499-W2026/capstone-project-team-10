@@ -4,9 +4,9 @@ flowchart TB
   ext["<b>External</b><br/>In: DICOM folder, config JSON, tandem STEP file, user settings<br/>Out: STL, STEP, PDF sheet, config JSON"]
   pres["<b>Presentation layer, PySide6</b><br/>MainWindow with nav buttons and dialogs<br/>Six views: Import, Cylinder, Channels, Tandem, Export, Structures<br/>Structures controls: Surface / Outlines / Both, selected-ROI opacity, and row highlight<br/>OrbitCameraViewer3d: AIS_Triangulation surfaces and AIS_Shape outlines"]
   state["<b>Application state, QObject models</b><br/>RadiotherapyApp with signals and values<br/>DicomModel, CylinderModel, ChannelsModel, TandemModel<br/>NavigationModel, DisplayModel, ShapeModel, StructuresModel, CollisionModel<br/>SurfaceTask on a single QThreadPool worker; pending ROIs, generation and mesh cache<br/>CollisionTask on a separate worker; revision-tagged organ results; UI integration follows"]
-  domain["<b>Domain services</b><br/>dicom: fileio, data, structures, load_structures, structure_list<br/>mesh: cylinder, channel, tandem, notch, helper, intersections, fileio, structure_contours, structure_surfaces, needle_collisions<br/>pdf: template_reference, canvas<br/>settings: defaults, load, values, reset, needle_templates, cylinder_templates"]
+  domain["<b>Domain services</b><br/>dicom: fileio, data, structures, load_structures, structure_list<br/>mesh: cylinder, channel, tandem, notch, helper, intersections, fileio, structure_contours, structure_surfaces, needle_collisions<br/>pdf: template_reference, canvas<br/>settings: defaults, load, values, reset, needle_templates, cylinder_templates, tandem_templates"]
   lib["<b>Libraries</b><br/>PySide6, pydicom, pythonocc-core with OpenCASCADE, reportlab, matplotlib, numpy<br/>scipy and scikit-image for reconstruction; scipy also indexes collision geometry"]
-  disk[("<b>Local storage, ~/brachify</b><br/>app.log, filepaths.json, needle_templates.json, cylinder_templates.json")]
+  disk[("<b>Local storage, ~/brachify</b><br/>app.log, filepaths.json, needle_templates.json, cylinder_templates.json, tandem_templates.json")]
 
   ext -->|"inputs"| pres
   pres -->|"outputs"| ext
