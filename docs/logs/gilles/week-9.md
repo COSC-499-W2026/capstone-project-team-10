@@ -8,7 +8,7 @@ Merge order: **#222 → #243 → #223 → #224 → #225 → #226**.
 
 | PR | Based on | Issue | Own change | Files / changed lines | New tests |
 |---|---|---|---|---|---|
-| #222 | main | #161 | Detect needle contact with reconstructed organ surfaces | 9 / 323 | 22 |
+| #222 | main | #161 | Detect needle contact with reconstructed organ surfaces | 9 / 325 | 22 |
 | #243 | #222 | #161 | Prepare hidden organ surfaces for collision checks | 5 / 133 | 3 |
 | #223 | #243 | #161 | Check needle-organ collisions in a background worker | 9 / 437 | 9 |
 
@@ -16,9 +16,11 @@ Counts below refer to each PR’s own diff. The shared full-stack result is repo
 
 ### Shared by every PR in this stack
 
+- Merge validation (2026-11-08): **550 tests passed after integrating main `975245f1`; the two earlier baseline failures are fixed by merged #228. The focused Structures/collision UI run passed 46 tests. Native warning/red-needle/tab-exit checks and every PR’s architecture/lint checks passed.**
+
 - Scope: **issue #161, Gilles week 9; approximate organ-intersection warnings only. Targets and BODY, needle–needle detection, distance measurement and clinical clearance are excluded.**
 - Code quality checklist: **diff and anti-slop review found no new blocking findings. Input contracts, duplicate/dead code, call frequency, branches/nesting, function responsibilities and sampling constants were reviewed. The repository exempts the existing OpenCASCADE shape-name warning.**
-- Regression: **41 focused collision cases passed. The final full stack passed 465 tests with only `test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` failing, as on main `6fa56b75`. #228 fixes them separately; publishing with those failures was explicitly authorized. User paths were isolated before application imports. No tests were skipped or weakened.**
+- Original review regression (2026-11-06): **41 focused collision cases passed. The reviewed stack passed 465 tests with only `test_toggling_checkbox_does_not_drop_highlight` and `test_click_after_keyboard_navigation_can_rehighlight` failing, as on main `6fa56b75`. #228 later fixed them; publishing with those failures was explicitly authorized. User paths were isolated before application imports. No tests were skipped or weakened.**
 - Native evidence: **macOS Ex1 needles plus a synthetic organ showed Applicator2 in the corrected toast and red overlay. Hide/show preserved emphasis; leaving Structures cleared it. This is UI regression evidence, not clinical validation.**
 - Split: **code PRs carry their own reference/test-index updates; the authorized diagram/reference companions hold shared evidence. All own diffs stay below 10 files and 500 changed lines; smaller-target exceptions were previously authorized.**
 - Not applicable: **database, network API, authentication, formal usability evaluation and coverage percentage (none introduced or measured).**
