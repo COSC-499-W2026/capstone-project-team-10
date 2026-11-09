@@ -4644,6 +4644,8 @@ same model looked different in each tab's screenshot.
 
 ### 17.3 `import_view.py`, the Import tab
 
+> Out of date after the needle–organ warning feature: Structures now shows clickable possible-collision warnings and temporary red needle overlays. See [the current model and UI reference](COSC499-TEAM10-PROJECT-DOCS.md#55-models).
+
 > Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. PR #125 adds Surface/Outlines/Both and selected-ROI opacity controls. Selecting a row highlights that organ in the channel-selection blue, and clicking it again clears the highlight. A visibility checkbox does not clear it, and a click after keyboard movement does. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
 
 | Widget | Label | Does |
@@ -4854,6 +4856,8 @@ again. The collet boxes save themselves into the live settings every time their 
 > building the solid, after the tabs had already recorded the switch. See [§7.6 of the source of truth](COSC499-TEAM10-PROJECT-DOCS.md#76-traps-that-are-not-bugs--know-these-before-editing).
 
 ### 17.8 `viewport.py`, the 3D view
+
+> Out of date after the needle–organ warning feature: Structures now shows clickable possible-collision warnings and temporary red needle overlays. See [the current model and UI reference](COSC499-TEAM10-PROJECT-DOCS.md#55-models).
 
 > Out of date after the anatomy changes through PR #134: The viewport now draws nonselectable anatomy surfaces and wires independently of printable shapes. PR #125 supplies surface rendering and opacity updates; see the [current anatomy display path](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
 
