@@ -861,3 +861,158 @@ def test_structures_tab_copy_uses_black_text(cylinder_window):
     """
     view = cylinder_window.navigationmodel.views[5]
     assert "color: rgb(0, 0, 0)" in view.styleSheet()
+
+
+def organs_for_hide_all() -> DicomData:
+    """Helper, not a test. Two drawn organs share the probe frame and one does not.
+
+    Three stacked triangles are enough for an outline. A single slice stays
+    unchecked, so a hide-all test built on it would pass without clearing a
+    drawn organ.
+    """
+    slices = tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (4., 0., z), (0., 4., z)))
+        for z in (2., 4., 6.)
+    )
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (
+        Structure(2, 'Bladder', '1.2.3', (0, 255, 0), 'ORGAN', StructureType.ORGAN, slices),
+        Structure(4, 'Rectum', '1.2.3', (255, 0, 0), 'ORGAN', StructureType.ORGAN, slices),
+        Structure(3, 'Other frame', '1.2.4', (0, 0, 255), 'ORGAN', StructureType.ORGAN, slices),
+    )
+    return plan
+
+
+def test_hide_all_clears_listed_organs_and_one_can_return(cylinder_window):
+    """Hide every listed structure in one click, then show one organ again.
+
+    A drawn organ that remains, a mismatched-frame row that becomes available,
+    or a row that cannot be checked afterwards fails. Clearing the view for a
+    review must not drop an organ the physicist still needs, and must not show
+    anatomy from another patient frame.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(organs_for_hide_all(), 20.)
+    view = cylinder_window.navigationmodel.views[5]
+    listed = [
+        view.structure_list.item(index).data(Qt.UserRole)
+        for index in range(view.structure_list.count())
+    ]
+    assert listed == [2, 4, 3]
+    assert {item.roi_number for item in model.presentations()} == {2, 4}
+    assert model.presentations()[0].outline is not None
+    assert view.structure_list.item(0).checkState() == Qt.Checked
+    assert view.structure_list.item(1).checkState() == Qt.Checked
+    assert view.hide_all_button.isEnabled()
+    view.structure_list.setCurrentRow(0)
+    assert model.highlighted == 2
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
+    assert model.presentations() == ()
+    assert model.highlighted is None
+    assert not view.hide_all_button.isEnabled()
+    assert view.structure_list.item(0).checkState() == Qt.Unchecked
+    assert view.structure_list.item(1).checkState() == Qt.Unchecked
+    mismatched = view.structure_list.item(2)
+    assert not mismatched.flags() & Qt.ItemIsEnabled
+    assert 'frame' in model.unavailable[3].lower()
+    view.structure_list.item(0).setCheckState(Qt.Checked)
+    wait_for_surfaces(model)
+    assert [item.roi_number for item in model.presentations()] == [2]
+    assert view.hide_all_button.isEnabled()
+
+
+def test_hide_all_clears_surface_mode_presentations(cylinder_window):
+    """Hide all also clears organs drawn in Surface mode, then one can return.
+
+    A surface that stays in presentations(), or a second check that brings both
+    organs back, fails. The Outlines test alone would miss a mode that keeps a
+    pending or cached mesh while the list looks empty.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    model.set_mode(StructureDisplayMode.SURFACE)
+    model.load_plan(organs_for_hide_all(), 20.)
+    wait_for_surfaces(model)
+    view = cylinder_window.navigationmodel.views[5]
+    assert {item.roi_number for item in model.presentations()} == {2, 4}
+    assert all(item.surface is not None for item in model.presentations())
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
+    assert model.presentations() == ()
+    assert not model.visible
+    view.structure_list.item(0).setCheckState(Qt.Checked)
+    wait_for_surfaces(model)
+    assert [item.roi_number for item in model.presentations()] == [2]
+
+
+def test_hide_all_does_nothing_when_nothing_is_visible(cylinder_window):
+    """A second Hide all, or Hide all with an empty plan, must not rebuild the list.
+
+    Emitting changed when visible is already empty fails the signal count. A no-op
+    click would otherwise flicker the list and opacity controls for no reason.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtTest import QTest
+    from windows.models.structures_model import StructureDisplayMode
+    model = cylinder_window.structuresmodel
+    view = cylinder_window.navigationmodel.views[5]
+    assert not view.hide_all_button.isEnabled()
+    model.set_mode(StructureDisplayMode.OUTLINES)
+    model.load_plan(organs_for_hide_all(), 20.)
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
+    assert not model.visible
+    assert not view.hide_all_button.isEnabled()
+    changed = []
+    model.changed.connect(lambda: changed.append(True))
+    QTest.mouseClick(view.hide_all_button, Qt.MouseButton.LeftButton)
+    model.hide_all()
+    assert changed == []
+
+
+def test_hide_all_clears_pending_surface_work(units_app):
+    """Hide all must drop pending ROIs and queued surface tasks before the next show.
+
+    Leaving `Building surface…` on an unchecked row, or leaving queued work on the
+    single-thread pool so the next organ waits behind hidden reconstructions, fails.
+    A late finish must not resurrect the organ in presentations().
+    """
+    from dataclasses import replace
+    from windows.models.structures_model import StructuresModel, StructureDisplayMode
+    model = StructuresModel()
+    model.set_mode(StructureDisplayMode.SURFACE)
+    slices = tuple(
+        Contour('CLOSED_PLANAR', ((0., 0., z), (40., 0., z), (0., 40., z)))
+        for z in (2., 4., 6., 8., 10., 12.)
+    )
+    plan = DicomData()
+    plan.probe_frame_uid = '1.2.3'
+    plan.cylinder_base = (0., 0., 0.)
+    plan.cylinder_direction = (0., 0., 10.)
+    plan.structures = (
+        Structure(2, 'Bladder', '1.2.3', (0, 255, 0), 'ORGAN', StructureType.ORGAN, slices),
+        Structure(4, 'Rectum', '1.2.3', (255, 0, 0), 'ORGAN', StructureType.ORGAN,
+                  tuple(replace(contour, points=((0., 0., z), (30., 0., z), (0., 30., z)))
+                        for contour, z in zip(slices, (2., 4., 6., 8., 10., 12.)))),
+    )
+    model.load_plan(plan, 20.)
+    assert model.pending
+    assert 'Building' in model.status_message(2)
+    model.hide_all()
+    assert not model.visible
+    assert not model.pending
+    assert 'Building' not in model.status_message(2)
+    assert 'Building' not in model.status_message(4)
+    assert model.surface_pool.activeThreadCount() == 0 or model.surface_pool.waitForDone(10000)
+    units_app.processEvents()
+    assert model.presentations() == ()
+    model.set_visible(2, True)
+    wait_for_surfaces(model)
+    assert [item.roi_number for item in model.presentations()] == [2]

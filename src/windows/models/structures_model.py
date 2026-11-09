@@ -277,6 +277,28 @@ class StructuresModel(QObject):
             self.visible.discard(roi)
         self.changed.emit()
 
+    def hide_all(self):
+        """Drop every requested structure from the preview.
+
+        Unavailable rows keep their reasons. A later set_visible can show one
+        ROI again. The surface cache that hiding already preserves stays. When
+        nothing is visible this is a no-op so the list is not rebuilt. Clears
+        the highlight so a hidden organ does not keep the selection colour.
+        Queued surface tasks leave the pool and pending status clears, so the
+        next organ shown does not wait behind hidden work and unchecked rows
+        do not keep Building surface. In-flight results are rejected by the
+        generation tag the same way clear does.
+        """
+        if not self.visible:
+            return
+        self._generation += 1
+        self.surface_pool.clear()
+        self.pending.clear()
+        self.visible.clear()
+        if self.highlighted is not None:
+            self.set_highlight(None)
+        self.changed.emit()
+
     def set_length(self, length: float):
         if self.alignment is None or self.alignment.length == length:
             return
