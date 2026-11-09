@@ -11,10 +11,9 @@ based on the one above it and is retargeted to `main` once its parent merges. A 
 
 | PR | On | Closes | Adds | Own diff | New tests | Suite after |
 |---|---|---|---|---|---|---|
-| [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 243 lines | 5 (11 in the file) | 428 passed, 2 failed |
+| [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 242 lines | 5 (11 in the file) | 513 passed |
 
-The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_drop_highlight` and
-`::test_click_after_keyboard_navigation_can_rehighlight`. They also fail on `main`.
+After `main` was merged into #238, no test fails. `main` has 509 tests, and each row's suite total counts that PR and the ones below it.
 
 ### Shared by every PR in this stack
 
@@ -48,7 +47,7 @@ The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_d
 
 #### Review and design
 
-- When I reviewed **my screenshot of Ex1 after pressing Remove**, I noticed **the removed needle was still drawn, in the selected colour, because `DisplayModel.add_shapes` never drops a shape, so every removal, custom ones too, left a ghost in the 3D view that the export and the list did not have**. Therefore, I did **call `DisplayModel.remove_shape` in `remove_channel`, with `test_a_removed_applicator_leaves_the_viewport`, which failed first, and record it as §7.21**.
+- When I reviewed **my screenshot of Ex1 after pressing Remove**, I noticed **the removed needle was still drawn, in the selected colour, because `DisplayModel.add_shapes` never drops a shape, so every removal, custom ones too, left a ghost in the 3D view that the export and the list did not have**. Therefore, I did **call `DisplayModel.remove_shape` in `remove_channel`, with `test_a_removed_applicator_leaves_the_viewport`, which failed first, and record it as §7.25**.
 - The PR does not contain any temporary workaround because **it replaces `remove_custom_needle` outright and keeps no alias**.
 - The PR only contains small functions that are **14 lines (`remove_channel`), 5 lines (`action_remove_applicator`) and 3 lines (`ask_remove_plan_needle`)** long.
 - I did **`anti_slop review --base main src tests utils` (0 blocking) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
@@ -62,8 +61,8 @@ The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_d
 - I checked that these negative cases involving **skipping the confirm (`test_removing_a_plan_applicator_asks_first_and_cancel_keeps_it` failed) and leaving the shape in the display model (`test_a_removed_applicator_leaves_the_viewport` failed with the label still in `displaymodel.shapes`)** failed as expected.
 - Among these tests, **none are pure unit tests** and **all 11** are integration tests through the real window.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (428 passed, 424 on main by test count, 2 failed, the same two on `main`), and brachify run on macOS with Ex1, driven by a script that pressed the real Remove button (screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (513 passed, 509 on main by test count, 0 failed, after merging `main` into this branch), and brachify run on macOS with Ex1, driven by a script that pressed the real Remove button (screenshot 1)**.
 
-  ![1, Ex1 on macOS, Applicator6 selected with Remove Applicator on, after Remove and Yes with the list and the 3D view one needle fewer, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6d141a8e91eaeaeff52fcabdf016a807179c31e/docs/logs/ahab/screenshots/week-9/pr-238-1-remove.png)
+  ![1, Ex1 on macOS, Applicator6 selected with Remove Applicator on, after Remove and Yes with the list and the 3D view one needle fewer, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e2fae8f12e6e7630f3d52602bd96a9a3bab42cc3/docs/logs/ahab/screenshots/week-9/pr-238-1-remove.png)
 
 - Not applicable: **generated-test review (no generated test)**.
