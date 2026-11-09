@@ -169,15 +169,19 @@ class ChannelsModel(QObject):
         self.update()
         return needle
 
-    def remove_custom_needle(self, label: str) -> None:
-        self.require_custom_needle(label)
+    def remove_channel(self, label: str) -> None:
+        """Delete an applicator, plan or custom, and every record of its label. The tandem is refused, and a plan comes back only by importing again."""
+        if label not in self.channels:
+            raise KeyError(label)
         if self.is_channel_tandem(label):
             raise CustomNeedleError("Choose another tandem before removing the applicator that is the tandem")
-        del self.channels[label], self.custom_specs[label]
+        del self.channels[label]
+        get_app().window.displaymodel.remove_shape(label)  # add_shapes never drops a shape, so a removed one would still be drawn
+        self.custom_specs.pop(label, None)
         self.own_diameters.pop(label, None)
         self.disabled_channels = [disabled for disabled in self.disabled_channels if disabled != label]
         self.selected_channels = [selected for selected in self.selected_channels if selected != label]
-        log.info(f"removed custom applicator {label}")
+        log.info(f"removed applicator {label}")
         self.update()
 
     def set_diameter(self, diameter: float):

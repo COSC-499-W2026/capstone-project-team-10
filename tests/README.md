@@ -79,7 +79,7 @@ tests/
 │   ├── test_edit_custom_needle.py    editing a custom applicator: model, button and form
 │   ├── test_export_tandem_warning.py  the Export tab's missing tandem hole warning
 │   ├── test_import_view.py  exists: Import structure list, and no tandem carried into a new plan
-│   ├── test_remove_custom_needle.py  removing a custom applicator: model rules and button
+│   ├── test_remove_custom_needle.py  removing any applicator: model rules, confirm and button
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   ├── test_tandem_channel.py  the tandem channel at import and when cleared
 │   ├── test_tandem_channel_choice.py  the Tandem tab's Tandem Channel box

@@ -1,6 +1,7 @@
-"""Exercise removing a custom applicator on the Channels tab: the model rules and the Remove Applicator button."""
+"""Exercise removing an applicator, plan or custom, on the Channels tab: the model rules and the Remove Applicator button."""
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pytest
@@ -31,6 +32,18 @@ def volume(solid: TopoDS_Shape) -> float:
     return properties.Mass()
 
 
+@pytest.fixture
+def restored_plan(channels_window: MainWindow) -> Iterator[None]:
+    """Reload the imported plan after a test that removes a plan applicator. A fixture, not a test.
+
+    The window is shared by every test in this file, so a plan applicator removed by one test
+    would be missing from the next. Loading the plan again rebuilds every plan applicator.
+    """
+    yield
+    channels_window.channelsmodel.load_data(channels_window.dicommodel.data)
+    channels_window.navigationmodel.views[CHANNELS_TAB].create_channels_list()
+
+
 def test_removing_a_custom_applicator_puts_the_export_cut_back_as_it_was(channels_window: MainWindow) -> None:
     """Check the export volume with the applicator added and removed is the volume from before it was added.
 
@@ -43,7 +56,7 @@ def test_removing_a_custom_applicator_puts_the_export_cut_back_as_it_was(channel
     before = volume(export_view._final_mesh())
     model.add_custom_needle(spec("Custom Applicator81", x=-5.0))
 
-    model.remove_custom_needle("Custom Applicator81")
+    model.remove_channel("Custom Applicator81")
 
     assert "Custom Applicator81" not in model.channels and not model.is_custom_needle("Custom Applicator81")
     assert volume(export_view._final_mesh()) == pytest.approx(before, rel=1e-6)
@@ -61,24 +74,65 @@ def test_removing_clears_the_disabled_own_diameter_and_selected_state_of_the_lab
     model.set_channel_diameter("Custom Applicator82", 4.0)
     model.set_selected_channels("Custom Applicator82")
 
-    model.remove_custom_needle("Custom Applicator82")
+    model.remove_channel("Custom Applicator82")
 
     assert "Custom Applicator82" not in model.disabled_channels
     assert "Custom Applicator82" not in model.own_diameters
     assert "Custom Applicator82" not in model.selected_channels
 
 
-def test_a_plan_applicator_cannot_be_removed_and_nothing_changes(channels_window: MainWindow) -> None:
-    """Check removing an imported applicator raises CustomNeedleError and leaves the channels as they were.
+def test_a_plan_applicator_can_be_removed_and_leaves_the_export_and_the_sheet(channels_window: MainWindow, restored_plan: None) -> None:
+    """Check removing an imported applicator deletes it and every record of it, and spares the others.
 
-    Fails if it is accepted. The imported needles come from the treatment plan, so deleting one
-    from the printed model would drop a needle the plan asked for.
+    Fails if it is refused, if any of channels, disabled, own diameter or selection keeps the
+    label, or if it stays among the channels the export cuts and the PDF lists, which both read
+    get_visible_channels. The clinician would print a hole for a needle they deleted.
+    """
+    model = channels_window.channelsmodel
+    label, *others = model.channels
+    model.set_channel_diameter(label, 4.0)
+    model.toggle_channel_enabled(label)
+    model.set_selected_channels(label)
+
+    model.remove_channel(label)
+
+    assert label not in model.channels and label not in model.own_diameters
+    assert label not in model.disabled_channels and label not in model.selected_channels
+    assert list(model.channels) == others
+    assert label not in [channel.label for channel in model.get_visible_channels()]
+
+
+def test_a_removed_applicator_leaves_the_viewport(channels_window: MainWindow, restored_plan: None) -> None:
+    """Check a removed plan applicator and a removed custom one are gone from the display model's shapes.
+
+    Fails if the label stays in displaymodel.shapes, because DisplayModel.add_shapes only adds
+    or replaces shapes and never drops one whose channel is gone. The 3D view would keep drawing
+    a needle the clinician deleted, so they would trust a model the export no longer matches.
+    """
+    model = channels_window.channelsmodel
+    shapes = channels_window.displaymodel.shapes
+    label = next(iter(model.channels))
+    model.add_custom_needle(spec("Custom Applicator88"))
+    model.set_selected_channels(label)
+    assert label in shapes and "Custom Applicator88" in shapes
+
+    model.remove_channel(label)
+    model.remove_channel("Custom Applicator88")
+
+    assert label not in shapes and "Custom Applicator88" not in shapes
+
+
+def test_removing_an_unknown_label_raises_key_error_and_changes_nothing(channels_window: MainWindow) -> None:
+    """Check removing a label no applicator has raises KeyError and leaves the channels as they were.
+
+    Fails if it passes silently or removes something else, so a stale list row would look
+    removed while the printed device kept its needle.
     """
     model = channels_window.channelsmodel
     before = dict(model.channels)
 
-    with pytest.raises(CustomNeedleError, match="custom"):
-        model.remove_custom_needle(next(iter(model.channels)))
+    with pytest.raises(KeyError):
+        model.remove_channel("No Such Applicator")
 
     assert model.channels == before
 
@@ -95,17 +149,17 @@ def test_the_applicator_chosen_as_the_tandem_cannot_be_removed(channels_window: 
     old_tandem, data.tandem_channel = data.tandem_channel, "Custom Applicator80"
     try:
         with pytest.raises(CustomNeedleError, match="tandem"):
-            model.remove_custom_needle("Custom Applicator80")
+            model.remove_channel("Custom Applicator80")
     finally:
         data.tandem_channel = old_tandem
 
     assert "Custom Applicator80" in model.channels
 
 
-def test_the_remove_button_is_on_only_for_a_selected_custom_applicator_that_is_not_the_tandem(channels_window: MainWindow) -> None:
-    """Check Remove Applicator is off with nothing or a plan applicator selected, on for a custom one, and off for the tandem.
+def test_the_remove_button_is_on_for_any_selected_applicator_that_is_not_the_tandem(channels_window: MainWindow) -> None:
+    """Check Remove Applicator is off with nothing selected, on for a plan or a custom applicator, and off for the tandem.
 
-    Fails if it is on for a plan needle, which invites deleting one the plan asked for, off for
+    Fails if it is off for a plan needle, which leaves no way to drop a wrong one, off for
     a custom one, which leaves no way to remove it, on for the tandem, which the model refuses
     and leaves the press doing nothing, or if its style has no disabled look, since the buttons
     above it have none and an off button that looks live gets pressed again and again.
@@ -116,7 +170,7 @@ def test_the_remove_button_is_on_only_for_a_selected_custom_applicator_that_is_n
     model.clear_selected_channels()
     off_when_none = not view.btn_remove_applicator.isEnabled()
     model.set_selected_channels(next(iter(model.channels)))
-    off_for_plan = not view.btn_remove_applicator.isEnabled()
+    on_for_plan = view.btn_remove_applicator.isEnabled()
     model.set_selected_channels("Custom Applicator85")
     on_for_custom = view.btn_remove_applicator.isEnabled()
     data = channels_window.dicommodel.data
@@ -127,7 +181,7 @@ def test_the_remove_button_is_on_only_for_a_selected_custom_applicator_that_is_n
     finally:
         data.tandem_channel = old_tandem
 
-    assert off_when_none and off_for_plan and on_for_custom and off_for_tandem
+    assert off_when_none and on_for_plan and on_for_custom and off_for_tandem
     assert ":disabled" in view.btn_remove_applicator.styleSheet()
 
 
@@ -148,6 +202,47 @@ def test_the_remove_button_takes_the_selected_applicator_out_of_the_model_and_th
     assert "Custom Applicator86" not in model.channels
     assert not view.ui.listwidget_channels.findItems("Custom Applicator86", Qt.MatchFlag.MatchExactly)
     assert model.get_selected_channel() is None
+
+
+def test_removing_a_plan_applicator_asks_first_and_cancel_keeps_it(channels_window: MainWindow) -> None:
+    """Check pressing Remove Applicator on a plan applicator asks once, and answering no removes nothing.
+
+    Fails if it removes without asking, or still removes after a no. A plan applicator comes
+    back only by importing the plan again, so a stray click would cost the clinician their edits.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    label = next(iter(model.channels))
+    asked = []
+    view.confirm_remove = lambda name: asked.append(name) or False
+    model.set_selected_channels(label)
+
+    QTest.mouseClick(view.btn_remove_applicator, Qt.MouseButton.LeftButton)
+
+    assert asked == [label] and label in model.channels
+
+
+def test_confirming_removes_a_plan_applicator_and_a_custom_one_is_never_asked_about(channels_window: MainWindow, restored_plan: None) -> None:
+    """Check a yes removes the plan applicator and its list row, and a custom applicator goes without a question.
+
+    Fails if a yes leaves the row or the channel, or if a custom applicator, which the Add
+    Applicator button makes again in seconds, also asks and so slows every removal.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    label = next(iter(model.channels))
+    asked = []
+    view.confirm_remove = lambda name: asked.append(name) or True
+    model.set_selected_channels(label)
+    QTest.mouseClick(view.btn_remove_applicator, Qt.MouseButton.LeftButton)
+    removed_plan = label not in model.channels and not view.ui.listwidget_channels.findItems(label, Qt.MatchFlag.MatchExactly)
+    model.add_custom_needle(spec("Custom Applicator87"))
+    view.create_channels_list()
+    model.set_selected_channels("Custom Applicator87")
+
+    QTest.mouseClick(view.btn_remove_applicator, Qt.MouseButton.LeftButton)
+
+    assert removed_plan and asked == [label] and "Custom Applicator87" not in model.channels
 
 
 def test_a_new_import_forgets_the_custom_applicators(channels_window: MainWindow) -> None:
