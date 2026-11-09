@@ -12,6 +12,7 @@ Merge order: **#222 → #243 → #223 → #224 → #225 → #226**.
 | #243 | #222 | #161 | Prepare hidden organ surfaces for collision checks | 5 / 133 | 3 |
 | #223 | #243 | #161 | Check needle-organ collisions in a background worker | 9 / 437 | 9 |
 | #224 | #223 | #161 | Show organ collision warnings and highlight affected needles | 9 / 344 | 7 |
+| #225 | #224 | #161 | Document the needle collision architecture and signal flow | 9 / 93 | 0 |
 
 Counts below refer to each PR’s own diff. The shared full-stack result is reported separately.
 
@@ -157,5 +158,25 @@ Counts below refer to each PR’s own diff. The shared full-stack result is repo
 - Among these tests, **7 are integration cases** in **tests/views/**.
 - Regression: **the final full-stack run and native check are recorded in Shared; the two named baseline failures remain. Focused tests also ran on the independently prepared prerequisite/model layers.**
 - Not applicable: **formal usability evaluation, coverage percentage (not performed)**.
+
+  ![Shared review regression, 41 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9d6dca61351ced424eee9eb01b592bf4445ed831/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
+
+### For PR #**225** (5 of 6, on #224)
+
+- As part of requirement **FR-SV-07 / FR-SV-08 intersection warnings; issue #161**, the user needs to do **identify possible needle contact with organs while editing a plan**.
+- Therefore, I updated the documentation so that **show geometry snapshots, cached organ indexes and display-only signals in the diagrams**.
+
+#### Review and design
+
+- When I reviewed **architecture documentation against the requested feedback**, I checked **generated diagram hashes, module coverage and viewer links** and corrected the reported behaviour or documentation.
+- Code quality checklist: **see Shared**.
+- This work is written in **docs/architecture** because **that layer owns this change**.
+- Not applicable: **temporary workaround, function length, DFD process (no application code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because **architecture build/check, source-to-reference review and link/name checks passed**.
+- Regression: **application code is inherited unchanged; see the final full-stack result in Shared**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit/integration tests, test directory (documentation checks only)**.
 
   ![Shared review regression, 41 focused cases, full-suite baseline failures and native synthetic-organ warning](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9d6dca61351ced424eee9eb01b592bf4445ed831/docs/logs/gilles/screenshots/week-9/collision-review-regression.png)
