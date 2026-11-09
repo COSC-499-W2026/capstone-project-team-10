@@ -88,10 +88,15 @@ class StructuresView(CustomView):
         self.change_colour_button = QPushButton("Change colour", self)
         self.change_colour_button.setToolTip("Change the selected structure colour")
         controls.addWidget(self.change_colour_button)
+        self.hide_all_button = QPushButton("Hide all", self)
+        self.hide_all_button.setToolTip("Hide every listed structure")
+        self.hide_all_button.setEnabled(False)
+        controls.addWidget(self.hide_all_button)
         layout.addLayout(controls)
         self.surface_mode.currentTextChanged.connect(lambda text: model.set_mode(StructureDisplayMode(text)))
         self.surface_opacity.valueChanged.connect(self.action_change_opacity)
         self.change_colour_button.clicked.connect(self.action_change_colour)
+        self.hide_all_button.clicked.connect(self.action_hide_all)
         model.opacity_changed.connect(self.update_opacity_controls)
         model.color_changed.connect(self.update_structure_swatch)
         self.structure_list = QListWidget(self)
@@ -173,8 +178,12 @@ class StructuresView(CustomView):
                     item = QListWidgetItem()
                     self._write_structure_item(item, structure, row)
                     self.structure_list.addItem(item)
-                    if structure.roi_number == selected:
+                    # After hide_all the model clears the highlight; do not put
+                    # the previous row back or the viewport keeps selection colour.
+                    if structure.roi_number == selected and (
+                            selected in model.visible or model.highlighted == selected):
                         self.structure_list.setCurrentItem(item)
+        self.hide_all_button.setEnabled(bool(model.visible))
         self.update_opacity_controls()
         self.update_collision_warnings()
 
@@ -203,6 +212,16 @@ class StructuresView(CustomView):
         swatch = QPixmap(12, 12)
         swatch.fill(QColor(*model.color_for(roi)))
         item.setIcon(QIcon(swatch))
+
+    def action_hide_all(self):
+        """Hide every listed structure. The list refresh unchecks the rows.
+
+        Clear the current row first so the rebuild cannot re-select it and put
+        the highlight back on an organ that just left the preview.
+        """
+        with QSignalBlocker(self.structure_list):
+            self.structure_list.setCurrentItem(None)
+        get_app().window.structuresmodel.hide_all()
 
     def action_toggle_structure(self, item: QListWidgetItem):
         """Keep anatomy visibility separate from printable shapes."""

@@ -131,9 +131,13 @@ gains no shape. A mode tooltip explains the approximate 1 mm / 2 mm EXTERNAL gri
 
 Loading and failure reasons appear as wrapped row text and tooltips. Pending rows stay
 checkable for hiding. In Surface mode a failed surface is unchecked; permanent unavailability
-disables the row. The 0–100% opacity slider applies only to the selected ROI (default 45%) and commits
-a drag on release. Without selection it is disabled. Opacity updates retain actors and list
-items; model changes rebuild rows while restoring selection by ROI number.
+disables the row. Hide all, under Change colour, clears every listed structure from the
+preview, clears the row highlight, drops pending surface work, and unchecks those rows. It
+is disabled when nothing is visible. An unavailable row stays disabled, and checking one
+row afterwards shows that structure again and re-enables the button. The 0–100% opacity
+slider applies only to the selected ROI (default 45%) and commits a drag on release.
+Without selection it is disabled. Opacity updates retain actors and list items; model
+changes rebuild rows while restoring selection by ROI number.
 *Reasoned from #125 code and covered by offscreen widgets/native-actor tests; no fresh native
 screenshot or usability evaluation is claimed.* See [§5.6](../project/COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer)
 and [§5.7](../project/COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport).
