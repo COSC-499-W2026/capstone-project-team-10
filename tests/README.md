@@ -48,6 +48,7 @@ tests/
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
 │   ├── test_custom_needle_points.py  custom needle points, bend and refusals
 │   ├── test_cylinder.py
+│   ├── test_spec_from_points.py     the Edit form's numbers estimated from a needle's points
 │   ├── test_structure_contours.py  registered anatomy wires and shared vertex transform
 │   ├── test_structure_surfaces.py  axial sampling, topology, bounds and size budget
 │   ├── test_notch.py
