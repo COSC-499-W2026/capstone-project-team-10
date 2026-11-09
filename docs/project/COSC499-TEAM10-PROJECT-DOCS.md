@@ -749,6 +749,9 @@ StructuresModel.highlight_changed()         ─→ OrbitCameraViewer3d.update_st
 StructuresModel.color_changed(int, tuple)   ─→ OrbitCameraViewer3d.update_structure_color
                                              └─→ StructuresView.update_structure_swatch
 SurfaceSignals.finished(SurfaceResult)      ─→ StructuresModel._accept_surface (queued to GUI)
+ChannelsModel.values_changed()             ─→ CollisionModel.invalidate (compare snapshots)
+StructuresModel.changed()                   ─→ CollisionModel.invalidate (compare snapshots)
+CollisionSignals.finished(CollisionResult)  ─→ CollisionModel.accept (reject stale revisions)
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
                                                  (connected on_open, disconnected on_close)
@@ -868,7 +871,7 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
         ├── palettes.py        colour definitions (unused)
         ├── length_field.py    LengthField and LengthUnit, mm-backed Cylinder controls
         ├── template_dialog.py the Update and Delete question both template tabs ask
-        ├── models/            six QObject models (including structures_model), NavigationModel and ShapeModel
+        ├── models/            seven QObject models (including structures_model and collision_model), NavigationModel and ShapeModel
         ├── views/             six views + custom_view.py + add_applicator_dialog.py + viewport.py
         └── ui/                .ui sources, generated *_ui.py, arrows/ PNGs and generated arrows_rc.py
 ```
@@ -1237,6 +1240,7 @@ emitting change signals. They hold no widgets.
 | `TandemModel` | `_base_shape`, `_display_shape`, offsets, rotation | the most stateful; see below |
 | `DisplayModel` | `{label: ShapeModel}`, materials | `add_shape` with `enabled=False` **deletes** the entry |
 | `StructuresModel` | imported ROIs, visibility, alignment, presentations, surface cache and worker state | display only; defaults to Surface; details below |
+| `CollisionModel` | revision-tagged organ hits, unchecked reasons, cached indexes and temporary needle emphasis | display-only checks; details below |
 | `NavigationModel` | the six views | not a `QObject`; plain class |
 
 `TandemModel` deserves attention. It distinguishes **imported** from **generated** tandems
@@ -1264,6 +1268,22 @@ A box reverted on the way used to stay reverted even when the final shape used i
 `ShapeModel` ([shape_model.py](../../src/windows/models/shape_model.py)) is the transport
 object between models and the viewport: `label`, `shape`, `type`, plus `selected` /
 `transparent` / `enabled` flags and a `material` dict.
+
+**[`collision_model.py`](../../src/windows/models/collision_model.py)** — owns possible
+needle–organ warnings independently of printable shapes. `MainWindow` constructs it
+with the channels and structures models. Their change signals compare anatomy and
+needle snapshots before invalidating results. Input comparison never queues surface jobs; the debounced check requests them.
+Selection, visibility and display mode changes keep completed warnings and red emphasis. Actual geometry changes clear stale
+results immediately; a 150 ms timer batches edits. A single background worker uses
+immutable needle snapshots and caches validated, aligned organ indexes across needle
+edits. New surface availability triggers a fresh check; unchanged display state does not. Revision-tagged results reject stale plans/edits.
+Hidden organs and Outlines mode are checked by requesting the same surface cache;
+unavailable geometry is explicitly reported as **not checked**. Unexpected path or
+mesh errors are logged, while the UI receives a fixed explanation without exception text. Only `ORGAN` ROIs
+are checked; tumour targets and BODY are excluded. Disabled needles and the tandem
+channel are excluded. `changed` and `highlight_changed` expose warning and selection state; the following
+UI PR connects their consumers without altering printable shapes.
+*Reasoned from code; synthetic offscreen integration tests cover the signal path.*
 
 **[`structures_model.py`](../../src/windows/models/structures_model.py)** — `prepare_organ_collision_surfaces` explicitly requests missing registered ORGAN meshes even when hidden or in Outlines mode, returning ready meshes and fixed unchecked reasons. `request_missing=False` reads inputs without starting work. Targets and BODY are excluded. The model is keyed by ROI
 number, so duplicate names are safe. `load_plan` clears previous state, validates alignment,
@@ -2695,6 +2715,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_structure_surfaces.py` | reconstructed bounds or closed/outward triangles regress, XOR holes fill, disconnected regions bridge, unsupported stacks are accepted, or dense slice fields escape the size budget (§5.4) |
 | `mesh/test_needle_collisions.py` | missed crossing, containment or radius contact; false tissue in disconnected gaps or closed cavities; invalid path or unsafe mesh accepted; later segment or sampling chunk missed (§5.4) |
 | `views/test_organ_collision_inputs.py` | hidden/Outlines organ omitted, BODY/target included, mismatched frame submitted, or a read-only snapshot starting jobs (§5.5) |
+| `views/test_collision_model.py` | stale revisions accepted, display-only changes erase warnings, failed paths look clear, cached organ index discarded on needle movement, or length/dead-space alignment lost (§5.5) |
 | `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, a highlighted surface actor is not the channel-selection blue, a checkbox toggle drops the highlight, a click after keyboard navigation cannot toggle, or leaving the tab keeps the highlight. Or `set_color` mutates the DICOM RGB, changes another organ, accepts a component outside 0 to 255, leaves the list swatch on the old colour, a cancelled pick recodes the organ, or a click after a colour change cannot re-highlight the row. Or the Structures tab stylesheet does not contain `color: rgb(0, 0, 0)` (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |

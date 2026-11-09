@@ -340,3 +340,6 @@ and sampling chunks. These synthetic cases do not establish clinical validity.
 
 `views/test_organ_collision_inputs.py` checks hidden/Outlines surface requests and
 frame refusal without requiring the collision worker or warning UI.
+
+`views/test_collision_model.py` checks stale results, geometry-only invalidation,
+failed-path status, cached-index reuse, radius, dead space and the generated shaft.
