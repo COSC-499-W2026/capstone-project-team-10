@@ -701,7 +701,7 @@ positionally — e.g. `get_app().window.navigationmodel.views[3].ui.sb_tandem_he
 | 2 | `ChannelsView` | [channels_view.py](../../src/windows/views/channels_view.py) | `ChannelsModel` |
 | 3 | `TandemView` | [tandem_view.py](../../src/windows/views/tandem_view.py) | `TandemModel` |
 | 4 | `Export_View` | [export_view.py](../../src/windows/views/export_view.py) | — (composes all) |
-| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | `StructuresModel` |
+| 5 | `StructuresView` | [structures_view.py](../../src/windows/views/structures_view.py) | `StructuresModel`, `CollisionModel` |
 
 The Structures nav button sits directly under Import in `verticalLayout_31`. The view itself is
 appended as `views[5]`, not inserted at index 1, so Cylinder stays 1 and Export stays 4.
@@ -752,6 +752,9 @@ SurfaceSignals.finished(SurfaceResult)      ─→ StructuresModel._accept_surfa
 ChannelsModel.values_changed()             ─→ CollisionModel.invalidate (compare snapshots)
 StructuresModel.changed()                   ─→ CollisionModel.invalidate (compare snapshots)
 CollisionSignals.finished(CollisionResult)  ─→ CollisionModel.accept (reject stale revisions)
+CollisionModel.changed()                    ─→ StructuresView.update_collision_warnings
+CollisionModel.highlight_changed()          ─→ OrbitCameraViewer3d.refresh_collision_highlight
+                                             └─→ StructuresView.clear_collision_toast
 DisplayModel.shapes_changed(list, bool)      ─→ OrbitCameraViewer3d.update_display
 OrbitCameraViewer3d.sig_topods_selected(list) ─→ ChannelsView.action_set_selected_shapes
                                                  (connected on_open, disconnected on_close)
@@ -1376,6 +1379,7 @@ the black rule is in the view stylesheet. *Reasoned from code.*
 | Opacity slider | Selected ROI only, 0–100%, default 45%; disabled with no selection. Drag changes commit on release (`setTracking(False)`). The label reports the percentage. |
 | Row highlight | The current row emphasises that organ in the preview with the channel-selection blue (0.2, 0.2, 0.7). Outlines also use width 3. Choosing another row moves the highlight. The mouse press that first makes a row current applies the highlight and does not also toggle it off. Clicking that row again, including after moving there with the keyboard, drops the highlight. A visibility checkbox leaves the highlight in place. Clearing the selection drops it. A row with no geometry stays listed and gains no shape. |
 | Change colour | Opens a colour dialog for the current row. OK stores the RGB override, updates the list swatch and clears the highlight so the new colour is visible immediately. Cancel, or an invalid colour, leaves the colour unchanged. |
+| Red **!** | Appears at the right of an organ row with possible needle contact. Click it (or press Enter on that row) to show a six-second “Possible collision detected. …” toast naming the affected needles, and opaque red needle overlays. Clicking the same warning again clears red emphasis. It otherwise remains until leaving Structures, selecting another warning, or changing check geometry. Selection, visibility and display mode changes preserve it; a persistent status explains red needles after the toast hides. Plans without eligible ORGAN entries show “No organs to check.” These warnings are approximate, not a clearance certification. |
 
 Rows are checked when a representation is available, or when visibility was requested and
 surface work is pending. A pending row remains checkable so the user can hide it. Permanent
@@ -1658,6 +1662,10 @@ selected button.
 functions and `CapWords` classes, not colours.)
 
 ### 5.7 The 3D viewport
+
+`refresh_collision_highlight` replaces nonselectable red AIS overlays on selection
+changes. `update_display` restores them after scene redraws without camera fitting.
+They never enter printable shapes or Export inputs.
 
 [`views/viewport.py`](../../src/windows/views/viewport.py) — `qtBaseViewer` sets
 `WA_PaintOnScreen`, `WA_NativeWindow` and `WA_NoSystemBackground`, then `OrbitCameraViewer3d`
@@ -2716,6 +2724,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_needle_collisions.py` | missed crossing, containment or radius contact; false tissue in disconnected gaps or closed cavities; invalid path or unsafe mesh accepted; later segment or sampling chunk missed (§5.4) |
 | `views/test_organ_collision_inputs.py` | hidden/Outlines organ omitted, BODY/target included, mismatched frame submitted, or a read-only snapshot starting jobs (§5.5) |
 | `views/test_collision_model.py` | stale revisions accepted, display-only changes erase warnings, failed paths look clear, cached organ index discarded on needle movement, or length/dead-space alignment lost (§5.5) |
+| `views/test_organ_collisions.py` | wrong warning/needle identity or cross-organ toggling, missing toast/red actor, missing no-organ status, fixed-size hit area, or a failed outline marked visible during background checks (§5.6–5.7) |
 | `views/test_structure_display.py` | registration/default visibility, checkbox/export separation, reset handling, embedded Nucletron frame provenance, surface cache/length/mode/opacity rules, EXTERNAL sampling, worker errors or stale-result rejection regress; failed surfaces must show a visible reason with unchecked state and no fallback; real mode/opacity widgets must drive model values, and a real triangulation actor must have display mode 0, DICOM shading colour and expected transparency. Or the Structures list shows an Applicator, hides BODY, an organ or a tumour, or Ex1 loses BODY while Import loses its inventory. Or selecting a row does not highlight only that organ, a second click or a cleared row leaves the highlight, an empty organ gains a presentation, a highlighted surface actor is not the channel-selection blue, a checkbox toggle drops the highlight, a click after keyboard navigation cannot toggle, or leaving the tab keeps the highlight. Or `set_color` mutates the DICOM RGB, changes another organ, accepts a component outside 0 to 255, leaves the list swatch on the old colour, a cancelled pick recodes the organ, or a click after a colour change cannot re-highlight the row. Or the Structures tab stylesheet does not contain `color: rgb(0, 0, 0)` (§5.5–5.7) |
 | `dicom/test_data.py` | a new `DicomData` starts with a field that is not `None`, or `reset()` leaves a field `__init__` declares holding the previous import's value (§5.3) |
 | `dicom/test_load_structures.py` | `load_structures` does not store decoded ROIs on `DicomData.structures`, or a failed decode leaves a previous value instead of `None` (§5.3) |
