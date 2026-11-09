@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Common, BRepAlgoAPI_Cut
 from OCC.Core.BRepGProp import brepgprop
 from OCC.Core.GProp import GProp_GProps
@@ -11,6 +12,7 @@ if TYPE_CHECKING:
     from OCC.Core.TopoDS import TopoDS_Shape
 
     from classes.mesh.tandem import Tandem
+    from settings.tandem_templates import TandemDesign
 
 
 def volume(solid: TopoDS_Shape) -> float:
@@ -69,3 +71,48 @@ def test_a_flat_tip_keeps_all_of_the_tandem_cut_out_inside_the_cylinder(
     untrimmed = fuse_shapes([tandem.tandem_tool_shape(), tandem.stopper_shape()])
     trimmed_away = BRepAlgoAPI_Cut(untrimmed, tandem.cylinder_offset_shape()).Shape()
     assert volume(BRepAlgoAPI_Common(trimmed_away, cylinder.shape()).Shape()) == 0.0
+
+
+def design(height_mm: float, bend_angle_deg: float = 30.0) -> TandemDesign:
+    """Return the default Generate settings with the given height and bend, as a helper and not a test."""
+    from settings.tandem_templates import TandemDesign
+
+    return TandemDesign(height_mm, 3.8, 5.0, bend_angle_deg, 35.0, 7.0, 5.0, 0.0)
+
+
+def test_a_tandem_is_built_from_every_design_value_and_the_cylinder(default_settings: dict[str, float]) -> None:
+    """Check that tandem_from_design copies the eight settings, except rotation, and the cylinder into a Tandem.
+
+    Fails if a value is dropped or read into the wrong attribute, which would make the trial
+    build on Load check a different tandem from the one Generate Tandem builds.
+    """
+    from classes.mesh.tandem import tandem_from_design
+    from settings.tandem_templates import TandemDesign
+
+    tandem = tandem_from_design(TandemDesign(140.5, 4.2, 6.5, 45.0, 40.0, 8.0, 5.5, 258.697), 173.0, 31.25)
+
+    assert (tandem.tandem_height, tandem.tandem_diameter, tandem.stopper_diameter, tandem.tandem_angle,
+            tandem.bend_radius, tandem.threading_depth, tandem.threading_diameter,
+            tandem.cylinder_height, tandem.cylinder_diameter) == (140.5, 4.2, 6.5, 45.0, 40.0, 8.0, 5.5, 173.0, 31.25)
+
+
+@pytest.mark.parametrize("height_mm, bend_angle_deg, builds", [
+    (120.0, 30.0, True),
+    (60.0, 30.0, False),
+    (170.0, 30.0, False),
+    (60.0, 0.0, True),
+])
+def test_only_a_tandem_that_generate_can_build_is_buildable(
+    default_settings: dict[str, float], height_mm: float, bend_angle_deg: float, builds: bool,
+) -> None:
+    """Check tandem_builds on a 160 by 30 mm cylinder: a 30 degree bend at 120 mm builds, at 60 or 170 mm it does not.
+
+    At 60 mm the bend reaches the wall before the dome, and generate_shape raises "Tandem
+    doesn't exit cylinder!". At 170 mm the bend starts above the cylinder. A straight tandem
+    builds at 60 mm. Fails if a design Generate Tandem refuses is called buildable, or the other
+    way round: Load would then say nothing about a template Generate will reject, or warn about
+    one it builds.
+    """
+    from classes.mesh.tandem import tandem_builds, tandem_from_design
+
+    assert tandem_builds(tandem_from_design(design(height_mm, bend_angle_deg), 160.0, 30.0)) is builds

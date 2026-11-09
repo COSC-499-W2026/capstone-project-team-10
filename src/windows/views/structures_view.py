@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QSignalBlocker, QEvent, QRect, QTimer, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QSignalBlocker, QRect, QTimer, Signal
 from PySide6.QtGui import QColor, QIcon, QPixmap
 from PySide6.QtWidgets import (
     QColorDialog, QComboBox, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
@@ -6,8 +6,8 @@ from PySide6.QtWidgets import (
 )
 
 from classes.app import get_app
-from classes.dicom.structures import StructureType
-from classes.dicom.structure_list import anatomy_structures, structure_list_rows
+from classes.dicom.structure_list import StructureListRow, anatomy_structures, structure_list_rows
+from classes.dicom.structures import Structure, StructureType
 from windows.views.custom_view import CustomView
 from windows.models.structures_model import StructureDisplayMode
 
@@ -120,46 +120,89 @@ class StructuresView(CustomView):
         get_app().window.collisionmodel.highlight_changed.connect(self.clear_collision_toast)
         self._just_selected = False
         self._checkbox_toggled = False
+        self._mouse_selecting = False
+        self.structure_list.viewport().installEventFilter(self)
         self.structure_list.itemChanged.connect(self.action_toggle_structure)
         self.structure_list.itemClicked.connect(self.action_click_structure)
         self.structure_list.currentItemChanged.connect(self.action_current_structure)
         model.changed.connect(self.action_update_structure_list)
         self.update_opacity_controls()
 
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        """Tell a mouse press apart from a keyboard move before the list handles it.
+
+        The press clears the same-click guard, then the list may set it again if
+        this press changes the current row. Arrow keys never come through here,
+        so they leave the guard clear and the next click can drop the highlight.
+        """
+        if watched is self.structure_list.viewport():
+            if event.type() == QEvent.Type.MouseButtonPress:
+                self._mouse_selecting = True
+                self._just_selected = False
+            elif event.type() == QEvent.Type.MouseButtonRelease:
+                self._mouse_selecting = False
+        return super().eventFilter(watched, event)
+
     def action_update_structure_list(self):
-        """Show ROI visibility controls and explain unavailable contours."""
+        """Show ROI visibility controls and explain unavailable contours.
+
+        The same ROI numbers keep the same list items. A checkbox click emits
+        changed while that item is still in use, and clearing the list would
+        delete it before the click finishes.
+        """
         model = get_app().window.structuresmodel
         with QSignalBlocker(self.surface_mode):
             self.surface_mode.setCurrentText(model.mode.value)
+        structures = anatomy_structures(tuple(model.structures.values()))
+        rows = structure_list_rows(structures)
         current = self.structure_list.currentItem()
         selected = current.data(Qt.UserRole) if current is not None else None
-        structures = anatomy_structures(tuple(model.structures.values()))
+        shown = tuple(
+            self.structure_list.item(index).data(Qt.UserRole)
+            for index in range(self.structure_list.count())
+        )
+        incoming = tuple(structure.roi_number for structure in structures)
         with QSignalBlocker(self.structure_list):
-            self.structure_list.clear()
-            for structure, row in zip(structures, structure_list_rows(structures)):
-                item = QListWidgetItem(f"{row.label}  {row.category}")
-                roi = structure.roi_number
-                item.setData(Qt.UserRole, roi)
-                item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-                pending_visible = model.mode != StructureDisplayMode.OUTLINES and roi in model.pending
-                requested = model.is_displayed(roi) or (roi in model.visible and pending_visible)
-                item.setCheckState(Qt.Checked if requested else Qt.Unchecked)
-                reason = model.status_message(roi)
-                if reason:
-                    item.setText(f"{row.label}  {row.category}\n{reason}")
-                item.setToolTip(reason or "Show or hide this structure")
-                if roi in model.unavailable:
-                    item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
-                elif reason and not model.is_displayed(roi) and not pending_visible:
-                    item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
-                swatch = QPixmap(12, 12)
-                swatch.fill(QColor(*model.color_for(roi)))
-                item.setIcon(QIcon(swatch))
-                self.structure_list.addItem(item)
-                if roi == selected:
-                    self.structure_list.setCurrentItem(item)
+            if shown == incoming:
+                for index, (structure, row) in enumerate(zip(structures, rows)):
+                    self._write_structure_item(
+                        self.structure_list.item(index), structure, row)
+            else:
+                self.structure_list.clear()
+                for structure, row in zip(structures, rows):
+                    item = QListWidgetItem()
+                    self._write_structure_item(item, structure, row)
+                    self.structure_list.addItem(item)
+                    if structure.roi_number == selected:
+                        self.structure_list.setCurrentItem(item)
         self.update_opacity_controls()
         self.update_collision_warnings()
+
+    def _write_structure_item(
+        self, item: QListWidgetItem, structure: Structure, row: StructureListRow,
+    ) -> None:
+        """Fill one row from the model. Caller blocks list signals."""
+        model = get_app().window.structuresmodel
+        roi = structure.roi_number
+        item.setData(Qt.UserRole, roi)
+        item.setFlags(
+            item.flags() | Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+        pending_visible = model.mode != StructureDisplayMode.OUTLINES and roi in model.pending
+        requested = model.is_displayed(roi) or (roi in model.visible and pending_visible)
+        item.setCheckState(Qt.Checked if requested else Qt.Unchecked)
+        reason = model.status_message(roi)
+        text = f"{row.label}  {row.category}"
+        if reason:
+            text = f"{text}\n{reason}"
+        item.setText(text)
+        item.setToolTip(reason or "Show or hide this structure")
+        if roi in model.unavailable:
+            item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
+        elif reason and not model.is_displayed(roi) and not pending_visible:
+            item.setFlags(item.flags() & ~Qt.ItemIsUserCheckable)
+        swatch = QPixmap(12, 12)
+        swatch.fill(QColor(*model.color_for(roi)))
+        item.setIcon(QIcon(swatch))
 
     def action_toggle_structure(self, item: QListWidgetItem):
         """Keep anatomy visibility separate from printable shapes."""
@@ -168,12 +211,13 @@ class StructuresView(CustomView):
             item.data(Qt.UserRole), item.checkState() == Qt.Checked)
 
     def action_click_structure(self, item: QListWidgetItem):
-        """Toggle highlight off on the second click, unless the row just became current.
+        """Toggle the highlight when the click is on a row that was already current.
 
-        A checkbox toggle fires itemChanged before itemClicked; skip the highlight
-        toggle so hiding or showing an organ does not drop its emphasis. A keyboard
-        navigation sets _just_selected but never fires itemClicked, so clear it here
-        unconditionally so a subsequent mouse click on the same row can re-highlight.
+        A checkbox click emits itemChanged first and must leave the highlight
+        alone. The mouse press that first moves the current row also emits
+        itemClicked. That click is ignored, because the row change already
+        applied the highlight. Keyboard movement does not set the guard, so
+        the next click on that row can clear the highlight.
         """
         just_selected = self._just_selected
         self._just_selected = False
@@ -187,13 +231,18 @@ class StructuresView(CustomView):
         model.set_highlight(None if model.highlighted == roi else roi)
 
     def action_current_structure(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None):
-        """Follow the current row into the preview highlight and the opacity slider."""
+        """Follow the current row into the preview highlight and the opacity slider.
+
+        The guard is set only while a mouse press is changing the row. Arrow
+        keys change the row too, and they must not arm the guard.
+        """
         self.update_opacity_controls()
         roi = None if current is None else current.data(Qt.UserRole)
         model = get_app().window.structuresmodel
         if model.highlighted != roi:
             model.set_highlight(roi)
-            self._just_selected = True
+            if self._mouse_selecting:
+                self._just_selected = True
 
     def update_opacity_controls(self):
         item = self.structure_list.currentItem()
