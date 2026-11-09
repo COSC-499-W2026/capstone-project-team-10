@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #238 to #241, at a glance
+## Stack #238 to #242, at a glance
 
 Four stacked PRs for issue #156, edit and remove any applicator, imported or custom. Each PR is
 based on the one above it and is retargeted to `main` once its parent merges. A row's counts are
@@ -14,6 +14,7 @@ based on the one above it and is retargeted to `main` once its parent merges. A 
 | [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 242 lines | 5 (11 in the file) | 513 passed |
 | [#239](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/239) | #238 | #156 | an editable Name in the Edit form, moved through every record, the tandem included | 7 files, 219 lines | 6 (12 in the file) | 519 passed |
 | [#241](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/241) | #239 | #156 | `spec_from_points`, the estimate of a plan needle's form numbers (nothing calls it yet) | 6 files, 209 lines | 13 (13 in the file) | 532 passed |
+| [#242](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/242) | #241 | #156 | Edit Applicator... for any applicator, imported or custom, with the estimate and a note | 9 files, 376 lines | 8 (20 in the file) | 540 passed |
 
 After `main` was merged into #238, no test fails. `main` has 509 tests, and each row's suite total counts that PR and the ones below it.
 
@@ -159,5 +160,58 @@ After `main` was merged into #238, no test fails. `main` has 509 tests, and each
 - This new test PR did not break anything else in the system because **`python -m pytest` (532 passed, 519 after #239, 0 failed, after merging `main` into the stack). I did not run the app, since nothing calls the function yet. The evidence is the function run on every Ex1 and Ex2 needle (screenshot 1, panel 2)**.
 
   ![1, the pytest output for the new test file and the suite, and the estimate for every Ex1 and Ex2 needle](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/007ed45e46c99428e3119702e2f739d8f9a78ce6/docs/logs/ahab/screenshots/week-9/pr-241-1-estimate.png)
+
+- Not applicable: **generated-test review (no generated test)**.
+
+### For PR #**242** (4 of 4, on #241)
+
+- As part of requirement **FR-CN-02, edit the properties of any needle, and FR-CN-07, an edited needle is in the 3D export and the PDF**, the user needs to do **import Ex1, select the imported Applicator6, press Edit Applicator..., change Length 2, press OK, then open the Export tab**.
+- Therefore, I implemented/generated code so that **medical physicists can reshape or rename any applicator in the plan, not only ones they added, and see the change in the 3D cut**.
+
+#### Data Modeling and Integrity
+
+- This data **`ChannelsModel.custom_specs`** is modeled as **the same dict from label to `CustomNeedleSpec`, now also filled when a plan applicator is edited** because **it is the record that a path was built from numbers, which the form must show back and Remove uses to stop asking**. We considered alternative models such as **a separate dict for edited plan needles, which would give two records to keep in step on rename and remove**.
+- This data **`edit_channel`** uses the input validation to ensure it adheres to **the same `check_custom_needle` rules for a plan applicator as for a custom one, checked before anything changes, and an unknown label raising `KeyError`**.
+- Not applicable: **see Shared**.
+
+#### Backend
+
+- The system architecture diagram consists of the following major components: **as in #238**. This structure has low coupling because **the view calls `spec_for_edit` and `edit_channel` and the model calls the pure `spec_from_points` from #241**. This structure has high cohesion because **`spec_for_edit` is the one place that decides where the form's numbers come from**. This design is scalable because **a better estimate changes `spec_from_points` alone**.
+
+  **[System architecture (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/diagrams/system-architecture.svg)**
+- The Level 0 DFD consists of the following major components: **as in #238**. **An edited needle is cut into the STL and listed on the PDF through `get_visible_channels` (the STL by screenshot 3, the PDF reasoned from that call)**.
+
+  **[DFD level 0 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/existing-framework/dfd-0.svg)**
+- The Level 1 DFD consists of the following major processes: **as in #238**. **Channels estimates the numbers from the plan points, rebuilds the needle from the typed ones, and Export cuts the rebuilt channel (screenshots 2 and 3)**.
+
+  **[DFD level 1 (SVG), unchanged by this PR](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/6fa56b753644a6013574760d5a07f3f1c42581d3/docs/architecture/existing-framework/dfd-1.svg)**
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 → `test_a_plan_applicator_is_rebuilt_from_the_form_and_keeps_its_number_place_diameter_disabled_state_and_move`, `test_pressing_ok_on_the_estimate_alone_leaves_the_tip_of_a_plan_applicator_where_the_plan_put_it`; FR-CN-07 → `test_an_edited_plan_applicator_follows_the_cylinder_length_like_any_other_needle`**
+- Not applicable: **see Shared**.
+
+#### Frontend
+
+- The frontend adopts accessibility principle **WCAG 3.3.2, Labels or Instructions**. The aspects that demonstrate this principle in the system include **the form for an imported applicator says in words that OK replaces the plan path and Cancel leaves it (screenshot 1), and Edit Applicator... is greyed with nothing selected. I did not run a screen reader**.
+- Not applicable: **see Shared, and traceability matrix (in Backend)**.
+
+#### Review and design
+
+- When I reviewed **`spec_for_edit`**, I noticed **a moved applicator's `points` already include its move, so estimating from them would put the move into the numbers and `edit_channel` would apply it again**. Therefore, I did **estimate from `points_raw` plus `height_offset`, with the move kept by `edit_channel`, and assert the offset in `test_an_edited_plan_applicator_follows_the_cylinder_length_like_any_other_needle` and the kept move in `test_a_plan_applicator_is_rebuilt_from_the_form_and_keeps_its_number_place_diameter_disabled_state_and_move`**.
+- The review by **Writable04** identified **`spec_for_edit()` raising `CustomNeedleError` out of the click handler for a path that never rises above the base, so the clinician got no explanation**. Therefore, I did **catch it in `action_edit_applicator`, show `<label> cannot be edited. <reason>.` through a `show_warning` seam, and open no form, with `test_an_applicator_whose_numbers_cannot_be_estimated_is_explained_and_the_form_never_opens`, which failed first with the error escaping the click**.
+- The PR does not contain any temporary workaround because **an edited plan applicator becoming a custom one is the issue's design, and restoring it is the issue's out of scope follow up, so there is no restore stub**.
+- The PR only contains small functions that are **9 lines (`spec_for_edit`), 16 lines (`edit_channel`), 11 lines (`action_edit_applicator`) and 3 lines (`edit_note`)** long, the longest with 4 lines of docstring.
+- I did **`anti_slop review --base feat/applicator-spec-from-points src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
+- This work is written in **`channels_model.py`, `channels_view.py` and `add_applicator_dialog.py`** because **the estimate source is the model's, the note is the view's, and the dialog only shows what it is given**.
+- This work belongs in **3 Channels** in the DFD because **it rebuilds a channel**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_plan_applicator_is_rebuilt_from_the_form_and_keeps_its_number_place_diameter_disabled_state_and_move`, `test_pressing_ok_on_the_estimate_alone_leaves_the_tip_of_a_plan_applicator_where_the_plan_put_it` and `test_the_edit_button_is_on_for_any_selected_applicator` (8 new; 20 in `test_edit_custom_needle.py`)** passed.
+- I wrote tests to cover abnormal situations involving **a plan applicator edit with a start 50 mm out, an unknown label, a 5 mm height change, Cancel, the note for a plan versus a custom applicator, and a plan needle whose path never rises above the base (a warning and no form)** and they passed.
+- I checked that these negative cases involving **ignoring the height offset in the estimate (`test_an_edited_plan_applicator_follows_the_cylinder_length_like_any_other_needle` failed) and keeping Edit custom only (`test_the_edit_button_is_on_for_any_selected_applicator` failed) and letting the estimate error escape (`test_an_applicator_whose_numbers_cannot_be_estimated_is_explained_and_the_form_never_opens` failed with `CustomNeedleError` raised from the click)** failed as expected.
+- Among these tests, **none are pure unit tests** and **all 20** are integration tests through the real window.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (540 passed, 532 after #241, 0 failed, after merging `main` into the stack; one cylinder template test failed once when four suites ran at the same time and passed alone and in a rerun), and brachify run on macOS with Ex1 and Ex2, driven by a script that pressed the real Edit button (screenshots 1 to 3), where the Ex2 tandem was still refused for removal and still editable**.
+
+  ![1, Ex1 on macOS, the Edit form for imported Applicator6 with its estimate and note, the Channels tab and Export tab after OK, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0f82fe3d329c0780b3da7aba2f40c3bc63165b54/docs/logs/ahab/screenshots/week-9/pr-242-1-edit.png)
 
 - Not applicable: **generated-test review (no generated test)**.

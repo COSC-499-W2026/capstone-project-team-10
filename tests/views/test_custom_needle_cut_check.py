@@ -49,7 +49,7 @@ def test_numbers_the_export_cannot_cut_are_refused_in_plain_text_and_change_noth
         with pytest.raises(CustomNeedleError, match="cut") as add_refusal:
             model.add_custom_needle(bent("Custom Applicator72", phi=90.0))
         with pytest.raises(CustomNeedleError, match="cut"):
-            model.edit_custom_needle("Custom Applicator71", bent("Custom Applicator71", phi=90.0))
+            model.edit_channel("Custom Applicator71", bent("Custom Applicator71", phi=90.0))
 
         assert model.channels == before and model.channels["Custom Applicator71"] is kept
         assert ":" not in str(add_refusal.value) and "—" not in str(add_refusal.value)
