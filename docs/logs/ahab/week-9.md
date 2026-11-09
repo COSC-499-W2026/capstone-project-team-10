@@ -13,7 +13,7 @@ based on the one above it and is retargeted to `main` once its parent merges. A 
 |---|---|---|---|---|---|---|
 | [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 242 lines | 5 (11 in the file) | 513 passed |
 | [#239](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/239) | #238 | #156 | an editable Name in the Edit form, moved through every record, the tandem included | 7 files, 219 lines | 6 (12 in the file) | 519 passed |
-| [#241](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/241) | #239 | #156 | `spec_from_points`, the estimate of a plan needle's form numbers (nothing calls it yet) | 6 files, 209 lines | 13 (13 in the file) | 445 passed, 2 failed |
+| [#241](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/241) | #239 | #156 | `spec_from_points`, the estimate of a plan needle's form numbers (nothing calls it yet) | 6 files, 209 lines | 13 (13 in the file) | 532 passed |
 
 After `main` was merged into #238, no test fails. `main` has 509 tests, and each row's suite total counts that PR and the ones below it.
 
@@ -156,8 +156,8 @@ After `main` was merged into #238, no test fails. `main` has 509 tests, and each
 - I checked that these negative cases involving **dropping `% 360` (the quadrant test failed), using the rise for Length 2 (4 failed) and skipping the base cut (the crossing test failed)** failed as expected.
 - Among these tests, **all 13** are unit tests and integration tests are not required because **the function is pure and takes only points and a label**.
 - These tests are included in the directory **`tests/mesh/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (445 passed, 432 after #239, 2 failed, the same two on `main`). I did not run the app, since nothing calls the function yet. The evidence is the function run on every Ex1 and Ex2 needle (screenshot 1, panel 2)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (532 passed, 519 after #239, 0 failed, after merging `main` into the stack). I did not run the app, since nothing calls the function yet. The evidence is the function run on every Ex1 and Ex2 needle (screenshot 1, panel 2)**.
 
-  ![1, the pytest output for the new test file and the suite, and the estimate for every Ex1 and Ex2 needle](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/d2c4328de61387b2b449cb7c96a68fb13368594d/docs/logs/ahab/screenshots/week-9/pr-241-1-estimate.png)
+  ![1, the pytest output for the new test file and the suite, and the estimate for every Ex1 and Ex2 needle](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/007ed45e46c99428e3119702e2f739d8f9a78ce6/docs/logs/ahab/screenshots/week-9/pr-241-1-estimate.png)
 
 - Not applicable: **generated-test review (no generated test)**.
