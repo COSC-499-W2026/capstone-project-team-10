@@ -11,12 +11,11 @@ based on the one above it and is retargeted to `main` once its parent merges. A 
 
 | PR | On | Closes | Adds | Own diff | New tests | Suite after |
 |---|---|---|---|---|---|---|
-| [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 243 lines | 5 (11 in the file) | 428 passed, 2 failed |
-| [#239](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/239) | #238 | #156 | an editable Name in the Edit form, moved through every record, the tandem included | 7 files, 184 lines | 4 (10 in the file) | 432 passed, 2 failed |
+| [#238](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/238) | main | #156 | Remove Applicator for any applicator, a question for an imported one, and a removed one leaves the 3D view | 8 files, 242 lines | 5 (11 in the file) | 513 passed |
+| [#239](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/239) | #238 | #156 | an editable Name in the Edit form, moved through every record, the tandem included | 7 files, 219 lines | 6 (12 in the file) | 519 passed |
 | [#241](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/241) | #239 | #156 | `spec_from_points`, the estimate of a plan needle's form numbers (nothing calls it yet) | 6 files, 209 lines | 13 (13 in the file) | 445 passed, 2 failed |
 
-The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_drop_highlight` and
-`::test_click_after_keyboard_navigation_can_rehighlight`. They also fail on `main`.
+After `main` was merged into #238, no test fails. `main` has 509 tests, and each row's suite total counts that PR and the ones below it.
 
 ### Shared by every PR in this stack
 
@@ -50,7 +49,7 @@ The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_d
 
 #### Review and design
 
-- When I reviewed **my screenshot of Ex1 after pressing Remove**, I noticed **the removed needle was still drawn, in the selected colour, because `DisplayModel.add_shapes` never drops a shape, so every removal, custom ones too, left a ghost in the 3D view that the export and the list did not have**. Therefore, I did **call `DisplayModel.remove_shape` in `remove_channel`, with `test_a_removed_applicator_leaves_the_viewport`, which failed first, and record it as §7.21**.
+- When I reviewed **my screenshot of Ex1 after pressing Remove**, I noticed **the removed needle was still drawn, in the selected colour, because `DisplayModel.add_shapes` never drops a shape, so every removal, custom ones too, left a ghost in the 3D view that the export and the list did not have**. Therefore, I did **call `DisplayModel.remove_shape` in `remove_channel`, with `test_a_removed_applicator_leaves_the_viewport`, which failed first, and record it as §7.25**.
 - The PR does not contain any temporary workaround because **it replaces `remove_custom_needle` outright and keeps no alias**.
 - The PR only contains small functions that are **14 lines (`remove_channel`), 5 lines (`action_remove_applicator`) and 3 lines (`ask_remove_plan_needle`)** long.
 - I did **`anti_slop review --base main src tests utils` (0 blocking) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
@@ -64,9 +63,9 @@ The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_d
 - I checked that these negative cases involving **skipping the confirm (`test_removing_a_plan_applicator_asks_first_and_cancel_keeps_it` failed) and leaving the shape in the display model (`test_a_removed_applicator_leaves_the_viewport` failed with the label still in `displaymodel.shapes`)** failed as expected.
 - Among these tests, **none are pure unit tests** and **all 11** are integration tests through the real window.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (428 passed, 424 on main by test count, 2 failed, the same two on `main`), and brachify run on macOS with Ex1, driven by a script that pressed the real Remove button (screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (513 passed, 509 on main by test count, 0 failed, after merging `main` into this branch), and brachify run on macOS with Ex1, driven by a script that pressed the real Remove button (screenshot 1)**.
 
-  ![1, Ex1 on macOS, Applicator6 selected with Remove Applicator on, after Remove and Yes with the list and the 3D view one needle fewer, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e6d141a8e91eaeaeff52fcabdf016a807179c31e/docs/logs/ahab/screenshots/week-9/pr-238-1-remove.png)
+  ![1, Ex1 on macOS, Applicator6 selected with Remove Applicator on, after Remove and Yes with the list and the 3D view one needle fewer, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e2fae8f12e6e7630f3d52602bd96a9a3bab42cc3/docs/logs/ahab/screenshots/week-9/pr-238-1-remove.png)
 
 - Not applicable: **generated-test review (no generated test)**.
 
@@ -96,23 +95,24 @@ The 2 failures are `test_structure_display.py::test_toggling_checkbox_does_not_d
 
 #### Review and design
 
-- When I reviewed **`rename_channel`**, I noticed **the old name's shape would stay in the display model, as in #238's §7.21, so the renamed needle would be drawn twice**. Therefore, I did **drop it with `remove_shape` inside `rename_channel`, and assert it in `test_renaming_moves_the_label_through_every_record_and_keeps_the_rest`**.
+- When I reviewed **`rename_channel`**, I noticed **the old name's shape would stay in the display model, as in #238's §7.25, so the renamed needle would be drawn twice**. Therefore, I did **drop it with `remove_shape` inside `rename_channel`, and assert it in `test_renaming_moves_the_label_through_every_record_and_keeps_the_rest`**.
+- The review by **Writable04** identified **validation using the default diameter during a rename, because the trial needle looked its diameter up under the new name before the override moved, so a 6 mm applicator could pass a start that only a default needle fits**. Therefore, I did **pass the edited applicator's own diameter through `check_custom_needle` to the start limit and the trial cut, with `test_an_edit_is_checked_with_the_needles_own_diameter_whether_or_not_it_is_renamed`, which failed first in both its cases, the second without a rename showing the check used the global diameter even then**.
 - The PR does not contain any temporary workaround because **it changes `edit_custom_needle` to use the typed name, and adds no flag or second path**.
-- The PR only contains small functions that are **11 lines (`rename_channel`) and 14 lines (`edit_custom_needle`)** long.
+- The PR only contains small functions that are **11 lines (`rename_channel`), 14 lines (`edit_custom_needle`) and 19 lines, 4 of them docstring (`check_custom_needle`)** long.
 - I did **`anti_slop review --base feat/remove-any-applicator src tests utils` (no findings) and a line-by-line read of the diff** to ensure that my feature contribution does not contain any of the following: **see Shared**.
 - This work is written in **`channels_model.py` and `add_applicator_dialog.py`** because **the label records are the model's and the lock was one line in the form**.
 - This work belongs in **3 Channels** in the DFD because **it changes a channel's name**.
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`test_renaming_moves_the_label_through_every_record_and_keeps_the_rest`, `test_the_edit_button_with_a_new_name_renames_the_list_row` and `test_the_form_opened_to_edit_shows_the_stored_numbers_and_lets_the_name_change` (4 new; 10 in `test_edit_custom_needle.py`)** passed.
-- I wrote tests to cover abnormal situations involving **a name an existing applicator has, a blank name, a name with spaces around it, and the tandem** and they passed.
-- I checked that these negative cases involving **leaving `data.tandem_channel` on the old name (`test_renaming_the_tandem_keeps_the_tandem_tab_pointing_at_it` failed)** failed as expected.
-- Among these tests, **none are pure unit tests** and **all 10** are integration tests through the real window.
+- The functionality works correctly because the happy path tests involving **`test_renaming_moves_the_label_through_every_record_and_keeps_the_rest`, `test_the_edit_button_with_a_new_name_renames_the_list_row` and `test_the_form_opened_to_edit_shows_the_stored_numbers_and_lets_the_name_change` (6 new; 12 in `test_edit_custom_needle.py`)** passed.
+- I wrote tests to cover abnormal situations involving **a name an existing applicator has, a blank name, a name with spaces around it, the tandem, and a start 0.05 mm inside the wall limit of a 6 mm applicator, renamed or not** and they passed.
+- I checked that these negative cases involving **leaving `data.tandem_channel` on the old name (`test_renaming_the_tandem_keeps_the_tandem_tab_pointing_at_it` failed) and validating with the global diameter (both cases of `test_an_edit_is_checked_with_the_needles_own_diameter_whether_or_not_it_is_renamed` failed)** failed as expected.
+- Among these tests, **none are pure unit tests** and **all 12** are integration tests through the real window.
 - These tests are included in the directory **`tests/views/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest` (432 passed, 428 after #238, 2 failed, the same two on `main`), and brachify run on macOS with Ex1, driven by a script that opened the real form and pressed the real Edit button (screenshot 1)**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (519 passed, 513 after #238, 0 failed, after merging `main` into the stack), and brachify run on macOS with Ex1, driven by a script that opened the real form and pressed the real Edit button (screenshot 1)**.
 
-  ![1, Ex1 on macOS, the Edit form with an editable Name, the list after OK with the new name selected, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/9b842c06673e0e80ed49693bb48f5bc11035c7ea/docs/logs/ahab/screenshots/week-9/pr-239-1-rename.png)
+  ![1, Ex1 on macOS, the Edit form with an editable Name, the list after OK with the new name selected, and the pytest output](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/97f4948309f761f63bc38e5038bd396f3fb48831/docs/logs/ahab/screenshots/week-9/pr-239-1-rename.png)
 
 - Not applicable: **generated-test review (no generated test)**.
 
