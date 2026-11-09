@@ -10,6 +10,7 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 
+from classes.mesh.channel import NeedleChannel
 from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec
 
 if TYPE_CHECKING:
@@ -257,6 +258,47 @@ def test_the_edit_button_on_a_plan_applicator_offers_the_estimate_and_cancel_lea
     QTest.mouseClick(view.btn_edit_applicator, Qt.MouseButton.LeftButton)
 
     assert model.channels["Applicator6"] is not plan_needle and model.is_custom_needle("Applicator6")
+
+
+class RecordedWarnings:
+    """Stand in for the warning box the Edit action shows, as a helper and not a test.
+
+    Assigned to ChannelsView.show_warning, the view's seam for that box, so no module is patched and
+    no dialog opens. It records the title and text it was given.
+    """
+
+    def __init__(self) -> None:
+        """Start with nothing recorded. A helper, not a test."""
+        self.shown: list[tuple[str, str]] = []
+
+    def __call__(self, title: str, text: str) -> None:
+        """Record one warning. A helper, not a test."""
+        self.shown.append((title, text))
+
+
+def test_an_applicator_whose_numbers_cannot_be_estimated_is_explained_and_the_form_never_opens(channels_window: MainWindow) -> None:
+    """Check pressing Edit on a plan needle that never rises above the base shows a warning naming it, opens no form and changes nothing.
+
+    Fails if the CustomNeedleError from spec_for_edit escapes the click handler, which Qt turns into an
+    uncaught exception and a silent button for the clinician, or if the form opens with no numbers, or
+    if the warning has a colon or an em dash, which AGENTS.md bans in copy a clinician reads.
+    """
+    view = channels_window.navigationmodel.views[CHANNELS_TAB]
+    model = channels_window.channelsmodel
+    flat = NeedleChannel(roi_number="1", channel_number="99", label="Flat Plan Needle", points=[[0.0, 0.0, -5.0], [0.0, 0.0, -10.0]])
+    model.channels["Flat Plan Needle"] = flat
+    model.selected_channels = ["Flat Plan Needle"]
+    form, warnings = StubbedEdit(spec("Flat Plan Needle")), RecordedWarnings()
+    view.ask_edit, view.show_warning = form, warnings
+    try:
+        view.action_edit_applicator()
+    finally:
+        del model.channels["Flat Plan Needle"]
+        model.selected_channels = []
+
+    (title, text), = warnings.shown
+    assert form.offered == [] and title == "Edit Applicator"
+    assert "Flat Plan Needle" in text and "never rises above the base" in text and ":" not in text and "—" not in text
 
 
 def test_only_an_imported_applicator_gets_the_note_that_ok_replaces_its_plan_path(channels_window: MainWindow) -> None:

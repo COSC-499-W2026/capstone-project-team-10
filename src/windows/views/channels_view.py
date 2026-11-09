@@ -12,7 +12,7 @@ from classes.app import get_app
 from classes.info import USER_PATH
 from classes.logger import log
 from classes.mesh.channel import NeedleChannel, Translation
-from classes.mesh.helper import CustomNeedleSpec
+from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec
 from classes.pdf.template_reference import channels_inside_cylinder
 from windows.models.channels_model import ChannelStatus
 from windows.models.shape_model import ShapeTypes
@@ -179,7 +179,12 @@ class ChannelsView(CustomView):
     @display_action
     def action_edit_applicator(self) -> None:
         label = self.channelsmodel.get_selected_channel()
-        spec = self.ask_edit(label, self.channelsmodel.spec_for_edit(label))
+        try:
+            current = self.channelsmodel.spec_for_edit(label)
+        except CustomNeedleError as error:
+            self.show_warning("Edit Applicator", f"{label} cannot be edited. {error}.")
+            return
+        spec = self.ask_edit(label, current)
         if spec is None: return
         self.channelsmodel.edit_channel(label, spec)
         self.create_channels_list()
@@ -198,6 +203,9 @@ class ChannelsView(CustomView):
         self.ui.verticalLayout_4.addWidget(button)
         button.pressed.connect(action)
         return button
+
+    def warn_user(self, title: str, text: str) -> None:
+        QMessageBox.warning(self, title, text)
 
     def ask_remove_plan_needle(self, label: str) -> bool:
         answer = QMessageBox.question(self, "Remove Applicator", f"Remove {label} from the plan? It comes back only when you import the plan again.")
@@ -412,6 +420,7 @@ class ChannelsView(CustomView):
         self.ask_needle: Callable[[str], CustomNeedleSpec | None] = self.ask_new_needle
         self.ask_edit: Callable[[str, CustomNeedleSpec], CustomNeedleSpec | None] = self.ask_edited_needle
         self.confirm_remove: Callable[[str], bool] = self.ask_remove_plan_needle
+        self.show_warning: Callable[[str, str], None] = self.warn_user
 
         #sets default needle length
         config_values = get_app().values.config_values
