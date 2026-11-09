@@ -4646,7 +4646,7 @@ same model looked different in each tab's screenshot.
 
 > Out of date after the needle–organ warning feature: Structures now shows clickable possible-collision warnings and temporary red needle overlays. See [the current model and UI reference](COSC499-TEAM10-PROJECT-DOCS.md#55-models).
 
-> Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. PR #125 adds Surface/Outlines/Both and selected-ROI opacity controls. Selecting a row highlights that organ in the channel-selection blue, and clicking it again clears the highlight. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
+> Out of date after the anatomy changes through PR #134: Import now has a read-only anatomy inventory; the separate Structures page has visibility checkboxes. PR #125 adds Surface/Outlines/Both and selected-ROI opacity controls. Selecting a row highlights that organ in the channel-selection blue, and clicking it again clears the highlight. A visibility checkbox does not clear it, and a click after keyboard movement does. See the [current view inventory](COSC499-TEAM10-PROJECT-DOCS.md#56-views-and-the-qt-ui-layer).
 
 | Widget | Label | Does |
 |---|---|---|
