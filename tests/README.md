@@ -56,9 +56,10 @@ tests/
 ├── models/
 ├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
-├── settings/              exists: config file loading, the needle template library and cylinder templates
+├── settings/              exists: config file loading, the needle template library, cylinder and tandem templates
 │   ├── test_cylinder_templates.py
 │   ├── test_needle_templates.py
+│   ├── test_tandem_templates.py
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending and architecture diagram checks
 │   ├── test_architecture_build.py
@@ -83,6 +84,8 @@ tests/
 │   ├── test_structure_display.py  anatomy state, visibility, worker and cache regressions
 │   ├── test_tandem_channel.py  the tandem channel at import and when cleared
 │   ├── test_tandem_channel_choice.py  the Tandem tab's Tandem Channel box
+│   ├── test_tandem_template_controls.py  the Tandem tab's Templates group
+│   ├── test_tandem_template_exports.py   a loaded tandem template in the mesh and the sheet's inputs
 │   └── test_tandem_view.py
 └── windows/               exists: the main window, driven offscreen
     ├── conftest.py        fresh_window, a new window per test with no plan
@@ -90,7 +93,7 @@ tests/
 ```
 
 `tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`,
-`settings/test_cylinder_templates.py`, `dicom/test_data.py`,
+`settings/test_cylinder_templates.py`, `settings/test_tandem_templates.py`, `dicom/test_data.py`,
 `dicom/test_structures.py`, `dicom/test_load_structures.py`, `dicom/test_structure_list.py`
 and `views/test_import_view.py` exist. The rest of the tree shows where tests will go.
 
@@ -149,7 +152,9 @@ mocked. The pure functions below still have no tests.
 `settings/test_needle_templates.py` tests the needle template library against files in `tmp_path`.
 It imports no Qt and no `classes` module. `settings/test_cylinder_templates.py` checks cylinder
 templates against every Cylinder tab range edge, and their library, including update and delete,
-against files in `tmp_path`, with no Qt either.
+against files in `tmp_path`, with no Qt either. `settings/test_tandem_templates.py` checks tandem
+templates against every Generate sub-tab range edge, and their library, including update and delete,
+against files in `tmp_path`, with no Qt.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows. It also checks that the Structures button sits under Import and opens
@@ -160,6 +165,8 @@ the window shows. It also checks that the Structures button sits under Import an
 boxes and volumes with hand-worked literals. No window is built. `default_settings` gives each
 test a fresh copy of the defaults as the live settings. The literals for the default cylinder
 were measured on `main` before the notch settings existed, so the defaults are proven unchanged.
+`mesh/test_tandem.py` also checks that `tandem_from_design` copies every setting and that
+`tandem_builds` agrees with `generate_shape` on a buildable and an unbuildable height.
 `geometry_app` and `default_settings` live in the root `tests/conftest.py`, because `pdf/` needs
 them too.
 
@@ -210,7 +217,8 @@ Run alone, a small `tests/views` file can crash at exit after passing (§7.13 of
 reference sheet's cylinder table and the Export tab's mesh, and moves Ex1's needles with the tip.
 
 `views/test_tandem_view.py` checks that *Generate Tandem* keeps a live setting the settings
-snapshot does not list.
+snapshot does not list, and on Ex2 that its boxes show the tandem it built and a second Generate
+builds the same one.
 
 `views/test_tandem_channel.py` checks that importing Ex2 aims the tandem along its channel named
 Tandem, and that `set_tandem(None)` leaves no tandem channel, enables the previous one again and
@@ -223,6 +231,19 @@ tandem channel, and answers the export question through `Export_View.confirm_exp
 lists, choosing a channel or *None*, the rotation warning answered through
 `TandemView.confirm_rotation`, the off-axis and moved-channel warnings, and the Generate spin
 boxes' height in the default window.
+
+`views/test_tandem_template_controls.py` checks the Tandem tab's Templates group on a window with
+no plan: *Save as Template* writes every Generate setting from its own box, a blank or taken name
+or an unreadable library is explained in the status line, and the library's ranges match the
+Generate spin boxes. *Load* fills every box without generating, and on Ex2 says when the height
+was capped or the rotation replaces the tandem channel's, and *Generate Tandem* then builds the
+template's tandem, or that it cannot be built on the cylinder. *Update* and *Delete* change the
+file only after Yes, through `TandemView.confirm`, *Update*'s question names a rename or a new note,
+neither acts with no row selected, and both template tabs ask through `windows.template_dialog`.
+
+`views/test_tandem_template_exports.py` checks that a tandem template loaded and generated on Ex2
+reaches the Export tab's mesh, by intersecting the mesh with the template's cut-out built straight
+from `classes.mesh.tandem`, and the two values the reference sheet draws the tandem from.
 
 Verified 2026-10-10: eight new cases watched red before implementation, 28 suite cases
 green afterwards; wrong scale, wrong Apply conversion and rounded-cache mutations all caught.
