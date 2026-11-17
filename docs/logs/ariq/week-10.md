@@ -5,7 +5,7 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 ## Stack #256 to #256, at a glance
 
-Five stacked PRs that make the test suite fast enough to keep growing: every test file passes on its own, the files run in parallel, a quick loop leaves out the tests that build a window, and the channel solids are built once and reused, with the geometry pinned first. The serial suite went from 9 min 35 s to 2 min 41 s. Each PR is based on the one above it and closes its own issue.
+Six stacked PRs that make the test suite fast enough to keep growing: every test file passes on its own and in its own home folder, the files run in parallel, a quick loop leaves out the tests that build a window, and the channel solids are built once and reused, with the geometry pinned first.  Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
@@ -31,7 +31,7 @@ Stated once here instead of in each section.
 - **Run on macOS only.** **Every run in this stack was on a 10-core Apple Silicon Mac. Windows and Linux are *Not verified***.
 
 
-### For PR #**256** (1 of 5, on `main`)
+### For PR #**256** (1 of 6, on `main`)
 
 - As part of requirement **issue #251, tests that pass in any order**, the user needs to do **run one test file alone, or the suite split across parallel workers, and get the same result as the full serial run**.
 - Therefore, I implemented/generated code so that **every test file passes on its own, for the developers who run the suite**.
