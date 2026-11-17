@@ -47,7 +47,7 @@ tests/
 │   └── test_fileio.py
 ├── mesh/                  exists: the notch, the solid cylinder and the tandem cut-out, through OpenCASCADE
 │   ├── test_channel_geometry.py  every Ex1 channel and Ex2's Tandem pinned to its measured solid
-│   ├── test_channel_reuse.py     a channel built from identical inputs is reused, any changed input rebuilds
+│   ├── test_channel_reuse.py     identical inputs get a copy of the kept solid, any changed input rebuilds
 │   ├── test_custom_needle_points.py  custom needle points, bend and refusals
 │   ├── test_cylinder.py
 │   ├── test_spec_from_points.py     the Edit form's numbers estimated from a needle's points
