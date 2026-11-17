@@ -65,7 +65,8 @@ tests/
 │   ├── test_architecture_build.py
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
-│   └── test_line_endings.py
+│   ├── test_line_endings.py
+│   └── test_test_home.py
 ├── views/                 exists: the Channels, Cylinder, Tandem and Import views, against the real window
 │   ├── conftest.py        units_app, channels_window (Ex1 imported), tandem_window (Ex2) and cylinder_window
 │   ├── test_camera_controls.py  camera gesture and zoom rules
@@ -182,6 +183,11 @@ field `__init__` declares. It imports no Qt or conda-only package.
 
 `settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
 imports no Qt or conda-only package.
+
+Before any test module is imported, `pytest_configure` in [conftest.py](conftest.py) points HOME and
+USERPROFILE at a new temporary folder, one per process. brachify fixes `~/brachify` at its first
+import, and some test modules import it at collection, so without this the run would use, and the
+template fixtures would empty, the developer's real `~/brachify` (§7.26 of the project docs).
 
 `views/conftest.py` holds four fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one

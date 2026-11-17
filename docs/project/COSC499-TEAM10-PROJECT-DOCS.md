@@ -2614,6 +2614,26 @@ alone they raised `AttributeError: 'NoneType' object has no attribute 'collision
 files give 44 passed alone. Every test file now passes when run on its own, which a parallel run
 needs, since a worker runs only some of the files.
 
+### 7.26 Fixed — the test suite used, and deleted from, the developer's real `~/brachify`
+
+*Verified* 2026-11-17 on macOS, found while running the suite in parallel for issue #252.
+Several test modules import brachify at collection time, such as
+`views/test_remove_custom_needle.py` importing `classes.mesh.helper`, and `classes.info` fixes
+`USER_PATH` from the home folder at that first import. The session fixtures redirect HOME only
+later, so for the whole run `USER_PATH` was the developer's real `~/brachify`. A collection on
+`main` printed `/Users/<name>/brachify`. The run wrote into the real `app.log`, and the
+template fixtures in `views/test_cylinder_template_controls.py`, `test_cylinder_template_exports.py`,
+`test_tandem_template_controls.py`, `test_tandem_template_exports.py` and
+`test_needle_template_controls.py` delete the library files there, so **running the suite
+erased a developer's saved cylinder, tandem and needle templates**. Parallel workers, or two
+suites at once, shared the one folder, and a template test failed intermittently with
+`A cylinder template with this ID already exists`.
+
+*Fixed* for issue #261. `pytest_configure` in [tests/conftest.py](../../tests/conftest.py)
+points HOME and USERPROFILE at a new temporary folder, one per process, before any test module
+is imported, and removes it at the end. `tooling/test_test_home.py` fails if `USER_PATH` is not
+inside the system temp folder.
+
 ### 7.23 HIGH — *Generate Tandem* can show settings it did not build
 
 **Fixed 2026-11-03.** After every Generate, `TandemView.action_set_tandem` now refills the boxes
@@ -2806,6 +2826,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
+| `test_test_home.py` | brachify's `USER_PATH` is not inside the system temp folder during a test run, so the run would use and delete the developer's real `~/brachify` (§7.26) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
 | `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or the Structures button is missing, is not labelled Structures, or is not immediately under Import, or clicking it does not open `views[5]` as `StructuresView`, or Cylinder moves off index 1 or Export off index 4, or the six nav buttons overlap or stick out of `top_menu_bar` after `show()`, or Structures is not highlighted after a click or stays highlighted after Cylinder (§4.3) |
 
