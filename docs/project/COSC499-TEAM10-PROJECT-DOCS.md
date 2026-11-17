@@ -624,7 +624,9 @@ channel's diameter as a named needle template and applies one (§5.2, §6.3). On
 settings checked against its own limits, and saving them to `~/brachify/cylinder_templates.json`
 (§5.2, §6.3). The Cylinder tab's Templates group saves the tab's settings to it (§5.6). On
 2026-11-02 `settings/tandem_templates.py` began modelling a named tandem template, the Tandem
-tab's eight Generate settings checked against their own limits (§5.2).
+tab's eight Generate settings checked against their own limits (§5.2). On 2026-11-17
+`settings/template_library.py` began holding the rules those two libraries each copy, which are
+loading, saving, adding, updating, deleting and the name checks (§5.2).
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -873,7 +875,7 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
     │   ├── dicom/             data.py (DicomData), fileio.py (vendor readers), structures.py (ROI reader), load_structures.py, structure_list.py
     │   ├── mesh/              cylinder, channel, tandem, notch, helper, intersections, fileio, structure_contours, structure_surfaces, needle_collisions
     │   └── pdf/               template_reference.py, canvas.py
-    ├── settings/              defaults.py, load.py, values.py, reset.py, needle_templates.py, cylinder_templates.py, tandem_templates.py
+    ├── settings/              defaults.py, load.py, values.py, reset.py, template_library.py, needle_templates.py, cylinder_templates.py, tandem_templates.py
     └── windows/
         ├── main_window.py     MainWindow + every QMessageBox dialog
         ├── palettes.py        colour definitions (unused)
@@ -954,6 +956,23 @@ of the same name, writes the library to a `.tmp` file beside it and swaps that i
 it could not read. The module imports nothing from
 `classes` or `windows`, and the caller passes the path. Its error messages are written for
 clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
+
+**[`settings/template_library.py`](../../src/settings/template_library.py)** — the rules every
+named template library shares, added 2026-11-17. `cylinder_templates.py` and `tandem_templates.py`
+each hold a line-for-line copy of seven functions (load, write, name check, position, add,
+update, delete), and tandem imports its decoders from the cylinder module. Nothing uses
+`template_library.py` yet, so those two modules still hold their copies. A `TemplateLibrary[T]` is a
+frozen dataclass built from a kind's `noun` ("cylinder"), its error class, the file `version`, and a
+`decode` and an `encode` for one entry. It supplies `load`, `write`, `position`, `add`, `update` and
+`delete`, plus `validated_name` (the name, ID, time zone and modified-time checks) and
+`check_ranges` (a value against its `Range`, NaN and infinity refused). `update` takes a `revise`
+function, so the kind decides what an update changes while the library keeps the template's place in
+the list and refuses a name another template uses. The noun goes into each message. The module also
+holds `JsonValue`, `Range`, `TemplateLibraryError` (the base a kind's error subclasses), the
+decoders `decode_number`, `decode_flag` and `decode_time`, `name_key`, `name_taken` and
+`write_atomically`. Like the modules that will use it, it imports nothing from `classes` or
+`windows`. *Verified* by `tests/settings/test_template_library.py` (§8.2), which uses two made-up
+kinds.
 
 **[`settings/cylinder_templates.py`](../../src/settings/cylinder_templates.py)** — cylinder
 template library, added 2026-10-19. The Cylinder tab's *Save as Template* calls `add_template`
@@ -2753,6 +2772,7 @@ Repository tooling tests, first added 2026-09-30, live in
 |---|---|
 | `settings/test_needle_templates.py` | a template does not read back identical, a name is not unique or not trimmed, an empty name, a diameter below 0.3 mm or NaN is accepted, a missing library is not empty, a library of the wrong type or an oversized number is not refused, a failed save changes the library or leaves a `.tmp` file, or a corrupt, malformed, unreadable or unwritable library is not refused with `NeedleTemplateError` and left unchanged (§5.2) |
 | `settings/test_cylinder_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside the Cylinder tab's range, NaN or infinity is accepted, a range edge the tab allows is refused, or a time with no zone or a modified time before the created one is accepted. Or a template does not read back identical, a name already used in another case is added, a missing library is not empty, a library of another version or shape, with a missing or mistyped value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `CylinderTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
+| `settings/test_template_library.py` | on two made-up kinds, a template does not read back identical or a missing file is not empty, a name used in another case or an ID already saved is added, a message or error names the wrong kind, a foreign-version, bad-entry or malformed file loads or is overwritten by an update, a failed save changes the file or leaves a `.tmp` file, an update moves the template, touches another or takes another's name, a delete drops a neighbour or an unknown ID is accepted, a blank name or ID, a naive time or a modified time before the created one is accepted, or a value outside its `Range`, NaN included, is accepted or an edge refused (§5.2) |
 | `settings/test_tandem_templates.py` | a blank name or an empty ID is accepted, a name or note is not trimmed, a value just outside a Generate spin box range, NaN or infinity is accepted and the message does not name the setting, a range edge the tab allows is refused, a time with no zone or a modified time before the created one is accepted, or a value is changed. Or a template does not read back identical, a name already used in another case or a saved ID is added, a missing library is not empty, a library of another version or shape, with a missing, mistyped or out-of-range value, a shared ID or name, or a number too large for a float is not refused, a corrupt library is changed by an add, an unreadable or unwritable path is not refused with `TandemTemplateError`, or a failed save changes the library or leaves a `.tmp` file. Or an update loses the ID, created date or place in the list, takes another template's name in any case, refuses its own name in another case, or skips the range checks, a delete removes more than the one template, or an unknown ID or a corrupt library is not refused and left unchanged by either (§5.2) |
 | `views/test_tandem_template_controls.py` | *Save as Template* does not list and write a template, a Generate setting is saved from the wrong box (the rotation from the Import sub-tab's), the tooltip has no summary, a blank or taken name or an unreadable library is not explained in the status line or an error escapes, or `RANGES` and the Generate spin boxes disagree. Or *Load* leaves a box, the Import Rotation box, the name or the note unfilled, generates, is enabled with nothing selected, does not say a height was capped, or names a rotation that matches the tandem channel's in any turn, or none is chosen, or does not name one that differs, or *Load* then *Generate Tandem* does not build the template's tandem. Or *Update* or *Delete* changes the file after Cancel, is enabled with nothing selected, does not name the template in its question, keeps the old name or settings, leaves a deleted template listed, or does not explain a taken name. Or *Load* of a template that cannot be built on Ex2's cylinder still says to press *Generate Tandem*. Or *Update*'s question leaves out a rename or a new note, asks with a blank name, acts with no row selected, loses the selection, or refuses a template created after the clock. Or either template tab confirms through anything other than `windows.template_dialog.ask_to_change` (§5.6) |
 | `views/test_tandem_template_exports.py` | after a tandem template is loaded and generated on Ex2, the Export tab's mesh is not cut with the template's own tandem, built independently and turned to its rotation, or is cut where the default tandem would be, or the reference sheet's inputs, the live `CONFIG_TANDEM_CHANNEL_DIAMETER` and `TandemModel.rotation`, keep the defaults (§5.6) |
@@ -3024,6 +3044,12 @@ python -m pytest
   `KeyError`, the rotation left at 64.929°, Applicator5 still selected, and the model's
   `ValueError`. The import tests passed on the fixed code, and three deliberate breaks of the reset
   (an offset kept, the imported flag kept, no clear) each failed one. *Not verified:* Windows.
+- *Verified* 2026-11-17 on macOS: 598 passed, from 585 on `main`, with
+  `tests/settings/test_template_library.py` added (13 cases). It failed to import before
+  `settings/template_library.py` existed. Seven deliberate breaks of the module were each caught by
+  that file alone: a name check that ignores case, a message with `cylinder` written in, the file
+  written in place, a range edge refused, an updated template moved to the end, a repeated ID
+  accepted on add, and a delete dropping the templates after it. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.
