@@ -169,6 +169,9 @@ were measured on `main` before the notch settings existed, so the defaults are p
 `tandem_builds` agrees with `generate_shape` on a buildable and an unbuildable height.
 `geometry_app` and `default_settings` live in the root `tests/conftest.py`, because `pdf/` needs
 them too.
+`geometry_app`, like `units_app` and `brachify_app`, sets the app's `window` to `None` when it
+starts the app, so a window fixture that saves the previous window works in any order
+(§7.22 of the project docs).
 
 `pdf/test_template_reference.py` checks the reference sheet's interstitial lengths against
 hand-worked distances, for a dome tip, a flat tip, and a flat-tipped cylinder's wall, and the
