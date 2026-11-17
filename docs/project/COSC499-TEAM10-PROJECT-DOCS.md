@@ -626,7 +626,8 @@ settings checked against its own limits, and saving them to `~/brachify/cylinder
 2026-11-02 `settings/tandem_templates.py` began modelling a named tandem template, the Tandem
 tab's eight Generate settings checked against their own limits (§5.2). On 2026-11-17
 `settings/template_library.py` began holding the rules those two libraries each copy, which are
-loading, saving, adding, updating, deleting and the name checks (§5.2).
+loading, saving, adding, updating, deleting and the name checks (§5.2). The same day the
+cylinder and tandem libraries, and the needle library's save, began using it.
 
 ### 3.4 Licence — read this before publishing anything
 
@@ -951,17 +952,19 @@ JSON file into `NeedleTemplate` values at the boundary and returns all of them o
 file is an empty library. The top level must be a list, each entry a text `name` and a number
 `diameter_mm` (a boolean or numeric text is refused), and a name used twice, an `OSError` or a
 number too large for a float all raise `NeedleTemplateError`. `save_template` replaces a template
-of the same name, writes the library to a `.tmp` file beside it and swaps that in with
-`os.replace`, so a failed save leaves the previous library whole. It never overwrites a library
-it could not read. The module imports nothing from
+of the same name and writes the library through `write_atomically` from `template_library.py`
+(a `.tmp` file beside it, swapped in with `os.replace`), so a failed save leaves the previous
+library whole. It never overwrites a library it could not read. Its file is a plain list with no
+IDs or version, unlike the cylinder and tandem libraries, so it does not use `TemplateLibrary`.
+The module imports nothing from
 `classes` or `windows`, and the caller passes the path. Its error messages are written for
 clinicians, so they follow the UI copy rule. *Verified* by `tests/settings/` (§8.2).
 
 **[`settings/template_library.py`](../../src/settings/template_library.py)** — the rules every
 named template library shares, added 2026-11-17. `cylinder_templates.py` and `tandem_templates.py`
-each hold a line-for-line copy of seven functions (load, write, name check, position, add,
-update, delete), and tandem imports its decoders from the cylinder module. Nothing uses
-`template_library.py` yet, so those two modules still hold their copies. A `TemplateLibrary[T]` is a
+each held a line-for-line copy of seven functions (load, write, name check, position, add,
+update, delete), and tandem imported its decoders from the cylinder module. Both are now built on
+`template_library.py`, and `needle_templates.py` saves through its `write_atomically`. A `TemplateLibrary[T]` is a
 frozen dataclass built from a kind's `noun` ("cylinder"), its error class, the file `version`, and a
 `decode` and an `encode` for one entry. It supplies `load`, `write`, `position`, `add`, `update` and
 `delete`, plus `validated_name` (the name, ID, time zone and modified-time checks) and
@@ -970,13 +973,18 @@ function, so the kind decides what an update changes while the library keeps the
 the list and refuses a name another template uses. The noun goes into each message. The module also
 holds `JsonValue`, `Range`, `TemplateLibraryError` (the base a kind's error subclasses), the
 decoders `decode_number`, `decode_flag` and `decode_time`, `name_key`, `name_taken` and
-`write_atomically`. Like the modules that will use it, it imports nothing from `classes` or
+`write_atomically`. Like the modules that use it, it imports nothing from `classes` or
 `windows`. *Verified* by `tests/settings/test_template_library.py` (§8.2), which uses two made-up
 kinds.
 
 **[`settings/cylinder_templates.py`](../../src/settings/cylinder_templates.py)** — cylinder
 template library, added 2026-10-19. The Cylinder tab's *Save as Template* calls `add_template`
-(§5.6). A `CylinderTemplate` is a frozen dataclass of
+(§5.6). Since 2026-11-17 `load_templates`, `write_templates`, `position`, `add_template` and
+`delete_template` are the methods of its `LIBRARY`, a `TemplateLibrary` (above), and
+`update_template` hands `LIBRARY.update` a `revise` that calls `make_template`. What stays in
+the module is what is cylinder-specific: the design, `RANGES`, `make_template`,
+`decode_template` and `encode_template`. The description of the rules below is unchanged by
+that move. A `CylinderTemplate` is a frozen dataclass of
 `template_id`, `name`, `note`, `created`, `modified` and a `CylinderDesign`, which holds the
 Cylinder tab's 11 settings with lengths in mm and the notch angle in degrees: diameter, length,
 collar on or off, collar thickness and height, notch on or off, notch angle, width, depth and
@@ -1011,16 +1019,19 @@ cylinder module's, against `RANGES`, the Generate spin box limits copied from
 `tandem_view.ui`: Tandem Height 10 to 500 mm, Channel and Stopper Diameter 0.5 to 99.99 mm, Bend
 Angle 0 to 99.99°, Bend Radius 10 to 1000 mm, both threading values 0 to 350 mm and Rotation
 −360 to 360°. The 99.99 limits are Qt's default maximum, since the `.ui` sets none for those
-boxes. It reuses `Range` from `cylinder_templates.py` and, like it, imports nothing from
-`classes` or `windows`. The limits do not include the cylinder: a Tandem Height can be taller
+boxes. It uses `Range` from `template_library.py` and, like it, imports nothing from
+`classes` or `windows`. It no longer imports anything from `cylinder_templates.py`. The limits do not include the cylinder: a Tandem Height can be taller
 than the cylinder it is later loaded onto. `load_templates(path)` and `add_template` read and
 write `~/brachify/tandem_templates.json`, `{"version": 1, "templates": [...]}`, with the same
 all-or-none decoding, refusals and messages as the cylinder library, `tandem` in place of
-`cylinder`. The decoders, `name_key` and the safe save are the cylinder module's: since
-2026-11-02 both libraries save through its `write_atomically`, which writes a `.tmp` file
-beside the library and swaps it in with `os.replace`, and raises the `OSError` for the caller
-to report. `update_template` and `delete_template` behave as the cylinder library's do, with
-"That tandem template no longer exists" for an unknown ID. *Verified* by
+`cylinder`. Since 2026-11-17 `load_templates`, `write_templates`, `position`, `add_template` and
+`delete_template` are the methods of its `LIBRARY`, a `TemplateLibrary` (above), as are the
+decoders, `name_key` and `write_atomically`. Until then the decoders, `name_key` and the safe
+save were imported from `cylinder_templates.py` (the safe save since 2026-11-02), and the seven
+library functions were copies. `write_atomically` writes a `.tmp` file beside the library and
+swaps it in with `os.replace`, and raises the `OSError` for the caller to report.
+`update_template` and `delete_template` behave as the cylinder library's do, with "That tandem
+template no longer exists" for an unknown ID. *Verified* by
 `tests/settings/test_tandem_templates.py` (§8.2).
 
 ### 5.3 DICOM ingest
@@ -3050,6 +3061,14 @@ python -m pytest
   that file alone: a name check that ignores case, a message with `cylinder` written in, the file
   written in place, a range edge refused, an updated template moved to the end, a repeated ID
   accepted on add, and a delete dropping the templates after it. *Not verified:* Windows.
+- *Verified* 2026-11-17 on macOS: 598 passed, the same total as the line above, since no test was
+  added. The cylinder, tandem, needle and view template tests passed unchanged on the modules
+  built on `template_library.py`. Eight deliberate breaks of the shared module were each caught by the
+  settings tests: a name check that ignores case, a message with `cylinder` written in, the file
+  written in place (also by the needle test), a range edge refused, an updated template moved to
+  the end, a repeated ID accepted on add, a boolean read as a number, and a delete dropping the
+  templates after it. `test_cylinder_templates.py` has no case for a repeated ID on add, so that
+  break was caught by the tandem and shared files only. *Not verified:* Windows.
 - [pytest.ini](../../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`, so modules
   import as though `src/` were the root and `build_executable` imports from the root.
   [`.vscode/settings.json`](../../.vscode/settings.json) now points pytest at `tests`.

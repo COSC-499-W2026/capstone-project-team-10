@@ -157,7 +157,7 @@ templates against every Cylinder tab range edge, and their library, including up
 against files in `tmp_path`, with no Qt either. `settings/test_tandem_templates.py` checks tandem
 templates against every Generate sub-tab range edge, and their library, including update and delete,
 against files in `tmp_path`, with no Qt. `settings/test_template_library.py` tests the rules those two
-libraries copy, in `settings/template_library.py`, on two made-up kinds so that no cylinder or tandem
+libraries share, in `settings/template_library.py`, on two made-up kinds so that no cylinder or tandem
 value is involved, against files in `tmp_path`, with no Qt.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
