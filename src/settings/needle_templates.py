@@ -6,19 +6,15 @@ here and nowhere else. NeedleTemplateError messages are shown to clinicians on t
 Channels tab, so they follow the UI copy rules in AGENTS.md.
 """
 
-import contextlib
 import json
-import os
 from dataclasses import asdict, dataclass
 from math import isfinite
 from pathlib import Path
 
 from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
+from settings.template_library import JsonValue, write_atomically
 
 LIBRARY_FILE_NAME = "needle_templates.json"
-
-
-type JsonValue = str | int | float | bool | None | list[JsonValue] | dict[str, JsonValue]
 
 
 class NeedleTemplateError(ValueError):
@@ -71,13 +67,8 @@ def load_templates(path: Path) -> tuple[NeedleTemplate, ...]:
 def save_template(path: Path, template: NeedleTemplate) -> tuple[NeedleTemplate, ...]:
     """Add a template, replacing any with the same name, and write the library back."""
     templates = tuple(saved for saved in load_templates(path) if saved.name != template.name) + (template,)
-    temporary = path.with_name(path.name + ".tmp")
     try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary.write_text(json.dumps([asdict(saved) for saved in templates], indent=2), encoding="utf-8")
-        os.replace(temporary, path)
+        write_atomically(path, json.dumps([asdict(saved) for saved in templates], indent=2))
     except OSError as error:
-        with contextlib.suppress(OSError):
-            temporary.unlink(missing_ok=True)
         raise NeedleTemplateError(f"{path.name} could not be saved") from error
     return templates
