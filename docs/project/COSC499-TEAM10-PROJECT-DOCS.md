@@ -2742,7 +2742,7 @@ uses `channels_window`, `tandem_window`, `cylinder_window`, `fresh_window` or `a
 since each builds the main window and the first two also import a plan. A slow test without
 one of them is marked by hand, as the three interstitial-length tests in
 `pdf/test_template_reference.py` are, since their first call takes about 9 s. *Verified*
-2026-11-17 on macOS: 316 passed and 279 deselected in 13 s. The quick loop is for the
+2026-11-17 on macOS: 317 passed and 279 deselected in 12 s. The quick loop is for the
 red-green cycle. A pull request still needs the whole suite, `python -m pytest`, which
 runs the slow tests too.
 
