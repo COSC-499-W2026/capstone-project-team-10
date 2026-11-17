@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import shutil
+import tempfile
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
@@ -7,6 +10,22 @@ import pytest
 
 if TYPE_CHECKING:
     from classes.app import RadiotherapyApp
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Point HOME and USERPROFILE at a new temporary folder before any test module is imported. A hook, not a test.
+
+    classes.info fixes ~/brachify when brachify is first imported, and several test modules
+    import brachify at collection time, before any fixture runs. Without this, the run would
+    use the developer's real ~/brachify: writing its app.log, reading its last config, and
+    deleting its template libraries, which the template fixtures clear. Each process makes its
+    own folder, so parallel workers never share a library file. The folder is removed at the
+    end of the run. tests/tooling/test_test_home.py fails if brachify sees another home.
+    """
+    home = tempfile.mkdtemp(prefix="brachify-test-home-")
+    os.environ["HOME"] = home
+    os.environ["USERPROFILE"] = home
+    config.add_cleanup(lambda: shutil.rmtree(home, ignore_errors=True))
 
 
 @pytest.fixture(scope="session")
