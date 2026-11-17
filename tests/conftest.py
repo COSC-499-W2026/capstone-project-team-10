@@ -11,6 +11,23 @@ import pytest
 if TYPE_CHECKING:
     from classes.app import RadiotherapyApp
 
+WINDOW_FIXTURES = frozenset({"channels_window", "tandem_window", "cylinder_window", "fresh_window", "anatomy_model"})
+
+
+def pytest_collection_modifyitems(items: list[pytest.Function]) -> None:
+    """Mark every test that uses one of WINDOW_FIXTURES as slow. A hook, not a test.
+
+    Each of those fixtures builds brachify's real main window, and channels_window and
+    tandem_window also import a plan, which builds its needle channels in about 9 seconds. So
+    `python -m pytest -m "not slow"` runs everything else in seconds, as a quick loop while
+    writing a test. A plain `python -m pytest` still runs every test. A slow test that builds
+    no window is marked by hand with @pytest.mark.slow. tests/tooling/test_slow_marker.py
+    fails if a window test is left in the quick loop.
+    """
+    for item in items:
+        if WINDOW_FIXTURES.intersection(item.fixturenames):
+            item.add_marker(pytest.mark.slow)
+
 
 def pytest_configure(config: pytest.Config) -> None:
     """Point HOME and USERPROFILE at a new temporary folder before any test module is imported. A hook, not a test.
