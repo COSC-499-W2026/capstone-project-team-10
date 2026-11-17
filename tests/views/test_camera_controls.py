@@ -119,12 +119,15 @@ class RecordingCameraDisplay:
         self.zoom_factors.append(factor)
 
 
+@pytest.mark.usefixtures("cylinder_window")
 @pytest.mark.parametrize('inverted', [False, True])
 def test_wheel_handler_accumulates_roll_repaints_and_preserves_zoom(controls, inverted):
     """Drive real Qt wheel events through the real widget and its display boundary.
 
     Absolute SetTwist, a missing repaint, zoom during roll or double inversion fails.
     Qt already supplies signed deltas; the handler must preserve those directions.
+    It needs cylinder_window, because OrbitCameraViewer3d connects to the window's collision
+    model when it is built, so without a window it raises AttributeError in any order.
     """
     from PySide6.QtCore import QPoint, QPointF, Qt
     from PySide6.QtGui import QWheelEvent

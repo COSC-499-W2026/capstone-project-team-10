@@ -31,11 +31,14 @@ def test_unavailable_axis_has_no_geometry(viewport_module, length):
     assert viewport_module.central_axis_segment(length) is None
 
 
+@pytest.mark.usefixtures("cylinder_window")
 def test_axis_toggle_availability_and_preference(viewport_module):
     """The button is unavailable before a model and preserves the visibility choice.
 
     Fails if empty scenes permit an axis or a model refresh reverses the user's toggle.
     This exercises the real widget without initializing the native viewport.
+    It needs cylinder_window, because OrbitCameraViewer3d connects to the window's collision
+    model when it is built, so without a window it raises AttributeError in any order.
     """
     canvas = viewport_module.OrbitCameraViewer3d()
     button = canvas.central_axis_button
