@@ -2737,6 +2737,19 @@ Not changed. Fixing the corner check would change every channel's volume, so it 
 change that needs its own PR. `mesh/test_channel_geometry.py` pins the current solids and would
 fail on such a change, by design.
 
+### 7.28 HIGH — Ex1 with 3.5 mm channels exports a solid with a negative volume
+
+*Verified* 2026-11-17 on macOS, on `main` at `22ac6a8` and again with the channel reuse of
+issue #255, with identical numbers. With Ex1 imported and *Channel Diameter* 3.5 mm applied on
+the Channels tab, the Export tab's `_final_mesh()` has a volume of −12,031 mm³, against
+98,961 mm³ at the default 2.7 mm. Each of the twelve channel solids is valid
+(`BRepCheck_Analyzer`) and has a positive volume. Only the result of cutting all of them out
+of the cylinder is wrong. The deadspace does not matter: 6 mm or 8 mm give the same results at
+either diameter. The cause is not known. One guess is that 3.5 mm channels touch their
+neighbours where the needles converge, and the sequential `BRepAlgoAPI_Cut` cannot handle
+that. Nothing warns the clinician, so an STL or STEP exported at that diameter may be broken.
+Not fixed.
+
 ## 8. Testing
 
 ### 8.1 Policy
