@@ -36,7 +36,7 @@ Create the subfolder if it does not exist yet. Add a row above when you create a
 ```
 tests/
 ├── README.md
-├── conftest.py            geometry_app, the one QApplication, and default_settings, for mesh/ and pdf/
+├── conftest.py            geometry_app, the one QApplication, and default_settings, for mesh/ and pdf/; marks window tests slow
 ├── data/                  sample inputs, never beside a test file
 ├── dicom/                 exists: DicomData reset, RTSTRUCT reader, import attach and list-row tests
 │   ├── conftest.py        fixtures used only by dicom tests
@@ -67,6 +67,7 @@ tests/
 │   ├── test_build_executable.py
 │   ├── test_line_endings.py
 │   ├── test_parallel_runs.py
+│   ├── test_slow_marker.py
 │   └── test_test_home.py
 ├── views/                 exists: the Channels, Cylinder, Tandem and Import views, against the real window
 │   ├── conftest.py        units_app, channels_window (Ex1 imported), tandem_window (Ex2) and cylinder_window
@@ -135,7 +136,13 @@ From the repository root, in the conda environment (which includes `pytest`, see
 ```bash
 python -m pytest                          # serial, as before
 python -m pytest -n auto --dist loadfile  # the same tests, one file per worker process
+python -m pytest -m "not slow"            # the quick loop while writing a test
 ```
+
+`slow` marks every test that builds the main window, through `channels_window`, `tandem_window`,
+`cylinder_window`, `fresh_window` or `anatomy_model`. The hook in [conftest.py](conftest.py)
+adds it, and a slow test with none of those fixtures gets `@pytest.mark.slow` by hand. The
+quick loop is for the red-green cycle only. Before a pull request, run the whole suite.
 
 The parallel run needs `pytest-xdist`, which the environment includes (§1.1). `loadfile` keeps
 each test file on one worker, so a module-scoped window imports its plan once, and a test file

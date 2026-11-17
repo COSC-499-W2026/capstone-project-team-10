@@ -2736,6 +2736,16 @@ took 9 min 56 s for 585 passed, and `-n 8 --dist loadfile` took 2 min 33 s for 5
 cannot go below is the slowest single file, `views/test_edit_custom_needle.py`, at about 80 s
 serially. *Not verified:* Windows or Linux.
 
+**Run the quick loop while writing a test.** `python -m pytest -m "not slow"` leaves out every
+test marked `slow`. A hook in [tests/conftest.py](../../tests/conftest.py) marks each test that
+uses `channels_window`, `tandem_window`, `cylinder_window`, `fresh_window` or `anatomy_model`,
+since each builds the main window and the first two also import a plan. A slow test without
+one of them is marked by hand, as the three interstitial-length tests in
+`pdf/test_template_reference.py` are, since their first call takes about 9 s. *Verified*
+2026-11-17 on macOS: 316 passed and 279 deselected in 13 s. The quick loop is for the
+red-green cycle. A pull request still needs the whole suite, `python -m pytest`, which
+runs the slow tests too.
+
 ### 8.2 Current state
 
 *Verified in this documentation pass on macOS:* the contour documentation branch passed
@@ -2851,6 +2861,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
+| `test_slow_marker.py` | a test that uses a window fixture, or a slow interstitial-length test, is still selected by `-m "not slow"`, a pure test such as `dicom/test_data.py` is not, or `-m slow` and `-m "not slow"` overlap or together miss a test (§8.1) |
 | `test_parallel_runs.py` | `pytest-xdist` is missing from `environment.yml`, `spec-file.txt` or the §1.2 `conda create` command, or cannot be imported in the environment running the tests (§1.1, §8.1) |
 | `test_test_home.py` | brachify's `USER_PATH` is not inside the system temp folder during a test run, so the run would use and delete the developer's real `~/brachify` (§7.26) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
