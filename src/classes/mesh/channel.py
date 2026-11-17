@@ -1,5 +1,7 @@
 import numpy as np
 import math
+from collections import OrderedDict
+from collections.abc import Callable, Sequence
 from OCC.Core.gp import gp_Pnt, gp_Ax2
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeCone, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeCylinder
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
@@ -217,7 +219,70 @@ def apply_deadspace_to_points(channel_points, deadspace_mm):
 
     return pts
 
-def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) -> TopoDS_Shape:
+type ChannelKey = tuple[tuple[tuple[float, float, float], ...], float, float, float, float, float]
+"""The points, offset, diameter, deadspace, threading depth and threading diameter of one channel solid."""
+
+KEPT_CHANNEL_SOLIDS = 256  # about 13 needles a plan, so many cylinder lengths and diameters fit
+
+
+class ChannelSolids:
+    """Channel solids already built, by the inputs they were built from, up to a fixed number.
+
+    Once full, keeping one more drops the solid used longest ago.
+    """
+
+    def __init__(self, capacity: int) -> None:
+        self._capacity = capacity
+        self._solids: OrderedDict[ChannelKey, TopoDS_Shape] = OrderedDict()
+
+    def get(self, key: ChannelKey) -> TopoDS_Shape | None:
+        """Return the solid built from these inputs, or None if none is kept."""
+        solid = self._solids.get(key)
+        if solid is not None:
+            self._solids.move_to_end(key)
+        return solid
+
+    def keep(self, key: ChannelKey, solid: TopoDS_Shape) -> None:
+        """Keep a solid under the inputs it was built from."""
+        self._solids[key] = solid
+        self._solids.move_to_end(key)
+        if len(self._solids) > self._capacity:
+            self._solids.popitem(last=False)
+
+
+_built_channels = ChannelSolids(KEPT_CHANNEL_SOLIDS)
+
+
+def channel_key(channel_points: Sequence[Sequence[float]], offset: float, diameter: float, config: dict[str, float]) -> ChannelKey:
+    """Return every input rounded_channel's solid depends on, as one hashable value."""
+    points = tuple((float(x), float(y), float(z)) for x, y, z in channel_points)
+    return (
+        points,
+        float(offset),
+        float(diameter),
+        float(config.get("CONFIG_DEADSPACE", 6.0)),
+        float(config.get("CONFIG_CHANNELS_THREADING_DEPTH")),
+        float(config.get("CONFIG_CHANNELS_THREADING_DIAMETER")),
+    )
+
+
+def rounded_channel(channel_points: Sequence[Sequence[float]], offset: float = 0.0, diameter: float = 3.0) -> TopoDS_Shape:
+    """Return the channel solid for these points, reusing the one already built from identical inputs.
+
+    The inputs are the points, offset and diameter, and the deadspace and threading settings the
+    build reads, so the solid returned is the one a fresh build would make. A build that opened
+    the window's warning or error dialog is not kept, so the next build runs and reports again.
+    """
+    key = channel_key(channel_points, offset, diameter, get_app().values.config_values)
+    solid = _built_channels.get(key)
+    if solid is None:
+        solid, built_cleanly = _build_rounded_channel(channel_points, offset, diameter)
+        if built_cleanly:
+            _built_channels.keep(key, solid)
+    return solid
+
+
+def _build_rounded_channel(channel_points, offset: float, diameter: float) -> tuple[TopoDS_Shape, bool]:
     """
     If a needle channel has a long distance between the first and second point, this helps stub it
     """
@@ -225,6 +290,12 @@ def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) 
     # and convert into a gp_Pnt
     # rounding/truncation is needed otherwise there can be a bug in pipe = BRepAlgoAPI_Fuse(cone, pipe).Shape() below.
     window = get_app().window
+    reported: list[Callable[[], None]] = []
+
+    def report(dialog: Callable[[], None]) -> None:
+        reported.append(dialog)
+        dialog()
+
     channel_points = np.array(channel_points)
     
     config = get_app().values.config_values
@@ -378,7 +449,7 @@ def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) 
                             printpoint(p1)
                             printpoint(p2)
                             log.warning("\n\n\n\n\n\n\n\n\n\nWarning thrown while constructing channel")
-                            window.channel_display_warning()
+                            report(window.channel_display_warning)
                 
         except:
             fix = fix1()
@@ -396,7 +467,7 @@ def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) 
                             printpoint(p1)
                             printpoint(p2)
                             log.warning("Warning sent while making 3d model of channel")
-                            window.channel_display_warning()
+                            report(window.channel_display_warning)
                 else:
                     fix = fix3()
                     if(fix[0]==1 or fix[0] ==0):
@@ -405,12 +476,12 @@ def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) 
                             printpoint(p1)
                             printpoint(p2)
                             log.warning("Warning sent while making 3d model of channel")
-                            window.channel_display_warning()
+                            report(window.channel_display_warning)
                     else:
                         printpoint(p1)
                         printpoint(p2)
                         log.error("loading channel to 3d display failed")
-                        window.channel_display_error()
+                        report(window.channel_display_error)
 
 
         pipe = tempfuse.Shape()
@@ -424,7 +495,7 @@ def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) 
                     temp = BRepAlgoAPI_Fuse(pipe, BRepPrimAPI_MakeSphere(point, radius-0.01).Shape())
                     if(temp.HasWarnings()):
                         log.error("Error Constructing corner of a 3D channel")
-                        window.channel_display_error()
+                        report(window.channel_display_error)
                     else:
                         pipe = temp.Shape()
                 else:
@@ -432,7 +503,7 @@ def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) 
             else:
                 pipe = temp.Shape()
     except:
-        window.channel_display_error()
+        report(window.channel_display_error)
 
     # if the points extend past z zero, don't extend
     if points[-1].Z() < 0:
@@ -471,12 +542,12 @@ def rounded_channel(channel_points, offset: float = 0.0, diameter: float = 3.0) 
                     pipe = tempfuse.Shape()
                 except Exception as e:
                     log.error("Failed constriction of needle threading"+str(e))
-        return pipe
+        return pipe, not reported
     # extend out of cylinder
     extension_for_pipe = down_to_end(points[-1], radius)
     extended_pipe = BRepAlgoAPI_Fuse(pipe, extension_for_pipe).Shape()
 
-    return extended_pipe
+    return extended_pipe, not reported
 
 def _cone_pipe(p1, p2, radius: float) -> TopoDS_Shape:
     p2.SetX(p2.X()+0.01) # 0.01 makes it so the cone will never be perfectly perpendicular to the cylinder coming after it
