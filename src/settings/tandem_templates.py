@@ -2,23 +2,25 @@
 
 A template records the Tandem tab's eight Generate settings, lengths in mm and angles in
 degrees, rotation included. The file is {"version": 1, "templates": [...]}, decoded into
-TandemTemplate values here and nowhere else. Like settings.cylinder_templates, whose decoders and
-safe save it shares, this module imports nothing from classes or windows. TandemTemplateError
-messages are shown to clinicians on the Tandem tab, so they follow the UI copy rules in AGENTS.md.
+TandemTemplate values here and nowhere else. Loading, saving, adding, updating and deleting are
+the shared rules in settings.template_library, which this module configures through LIBRARY,
+so what stays here is only what makes a tandem template different: its settings, their limits,
+and how one entry is decoded and encoded. Like that module, this one imports nothing from
+classes or windows. TandemTemplateError messages are shown to clinicians on the Tandem tab, so
+they follow the UI copy rules in AGENTS.md.
 """
 
-import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
-from settings.cylinder_templates import JsonValue, Range, decode_number, decode_time, name_key, write_atomically
+from settings.template_library import JsonValue, Range, TemplateLibrary, TemplateLibraryError, decode_number, decode_time
 
 LIBRARY_FILE_NAME = "tandem_templates.json"
 LIBRARY_VERSION = 1
 
 
-class TandemTemplateError(ValueError):
+class TandemTemplateError(TemplateLibraryError):
     """A tandem template, or the library file holding them, cannot be used as written."""
 
 
@@ -61,25 +63,13 @@ RANGES = {
 
 def check_design(design: TandemDesign) -> None:
     """Refuse a value the Generate sub-tab could not show, NaN and infinity included."""
-    for key, value in asdict(design).items():
-        allowed = RANGES[key]
-        if not allowed.minimum <= value <= allowed.maximum:
-            raise TandemTemplateError(
-                f"{allowed.label} must be from {allowed.minimum:g} to {allowed.maximum:g}{allowed.unit}")
+    LIBRARY.check_ranges(asdict(design), RANGES)
 
 
 def make_template(template_id: str, name: str, note: str, design: TandemDesign,
                   created: datetime, modified: datetime) -> TandemTemplate:
     """Validate a template, trimming the spaces around its name and note."""
-    trimmed = name.strip()
-    if not trimmed:
-        raise TandemTemplateError("A tandem template needs a name")
-    if not template_id:
-        raise TandemTemplateError("A tandem template needs an ID")
-    if created.tzinfo is None or modified.tzinfo is None:
-        raise TandemTemplateError("A tandem template's dates need a time zone")
-    if modified < created:
-        raise TandemTemplateError("A tandem template cannot be modified before it was created")
+    trimmed = LIBRARY.validated_name(template_id, name, created, modified)
     check_design(design)
     return TandemTemplate(template_id, trimmed, note.strip(), created, modified, design)
 
@@ -109,76 +99,19 @@ def encode_template(template: TandemTemplate) -> dict[str, JsonValue]:
             **asdict(template.design)}
 
 
-def load_templates(path: Path) -> tuple[TandemTemplate, ...]:
-    """Read every template in the library, or none if nothing has been saved yet."""
-    if not path.exists():
-        return ()
-    try:
-        match json.loads(path.read_text(encoding="utf-8")):
-            case {"version": int(version), "templates": list(entries)} if version == LIBRARY_VERSION:
-                templates = tuple(decode_template(entry) for entry in entries)
-            case _:
-                raise TandemTemplateError(f"it is not a version {LIBRARY_VERSION} tandem template library")
-        if len({template.template_id for template in templates}) != len(templates):
-            raise TandemTemplateError("two templates share an ID")
-        if len({name_key(template.name) for template in templates}) != len(templates):
-            raise TandemTemplateError("two templates share a name")
-    except (OSError, ValueError, OverflowError) as error:
-        raise TandemTemplateError(f"{path.name} could not be read. {error}") from error
-    return templates
+LIBRARY = TemplateLibrary("tandem", TandemTemplateError, LIBRARY_VERSION, decode_template, encode_template)
 
-
-def write_templates(path: Path, templates: tuple[TandemTemplate, ...]) -> None:
-    """Write the library through write_atomically, so a failed save keeps the old file."""
-    library = {"version": LIBRARY_VERSION, "templates": [encode_template(template) for template in templates]}
-    try:
-        write_atomically(path, json.dumps(library, indent=2))
-    except OSError as error:
-        raise TandemTemplateError(f"{path.name} could not be saved") from error
-
-
-def name_taken(templates: tuple[TandemTemplate, ...], name: str, template_id: str) -> bool:
-    """Whether a template other than template_id already uses this name, in any case."""
-    return any(name_key(saved.name) == name_key(name) and saved.template_id != template_id for saved in templates)
-
-
-def add_template(path: Path, template: TandemTemplate) -> tuple[TandemTemplate, ...]:
-    """Add a new template and write the library back, refusing a name already used in any case."""
-    templates = load_templates(path)
-    if name_taken(templates, template.name, template.template_id):
-        raise TandemTemplateError(f"A tandem template named {template.name} already exists. Use Update to change it")
-    if any(saved.template_id == template.template_id for saved in templates):
-        raise TandemTemplateError("A tandem template with this ID already exists")
-    templates += (template,)
-    write_templates(path, templates)
-    return templates
-
-
-def position(templates: tuple[TandemTemplate, ...], template_id: str) -> int:
-    """Where the template with this ID sits in the library, or an error if it has gone."""
-    for index, saved in enumerate(templates):
-        if saved.template_id == template_id:
-            return index
-    raise TandemTemplateError("That tandem template no longer exists")
+load_templates = LIBRARY.load
+write_templates = LIBRARY.write
+position = LIBRARY.position
+add_template = LIBRARY.add
+delete_template = LIBRARY.delete
 
 
 def update_template(path: Path, template_id: str, name: str, note: str,
                     design: TandemDesign, now: datetime) -> tuple[TandemTemplate, ...]:
     """Replace a template's name, note and design, keeping its ID, created date and place in the list."""
-    templates = load_templates(path)
-    index = position(templates, template_id)
-    updated = make_template(template_id, name, note, design, templates[index].created, now)
-    if name_taken(templates, updated.name, template_id):
-        raise TandemTemplateError(f"A tandem template named {updated.name} already exists")
-    templates = templates[:index] + (updated,) + templates[index + 1:]
-    write_templates(path, templates)
-    return templates
+    def revise(saved: TandemTemplate) -> TandemTemplate:
+        return make_template(template_id, name, note, design, saved.created, now)
 
-
-def delete_template(path: Path, template_id: str) -> tuple[TandemTemplate, ...]:
-    """Remove one template and write the library back."""
-    templates = load_templates(path)
-    index = position(templates, template_id)
-    templates = templates[:index] + templates[index + 1:]
-    write_templates(path, templates)
-    return templates
+    return LIBRARY.update(path, template_id, revise)
