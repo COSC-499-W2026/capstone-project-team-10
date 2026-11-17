@@ -1146,6 +1146,24 @@ by ±0.01 mm in turn. If all three fail the user gets a warning or error dialog.
 the reason the User Manual tells clinicians to *visually re-inspect every channel* after
 changing any value.
 
+**Built channels are reused (issue #255).** `rounded_channel()` is now a short wrapper around
+`_build_rounded_channel()`, which holds steps 1 to 7 unchanged. The wrapper looks the inputs up
+in `_built_channels`, a `ChannelSolids` store, and returns the solid already built from them,
+or builds one and keeps it. The inputs are `channel_key()`: every point, the offset, the
+diameter, `CONFIG_DEADSPACE`, `CONFIG_CHANNELS_THREADING_DEPTH` and
+`CONFIG_CHANNELS_THREADING_DIAMETER`, the only settings the build reads. **A new input to the
+build must be added to `channel_key()`**, or a changed setting would show and export the old
+hole. A build that opens the warning or error dialog is not kept, so the dialog opens again next
+time. The store keeps the 256 solids used last (`KEPT_CHANNEL_SOLIDS`). The solid returned is
+the same `TopoDS_Shape` object, so its geometry is the one a fresh build makes. A displayed or
+exported solid may carry the triangulation OpenCASCADE added to it, which is mesh data, not
+geometry. *Verified* 2026-11-17 on macOS: `mesh/test_channel_geometry.py` (#254) passes
+unchanged, and `mesh/test_channel_reuse.py` fails when any of those inputs is left out of the key,
+when a reported build is kept, or when the store has no limit. Since identical inputs now return
+the same object, `test_cancelling_or_keeping_the_same_values_changes_nothing` in
+`views/test_move_channel.py` still passes on a rebuild from identical inputs, which now takes no
+time, so the freeze it guards against cannot happen either way.
+
 **`tandem.py`** — `Tandem`. Two distinct shape methods, easily confused:
 - `generate_shape()` — the **cut-out** subtracted from the cylinder. Built by intersecting a
   swept tandem profile with a cylinder-shaped envelope (`BRepAlgoAPI_Common`), so the tandem
@@ -2868,6 +2886,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_channel_geometry.py` | a channel of Ex1, or Ex2's Tandem, built as an import builds it at the default settings, differs by more than 0.01 mm or 0.01 mm³ from its volume, centre of mass or tight bounding box measured on `main` at `22ac6a8`, or a plan loses one of those channels. A tip 0.1 mm shorter, or corner spheres 0.01 mm larger, fail all 13 (§5.4, §7.27) |
+| `mesh/test_channel_reuse.py` | `rounded_channel` builds identical inputs twice instead of returning the same solid, reuses a solid after the points, offset, diameter, deadspace or either threading setting changed, keeps a build that opened the error dialog so a reimport would not report it, or its store keeps more solids than its capacity or drops the one used last (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_spec_from_points.py` | a vertical needle gets a bend or a start off the base, a tilt above a vertical run does not give that run as Length 1, Phi is negative or wrong in a quadrant, a needle ending on or crossing the base does not start at the base or gets a Length 1 of 0, a curved path moves the tip, Theta passes the form limit, or no points, one point, NaN or infinity are accepted, or a refusal has a colon or dash (§5.4) |
 | `mesh/test_custom_needle_points.py` | a custom needle's points are not tissue end first at Length 1 plus Length 2, or a length of 0 or less, NaN, infinity, a Length 1 over the cylinder or a start 13.6 mm out, a Theta of 90 or below 0, or a bend with no radius is built, or a refusal has a colon or dash, or a start 13.5 mm out or a Length 1 of 100 mm is refused, or a bend's tip, its arc points or its straight case at Theta 0 are wrong (§5.4) |

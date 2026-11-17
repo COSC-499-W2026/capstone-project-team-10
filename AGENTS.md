@@ -420,6 +420,8 @@ Any view method that changes geometry must be decorated with `@display_action` (
 
 `BrachyCylinder.shape()` returns `self._shape` when one is stored but never stores one itself; only the setters `setDiameter`, `setLength` and `enableBase` clear, rebuild and store it. A new mutator must do the same, or the viewport and the export show stale geometry.
 
+`rounded_channel()` reuses a channel solid already built from the same inputs, which `channel_key()` lists: the points, offset, diameter, `CONFIG_DEADSPACE` and both threading settings. If the build starts reading another setting or argument, add it to `channel_key()` in the same change, or a changed value shows and exports the old hole. §5.4 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) has the details.
+
 Height changes are propagated as an **offset**, not an absolute: `CylinderView.action_apply_settings` emits `height_changed(length - model.starting_length)`, and channels/tandem shift themselves by that delta. Original DICOM needle points are never mutated — `starting_length` is captured at import time and is the fixed reference.
 
 The final export is a boolean: channels and tandem are `BRepAlgoAPI_Cut` out of the cylinder ([export_view.py](src/windows/views/export_view.py)).
