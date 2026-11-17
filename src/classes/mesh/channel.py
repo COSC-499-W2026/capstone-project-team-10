@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import numpy as np
 import math
 from collections import OrderedDict
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from OCC.Core.gp import gp_Pnt, gp_Ax2
 from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeCone, BRepPrimAPI_MakeSphere, BRepPrimAPI_MakeCylinder
 from OCC.Core.BRepAlgoAPI import BRepAlgoAPI_Fuse
+from OCC.Core.BRepBuilderAPI import BRepBuilderAPI_Copy
 from OCC.Core.TopoDS import TopoDS_Shape
 
 import classes.mesh.helper as helper
@@ -219,8 +223,26 @@ def apply_deadspace_to_points(channel_points, deadspace_mm):
 
     return pts
 
-type ChannelKey = tuple[tuple[tuple[float, float, float], ...], float, float, float, float, float]
-"""The points, offset, diameter, deadspace, threading depth and threading diameter of one channel solid."""
+@dataclass(frozen=True)
+class ChannelSettings:
+    """The settings a channel solid is built from, read once so the build and its key use the same values."""
+
+    deadspace: float
+    threading_depth: float
+    threading_diameter: float
+
+    @staticmethod
+    def from_config(config: Mapping[str, float]) -> ChannelSettings:
+        """Read the deadspace, 6 mm when missing, and the channel threading depth and diameter."""
+        return ChannelSettings(
+            deadspace=float(config.get("CONFIG_DEADSPACE", 6.0)),
+            threading_depth=float(config.get("CONFIG_CHANNELS_THREADING_DEPTH")),
+            threading_diameter=float(config.get("CONFIG_CHANNELS_THREADING_DIAMETER")),
+        )
+
+
+type ChannelKey = tuple[tuple[tuple[float, float, float], ...], float, float, ChannelSettings]
+"""The points, offset, diameter and settings of one channel solid."""
 
 KEPT_CHANNEL_SOLIDS = 256  # about 13 needles a plan, so many cylinder lengths and diameters fit
 
@@ -250,39 +272,36 @@ class ChannelSolids:
             self._solids.popitem(last=False)
 
 
-_built_channels = ChannelSolids(KEPT_CHANNEL_SOLIDS)
+built_channels = ChannelSolids(KEPT_CHANNEL_SOLIDS)
 
 
-def channel_key(channel_points: Sequence[Sequence[float]], offset: float, diameter: float, config: dict[str, float]) -> ChannelKey:
+def channel_key(channel_points: Sequence[Sequence[float]], offset: float, diameter: float, settings: ChannelSettings) -> ChannelKey:
     """Return every input rounded_channel's solid depends on, as one hashable value."""
     points = tuple((float(x), float(y), float(z)) for x, y, z in channel_points)
-    return (
-        points,
-        float(offset),
-        float(diameter),
-        float(config.get("CONFIG_DEADSPACE", 6.0)),
-        float(config.get("CONFIG_CHANNELS_THREADING_DEPTH")),
-        float(config.get("CONFIG_CHANNELS_THREADING_DIAMETER")),
-    )
+    return (points, float(offset), float(diameter), settings)
 
 
 def rounded_channel(channel_points: Sequence[Sequence[float]], offset: float = 0.0, diameter: float = 3.0) -> TopoDS_Shape:
-    """Return the channel solid for these points, reusing the one already built from identical inputs.
+    """Return a channel solid for these points, copied from the one already built from identical inputs.
 
-    The inputs are the points, offset and diameter, and the deadspace and threading settings the
-    build reads, so the solid returned is the one a fresh build would make. A build that opened
-    the window's warning or error dialog is not kept, so the next build runs and reports again.
+    The settings are read once, and the same values build the solid and form its key, so a
+    setting the build uses cannot be missing from the key. Each call returns its own copy,
+    because the viewport tells channels apart by their shapes, and two identical applicators
+    must not share one. A build that opened the window's warning or error dialog is not kept,
+    so the next build runs and reports again.
     """
-    key = channel_key(channel_points, offset, diameter, get_app().values.config_values)
-    solid = _built_channels.get(key)
+    settings = ChannelSettings.from_config(get_app().values.config_values)
+    key = channel_key(channel_points, offset, diameter, settings)
+    solid = built_channels.get(key)
     if solid is None:
-        solid, built_cleanly = _build_rounded_channel(channel_points, offset, diameter)
-        if built_cleanly:
-            _built_channels.keep(key, solid)
-    return solid
+        solid, built_cleanly = _build_rounded_channel(channel_points, offset, diameter, settings)
+        if not built_cleanly:
+            return solid
+        built_channels.keep(key, solid)
+    return BRepBuilderAPI_Copy(solid).Shape()
 
 
-def _build_rounded_channel(channel_points, offset: float, diameter: float) -> tuple[TopoDS_Shape, bool]:
+def _build_rounded_channel(channel_points, offset: float, diameter: float, settings: ChannelSettings) -> tuple[TopoDS_Shape, bool]:
     """
     If a needle channel has a long distance between the first and second point, this helps stub it
     """
@@ -298,9 +317,7 @@ def _build_rounded_channel(channel_points, offset: float, diameter: float) -> tu
 
     channel_points = np.array(channel_points)
     
-    config = get_app().values.config_values
-    deadspace_mm = float(config.get("CONFIG_DEADSPACE", 6.0))
-    channel_points = apply_deadspace_to_points(channel_points, deadspace_mm)
+    channel_points = apply_deadspace_to_points(channel_points, settings.deadspace)
 
     # apply the offset for the cylinder length
     # all rows column 3
@@ -392,9 +409,8 @@ def _build_rounded_channel(channel_points, offset: float, diameter: float) -> tu
                 eval(item[1])
         return [max_attempt_value, tempfuse]
     
-    config = get_app().values.config_values
-    threading_depth = config.get("CONFIG_CHANNELS_THREADING_DEPTH")
-    threading_radius = config.get("CONFIG_CHANNELS_THREADING_DIAMETER")/2
+    threading_depth = settings.threading_depth
+    threading_radius = settings.threading_diameter/2
     for i in range(1, len(points) - 1):
         p1 = points[i]
         p2 = points[i + 1]
@@ -509,8 +525,6 @@ def _build_rounded_channel(channel_points, offset: float, diameter: float) -> tu
     if points[-1].Z() < 0:
         #if length == 2 and the last point in points has a Z value < 2 the for loop above will not have run and so there will be no threading added
         if(len(points)==2):
-            threading_depth = config.get("CONFIG_CHANNELS_THREADING_DEPTH")
-            threading_radius = config.get("CONFIG_CHANNELS_THREADING_DIAMETER")/2
             p1 = points[0]
             p2 = points[1]
             if(threading_depth !=0 and threading_radius !=0):
@@ -544,7 +558,7 @@ def _build_rounded_channel(channel_points, offset: float, diameter: float) -> tu
                     log.error("Failed constriction of needle threading"+str(e))
         return pipe, not reported
     # extend out of cylinder
-    extension_for_pipe = down_to_end(points[-1], radius)
+    extension_for_pipe = down_to_end(points[-1], radius, settings)
     extended_pipe = BRepAlgoAPI_Fuse(pipe, extension_for_pipe).Shape()
 
     return extended_pipe, not reported
@@ -561,10 +575,9 @@ def _cone_pipe(p1, p2, radius: float) -> TopoDS_Shape:
     return BRepPrimAPI_MakeCone(axis, radius, 0.001, length).Shape() # Cone made with height = length, bottom radius = 0, top radius =radius, on the axis as defined in the previous line
 
 
-def down_to_end(p1: gp_Pnt, radius: float) -> TopoDS_Shape:
-    config = get_app().values.config_values
-    threading_depth = config.get("CONFIG_CHANNELS_THREADING_DEPTH")
-    threading_radius = config.get("CONFIG_CHANNELS_THREADING_DIAMETER")/2
+def down_to_end(p1: gp_Pnt, radius: float, settings: ChannelSettings) -> TopoDS_Shape:
+    threading_depth = settings.threading_depth
+    threading_radius = settings.threading_diameter/2
     #if threading_radius or threading_depth = 0 then just generate end of needle as normal, else make channel
     if(threading_depth !=0 and threading_radius !=0):
         p2 = gp_Pnt(p1.X(), p1.Y(), threading_depth)#p2 will be placed at a z-value of threading_depth which will be the end of the channel going down to the base of the cylinder

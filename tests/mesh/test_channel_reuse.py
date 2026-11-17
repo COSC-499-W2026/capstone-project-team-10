@@ -5,12 +5,20 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pytest
+from OCC.Core.BRepGProp import brepgprop
+from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeSphere
+from OCC.Core.GProp import GProp_GProps
 
 if TYPE_CHECKING:
+    from OCC.Core.TopoDS import TopoDS_Shape
+
     from classes.app import RadiotherapyApp
+    from classes.mesh.channel import ChannelKey
 
 BENT = [[0.0, 0.0, 100.0], [0.0, 0.0, 50.0], [10.0, 0.0, 20.0]]
+PLANTED = [[2.0, 3.0, 100.0], [2.0, 3.0, 50.0], [12.0, 3.0, 20.0]]
 FLAT_LAST_PIPE = [[0.0, 0.0, 100.0], [0.0, 0.0, 50.0], [30.0, 0.0, 50.0]]
+MARKER_VOLUME = 4.18879  # a sphere of radius 1 mm, which no channel build makes
 
 
 class ChannelProblems:
@@ -43,15 +51,51 @@ def problems(geometry_app: RadiotherapyApp, default_settings: dict[str, float]) 
     geometry_app.window = previous
 
 
-def test_the_same_inputs_give_back_the_solid_already_built(default_settings: dict[str, float]) -> None:
-    """Check two builds from identical points, offset, diameter and settings return the same solid object.
+def volume(solid: TopoDS_Shape) -> float:
+    """Return a solid's volume in mm cubed, to 5 places. A helper, not a test."""
+    properties = GProp_GProps()
+    brepgprop.VolumeProperties(solid, properties)
+    return round(properties.Mass(), 5)
 
-    Fails if the second build runs the 30-odd fuses again, which is what made every plan import
-    take about 9 seconds. The object is the same one, so the geometry is identical by construction.
+
+def plant_marker(settings: dict[str, float]) -> None:
+    """Keep a 1 mm sphere in the store as the solid for PLANTED at offset 0 and diameter 3. A helper, not a test.
+
+    A build never makes that sphere, so a result with its volume came from the store and a
+    result without it was built.
+    """
+    from classes.mesh.channel import ChannelSettings, built_channels, channel_key
+
+    key = channel_key(PLANTED, 0.0, 3.0, ChannelSettings.from_config(settings))
+    built_channels.keep(key, BRepPrimAPI_MakeSphere(1.0).Shape())
+
+
+def test_the_same_inputs_are_given_the_kept_solid_instead_of_a_new_build(default_settings: dict[str, float]) -> None:
+    """Check rounded_channel returns the solid kept for identical points, offset, diameter and settings.
+
+    Fails if it builds again, which runs the 30-odd fuses that made every plan import take
+    about 9 seconds.
     """
     from classes.mesh.channel import rounded_channel
 
-    assert rounded_channel(BENT, 5.0, 3.0) is rounded_channel([list(point) for point in BENT], 5.0, 3.0)
+    plant_marker(default_settings)
+
+    assert volume(rounded_channel([list(point) for point in PLANTED], 0.0, 3.0)) == MARKER_VOLUME
+
+
+def test_each_call_gets_its_own_copy_with_the_same_geometry(default_settings: dict[str, float]) -> None:
+    """Check two calls with identical inputs return solids that are not the same shape but have the same volume.
+
+    Fails if both get the one kept solid. The viewport picks a channel by matching shapes, so
+    two identical applicators would share one shape and a click on the second would select the
+    first. Fails too if the copy is not the kept geometry.
+    """
+    from classes.mesh.channel import rounded_channel
+
+    first, second = rounded_channel(BENT, 5.0, 3.0), rounded_channel(BENT, 5.0, 3.0)
+
+    assert not first.IsSame(second)
+    assert volume(first) == volume(second) > 0
 
 
 @pytest.mark.parametrize(
@@ -62,43 +106,43 @@ def test_the_same_inputs_give_back_the_solid_already_built(default_settings: dic
         ("CONFIG_CHANNELS_THREADING_DIAMETER", 2.0),
     ],
 )
-def test_a_changed_setting_builds_a_new_solid(default_settings: dict[str, float], setting: str, value: float) -> None:
-    """Check changing the deadspace or either threading setting builds a new solid instead of reusing one.
+def test_a_changed_setting_is_built_instead_of_given_the_kept_solid(default_settings: dict[str, float], setting: str, value: float) -> None:
+    """Check changing the deadspace or either threading setting builds a channel instead of reusing the kept one.
 
-    Fails if a setting rounded_channel reads is left out of what it compares. The viewport and
-    the exported model would then keep the old tip or thread after the clinician changed it, and
-    the printed applicator would not match the settings on screen.
+    Fails if a setting the build reads is left out of what rounded_channel compares. The
+    viewport and the exported model would then keep the old tip or thread after the clinician
+    changed it, and the printed applicator would not match the settings on screen.
     """
     from classes.mesh.channel import rounded_channel
 
-    before = rounded_channel(BENT, 0.0, 3.0)
+    plant_marker(default_settings)
     default_settings[setting] = value
 
-    assert rounded_channel(BENT, 0.0, 3.0) is not before
+    assert volume(rounded_channel(PLANTED, 0.0, 3.0)) != MARKER_VOLUME
 
 
 @pytest.mark.parametrize(
     "points, offset, diameter",
     [
-        ([[0.0, 0.0, 100.0], [0.0, 0.0, 50.0], [10.5, 0.0, 20.0]], 0.0, 3.0),
-        (BENT, 0.5, 3.0),
-        (BENT, 0.0, 3.5),
+        ([[2.0, 3.0, 100.0], [2.0, 3.0, 50.0], [12.5, 3.0, 20.0]], 0.0, 3.0),
+        (PLANTED, 0.5, 3.0),
+        (PLANTED, 0.0, 3.5),
     ],
     ids=["points", "offset", "diameter"],
 )
-def test_a_changed_argument_builds_a_new_solid(
+def test_a_changed_argument_is_built_instead_of_given_the_kept_solid(
     default_settings: dict[str, float], points: list[list[float]], offset: float, diameter: float
 ) -> None:
-    """Check a different point, offset or diameter builds a new solid instead of reusing the first.
+    """Check a different point, offset or diameter builds a channel instead of reusing the kept one.
 
     Fails if an argument is left out of what rounded_channel compares, so a moved needle, a
     changed cylinder length or a new diameter would show and export the previous hole.
     """
     from classes.mesh.channel import rounded_channel
 
-    before = rounded_channel(BENT, 0.0, 3.0)
+    plant_marker(default_settings)
 
-    assert rounded_channel(points, offset, diameter) is not before
+    assert volume(rounded_channel(points, offset, diameter)) != MARKER_VOLUME
 
 
 def test_a_channel_that_reported_a_problem_is_built_and_reported_again(problems: ChannelProblems) -> None:
@@ -117,9 +161,11 @@ def test_a_channel_that_reported_a_problem_is_built_and_reported_again(problems:
     assert first and problems.calls == first + first
 
 
-def key(z: float) -> tuple[tuple[tuple[float, float, float], ...], float, float, float, float, float]:
-    """Return a ChannelKey for a one-point channel at height z. A helper, not a test."""
-    return (((0.0, 0.0, z),), 0.0, 3.0, 6.0, 0.0, 0.0)
+def key(z: float) -> ChannelKey:
+    """Return a ChannelKey for a one-point channel at height z, at the default settings. A helper, not a test."""
+    from classes.mesh.channel import ChannelSettings
+
+    return (((0.0, 0.0, z),), 0.0, 3.0, ChannelSettings(deadspace=6.0, threading_depth=5.0, threading_diameter=3.17))
 
 
 def test_the_least_recently_used_solid_is_dropped_once_the_store_is_full(geometry_app: RadiotherapyApp) -> None:
@@ -129,8 +175,6 @@ def test_the_least_recently_used_solid_is_dropped_once_the_store_is_full(geometr
     would keep every needle at every length in memory, or if it drops a solid that was just
     looked up, so going back and forth between two lengths would rebuild each time.
     """
-    from OCC.Core.BRepPrimAPI import BRepPrimAPI_MakeSphere
-
     from classes.mesh.channel import ChannelSolids
 
     store = ChannelSolids(capacity=2)
