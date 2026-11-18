@@ -20,8 +20,9 @@ def brachify_app(tmp_path_factory: pytest.TempPathFactory) -> Iterator[QCoreAppl
     from there. Without this, the tests would load whatever config the developer last opened
     and write app.log into their home folder. Qt allows one QApplication per process, so an
     app another fixture already started (such as a channels fixture in tests/views/) is reused
-    rather than created twice, which would raise RuntimeError. Fails with an import error if
-    brachify's modules cannot be loaded.
+    rather than created twice, which would raise RuntimeError. An app it starts gets window set
+    to None, so a later fixture that saves the previous window does not raise AttributeError.
+    Fails with an import error if brachify's modules cannot be loaded.
     """
     home = tmp_path_factory.mktemp("home")
     with pytest.MonkeyPatch.context() as environment:
@@ -33,7 +34,11 @@ def brachify_app(tmp_path_factory: pytest.TempPathFactory) -> Iterator[QCoreAppl
 
         from classes.app import RadiotherapyApp
 
-        yield QApplication.instance() or RadiotherapyApp(["brachify-tests"])
+        app = QApplication.instance()
+        if app is None:
+            app = RadiotherapyApp(["brachify-tests"])
+            app.window = None
+        yield app
 
 
 @pytest.fixture

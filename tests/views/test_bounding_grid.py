@@ -13,11 +13,14 @@ def viewport_module(units_app):
     return viewport
 
 
+@pytest.mark.usefixtures("cylinder_window")
 def test_grid_control_tracks_scene_and_preserves_user_choice(viewport_module):
     """Enable the grid for a scene while retaining the user's hidden preference.
 
     Incorrect enabled or checked state fails and would show a misleading empty
     reference or unexpectedly turn the grid back on after a redraw.
+    It needs cylinder_window, because OrbitCameraViewer3d connects to the window's collision
+    model when it is built, so without a window it raises AttributeError in any order.
     """
     canvas = viewport_module.OrbitCameraViewer3d()
     button = canvas.grid_button
@@ -100,10 +103,13 @@ def test_grid_label_preserves_text_and_position(viewport_module):
     assert label.Position().Coord() == (10, -20, 30)
 
 
+@pytest.mark.usefixtures("cylinder_window")
 def test_grid_and_central_axis_controls_do_not_overlap(viewport_module):
     """Keep both overlay toggles independently clickable after merging the axis feature.
 
     Overlapping button rectangles fail and would hide one of the controls from the user.
+    It needs cylinder_window, because OrbitCameraViewer3d connects to the window's collision
+    model when it is built, so without a window it raises AttributeError in any order.
     """
     canvas = viewport_module.OrbitCameraViewer3d()
     canvas.resize(480, 472)

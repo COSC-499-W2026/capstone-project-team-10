@@ -2591,7 +2591,7 @@ changes the current row. *Verified*
 2026-11-04 by those two tests, which failed before the change and passed after. The
 running app was not exercised.
 
-### 7.22 Trap — `tests/mesh` and a `cylinder_window` test run alone together raise fixture errors
+### 7.22 Fixed — `tests/mesh` and a `cylinder_window` test run alone together raise fixture errors
 
 *Verified* 2026-11-02 on macOS. `python -m pytest tests/mesh/test_tandem.py
 tests/views/test_tandem_template_controls.py` gives 7 passed and 21 errors, each
@@ -2600,7 +2600,19 @@ and `tests/views/test_cylinder_template_controls.py` in place of the second file
 `geometry_app` (root `conftest.py`) starts the one QApplication without a `window` attribute,
 `units_app` reuses it, and only sets `window` when it creates the app, and `cylinder_window`
 reads `units_app.window` before replacing it. In the whole suite an earlier `tests/views` module's
-`channels_window` sets `window` first, so it passes. Run such files separately. Not changed.
+`channels_window` sets `window` first, so it passes. Run such files separately.
+
+*Fixed* for issue #251, *Verified* 2026-11-17 on macOS. `geometry_app` and `brachify_app` now set
+`window` to `None` when they start the app, as `units_app` already did, so the two commands above
+give 36 passed and 25 passed. The same issue fixed five viewport tests that passed only in
+suite order: `test_grid_control_tracks_scene_and_preserves_user_choice`,
+`test_grid_and_central_axis_controls_do_not_overlap`, `test_axis_toggle_availability_and_preference`
+and both cases of `test_wheel_handler_accumulates_roll_repaints_and_preserves_zoom`. Each builds an
+`OrbitCameraViewer3d`, whose constructor connects to `get_app().window.collisionmodel`, so run
+alone they raised `AttributeError: 'NoneType' object has no attribute 'collisionmodel'`
+(5 failed, 39 passed in their three files). They now use `cylinder_window`, and the three
+files give 44 passed alone. Every test file now passes when run on its own, which a parallel run
+needs, since a worker runs only some of the files.
 
 ### 7.23 HIGH — *Generate Tandem* can show settings it did not build
 
@@ -2699,6 +2711,8 @@ The viewport regressions (*Reasoned from the test bodies*) are:
 | `views/test_central_axis.py` (8 cases) | local-Z endpoints and 10% margin, invalid-length rejection, button availability/preference, or reset notification |
 | `views/test_bounding_grid.py` (16 cases) | rounded/enclosing ticks, invalid bounds, outer-wall placement, native label text/position, empty-scene reset, visibility preference, nonoverlapping independent controls, zoom thresholds or stable walls during refinement |
 
+The five tests in these files that build an `OrbitCameraViewer3d` use `cylinder_window`,
+because its constructor connects to the window's collision model (§7.22).
 These checks do not initialise the native canvas. The grid label test constructs a real
 `AIS_TextLabel`; native scene rendering still requires a displayed run (see §5.7).
 

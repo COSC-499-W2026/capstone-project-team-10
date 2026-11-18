@@ -17,8 +17,10 @@ def geometry_app(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Radiother
     get_app() when it is imported and when it builds a solid, and classes.pdf imports it, so the
     app must exist first. HOME and USERPROFILE are redirected before
     brachify is imported, because classes.info fixes ~/brachify at import time. Qt allows one
-    QApplication per process, so an app another fixture already started is reused. Fails with
-    an import error if brachify's modules cannot be loaded.
+    QApplication per process, so an app another fixture already started is reused. An app it
+    starts gets window set to None, as RadiotherapyApp.gui() would set it later, so a window
+    fixture that saves the previous window does not raise AttributeError when it runs after
+    these tests. Fails with an import error if brachify's modules cannot be loaded.
     """
     with pytest.MonkeyPatch.context() as environment:
         home = str(tmp_path_factory.mktemp("geometry-home"))
@@ -29,7 +31,11 @@ def geometry_app(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Radiother
 
         from classes.app import RadiotherapyApp
 
-        yield QApplication.instance() or RadiotherapyApp(["geometry-tests"])
+        app = QApplication.instance()
+        if app is None:
+            app = RadiotherapyApp(["geometry-tests"])
+            app.window = None
+        yield app
 
 
 @pytest.fixture
