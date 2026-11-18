@@ -19,18 +19,31 @@ def wait_for_checks(window):
     pytest.fail('Organ collision checks did not finish')
 
 
+def load_needles(window, paths: dict[str, list[list[float]]]) -> None:
+    """Helper importing needle paths through ChannelsModel.load_data, the slot an import calls.
+
+    Each label gets ROI 10, 11, ... and channel 1, 2, ... in order. The needles go in through
+    the model's own import, not its private storage, so a test does not depend on how the
+    model keeps them.
+    """
+    from classes.dicom.data import DicomData
+    plan = DicomData()
+    plan.channels_labels = list(paths)
+    plan.channels_rois = [str(10 + index) for index in range(len(paths))]
+    plan.channel_numbers = [str(1 + index) for index in range(len(paths))]
+    plan.channel_paths = list(paths.values())
+    window.channelsmodel.load_data(plan)
+
+
 def load_collision_scene(window):
-    """Helper installing real needle paths and an organ without building channel solids.
+    """Helper installing real needle paths and an organ.
 
     The first needle crosses the organ; the second misses. Model warnings must
     identify only the first or the integration assertions fail.
     """
-    from classes.mesh.channel import NeedleChannel
     from classes.app import get_app
     get_app().values.config_values['CONFIG_DEADSPACE'] = 0.
-    window.channelsmodel.channels = {
-        'Needle 1': NeedleChannel('10','1','Needle 1', [[0.,0.,12.],[0.,0.,0.]]),
-        'Needle 2': NeedleChannel('11','2','Needle 2', [[8.,0.,12.],[8.,0.,0.]])}
+    load_needles(window, {'Needle 1': [[0.,0.,12.],[0.,0.,0.]], 'Needle 2': [[8.,0.,12.],[8.,0.,0.]]})
     window.structuresmodel.load_plan(organ_plan(), 10.)
     wait_for_checks(window)
 
@@ -53,11 +66,11 @@ def test_move_disable_hide_and_reset_invalidate_collision_state(cylinder_window)
     wait_for_checks(window)
     assert window.collisionmodel.collisions == {}
     window.channelsmodel.channels['Needle 1'].set_translation((0.,0.,0.))
-    window.channelsmodel.disabled_channels = ['Needle 1']
+    window.channelsmodel.toggle_channel_enabled('Needle 1')
     window.channelsmodel.values_changed.emit()
     wait_for_checks(window)
     assert window.collisionmodel.collisions == {}
-    window.channelsmodel.disabled_channels = []
+    window.channelsmodel.toggle_channel_enabled('Needle 1')
     window.channelsmodel.values_changed.emit()
     wait_for_checks(window)
     assert window.collisionmodel.collisions == {2: ('Needle 1',)}
@@ -120,7 +133,7 @@ def test_diameter_deadspace_and_tandem_are_reflected_in_check_paths(cylinder_win
     channel = window.channelsmodel.channels['Needle 1']
     channel.set_diameter(3.6)
     channel.set_translation((1.,2.,3.))
-    window.channelsmodel.disabled_channels = ['Needle 2']
+    window.channelsmodel.toggle_channel_enabled('Needle 2')
     paths = window.collisionmodel.paths()
     assert len(paths) == 1
     assert paths[0].points == ((1.,2.,17.), (1.,2.,3.), (1.,2.,-1.))
@@ -133,11 +146,9 @@ def test_generated_shaft_extension_is_checked(cylinder_window):
     Ignoring this extension misses the organ below both imported dwell points
     and fails; the displayed needle shaft must not silently escape the check.
     """
-    from classes.mesh.channel import NeedleChannel
     window = cylinder_window
     load_collision_scene(window)
-    window.channelsmodel.channels = {
-        'short path': NeedleChannel('10','1','short path', [[0.,0.,15.],[0.,0.,12.]])}
+    load_needles(window, {'short path': [[0.,0.,15.],[0.,0.,12.]]})
     window.channelsmodel.values_changed.emit()
     wait_for_checks(window)
     assert window.collisionmodel.collisions == {2: ('short path',)}
