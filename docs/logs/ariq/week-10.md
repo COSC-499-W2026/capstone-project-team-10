@@ -206,3 +206,43 @@ Stated once here instead of in each section.
 
   ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/60af70b25b9e1b86deb04b88c7cab59a054ab993/docs/logs/ariq/screenshots/week-10/pr-260-1-export-and-pytest-621.png)
 - Not applicable: **generated-test review (no problem beyond the review's)**.
+
+## Stack #269 to #269, at a glance
+
+Three stacked PRs that change how `ChannelsModel` keeps an applicator, with no behaviour change, prompted by #195's removal, which forgot the 3D view (§7.25). The tests that pin what a rename carries come first, then the 3D view drops a gone channel in one place, then each applicator's state becomes one `ChannelRecord`. The same scripted run on Ex1 gave identical results on #260 and on each refactor PR. Each PR is based on the one above it and closes its own issue.
+A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
+
+| PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
+|---|---|---|---|---|---|---|
+| [#269](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/269) | #260 | #266 | Tests only: what a rename carries is pinned, and two test files reach `ChannelsModel` through its import and methods | 7, +176/−21 | 3 | 624 |
+
+The suite had 621 tests on #260.
+
+### Shared by every PR in this stack
+
+Stated once here instead of in each section.
+
+- **Code quality checklist.** For each PR, I did **`anti_slop review --base <parent branch>` (no blocking finding; the one warning, `no-shape-in-symbol-names` on `shapes`, is the rule AGENTS.md sets aside) and a read of that PR's own diff** to ensure that my feature contribution does not contain any of the following:
+  - hardcoded values
+  - duplicate code
+  - dead code
+  - unnecessary function calls
+  - excessive conditional logic
+  - deep nesting
+  - high cyclomatic complexity
+  - classes/modules/functions with many unrelated responsibilities
+- **Regression checks.** Every PR's regression receipt also includes **`build.py --check` and `session-start.sh`, both exit 0**. Each section gives only its own `python -m pytest` result.
+- **Run on macOS only.** **Every run in this stack was on a 10-core Apple Silicon Mac. Windows and Linux are *Not verified***.
+
+### For test PR #**269** (1 of 3, on #260) written to assess functionality in **#195, #238 and #239, removing and renaming an applicator**
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_renamed_tandem_stays_the_tandem_and_out_of_the_cut`, `test_after_a_rename_every_change_reaches_the_applicator_by_its_new_name` and `test_a_renamed_applicator_is_drawn_under_its_new_name_only` (3 new; 3 in the file; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **renaming the applicator chosen as the tandem** and they passed.
+- I checked that these negative cases involving **`rename_channel` dropping the disabled state, leaving `custom_specs` under the old name, or leaving the old shape drawn (each made a different new test fail)** failed as expected.
+- When I reviewed the **setups of `test_collision_model.py` and of the flat-needle test in `test_edit_custom_needle.py`**, I noticed **they assigned `ChannelsModel.channels` and `disabled_channels` directly, so they tested how the model stores applicators, not what it does**. Therefore, I did **import their needles through `load_data` and disable through `toggle_channel_enabled`, keeping every assertion (29 passed; with disabled needles counted as visible, 2 collision tests failed)**.
+- Among these tests, **no new test** are unit tests and **the 3 new tests, which drive the real `ChannelsModel` in a window with Ex1 imported,** are integration tests.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 624 passed (621 after #260), and `-n auto --dist loadfile`, 624 passed (screenshot 1)**.
+  ![1, on test/pin-applicator-records, the three test files 32 passed and the suite in parallel 624 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/55937c0cae88d448e4d2d294cbd77e1bad0c26d5/docs/logs/ariq/screenshots/week-10/pr-269-1-pytest-624.png)

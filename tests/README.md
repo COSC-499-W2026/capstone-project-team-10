@@ -76,6 +76,7 @@ tests/
 │   ├── test_camera_controls.py  camera gesture and zoom rules
 │   ├── test_central_axis.py     reference geometry and toggle/reset state
 │   ├── test_add_custom_needle.py     adding a custom applicator: model, form, list, export and sheet
+│   ├── test_applicator_records.py    what a rename carries: tandem status, later changes and the 3D view
 │   ├── test_bounding_grid.py    bounds, labels and independent controls (PR #81)
 │   ├── test_channels_view.py
 │   ├── test_custom_needle_cut_check.py  the check that a custom applicator's channel can be cut out
