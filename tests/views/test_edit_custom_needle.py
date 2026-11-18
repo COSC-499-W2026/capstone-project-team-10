@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from copy import copy
 from dataclasses import replace
 from math import dist
 from typing import TYPE_CHECKING
@@ -10,7 +11,6 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtTest import QTest
 
-from classes.mesh.channel import NeedleChannel
 from classes.mesh.helper import CustomNeedleError, CustomNeedleSpec
 
 if TYPE_CHECKING:
@@ -276,7 +276,8 @@ class RecordedWarnings:
         self.shown.append((title, text))
 
 
-def test_an_applicator_whose_numbers_cannot_be_estimated_is_explained_and_the_form_never_opens(channels_window: MainWindow) -> None:
+def test_an_applicator_whose_numbers_cannot_be_estimated_is_explained_and_the_form_never_opens(
+        channels_window: MainWindow, restored_plan: None) -> None:
     """Check pressing Edit on a plan needle that never rises above the base shows a warning naming it, opens no form and changes nothing.
 
     Fails if the CustomNeedleError from spec_for_edit escapes the click handler, which Qt turns into an
@@ -285,16 +286,17 @@ def test_an_applicator_whose_numbers_cannot_be_estimated_is_explained_and_the_fo
     """
     view = channels_window.navigationmodel.views[CHANNELS_TAB]
     model = channels_window.channelsmodel
-    flat = NeedleChannel(roi_number="1", channel_number="99", label="Flat Plan Needle", points=[[0.0, 0.0, -5.0], [0.0, 0.0, -10.0]])
-    model.channels["Flat Plan Needle"] = flat
+    plan = channels_window.dicommodel.data
+    flat_plan = copy(plan)
+    flat_plan.channels_labels = [*plan.channels_labels, "Flat Plan Needle"]
+    flat_plan.channels_rois = [*plan.channels_rois, "1"]
+    flat_plan.channel_numbers = [*plan.channel_numbers, "99"]
+    flat_plan.channel_paths = [*plan.channel_paths, [[0.0, 0.0, -5.0], [0.0, 0.0, -10.0]]]
+    model.load_data(flat_plan)
     model.selected_channels = ["Flat Plan Needle"]
     form, warnings = StubbedEdit(spec("Flat Plan Needle")), RecordedWarnings()
     view.ask_edit, view.show_warning = form, warnings
-    try:
-        view.action_edit_applicator()
-    finally:
-        del model.channels["Flat Plan Needle"]
-        model.selected_channels = []
+    view.action_edit_applicator()
 
     (title, text), = warnings.shown
     assert form.offered == [] and title == "Edit Applicator"
