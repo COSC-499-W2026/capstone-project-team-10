@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #256 to #257, at a glance
+## Stack #256 to #258, at a glance
 
 Six stacked PRs that make the test suite fast enough to keep growing: every test file passes on its own and in its own home folder, the files run in parallel, a quick loop leaves out the tests that build a window, and the channel solids are built once and reused, with the geometry pinned first. On the same machine the serial suite went from 10 min 45 s on #259 to 2 min 55 s. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -13,6 +13,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#256](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/256) | `main` | #251 | Every test file passes alone: five viewport tests get a window, §7.22 fixed | 9, +104/−8 | 0 | 585 |
 | [#262](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/262) | #256 | #261 | Each test run gets its own home, so the suite no longer uses or deletes the real `~/brachify`; §7.26 | 6, +92/−2 | 1 | 586 |
 | [#257](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/257) | #262 | #252 | `pytest-xdist` on every platform and the parallel command | 8, +118/−7 | 4 | 590 |
+| [#258](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/258) | #257 | #253 | The `slow` marker and the 12 s quick loop | 9, +150/−4 | 6 | 596 |
 
 The suite had 585 tests on `main` before the stack (`22ac6a8`).
 
@@ -106,3 +107,30 @@ Stated once here instead of in each section.
 
   ![1, on chore/parallel-test-runs, test_parallel_runs.py 4 passed and python -m pytest -n auto --dist loadfile 590 passed in 2 min 9 s](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6c4e31fc99fac149c6767a902538b84fb3c3aab1/docs/logs/ariq/screenshots/week-10/pr-257-1-pytest-590.png)
 - Not applicable: **abnormal cases (the input is three fixed files), generated-test review (no problem found)**.
+
+### For PR #**258** (4 of 6, on #257)
+
+- As part of requirement **issue #253, a quick loop for test-driven development**, the user needs to do **run only the tests that need no window, in seconds, between red and green**.
+- Therefore, I implemented/generated code so that **`python -m pytest -m "not slow"` leaves out every test that builds the main window or takes seconds, for developers writing tests**.
+
+#### Review and design
+
+- When I reviewed the **generated hook, which first marked only `channels_window` and `tandem_window` tests** for this functionality, I noticed **13 slow tests import a plan inside the test through `cylinder_window`, `fresh_window` or `anatomy_model`, so they would stay in the quick loop**. Therefore, I did **mark every window fixture, leaving one slow test unmarked, which I marked by hand**.
+  - When I reviewed the **mark on that one PDF test**, I noticed **skipping it moved its 8.7 s to the next test, since the cost is the first call of `interstitial_length`**. Therefore, I did **mark all three tests that call it**.
+- The PR does not contain any temporary workaround because **the marker is pytest's own, applied in one hook from fixture names**.
+- The PR only contains small functions that are **3 to 18 lines** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`tests/conftest.py`, `pytest.ini` and new `tests/tooling/test_slow_marker.py`** because **the hook must see every collected test, so it belongs in the root conftest**.
+- Not applicable: **DFD process (no application code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_test_that_builds_a_window_or_takes_seconds_is_left_out_of_the_quick_loop` (4 cases), `test_a_test_of_pure_logic_stays_in_the_quick_loop` and `test_the_quick_loop_and_the_slow_tests_together_are_the_whole_suite` (6 new; 6 in the file; screenshot 1)** passed.
+- I checked that these negative cases involving **`cylinder_window` removed from `WINDOW_FIXTURES`, and the dome test's mark removed (1 failed each)** failed as expected.
+- When I reviewed the **`collected` helper**, I noticed **`check=True` raised when `-m slow` selected nothing, because pytest exits 5**. Therefore, I did **accept exit code 5 as an empty selection**.
+- Among these tests, **none** are unit tests and **all 6** are integration tests.
+- These tests are included in the directory **`tests/tooling/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 596 passed (590 after #257), `-m "not slow"`, 317 passed and 279 deselected in 12 s, and `-n auto --dist loadfile`, 596 passed in 1 min 58 s (screenshot 1)**.
+
+  ![1, on test/slow-marker, test_slow_marker.py 6 passed, the quick loop 317 passed and 279 deselected in 12 s, and the suite in parallel 596 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/47b527fa9616d88a15349c888f1a63cb760f410c/docs/logs/ariq/screenshots/week-10/pr-258-1-pytest-596.png)
+- Not applicable: **abnormal cases (marker expressions are pytest's own)**.

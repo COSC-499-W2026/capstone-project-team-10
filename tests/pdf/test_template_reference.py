@@ -11,7 +11,8 @@ def interstitial_length(needle: list[list[float]]) -> float:
     """Return the reference sheet's interstitial length for one needle in a 30 mm by 160 mm cylinder.
 
     A helper, not a test. The cylinder is built from the live settings, so each test sets the
-    tip first. The needle's first point is its tip, as in a plan.
+    tip first. The needle's first point is its tip, as in a plan. Its first call in a run takes
+    about 9 s, so every test that calls it is marked slow and left out of `-m "not slow"`.
     """
     from classes.mesh.cylinder import BrachyCylinder
     from classes.pdf.template_reference import get_all_interstitial_lengths
@@ -19,6 +20,7 @@ def interstitial_length(needle: list[list[float]]) -> float:
     return get_all_interstitial_lengths(cylinder=BrachyCylinder(diameter=30.0), needles=[needle])[0]
 
 
+@pytest.mark.slow
 def test_a_needle_leaving_a_dome_10_mm_off_axis_is_measured_from_the_dome(
     default_settings: dict[str, float],
 ) -> None:
@@ -31,6 +33,7 @@ def test_a_needle_leaving_a_dome_10_mm_off_axis_is_measured_from_the_dome(
     assert interstitial_length(THROUGH_THE_TIP) == pytest.approx(23.82, abs=0.1)
 
 
+@pytest.mark.slow
 def test_a_needle_leaving_a_flat_tip_is_measured_from_the_flat_top(
     default_settings: dict[str, float],
 ) -> None:
@@ -44,6 +47,7 @@ def test_a_needle_leaving_a_flat_tip_is_measured_from_the_flat_top(
     assert interstitial_length(THROUGH_THE_TIP) == pytest.approx(20.0, abs=0.1)
 
 
+@pytest.mark.slow
 def test_a_flat_tip_keeps_its_wall_up_to_the_top(default_settings: dict[str, float]) -> None:
     """Check a sideways needle at z 155 leaves a flat-tipped cylinder's wall at x 15, 5 mm from its tip.
 
