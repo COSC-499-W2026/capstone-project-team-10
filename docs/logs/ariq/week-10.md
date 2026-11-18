@@ -3,9 +3,9 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #256 to #259, at a glance
+## Stack #256 to #260, at a glance
 
-Six stacked PRs that make the test suite fast enough to keep growing: every test file passes on its own and in its own home folder, the files run in parallel, a quick loop leaves out the tests that build a window, and the channel solids are built once and reused, with the geometry pinned first. On the same machine the serial suite went from 10 min 45 s on #259 to 2 min 55 s. Each PR is based on the one above it and closes its own issue.
+Six stacked PRs that make the test suite fast enough to keep growing: every test file passes on its own and in its own home folder, the files run in parallel, a quick loop leaves out the tests that build a window, and the channel solids are built once and reused, with the geometry pinned first. Run alone, the serial suite went from 8 min 48 s on #256 to 2 min 26 s on #260. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
@@ -15,6 +15,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#257](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/257) | #262 | #252 | `pytest-xdist` on every platform and the parallel command | 8, +118/−7 | 4 | 590 |
 | [#258](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/258) | #257 | #253 | The `slow` marker and the 12 s quick loop | 9, +150/−4 | 6 | 596 |
 | [#259](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/259) | #258 | #254 | Tests only: every sample channel's solid pinned; §7.27 | 5, +158/−1 | 14 | 610 |
+| [#260](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/260) | #259 | #255 | `rounded_channel` copies a solid built from identical inputs; §7.28 | 8, +403/−25 | 11 | 621 |
 
 The suite had 585 tests on `main` before the stack (`22ac6a8`).
 
@@ -161,3 +162,47 @@ Stated once here instead of in each section.
 
   ![1, on test/channel-geometry-baseline, test_channel_geometry.py 14 passed and the suite in parallel 610 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/58966aff794694d21d70dccf0e9b6569dee8dbc9/docs/logs/ariq/screenshots/week-10/pr-259-1-pytest-610.png)
 - Not applicable: **abnormal cases (the inputs are the two sample plans), generated-test review (no problem found)**.
+
+### For PR #**260** (6 of 6, on #259)
+
+- As part of requirement **issue #255, faster channel building with the same geometry**, the user needs to do **import a plan, change the cylinder length or channel settings and back, add and remove an applicator, reimport, and export**.
+- Therefore, I implemented/generated code so that **a channel built once is copied for identical inputs, so returning to a length, setting or plan already built takes about 1 s instead of about 10 s, with the same exported solid, for clinicians and for the test suite**.
+
+#### Backend
+
+- The system uses **memoisation inside the geometry module, keyed by every input of the build** because **the solid is a pure function of those inputs, and the app and the tests rebuild the same plan many times**. Benefits for using this pattern include **a reimport in 0.06 s instead of 9.4 s, and a serial suite in 2 min 26 s instead of 8 min 48 s on #256, each run alone**. Possible risks include **a stale hole when an input is missing from the key, two channels sharing one solid, a missing warning dialog, and memory growth**.
+  - To mitigate **a stale hole**, we implemented **`ChannelSettings`, read once and passed to both the key and the build**.
+  - To mitigate **two channels sharing one solid**, we implemented **a `BRepBuilderAPI_Copy` of the kept solid on every call**.
+  - To mitigate **a missing dialog and memory growth**, we implemented **keeping only builds that opened no dialog, in a store of the 256 solids used last**.
+  - We considered alternative solutions such as **one parallel `BRepAlgoAPI_Fuse` per needle, which took 6.1 s against 4.6 s for six Ex1 needles**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage, unchanged**. This structure has low coupling because **the store is private to `channel.py`, and `NeedleChannel.shape()` calls `rounded_channel` as before**. This structure has high cohesion because **`ChannelSolids` only stores and evicts, and `ChannelSettings` only reads settings**. This design is scalable because **a new setting is one more field in `ChannelSettings`**.
+
+  **[System architecture, unchanged](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/252ffaa356e7db891f2add7c5772a8251ced9c97/docs/architecture/diagrams/system-architecture.svg)**
+- The system adopts a **stateful** approach to state management because **the store lasts the app's session, across imports**. This method is done by **a module-level `ChannelSolids`**. Benefits for using this approach include **a reimported plan reuses its channels**. Possible risks include **state shared between tests**.
+  - To mitigate **state shared between tests**, we implemented **a key that includes the live settings, so a test that changes one builds new solids**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#255: `tests/mesh/test_channel_reuse.py` (10 cases) and the twin test in `tests/views/test_add_custom_needle.py`, with #259's `tests/mesh/test_channel_geometry.py` unchanged**
+- Not applicable: **database, data processing (unchanged), Level 0 DFD, Level 1 DFD (no data flow changed), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated wrapper** for this functionality, I noticed **the build opens its dialogs in six places, so the wrapper could not tell a clean build from a reported one**. Therefore, I did **route the six calls through a local `report` and keep only builds with none**.
+- The review by **Ayyhab** identified **that two channels built from identical inputs shared one solid, so `set_selected_shapes` selected the first of two identical applicators when the second was clicked**. Therefore, I did **return a copy of the kept solid on every call, with a test of that case**.
+  - The review by **Ayyhab** identified **that `channel_key` listed the settings separately from the build, so a setting added to one could be missed in the other**. Therefore, I did **read them once into `ChannelSettings` and pass it to the key, the build and `down_to_end`**.
+  - The review by **Ayyhab** identified **the branch still carrying #257's and #258's old commits**. Therefore, I did **confirm the stack had already been rebuilt on #259, 5 commits of its own, before the fixes**.
+- The PR does not contain any temporary workaround because **the build's steps are unchanged, as #259's baseline shows**.
+- The PR only contains small functions that are **3 to 18 lines (new) and 3 to 20 lines (tests); `_build_rounded_channel` is the existing 261-line body, renamed** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`src/classes/mesh/channel.py`** because **the store sits beside the build it skips, so no caller changes**.
+- This work belongs in **3 Channels** in the DFD because **it builds the channel solids the Channels and Export tabs show**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_the_same_inputs_are_given_the_kept_solid_instead_of_a_new_build`, `test_each_call_gets_its_own_copy_with_the_same_geometry` and `test_selecting_the_second_of_two_identical_applicators_selects_that_one` (11 new; 10 in `test_channel_reuse.py`; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a flat last pipe that opens the error dialog on every build** and they passed.
+- I checked that these negative cases involving **the kept solid returned uncopied (2 failed), the settings left out of the key (3 failed), and before the review a reported build kept or no size limit (1 failed each)** failed as expected.
+- Among these tests, **the store test** are unit tests and **the 10 that build real channels or a window** are integration tests.
+- These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 621 passed (610 after #259), `-n auto --dist loadfile`, 621 passed in 59 s, and the real app on Ex1 and Ex2 exporting the same solid volume and the same STL bytes as `main` at all 9 steps (screenshot 1)**.
+
+  ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/60af70b25b9e1b86deb04b88c7cab59a054ab993/docs/logs/ariq/screenshots/week-10/pr-260-1-export-and-pytest-621.png)
+- Not applicable: **generated-test review (no problem beyond the review's)**.

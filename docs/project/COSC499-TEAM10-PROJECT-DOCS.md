@@ -1146,6 +1146,27 @@ by ±0.01 mm in turn. If all three fail the user gets a warning or error dialog.
 the reason the User Manual tells clinicians to *visually re-inspect every channel* after
 changing any value.
 
+**Built channels are reused (issue #255).** `rounded_channel()` is now a short wrapper around
+`_build_rounded_channel()`, which holds steps 1 to 7 unchanged. The wrapper reads the deadspace
+and both channel threading settings once into a `ChannelSettings`, and the same value both forms
+the key and is passed to the build and to `down_to_end()`, so no setting the build uses can be
+missing from the key. The key, `channel_key()`, is every point, the offset, the diameter and that
+`ChannelSettings`. The wrapper looks the key up in `built_channels`, a `ChannelSolids` store, and
+builds and keeps a solid when none is kept. **A new setting the build reads is added to
+`ChannelSettings`**, which puts it in the key too. A build that opens the warning or error
+dialog is not kept, so the dialog opens again next time. The store keeps the 256 solids used
+last (`KEPT_CHANNEL_SOLIDS`). Each call returns its own `BRepBuilderAPI_Copy` of the kept solid,
+the same geometry with its own identity, because `ChannelsModel.set_selected_shapes` picks a
+channel by `IsEqual` on its shape, and two applicators built from identical inputs must not share
+one (found in review of #260). *Verified* 2026-11-17 on macOS: `mesh/test_channel_geometry.py`
+(#254) passes unchanged, `mesh/test_channel_reuse.py` fails when a setting is left out of the key,
+when a reported build is kept, when the store has no limit, or when the kept solid is returned
+uncopied, and `test_selecting_the_second_of_two_identical_applicators_selects_that_one` in
+`views/test_add_custom_needle.py` fails without the copy. A displayed or exported solid may carry
+the triangulation OpenCASCADE added to it, which is mesh data, not geometry. `NeedleChannel`
+still caches its own shape, so `test_cancelling_or_keeping_the_same_values_changes_nothing` in
+`views/test_move_channel.py` still catches a needless rebuild, which now returns a new copy.
+
 **`tandem.py`** — `Tandem`. Two distinct shape methods, easily confused:
 - `generate_shape()` — the **cut-out** subtracted from the cylinder. Built by intersecting a
   swept tandem profile with a cylinder-shaped envelope (`BRepAlgoAPI_Common`), so the tandem
@@ -2719,6 +2740,19 @@ Not changed. Fixing the corner check would change every channel's volume, so it 
 change that needs its own PR. `mesh/test_channel_geometry.py` pins the current solids and would
 fail on such a change, by design.
 
+### 7.28 HIGH — Ex1 with 3.5 mm channels exports a solid with a negative volume
+
+*Verified* 2026-11-17 on macOS, on `main` at `22ac6a8` and again with the channel reuse of
+issue #255, with identical numbers. With Ex1 imported and *Channel Diameter* 3.5 mm applied on
+the Channels tab, the Export tab's `_final_mesh()` has a volume of −12,031 mm³, against
+98,961 mm³ at the default 2.7 mm. Each of the twelve channel solids is valid
+(`BRepCheck_Analyzer`) and has a positive volume. Only the result of cutting all of them out
+of the cylinder is wrong. The deadspace does not matter: 6 mm or 8 mm give the same results at
+either diameter. The cause is not known. One guess is that 3.5 mm channels touch their
+neighbours where the needles converge, and the sequential `BRepAlgoAPI_Cut` cannot handle
+that. Nothing warns the clinician, so an STL or STEP exported at that diameter may be broken.
+Not fixed.
+
 ## 8. Testing
 
 ### 8.1 Policy
@@ -2859,7 +2893,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_cylinder_template_controls.py` | *Save as Template* does not list and write the tab's settings, saves a setting from the wrong control, saves a value shown in cm without converting it to mm, accepts a blank or taken name or does not say why in the status line, raises on an unreadable library instead of emptying the list and naming the file, or the library's `RANGES` differ from the Cylinder tab's spin box limits. Or *Load* leaves a control, the name or the note unfilled, builds a cylinder or changes the live settings before *Apply Settings*, shows mm in boxes set to cm, is enabled with nothing selected, or *Load* then *Apply Settings* does not build the template's cylinder. Or *Update* or *Delete* changes the file without a Yes, or not as asked, misses the name, note or settings, accepts a taken name silently, is enabled with nothing selected, or the dialog's default is Yes or it has a parent (§5.6, §7.6) |
 | `views/test_cylinder_template_exports.py` | after a flat, notch-off, 3 by 10 mm collar template is loaded and applied, the reference sheet's cylinder table or the Export tab's mesh volume (π·15²·160 + π·(18²−15²)·10 mm³, worked by hand) is not the template's, or a 180 mm template applied to Ex1, imported at 160 mm, does not raise every needle 20 mm or changes its stored DICOM points (§5.6, §5.8) |
 | `views/test_move_channel.py` | a move does not shift every point of a channel by exactly (dx, dy, dz), changes the plan's `points_raw`, is ignored by the channel's 3D shape or the PDF's point reader, or changes `get_rotation()`. Or NaN, infinity, an unknown channel or the tandem channel is accepted, or a rejected move loses the earlier one. Or double-clicking a row does not ask the popup, moves on Cancel, rebuilds the shape when nothing changed, does not underline the moved row, or opens for the tandem. Or a moved channel can be set as the tandem, a button on the Channels tab can set or clear the tandem, or a needle row has no double click hint. Or *Move...* is enabled with nothing selected or for the tandem, pressing it does not move the selected channel, or the legend does not say underlined has been moved. Or the popup does not start at the current move, refuses -12.5 or 300 mm, or Reset leaves a value. Or a new plan keeps a move, or a needle moved out of the cylinder or below the base is still counted inside it, an unmoved plan needle is dropped, the sheet's note is missing, has a colon or a dash, or the popup or the row's tooltip does not warn (§5.5, §5.6, §7.14) |
-| `views/test_add_custom_needle.py` | an added applicator is missing from the model or the visible channels, its points differ, its solid stops at the base or lacks the dead space, it is missing from the export cut or the sheet or shares a channel number, an empty, blank or imported name or a missing plan is accepted, a length change moves its tip wrongly, the Add button does not offer the first free name, add a row or ignore Cancel, or a bent applicator's solid does not reach sideways, or the dialog closes on bad numbers or reads a field wrongly (§5.5, §5.6) |
+| `views/test_add_custom_needle.py` | an added applicator is missing from the model or the visible channels, its points differ, its solid stops at the base or lacks the dead space, it is missing from the export cut or the sheet or shares a channel number, an empty, blank or imported name or a missing plan is accepted, a length change moves its tip wrongly, the Add button does not offer the first free name, add a row or ignore Cancel, or a bent applicator's solid does not reach sideways, or the dialog closes on bad numbers or reads a field wrongly (§5.5, §5.6) Or two applicators added with the same spec share one solid, so selecting the second selects the first (§5.4). |
 | `views/test_custom_needle_cut_check.py` | numbers whose channel the cylinder cannot be cut by are accepted for an add or an edit, numbers that cut cleanly are refused or lose no volume from the export, or the form closes or shows no reason for the refused ones (§5.5, §5.6, §7.6) |
 | `views/test_edit_custom_needle.py` | editing an applicator, plan or custom, changes its points but loses its name, channel number, list place, own diameter, disabled state or move, a plan applicator is refused, or its form starts from anything but the estimate, or its edit loses its number, place, diameter, disabled state or move, or OK on the estimate alone moves its tip by 0.5 mm or more, or the estimate or the edited needle ignores the cylinder length, or a refused edit of a plan applicator changes it or records a spec, an unknown label is not a `KeyError`, bad numbers change the needle before they are refused, a rename leaves the old label in any record or the viewport, a duplicate or blank name is accepted, the renamed tandem is lost by the Tandem tab or `get_tandem_channel`, the list row keeps the old name, an edit is checked with the default diameter instead of the applicator's own, renamed or not, the Edit button is off for a plan needle, a custom one or the tandem or has no disabled look, Cancel changes a plan needle or the answer does not replace it, the note is missing for a plan applicator or shown for a custom one or has a colon or dash, a plan needle whose numbers cannot be estimated raises out of the click handler, opens the form or gives no explanation, or the form does not show the stored numbers with an editable name (§5.5, §5.6) |
 | `views/test_remove_custom_needle.py` | removing an applicator leaves a hole in the export cut, its label stays in the disabled set, own diameters or selection, a plan applicator is refused or stays in the export or sheet channels or the viewport's shapes, an unknown label is not a `KeyError`, the tandem is removed, the Remove button is off for a plan needle or a custom one, or on for the tandem, a plan applicator is removed without asking or after a no, or a custom one asks, or does not delete its row, or a new import keeps a custom record (§5.5, §5.6) |
@@ -2868,6 +2902,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
 | `mesh/test_channel_geometry.py` | a channel of Ex1, or Ex2's Tandem, built as an import builds it at the default settings, differs by more than 0.01 mm or 0.01 mm³ from its volume, centre of mass or tight bounding box measured on `main` at `22ac6a8`, or a plan loses one of those channels. A tip 0.1 mm shorter, or corner spheres 0.01 mm larger, fail all 13 (§5.4, §7.27) |
+| `mesh/test_channel_reuse.py` | `rounded_channel` builds identical inputs again instead of copying the kept solid, gives two calls the same shape object or a copy with other geometry, reuses a solid after the points, offset, diameter, deadspace or either threading setting changed, keeps a build that opened the error dialog so a reimport would not report it, or its store keeps more solids than its capacity or drops the one used last (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_spec_from_points.py` | a vertical needle gets a bend or a start off the base, a tilt above a vertical run does not give that run as Length 1, Phi is negative or wrong in a quadrant, a needle ending on or crossing the base does not start at the base or gets a Length 1 of 0, a curved path moves the tip, Theta passes the form limit, or no points, one point, NaN or infinity are accepted, or a refusal has a colon or dash (§5.4) |
 | `mesh/test_custom_needle_points.py` | a custom needle's points are not tissue end first at Length 1 plus Length 2, or a length of 0 or less, NaN, infinity, a Length 1 over the cylinder or a start 13.6 mm out, a Theta of 90 or below 0, or a bend with no radius is built, or a refusal has a colon or dash, or a start 13.5 mm out or a Length 1 of 100 mm is refused, or a bend's tip, its arc points or its straight case at Theta 0 are wrong (§5.4) |

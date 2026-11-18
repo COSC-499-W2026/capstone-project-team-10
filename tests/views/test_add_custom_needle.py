@@ -226,3 +226,25 @@ def test_a_bent_applicator_solid_reaches_sideways_to_where_the_bend_sends_it(cha
     brepbndlib.Add(channels_window.channelsmodel.add_custom_needle(bent).shape(), box, False)
 
     assert box.Get()[3] >= 24.0
+
+
+def test_selecting_the_second_of_two_identical_applicators_selects_that_one(channels_window: MainWindow) -> None:
+    """Check two applicators with the same spec have their own solids, so picking the second selects the second.
+
+    The viewport selects by matching the clicked solid with IsEqual against each channel's
+    shape. Fails if both channels hold one shared solid, because set_selected_shapes then stops
+    at the first and names it. The clinician would click one needle and Disable, Move or Remove
+    would act on its twin.
+    """
+    model = channels_window.channelsmodel
+    first = model.add_custom_needle(spec("Twin Applicator A", x=-6.0, y=4.0))
+    second = model.add_custom_needle(spec("Twin Applicator B", x=-6.0, y=4.0))
+    try:
+        model.set_selected_shapes([second.shape()])
+        picked = list(model.selected_channels)
+    finally:
+        model.remove_channel("Twin Applicator A")
+        model.remove_channel("Twin Applicator B")
+
+    assert not first.shape().IsSame(second.shape())
+    assert picked == ["Twin Applicator B"]
