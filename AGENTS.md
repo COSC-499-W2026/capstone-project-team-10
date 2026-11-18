@@ -330,7 +330,7 @@ conda env create -f environment.yml              # only when testing a dependenc
 conda list --explicit > spec-file.txt            # regenerate after any dependency change
 ```
 
-`spec-file.txt` is Windows only. On macOS and Linux, use the `conda create` command in §1.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md). Windows, macOS and Linux install the same dependencies, `pytest` and `pyinstaller` included, but not necessarily the same versions: only `python=3.12` and `pythonocc-core=7.7.2` are pinned outside the Windows lockfile. **A dependency is added for Windows, macOS and Linux together, or not at all.** Before adding one, confirm conda-forge builds it for `win-64`, `osx-arm64`, `osx-64` and `linux-64`, then add it to all three places listed in §1.1 there and regenerate `spec-file.txt`. §1.1 has the full procedure, including the check command and what to do without a Windows machine.
+`spec-file.txt` is Windows only. On macOS and Linux, use the `conda create` command in §1.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md). Windows, macOS and Linux install the same dependencies, `pytest`, `pytest-xdist` and `pyinstaller` included, but not necessarily the same versions: only `python=3.12` and `pythonocc-core=7.7.2` are pinned outside the Windows lockfile. **A dependency is added for Windows, macOS and Linux together, or not at all.** Before adding one, confirm conda-forge builds it for `win-64`, `osx-arm64`, `osx-64` and `linux-64`, then add it to all three places listed in §1.1 there and regenerate `spec-file.txt`. §1.1 has the full procedure, including the check command and what to do without a Windows machine.
 
 `pythonocc-core` is pinned to 7.7.2; versions above it have never produced a working environment.
 
@@ -358,7 +358,7 @@ Lint your change with the vendored anti-slop-py linter before you open a pull re
 PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base main src tests utils
 ```
 
-**Tests**: `python -m pytest` from the repository root. What is tested so far is listed in [tests/README.md](tests/README.md), and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
+**Tests**: `python -m pytest` from the repository root. `python -m pytest -n auto --dist loadfile` runs the same tests in parallel, one test file per worker, and took about a quarter of the serial time on a 10-core Mac. §8.1 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says why `loadfile`. What is tested so far is listed in [tests/README.md](tests/README.md), and this project is test-driven, so read [Testing: write the test first](#testing-write-the-test-first) above before starting any change. Note that `benchmarks/` is stale, not a test suite: `benchmarks/channels.py` imports a `testing.data.channels` module and an `Application.BRep.Channel` package that no longer exist, and `benchmarks/benchmarking.py` uses `total` before assignment.
 
 ## Imports and paths
 

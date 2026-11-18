@@ -75,6 +75,7 @@ them, and that is accepted. The list is written in three places that must agree:
 | `pydicom` | DICOM import |
 | `pyinstaller` | building the `.exe` (§1.7), and the hidden-import test (§8.2) |
 | `pytest` | the test suite (§8.2) |
+| `pytest-xdist` | running the test files in parallel, `python -m pytest -n auto --dist loadfile` (§8.1) |
 
 **A dependency is added for Windows, macOS and Linux together, or not at all.** Never add one
 for a single OS. In the same pull request:
@@ -145,7 +146,8 @@ conda create -n brachify -c conda-forge \
   reportlab \
   pydicom \
   pyinstaller \
-  pytest
+  pytest \
+  pytest-xdist
 
 # 3. Run, from the repository root
 conda activate brachify
@@ -159,6 +161,10 @@ expected. An environment created before 2026-09-30 has no `pytest` or `pyinstall
 with `conda install -n brachify -c conda-forge pytest pyinstaller`, or recreate it with the
 command above. `pyinstaller` is listed so the build's hidden imports can be tested (§8.2). The
 `.exe` itself is still built only on Windows (§1.7).
+
+An environment created before 2026-11-17 has no `pytest-xdist`. Add it with
+`conda install -n brachify -c conda-forge pytest-xdist`. On macOS arm64 on 2026-11-17 that
+installed pytest-xdist 3.8.0 and execnet 2.1.2 and changed no other package (*Verified*).
 
 **Surface dependencies (PR #122).** SciPy 1.17.1 and scikit-image 0.26.0 are installed in
 the macOS arm64 development environment; their imports were verified on 2026-10-24. For an
@@ -197,6 +203,11 @@ pinning all 179 existing packages. The solve kept every one of them unchanged an
 those six, and each URL returned HTTP 200. *Not verified:* creating the environment from this
 file on a Windows machine. The next Windows teammate to do so should confirm it, and may
 regenerate the file there.
+
+The `pytest-xdist` and `execnet` lines (issue #252) were solved from macOS on 2026-11-17 the
+same way, with all 191 existing packages pinned. The solve kept every one of them unchanged
+and added only those two, both `noarch`, and each URL returned HTTP 200. *Not verified:*
+creating the environment from this file on a Windows machine.
 
 **PR #122 channel-migration blocker (2026-10-24).** The requested conda-forge
 `noarch/tifffile-2026.3.3-pyhd8ed1ab_0.conda` exists, but replacing only the defaults
@@ -2614,6 +2625,26 @@ alone they raised `AttributeError: 'NoneType' object has no attribute 'collision
 files give 44 passed alone. Every test file now passes when run on its own, which a parallel run
 needs, since a worker runs only some of the files.
 
+### 7.26 Fixed — the test suite used, and deleted from, the developer's real `~/brachify`
+
+*Verified* 2026-11-17 on macOS, found while running the suite in parallel for issue #252.
+Several test modules import brachify at collection time, such as
+`views/test_remove_custom_needle.py` importing `classes.mesh.helper`, and `classes.info` fixes
+`USER_PATH` from the home folder at that first import. The session fixtures redirect HOME only
+later, so for the whole run `USER_PATH` was the developer's real `~/brachify`. A collection on
+`main` printed `/Users/<name>/brachify`. The run wrote into the real `app.log`, and the
+template fixtures in `views/test_cylinder_template_controls.py`, `test_cylinder_template_exports.py`,
+`test_tandem_template_controls.py`, `test_tandem_template_exports.py` and
+`test_needle_template_controls.py` delete the library files there, so **running the suite
+erased a developer's saved cylinder, tandem and needle templates**. Parallel workers, or two
+suites at once, shared the one folder, and a template test failed intermittently with
+`A cylinder template with this ID already exists`.
+
+*Fixed* for issue #261. `pytest_configure` in [tests/conftest.py](../../tests/conftest.py)
+points HOME and USERPROFILE at a new temporary folder, one per process, before any test module
+is imported, and removes it at the end. `tooling/test_test_home.py` fails if `USER_PATH` is not
+inside the system temp folder.
+
 ### 7.23 HIGH — *Generate Tandem* can show settings it did not build
 
 **Fixed 2026-11-03.** After every Generate, `TandemView.action_set_tandem` now refills the boxes
@@ -2690,6 +2721,20 @@ fails, and why that matters
 ([AGENTS.md](../../AGENTS.md#every-function-in-tests-explains-itself)). See
 [tests/README.md](../../tests/README.md). `utils/` follows the same scoping rule; see
 [utils/README.md](../../utils/README.md).
+
+**Run the files in parallel while you work.** `python -m pytest -n auto --dist loadfile` runs
+the same tests as `python -m pytest`, spread over one worker process per CPU core by
+`pytest-xdist` (§1.1). `--dist loadfile` keeps each test file on one worker. That matters
+because `channels_window` and `tandem_window` import a plan once per file, so splitting a file
+would import it again on every worker, and a file's tests may rely on running in order, as the
+`restored_plan` fixtures do. A plain `python -m pytest` stays serial, so an environment without
+`pytest-xdist` still runs the suite. Every test file passes when run alone, which a worker
+needs (§7.22), and each worker has its own temporary home folder, so workers never share a
+template library (§7.26). *Verified* 2026-11-17 on a 10-core Mac, on `main` before #251: the serial run
+took 9 min 56 s for 585 passed, and `-n 8 --dist loadfile` took 2 min 33 s for 580 passed and
+5 failed. The 5 were the order-dependent viewport tests fixed for #251. The time a parallel run
+cannot go below is the slowest single file, `views/test_edit_custom_needle.py`, at about 80 s
+serially. *Not verified:* Windows or Linux.
 
 ### 8.2 Current state
 
@@ -2806,6 +2851,8 @@ Repository tooling tests, first added 2026-09-30, live in
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
+| `test_parallel_runs.py` | `pytest-xdist` is missing from `environment.yml`, `spec-file.txt` or the §1.2 `conda create` command, or cannot be imported in the environment running the tests (§1.1, §8.1) |
+| `test_test_home.py` | brachify's `USER_PATH` is not inside the system temp folder during a test run, so the run would use and delete the developer's real `~/brachify` (§7.26) |
 | `test_architecture_drift.py` | a module, package, model or view in `src/` is not named in `docs/architecture/diagrams/system-architecture.mmd`, which is also what `build.py --check` reports |
 | `windows/test_main_window.py` | clicking Export before a cylinder exists leaves the Import page, the disabled Export button looks like an enabled one, or *Apply Settings* alone or an Ex1 import does not make Export usable and highlighted (§7.6). Or the Structures button is missing, is not labelled Structures, or is not immediately under Import, or clicking it does not open `views[5]` as `StructuresView`, or Cylinder moves off index 1 or Export off index 4, or the six nav buttons overlap or stick out of `top_menu_bar` after `show()`, or Structures is not highlighted after a click or stays highlighted after Cylinder (§4.3) |
 

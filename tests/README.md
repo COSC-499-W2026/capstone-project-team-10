@@ -61,11 +61,13 @@ tests/
 │   ├── test_needle_templates.py
 │   ├── test_tandem_templates.py
 │   └── test_load.py
-├── tooling/               exists: build, line-ending and architecture diagram checks
+├── tooling/               exists: build, line-ending, architecture diagram and dependency checks
 │   ├── test_architecture_build.py
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
-│   └── test_line_endings.py
+│   ├── test_line_endings.py
+│   ├── test_parallel_runs.py
+│   └── test_test_home.py
 ├── views/                 exists: the Channels, Cylinder, Tandem and Import views, against the real window
 │   ├── conftest.py        units_app, channels_window (Ex1 imported), tandem_window (Ex2) and cylinder_window
 │   ├── test_camera_controls.py  camera gesture and zoom rules
@@ -131,8 +133,13 @@ From the repository root, in the conda environment (which includes `pytest`, see
 [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md)):
 
 ```bash
-python -m pytest
+python -m pytest                          # serial, as before
+python -m pytest -n auto --dist loadfile  # the same tests, one file per worker process
 ```
+
+The parallel run needs `pytest-xdist`, which the environment includes (§1.1). `loadfile` keeps
+each test file on one worker, so a module-scoped window imports its plan once, and a test file
+must pass when it runs alone. §8.1 of the project docs has the timings.
 
 [pytest.ini](../pytest.ini) sets `testpaths = tests` and `pythonpath = src .`. Every module in
 this project imports as though `src/` were the root (`from classes.app import get_app`), and
@@ -182,6 +189,11 @@ field `__init__` declares. It imports no Qt or conda-only package.
 
 `settings/test_load.py` writes real config files to pytest's `tmp_path` and loads them. It
 imports no Qt or conda-only package.
+
+Before any test module is imported, `pytest_configure` in [conftest.py](conftest.py) points HOME and
+USERPROFILE at a new temporary folder, one per process. brachify fixes `~/brachify` at its first
+import, and some test modules import it at collection, so without this the run would use, and the
+template fixtures would empty, the developer's real `~/brachify` (§7.26 of the project docs).
 
 `views/conftest.py` holds four fixtures. `units_app` is the one QApplication for the whole
 run, created offscreen with HOME and USERPROFILE pointed at a temporary folder. Qt allows one
