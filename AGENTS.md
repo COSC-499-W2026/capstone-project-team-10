@@ -383,6 +383,8 @@ User state lives in `~/brachify/` (`classes.info.USER_PATH`): `app.log` (rotatin
 
 Models ([src/windows/models/](src/windows/models/)) are `QObject`s owning domain state and emitting change signals; they hold no widgets. Views ([src/windows/views/](src/windows/views/)) subclass `CustomView` and own the generated Qt UI object.
 
+`ChannelsModel` keeps one `ChannelRecord` per applicator in `records`, in list order: its needle, custom spec, own diameter and disabled flag. `channels`, `custom_specs`, `own_diameters` and `disabled_channels` are read-only views built from it on each read, so change an applicator through the model's methods. **A new per-applicator setting is a field on `ChannelRecord`, never another label-keyed collection**, or a rename or removal leaves it behind, as §7.25 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md) records for the 3D view.
+
 `NavigationModel` constructs the six views in a fixed, index-significant order and the whole codebase addresses them positionally. The Structures nav button sits under Import; the view is `views[5]` so Cylinder stays 1 and Export stays 4.
 
 | index | view | model |
