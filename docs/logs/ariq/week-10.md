@@ -207,7 +207,7 @@ Stated once here instead of in each section.
   ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/60af70b25b9e1b86deb04b88c7cab59a054ab993/docs/logs/ariq/screenshots/week-10/pr-260-1-export-and-pytest-621.png)
 - Not applicable: **generated-test review (no problem beyond the review's)**.
 
-## Stack #269 to #270, at a glance
+## Stack #269 to #271, at a glance
 
 Three stacked PRs that change how `ChannelsModel` keeps an applicator, with no behaviour change, prompted by #195's removal, which forgot the 3D view (§7.25). The tests that pin what a rename carries come first, then the 3D view drops a gone channel in one place, then each applicator's state becomes one `ChannelRecord`. The same scripted run on Ex1 gave identical results on #260 and on each refactor PR. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -216,6 +216,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 |---|---|---|---|---|---|---|
 | [#269](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/269) | #260 | #266 | Tests only: what a rename carries is pinned, and two test files reach `ChannelsModel` through its import and methods | 7, +176/−21 | 3 | 624 |
 | [#270](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/270) | #269 | #267 | `DisplayModel.replace_shapes`, so a removed or renamed channel leaves the 3D view in one place; §7.25 | 8, +113/−11 | 2 | 626 |
+| [#271](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/271) | #270 | #268 | One `ChannelRecord` per applicator in place of five label-keyed collections, with read-only views | 7, +153/−64 | 1 | 627 |
 
 The suite had 621 tests on #260.
 
@@ -285,4 +286,49 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/models/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 626 passed (624 after #269), and the real app on Ex1, where the list, the shapes drawn and the export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
   ![1, on refactor/channel-display-sync, the Channels tab after Applicator6 was disabled and renamed, a custom applicator added and renamed and Applicator7 removed, with neither old name nor Applicator7 drawn, and the suite 626 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a27c016f387962324c5b68a63b42903f0bb68956/docs/logs/ariq/screenshots/week-10/pr-270-1-channels-and-pytest-626.png)
+- Not applicable: **generated-test review (no problem found)**.
+
+### For PR #**271** (3 of 3, on #270)
+
+- As part of requirement **issue #268, one place for everything kept about an applicator**, the user needs to do **give an applicator its own diameter, disable it, rename it, add, rename and remove others, and export**.
+- Therefore, I implemented/generated code so that **`ChannelsModel` keeps one `ChannelRecord` per applicator, so a rename moves it whole and a removal drops it whole, with every behaviour unchanged, for developers adding an applicator setting and the clinicians who need it to follow a rename**.
+
+#### Data Modeling and Integrity
+
+- This data **an applicator's state** is modeled as **a `ChannelRecord` dataclass of its needle, custom spec or `None`, own diameter or `None` and disabled flag, one per label in one ordered dict, `records`** because **five label-keyed collections had to be rebuilt in step by every rename and removal, and #195's removal missed one (§7.25)**. We considered alternative models such as **putting the spec, diameter and flag on `NeedleChannel`, which would mix the clinician's choices into the geometry class #260 changed, or one helper that renames every dict, which still needs each new field added to it**.
+- Not applicable: **input validation (unchanged), security sanitization, privacy sanitization, encryption, access controls (no patient data or users in this state)**.
+
+#### Backend
+
+- The system uses **a single source of truth per applicator, with read-only views for the existing readers** because **three views, the viewport and the tests read `channels`, `custom_specs`, `own_diameters` and `disabled_channels`, and a refactor must not change behaviour**. Benefits for using this pattern include **`rename_channel` rebuilds one dict instead of four, `remove_channel` deletes one entry instead of four, and a new setting is one field**. Possible risks include **a reader writing to a view and losing the write, and an edge case behaving differently**.
+  - To mitigate **a lost write**, we implemented **views built on each read with no setter, so assigning one raises `AttributeError`; #269 moved the only tests that wrote them**.
+  - To mitigate **an edge case behaving differently**, we implemented **the same public methods with the same errors, and recorded the two edges that differ in §5.5: `toggle_channel_enabled` on a label no applicator has raises `KeyError` instead of recording a disabled label, and `disabled_channels` is in list order**.
+  - We considered alternative solutions such as **removing the views and changing their readers, which edits 3 views and about 15 test files and loses the unchanged tests as evidence**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage, unchanged**. This structure has low coupling because **views keep reading `channels`, and only `ChannelsModel` touches `records`**. This structure has high cohesion because **all of one applicator's state is one object**. This design is scalable because **a new applicator setting, such as a colour, is one `ChannelRecord` field that import, rename and remove carry with no other change**.
+
+  **[System architecture, unchanged](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b03cd64687f2dd863ea76733c13a4cf7d5f8f876/docs/architecture/diagrams/system-architecture.svg)**
+- The system adopts a **stateful** approach to state management because **an applicator's choices last until the next import**. This method is done by **`records`, emptied and rebuilt by `load_data`**. Benefits for using this approach include **one object per applicator to carry or drop**. Possible risks include **a record that outlives its needle**.
+  - To mitigate **a record outliving its needle**, we implemented **the needle inside the record, so deleting the record deletes both**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#268: `test_an_edit_keeps_the_applicators_one_record_in_its_place_under_the_new_name`, with every existing test unchanged**
+- Not applicable: **database (none), data processing (unchanged), Level 0 DFD, Level 1 DFD (no data flow changed), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated `ChannelsModel` refactor** for this functionality, I noticed **`update_height_offset` wrote each needle back into `self.channels`, which would now write into a throwaway view**. Therefore, I did **set the offset on each record's needle, which is all the old write did**.
+  - I noticed **the old `toggle_channel_enabled` recorded a disabled label for a name no applicator had, which a record cannot hold**. Therefore, I did **let it raise `KeyError` like the other per-applicator methods, and record it in §5.5**.
+- The PR does not contain any temporary workaround because **the four views serve current readers and hold no state of their own**.
+- The PR only contains small functions that are **2 to 17 lines; `load_data` is its existing 28 lines with two changed** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`src/windows/models/channels_model.py`** because **only `ChannelsModel` uses `ChannelRecord`, so it adds no module and no diagram change**.
+- This work belongs in **3 Channels** in the DFD because **it holds the choices the Channels tab makes for each applicator**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_an_edit_keeps_the_applicators_one_record_in_its_place_under_the_new_name` (1 new; 4 in `test_applicator_records.py`), with no existing test changed (screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **renaming an applicator with its own diameter, which must keep the 4.0 mm** and they passed.
+- I checked that these negative cases involving **`records` missing (the new test failed with `AttributeError`), a rename that copies the record (it failed), and the tandem not disabled or Disable doing nothing (4 existing tests failed each)** failed as expected.
+- Among these tests, **none** are unit tests and **the new test, which drives the real window,** is an integration test.
+- These tests are included in the directory **`tests/views/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 627 passed (626 after #270), and the real app on Ex1, where the list, shapes drawn, disabled, own diameters, specs, channel numbers and export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
+  ![1, on refactor/channel-records, the Export tab after the 6 steps, matching #260, and the suite 627 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e837c58877a9d5f5dad32f9895d0f3d431ef2d8f/docs/logs/ariq/screenshots/week-10/pr-271-1-export-and-pytest-627.png)
 - Not applicable: **generated-test review (no problem found)**.
