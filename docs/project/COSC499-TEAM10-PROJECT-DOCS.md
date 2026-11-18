@@ -2700,6 +2700,25 @@ export blocking or clearance-distance measurement is implemented. Very large mes
 can still make solid-angle and nearest-triangle queries expensive, especially when
 one large face broadens the centroid search; this remains a performance limitation.
 
+### 7.27 LOW — two warning checks in `rounded_channel` test a method instead of calling it
+
+*Reasoned from code*, with the log *Verified* on 2026-11-17 on macOS while measuring the
+baseline for issue #254. `rounded_channel` in [channel.py](../../src/classes/mesh/channel.py)
+writes `HasWarnings` without brackets in two places, so the check is a bound method and always
+true:
+
+- `if(check[1])`, where `create_point` returns `temp.HasWarnings`, logs
+  *warning thrown while constructing needle tips* for every channel built, so the log cannot
+  tell a real tip warning from none.
+- In the corner loop, `if(temp.HasWarnings)` always discards the sphere fused at the channel's
+  radius and fuses one 0.01 mm smaller instead. Every corner of every channel is that smaller
+  sphere. Only when that second fuse warns does the error dialog open.
+
+A third, `if(tempfuse.HasWarnings): pass` around the threading fuse, does nothing either way.
+Not changed. Fixing the corner check would change every channel's volume, so it is a geometry
+change that needs its own PR. `mesh/test_channel_geometry.py` pins the current solids and would
+fail on such a change, by design.
+
 ## 8. Testing
 
 ### 8.1 Policy
@@ -2848,6 +2867,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `views/test_needle_template_controls.py` | Save as Template does not list and write the template, refuses a blank name silently, Apply Template does not give the selected channel the template's diameter, or an unreadable library raises instead of emptying the list and naming the file (§5.6) |
 | `views/test_cylinder_view.py` | display conversion, mm model/config dimensions, precision preservation, scaled limits or imported needle offsets regress, or a config snapshot leaves out a default key or the collar, or a config import does not fill the collar boxes (§7.1), or a notch control is not applied, does not grey out, ignores the units, or is not filled by a config import, or *Tip Shape* is not applied or not filled by a config import (§5.6), or a Cylinder spin box is under 20 px tall, or the tab scrolls sideways, in the default window (§7.12) |
 | `mesh/test_notch.py` | the default `NotchSettings` move or resize the notch, sheet angle 90 does not land on +x, width, depth or height is ignored, or a config key is misread or a missing one is guessed (§5.4) |
+| `mesh/test_channel_geometry.py` | a channel of Ex1, or Ex2's Tandem, built as an import builds it at the default settings, differs by more than 0.01 mm or 0.01 mm³ from its volume, centre of mass or tight bounding box measured on `main` at `22ac6a8`, or a plan loses one of those channels. A tip 0.1 mm shorter, or corner spheres 0.01 mm larger, fail all 13 (§5.4, §7.27) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_spec_from_points.py` | a vertical needle gets a bend or a start off the base, a tilt above a vertical run does not give that run as Length 1, Phi is negative or wrong in a quadrant, a needle ending on or crossing the base does not start at the base or gets a Length 1 of 0, a curved path moves the tip, Theta passes the form limit, or no points, one point, NaN or infinity are accepted, or a refusal has a colon or dash (§5.4) |
 | `mesh/test_custom_needle_points.py` | a custom needle's points are not tissue end first at Length 1 plus Length 2, or a length of 0 or less, NaN, infinity, a Length 1 over the cylinder or a start 13.6 mm out, a Theta of 90 or below 0, or a bend with no radius is built, or a refusal has a colon or dash, or a start 13.5 mm out or a Length 1 of 100 mm is refused, or a bend's tip, its arc points or its straight case at Theta 0 are wrong (§5.4) |

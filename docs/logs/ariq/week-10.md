@@ -3,7 +3,7 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #256 to #258, at a glance
+## Stack #256 to #259, at a glance
 
 Six stacked PRs that make the test suite fast enough to keep growing: every test file passes on its own and in its own home folder, the files run in parallel, a quick loop leaves out the tests that build a window, and the channel solids are built once and reused, with the geometry pinned first. On the same machine the serial suite went from 10 min 45 s on #259 to 2 min 55 s. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -14,6 +14,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | [#262](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/262) | #256 | #261 | Each test run gets its own home, so the suite no longer uses or deletes the real `~/brachify`; §7.26 | 6, +92/−2 | 1 | 586 |
 | [#257](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/257) | #262 | #252 | `pytest-xdist` on every platform and the parallel command | 8, +118/−7 | 4 | 590 |
 | [#258](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/258) | #257 | #253 | The `slow` marker and the 12 s quick loop | 9, +150/−4 | 6 | 596 |
+| [#259](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/259) | #258 | #254 | Tests only: every sample channel's solid pinned; §7.27 | 5, +158/−1 | 14 | 610 |
 
 The suite had 585 tests on `main` before the stack (`22ac6a8`).
 
@@ -134,3 +135,29 @@ Stated once here instead of in each section.
 
   ![1, on test/slow-marker, test_slow_marker.py 6 passed, the quick loop 317 passed and 279 deselected in 12 s, and the suite in parallel 596 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/47b527fa9616d88a15349c888f1a63cb760f410c/docs/logs/ariq/screenshots/week-10/pr-258-1-pytest-596.png)
 - Not applicable: **abnormal cases (marker expressions are pytest's own)**.
+
+### For PR #**259** (5 of 6, on #258)
+
+- As part of requirement **issue #254, channels that do not move when their code changes**, the user needs to do **import Ex1 or Ex2 and get the same holes in the exported applicator after any change to how channels are built**.
+- Therefore, I implemented/generated code so that **every sample channel's volume, centre of mass and bounding box is pinned to 0.01, for the clinician who prints the applicator**.
+
+#### Review and design
+
+- When I reviewed the **generated expected values** for this functionality, I noticed **Ex2's twelve applicators measure the same as Ex1's**. Therefore, I did **keep only Ex2's Tandem, so the module builds 13 channels in about 10 s**.
+  - When I reviewed **`rounded_channel` while measuring**, I noticed **`if(temp.HasWarnings)` without brackets, so every corner sphere is built 0.01 mm smaller**. Therefore, I did **record it as §7.27 and leave it, since fixing it changes every channel**.
+- The PR does not contain any temporary workaround because **it changes no code and pins the code as it is**.
+- The PR only contains small functions that are **7 to 23 lines** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **new `tests/mesh/test_channel_geometry.py`** because **it tests `classes/mesh/channel.py`, with the expected values as literals**.
+- Not applicable: **DFD process (no application code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_a_sample_channel_keeps_its_volume_position_and_extent` (13 channels) and `test_every_listed_channel_is_in_its_plan` (14 new; 14 in the file; screenshot 1)** passed.
+- I checked that these negative cases involving **`TIP_LENGTH` 2.4 instead of 2.5, and corner spheres at the full radius (13 failed each)** failed as expected.
+- Among these tests, **none** are unit tests and **all 14** are integration tests.
+- These tests are included in the directory **`tests/mesh/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 610 passed (596 after #258), and `-n auto --dist loadfile`, 610 passed in 2 min 4 s (screenshot 1)**.
+
+  ![1, on test/channel-geometry-baseline, test_channel_geometry.py 14 passed and the suite in parallel 610 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/58966aff794694d21d70dccf0e9b6569dee8dbc9/docs/logs/ariq/screenshots/week-10/pr-259-1-pytest-610.png)
+- Not applicable: **abnormal cases (the inputs are the two sample plans), generated-test review (no problem found)**.
