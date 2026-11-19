@@ -324,13 +324,15 @@ The geometry kernel is OpenCASCADE via `pythonocc-core` (`OCC.Core.*`), DICOM pa
 **conda only — never `pip install` into the environment** (mixing the two is a known breakage here). Full details, including debugging notes, in [virtual_environments_instructions.md](virtual_environments_instructions.md).
 
 ```bash
+python -m utils.common.setup_conda_env           # print the OS-specific create command (§1.2a)
+python -m utils.common.setup_conda_env --run     # create it (needs conda on PATH; never pip)
 conda create --name <env> --file spec-file.txt   # Windows, canonical: pinned, reproducible
 conda activate <env>
 conda env create -f environment.yml              # only when testing a dependency change
 conda list --explicit > spec-file.txt            # regenerate after any dependency change
 ```
 
-`spec-file.txt` is Windows only. On macOS and Linux, use the `conda create` command in §1.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md). Windows, macOS and Linux install the same dependencies, `pytest`, `pytest-xdist` and `pyinstaller` included, but not necessarily the same versions: only `python=3.12` and `pythonocc-core=7.7.2` are pinned outside the Windows lockfile. **A dependency is added for Windows, macOS and Linux together, or not at all.** Before adding one, confirm conda-forge builds it for `win-64`, `osx-arm64`, `osx-64` and `linux-64`, then add it to all three places listed in §1.1 there and regenerate `spec-file.txt`. §1.1 has the full procedure, including the check command and what to do without a Windows machine.
+`spec-file.txt` is Windows only. On macOS and Linux, use the `conda create` command in §1.2 of the [project docs](docs/project/COSC499-TEAM10-PROJECT-DOCS.md), or §1.2a which builds that list for you. Windows, macOS and Linux install the same dependencies, `pytest`, `pytest-xdist` and `pyinstaller` included, but not necessarily the same versions: only `python=3.12` and `pythonocc-core=7.7.2` are pinned outside the Windows lockfile. **A dependency is added for Windows, macOS and Linux together, or not at all.** Before adding one, confirm conda-forge builds it for `win-64`, `osx-arm64`, `osx-64` and `linux-64`, then add it to all three places listed in §1.1 there and regenerate `spec-file.txt`. §1.1 has the full procedure, including the check command and what to do without a Windows machine.
 
 `pythonocc-core` is pinned to 7.7.2; versions above it have never produced a working environment.
 
