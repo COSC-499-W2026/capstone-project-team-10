@@ -247,7 +247,7 @@ Stated once here instead of in each section.
 - Among these tests, **no new test** are unit tests and **the 3 new tests, which drive the real `ChannelsModel` in a window with Ex1 imported,** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 624 passed (621 after #260), and `-n auto --dist loadfile`, 624 passed (screenshot 1)**.
-  ![1, on test/pin-applicator-records, the three test files 32 passed and the suite in parallel 624 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/55937c0cae88d448e4d2d294cbd77e1bad0c26d5/docs/logs/ariq/screenshots/week-10/pr-269-1-pytest-624.png)
+  ![1, on test/pin-applicator-records, the three test files 32 passed and the suite in parallel 624 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3a35ac1d1016763e5e6f9e23c929eed059365af3/docs/logs/ariq/screenshots/week-11/pr-269-1-pytest-624.png)
 
 ### For PR #**270** (2 of 3, on #269)
 
@@ -285,7 +285,7 @@ Stated once here instead of in each section.
 - Among these tests, **both `test_display_model.py` tests** are unit tests and **#238's and #269's viewport tests, which drive the real window,** are integration tests.
 - These tests are included in the directory **`tests/models/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 626 passed (624 after #269), and the real app on Ex1, where the list, the shapes drawn and the export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
-  ![1, on refactor/channel-display-sync, the Channels tab after Applicator6 was disabled and renamed, a custom applicator added and renamed and Applicator7 removed, with neither old name nor Applicator7 drawn, and the suite 626 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a27c016f387962324c5b68a63b42903f0bb68956/docs/logs/ariq/screenshots/week-10/pr-270-1-channels-and-pytest-626.png)
+  ![1, on refactor/channel-display-sync, the Channels tab after Applicator6 was disabled and renamed, a custom applicator added and renamed and Applicator7 removed, with neither old name nor Applicator7 drawn, and the suite 626 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3a35ac1d1016763e5e6f9e23c929eed059365af3/docs/logs/ariq/screenshots/week-11/pr-270-1-channels-and-pytest-626.png)
 - Not applicable: **generated-test review (no problem found)**.
 
 ### For PR #**271** (3 of 3, on #270)
@@ -330,7 +330,7 @@ Stated once here instead of in each section.
 - Among these tests, **none** are unit tests and **the new test, which drives the real window,** is an integration test.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 627 passed (626 after #270), and the real app on Ex1, where the list, shapes drawn, disabled, own diameters, specs, channel numbers and export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
-  ![1, on refactor/channel-records, the Export tab after the 6 steps, matching #260, and the suite 627 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e837c58877a9d5f5dad32f9895d0f3d431ef2d8f/docs/logs/ariq/screenshots/week-10/pr-271-1-export-and-pytest-627.png)
+  ![1, on refactor/channel-records, the Export tab after the 6 steps, matching #260, and the suite 627 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3a35ac1d1016763e5e6f9e23c929eed059365af3/docs/logs/ariq/screenshots/week-11/pr-271-1-export-and-pytest-627.png)
 - Not applicable: **generated-test review (no problem found)**.
 
 ## Stack #275 to #276, at a glance
@@ -341,6 +341,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#275](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/275) | `main` | #272 | This log renamed to week 11, and the #256 to #260 screenshots moved with their links | 7, +43/−7 | 0 | 627 |
+| [#276](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/276) | #275 | #274 | The #269 to #271 screenshots moved with their links | 4, +22/−3 | 0 | 627 |
 
 The suite had 627 tests on `main` before the stack (`f0366cb`).
 
@@ -367,4 +368,22 @@ Stated once here instead of in each section.
 
 - The functionality works correctly because the happy path tests involving **`curl` on the six re-pinned links (6 of 6 HTTP 200), and a grep that finds only #269 to #271's three links still in the old folder** passed.
 - This new test PR did not break anything else in the system because **it changes no code, and `python -m pytest -n auto --dist loadfile`, 627 passed (627 on `main`)**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
+
+### For PR #**276** (2 of 2, on #275)
+
+- As part of requirement **issue #274, my week 11 screenshots filed under week 11**, the user needs to do **open `docs/logs/ariq/week-11.md` and see the #269 to #271 screenshots render from the week 11 folder**.
+- Therefore, I implemented/generated code so that **the last three screenshots move to `week-11/` and their links follow, for the grader auditing week 11**.
+
+#### Review and design
+
+- When I reviewed the **generated renames and re-pinned links** for this functionality, I did not find any problems with it because **`git diff -M --name-status` against #275 shows 3 renames at 100% and the three link lines changed in the log, and each link returns HTTP 200**.
+- I did **a grep of the log for links into the old folder (none left) and a `curl` of each re-pinned link** to ensure that my feature contribution does not contain any of the following: **a broken link or a lost image; the code items do not apply, no code changed**.
+- This work is written in **`docs/logs/ariq/week-11.md` and `docs/logs/ariq/screenshots/week-11/`** because **as in #275**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`curl` on the three re-pinned links (3 of 3 HTTP 200), and a grep that finds no link into the old folder** passed.
+- This new test PR did not break anything else in the system because **it changes no code, and `python -m pytest -n auto --dist loadfile`, 627 passed (627 after #275)**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
