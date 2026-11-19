@@ -247,7 +247,7 @@ Stated once here instead of in each section.
 - Among these tests, **no new test** are unit tests and **the 3 new tests, which drive the real `ChannelsModel` in a window with Ex1 imported,** are integration tests.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 624 passed (621 after #260), and `-n auto --dist loadfile`, 624 passed (screenshot 1)**.
-  ![1, on test/pin-applicator-records, the three test files 32 passed and the suite in parallel 624 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/55937c0cae88d448e4d2d294cbd77e1bad0c26d5/docs/logs/ariq/screenshots/week-10/pr-269-1-pytest-624.png)
+  ![1, on test/pin-applicator-records, the three test files 32 passed and the suite in parallel 624 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3a35ac1d1016763e5e6f9e23c929eed059365af3/docs/logs/ariq/screenshots/week-11/pr-269-1-pytest-624.png)
 
 ### For PR #**270** (2 of 3, on #269)
 
@@ -285,7 +285,7 @@ Stated once here instead of in each section.
 - Among these tests, **both `test_display_model.py` tests** are unit tests and **#238's and #269's viewport tests, which drive the real window,** are integration tests.
 - These tests are included in the directory **`tests/models/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 626 passed (624 after #269), and the real app on Ex1, where the list, the shapes drawn and the export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
-  ![1, on refactor/channel-display-sync, the Channels tab after Applicator6 was disabled and renamed, a custom applicator added and renamed and Applicator7 removed, with neither old name nor Applicator7 drawn, and the suite 626 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a27c016f387962324c5b68a63b42903f0bb68956/docs/logs/ariq/screenshots/week-10/pr-270-1-channels-and-pytest-626.png)
+  ![1, on refactor/channel-display-sync, the Channels tab after Applicator6 was disabled and renamed, a custom applicator added and renamed and Applicator7 removed, with neither old name nor Applicator7 drawn, and the suite 626 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3a35ac1d1016763e5e6f9e23c929eed059365af3/docs/logs/ariq/screenshots/week-11/pr-270-1-channels-and-pytest-626.png)
 - Not applicable: **generated-test review (no problem found)**.
 
 ### For PR #**271** (3 of 3, on #270)
@@ -330,5 +330,5 @@ Stated once here instead of in each section.
 - Among these tests, **none** are unit tests and **the new test, which drives the real window,** is an integration test.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 627 passed (626 after #270), and the real app on Ex1, where the list, shapes drawn, disabled, own diameters, specs, channel numbers and export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
-  ![1, on refactor/channel-records, the Export tab after the 6 steps, matching #260, and the suite 627 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e837c58877a9d5f5dad32f9895d0f3d431ef2d8f/docs/logs/ariq/screenshots/week-10/pr-271-1-export-and-pytest-627.png)
+  ![1, on refactor/channel-records, the Export tab after the 6 steps, matching #260, and the suite 627 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3a35ac1d1016763e5e6f9e23c929eed059365af3/docs/logs/ariq/screenshots/week-11/pr-271-1-export-and-pytest-627.png)
 - Not applicable: **generated-test review (no problem found)**.
