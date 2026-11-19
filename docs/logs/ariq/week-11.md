@@ -377,7 +377,7 @@ Stated once here instead of in each section.
 
 #### Review and design
 
-- When I reviewed the **generated renames and re-pinned links** for this functionality, I did not find any problems with it because **`git diff -M --name-status` against #275 shows 3 renames at 100% and one 3-line link edit, and each link returns HTTP 200**.
+- When I reviewed the **generated renames and re-pinned links** for this functionality, I did not find any problems with it because **`git diff -M --name-status` against #275 shows 3 renames at 100% and the three link lines changed in the log, and each link returns HTTP 200**.
 - I did **a grep of the log for links into the old folder (none left) and a `curl` of each re-pinned link** to ensure that my feature contribution does not contain any of the following: **a broken link or a lost image; the code items do not apply, no code changed**.
 - This work is written in **`docs/logs/ariq/week-11.md` and `docs/logs/ariq/screenshots/week-11/`** because **as in #275**.
 - Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
