@@ -163,7 +163,7 @@ class ChannelsModel(QObject):
         return spec_from_points(label, points)
 
     def rename_channel(self, label: str, new_label: str) -> None:
-        """Move a label to a new name in every record that keys on it, keeping the list place."""
+        """Move a label to a new name in every record that keys on it, keeping the list place. The next update redraws it under the new name."""
         if new_label == label: return
         self.channels = {(new_label if name == label else name): channel for name, channel in self.channels.items()}
         self.custom_specs = {(new_label if name == label else name): spec for name, spec in self.custom_specs.items()}
@@ -172,7 +172,6 @@ class ChannelsModel(QObject):
         self.selected_channels = [new_label if name == label else name for name in self.selected_channels]
         data = get_app().window.dicommodel.data
         if data.tandem_channel == label: data.tandem_channel = new_label
-        get_app().window.displaymodel.remove_shape(label)  # add_shapes never drops a shape, so the old name would still be drawn
 
     def edit_channel(self, label: str, spec: CustomNeedleSpec) -> NeedleChannel:
         """Rebuild any applicator, plan or custom, from new numbers and a new name, keeping its number, place, diameter, disabled state and move.
@@ -198,7 +197,6 @@ class ChannelsModel(QObject):
         if self.is_channel_tandem(label):
             raise CustomNeedleError("Choose another tandem before removing the applicator that is the tandem")
         del self.channels[label]
-        get_app().window.displaymodel.remove_shape(label)  # add_shapes never drops a shape, so a removed one would still be drawn
         self.custom_specs.pop(label, None)
         self.own_diameters.pop(label, None)
         self.disabled_channels = [disabled for disabled in self.disabled_channels if disabled != label]
@@ -338,8 +336,7 @@ class ChannelsModel(QObject):
         for shape in shapes:
             shape.enabled = not self.is_channel_disabled(shape.label)
 
-        app = get_app()
-        app.window.displaymodel.add_shapes(shapes)
+        get_app().window.displaymodel.replace_shapes(ShapeTypes.CHANNEL, shapes)  # a channel no longer in self.channels leaves the view
 
     def update_height_offset(self, height_offset: float):
         log.debug(f"updating channels height offset")

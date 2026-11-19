@@ -55,7 +55,8 @@ tests/
 │   ├── test_structure_surfaces.py  axial sampling, topology, bounds and size budget
 │   ├── test_notch.py
 │   └── test_tandem.py
-├── models/
+├── models/                exists: the models, built without a window
+│   └── test_display_model.py  replace_shapes leaves one type's shapes as exactly the listed ones
 ├── pdf/                   exists: the reference sheet's lengths, notch drawing and cylinder table
 │   └── test_template_reference.py
 ├── settings/              exists: config file loading, the needle template library, cylinder and tandem templates
@@ -101,7 +102,7 @@ tests/
 `tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`,
 `settings/test_cylinder_templates.py`, `settings/test_tandem_templates.py`, `dicom/test_data.py`,
 `dicom/test_structures.py`, `dicom/test_load_structures.py`, `dicom/test_structure_list.py`
-and `views/test_import_view.py` exist. The rest of the tree shows where tests will go.
+and `views/test_import_view.py` exist, and so does `models/test_display_model.py`. The rest of the tree shows where tests will go.
 
 Naming: `test_<module>.py`, mirroring the module under test. A test for
 `src/classes/mesh/helper.py` is `tests/mesh/test_helper.py`.

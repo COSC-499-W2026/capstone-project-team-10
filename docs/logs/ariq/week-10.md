@@ -207,7 +207,7 @@ Stated once here instead of in each section.
   ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/60af70b25b9e1b86deb04b88c7cab59a054ab993/docs/logs/ariq/screenshots/week-10/pr-260-1-export-and-pytest-621.png)
 - Not applicable: **generated-test review (no problem beyond the review's)**.
 
-## Stack #269 to #269, at a glance
+## Stack #269 to #270, at a glance
 
 Three stacked PRs that change how `ChannelsModel` keeps an applicator, with no behaviour change, prompted by #195's removal, which forgot the 3D view (§7.25). The tests that pin what a rename carries come first, then the 3D view drops a gone channel in one place, then each applicator's state becomes one `ChannelRecord`. The same scripted run on Ex1 gave identical results on #260 and on each refactor PR. Each PR is based on the one above it and closes its own issue.
 A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
@@ -215,6 +215,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#269](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/269) | #260 | #266 | Tests only: what a rename carries is pinned, and two test files reach `ChannelsModel` through its import and methods | 7, +176/−21 | 3 | 624 |
+| [#270](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/270) | #269 | #267 | `DisplayModel.replace_shapes`, so a removed or renamed channel leaves the 3D view in one place; §7.25 | 8, +113/−11 | 2 | 626 |
 
 The suite had 621 tests on #260.
 
@@ -246,3 +247,42 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 624 passed (621 after #260), and `-n auto --dist loadfile`, 624 passed (screenshot 1)**.
   ![1, on test/pin-applicator-records, the three test files 32 passed and the suite in parallel 624 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/55937c0cae88d448e4d2d294cbd77e1bad0c26d5/docs/logs/ariq/screenshots/week-10/pr-269-1-pytest-624.png)
+
+### For PR #**270** (2 of 3, on #269)
+
+- As part of requirement **issue #267, a removed or renamed applicator leaves the 3D view without each change remembering to**, the user needs to do **remove or rename an applicator on the Channels tab and see the 3D view match the list and the export**.
+- Therefore, I implemented/generated code so that **`DisplayModel.replace_shapes` makes the channels `ChannelsModel` passes the only channel shapes drawn, so remove and rename no longer call `remove_shape`, for clinicians checking the model and developers changing applicators**.
+
+#### Backend
+
+- The system uses **one owner for each piece of state (Information Expert): `DisplayModel` decides which shapes leave its own dictionary** because **#195 forgot to drop a removed channel's shape, so the viewport drew a needle the export no longer cut (§7.25)**. Benefits for using this pattern include **`update_display` passes the full set of channels on every `update()`, so the two hand-written `remove_shape` calls are gone and a new way to delete or rename a channel cannot forget one**. Possible risks include **dropping a shape of another type, and drawing a disabled channel because it is listed**.
+  - To mitigate **dropping another type's shape**, we implemented **a filter on `ShapeTypes.CHANNEL`, which only `ChannelsModel` uses, tested with a cylinder shape that stays**.
+  - To mitigate **drawing a listed disabled channel**, we implemented **`replace_shapes` ending in the existing `add_shapes`, which leaves out a shape that is not enabled**.
+  - We considered alternative solutions such as **keeping a `remove_shape` call in each method, which is the step #195 missed**.
+- The system architecture diagram consists of the following major components: **views, models, domain services, libraries and local storage, unchanged**. This structure has low coupling because **`ChannelsModel` passes `ShapeModel`s and never reads `DisplayModel.shapes`**. This structure has high cohesion because **only `DisplayModel` adds and drops entries in its dictionary**. This design is scalable because **another model can pass its own shape type the same way**.
+
+  **[System architecture, unchanged](https://github.com/COSC-499-W2026/capstone-project-team-10/blob/b03cd64687f2dd863ea76733c13a4cf7d5f8f876/docs/architecture/diagrams/system-architecture.svg)**
+- The system adopts a **stateful** approach to state management because **the 3D view shows what `DisplayModel.shapes` holds between updates**. This method is done by **`update_display` replacing every channel entry on each `update()`**. Benefits for using this approach include **the view is rebuilt from the model's channels instead of patched**. Possible risks include **a change to the channels that does not end in `update()`**.
+  - To mitigate **a change without `update()`**, we implemented **nothing new: `remove_channel` and `edit_channel` already end in `update()`, `rename_channel` is called only by `edit_channel`, and both paths are pinned by #238's `test_a_removed_applicator_leaves_the_viewport` and #269's rename test**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **#267: `tests/models/test_display_model.py` (2 cases), with #238's `test_a_removed_applicator_leaves_the_viewport` and #269's `test_a_renamed_applicator_is_drawn_under_its_new_name_only` unchanged**
+- Not applicable: **database (none), data processing (unchanged), Level 0 DFD, Level 1 DFD (no data flow changed), backend API (none), test coverage (no coverage tool)**.
+
+#### Review and design
+
+- When I reviewed the **generated `replace_shapes` and its call in `update_display`** for this functionality, I noticed **that it also drops the old plan's channels when `load_data` runs without the display reset an import does first, as the tests' `restored_plan` fixtures do**. Therefore, I did **confirm `import_dicom_from_folder` resets the display before `load_data`, so the app is unchanged, and record that in §5.5**.
+- The PR does not contain any temporary workaround because **the drop replaces both hand-written `remove_shape` calls instead of adding a third path**.
+- The PR only contains small functions that are **7 lines (`replace_shapes`) and 5 to 16 lines (tests); `update_display` stays 16** long.
+- Code quality checklist: **see Shared**.
+- This work is written in **`src/windows/models/display_model.py` and `src/windows/models/channels_model.py`** because **the display model owns its shapes, and `update_display` is where channel shapes are made**.
+- This work belongs in **3 Channels** in the DFD because **it decides which channel solids the Channels tab's 3D view shows**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_replacing_channel_shapes_drops_a_channel_that_is_gone_and_leaves_other_types_alone` (2 new; 2 in `tests/models/test_display_model.py`; screenshot 1)** passed.
+- I wrote tests to cover abnormal situations involving **a disabled channel in the list passed to `replace_shapes`** and they passed.
+- I checked that these negative cases involving **`replace_shapes` missing (both new tests failed with `AttributeError`) and `update_display` put back on `add_shapes` (#238's remove test and #269's rename test failed)** failed as expected.
+- Among these tests, **both `test_display_model.py` tests** are unit tests and **#238's and #269's viewport tests, which drive the real window,** are integration tests.
+- These tests are included in the directory **`tests/models/`**.
+- This new test PR did not break anything else in the system because **`python -m pytest`, 626 passed (624 after #269), and the real app on Ex1, where the list, the shapes drawn and the export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
+  ![1, on refactor/channel-display-sync, the Channels tab after Applicator6 was disabled and renamed, a custom applicator added and renamed and Applicator7 removed, with neither old name nor Applicator7 drawn, and the suite 626 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/a27c016f387962324c5b68a63b42903f0bb68956/docs/logs/ariq/screenshots/week-10/pr-270-1-channels-and-pytest-626.png)
+- Not applicable: **generated-test review (no problem found)**.

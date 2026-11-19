@@ -39,6 +39,14 @@ class DisplayModel(QObject):
             else: self.shapes[shape.label] = shape
         log.debug(f"Shapes: {self.shapes.keys()}")
 
+    def replace_shapes(self, shape_type: ShapeTypes, shapes: list[ShapeModel]) -> None:
+        """Make these the only shapes of shape_type, so one whose label is not among them leaves the view."""
+        labels = {shape.label for shape in shapes}
+        gone = [label for label, held in self.shapes.items() if held.type == shape_type and label not in labels]
+        for label in gone:
+            del self.shapes[label]
+        self.add_shapes(shapes)
+
     def remove_shape(self, label:str):
         log.debug(f"removing {label}")
         if label in self.shapes:

@@ -406,6 +406,7 @@ Views get lifecycle callbacks `on_open()` / `on_close()` from `NavigationModel.s
 model computes an OCC TopoDS_Shape
   → wrapped in ShapeModel(label, shape, ShapeTypes.*)
   → DisplayModel.add_shape(s)          # dict keyed by label; enabled=False removes
+    or replace_shapes(type, shapes)    # ChannelsModel: also drops a channel whose label is gone
   → DisplayModel.update()              # assigns materials by ShapeTypes, emits shapes_changed
   → OrbitCameraViewer3d.update_display  # the pythonocc canvas
 ```
