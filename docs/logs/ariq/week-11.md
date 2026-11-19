@@ -341,6 +341,7 @@ A row's counts are **that PR's own diff only**, as GitHub shows it against its p
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#275](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/275) | `main` | #272 | This log renamed to week 11, and the #256 to #260 screenshots moved with their links | 7, +43/−7 | 0 | 627 |
+| [#276](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/276) | #275 | #274 | The #269 to #271 screenshots moved with their links | 4, +22/−3 | 0 | 627 |
 
 The suite had 627 tests on `main` before the stack (`f0366cb`).
 
@@ -367,4 +368,22 @@ Stated once here instead of in each section.
 
 - The functionality works correctly because the happy path tests involving **`curl` on the six re-pinned links (6 of 6 HTTP 200), and a grep that finds only #269 to #271's three links still in the old folder** passed.
 - This new test PR did not break anything else in the system because **it changes no code, and `python -m pytest -n auto --dist loadfile`, 627 passed (627 on `main`)**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
+
+### For PR #**276** (2 of 2, on #275)
+
+- As part of requirement **issue #274, my week 11 screenshots filed under week 11**, the user needs to do **open `docs/logs/ariq/week-11.md` and see the #269 to #271 screenshots render from the week 11 folder**.
+- Therefore, I implemented/generated code so that **the last three screenshots move to `week-11/` and their links follow, for the grader auditing week 11**.
+
+#### Review and design
+
+- When I reviewed the **generated renames and re-pinned links** for this functionality, I did not find any problems with it because **`git diff -M --name-status` against #275 shows 3 renames at 100% and one 3-line link edit, and each link returns HTTP 200**.
+- I did **a grep of the log for links into the old folder (none left) and a `curl` of each re-pinned link** to ensure that my feature contribution does not contain any of the following: **a broken link or a lost image; the code items do not apply, no code changed**.
+- This work is written in **`docs/logs/ariq/week-11.md` and `docs/logs/ariq/screenshots/week-11/`** because **as in #275**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`curl` on the three re-pinned links (3 of 3 HTTP 200), and a grep that finds no link into the old folder** passed.
+- This new test PR did not break anything else in the system because **it changes no code, and `python -m pytest -n auto --dist loadfile`, 627 passed (627 after #275)**.
 - Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
