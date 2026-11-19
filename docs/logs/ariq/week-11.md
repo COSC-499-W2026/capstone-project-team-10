@@ -1,4 +1,4 @@
-# Week 10, Ariq
+# Week 11, Ariq
 
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
@@ -57,7 +57,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/`, `tests/windows/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 585 passed (585 on `main`, 0 new; screenshot 1)**.
 
-  ![1, python -m pytest on test/order-independent-fixtures, the three viewport files alone 44 passed and the suite 585 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3f454b9dd7d6b3ad55d10c2db3f4e66b54797b11/docs/logs/ariq/screenshots/week-10/pr-256-1-pytest-585.png)
+  ![1, python -m pytest on test/order-independent-fixtures, the three viewport files alone 44 passed and the suite 585 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-256-1-pytest-585.png)
 - Not applicable: **abnormal cases (fixtures only), generated-test review (no problem beyond the one above), unit and integration tests (no new tests)**.
 
 ### For PR #**262** (2 of 6, on #256)
@@ -82,7 +82,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/tooling/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 586 passed (585 after #256), with the real `~/brachify/app.log` unchanged (screenshot 1)**.
 
-  ![1, on test/isolated-test-home, test_test_home.py 1 passed and python -m pytest 586 passed, with the real ~/brachify/app.log time the same before and after](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/72c8e3caa35b215cec7e342111f351a073c2abcf/docs/logs/ariq/screenshots/week-10/pr-262-1-pytest-586.png)
+  ![1, on test/isolated-test-home, test_test_home.py 1 passed and python -m pytest 586 passed, with the real ~/brachify/app.log time the same before and after](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-262-1-pytest-586.png)
 - Not applicable: **abnormal cases (one fixed path), generated-test review (no problem found)**.
 
 ### For PR #**257** (3 of 6, on #262)
@@ -107,7 +107,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/tooling/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 590 passed (586 after #262), and `python -m pytest -n auto --dist loadfile`, 590 passed in 2 min 9 s (screenshot 1)**.
 
-  ![1, on chore/parallel-test-runs, test_parallel_runs.py 4 passed and python -m pytest -n auto --dist loadfile 590 passed in 2 min 9 s](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6c4e31fc99fac149c6767a902538b84fb3c3aab1/docs/logs/ariq/screenshots/week-10/pr-257-1-pytest-590.png)
+  ![1, on chore/parallel-test-runs, test_parallel_runs.py 4 passed and python -m pytest -n auto --dist loadfile 590 passed in 2 min 9 s](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-257-1-pytest-590.png)
 - Not applicable: **abnormal cases (the input is three fixed files), generated-test review (no problem found)**.
 
 ### For PR #**258** (4 of 6, on #257)
@@ -134,7 +134,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/tooling/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 596 passed (590 after #257), `-m "not slow"`, 317 passed and 279 deselected in 12 s, and `-n auto --dist loadfile`, 596 passed in 1 min 58 s (screenshot 1)**.
 
-  ![1, on test/slow-marker, test_slow_marker.py 6 passed, the quick loop 317 passed and 279 deselected in 12 s, and the suite in parallel 596 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/47b527fa9616d88a15349c888f1a63cb760f410c/docs/logs/ariq/screenshots/week-10/pr-258-1-pytest-596.png)
+  ![1, on test/slow-marker, test_slow_marker.py 6 passed, the quick loop 317 passed and 279 deselected in 12 s, and the suite in parallel 596 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-258-1-pytest-596.png)
 - Not applicable: **abnormal cases (marker expressions are pytest's own)**.
 
 ### For PR #**259** (5 of 6, on #258)
@@ -160,7 +160,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/mesh/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 610 passed (596 after #258), and `-n auto --dist loadfile`, 610 passed in 2 min 4 s (screenshot 1)**.
 
-  ![1, on test/channel-geometry-baseline, test_channel_geometry.py 14 passed and the suite in parallel 610 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/58966aff794694d21d70dccf0e9b6569dee8dbc9/docs/logs/ariq/screenshots/week-10/pr-259-1-pytest-610.png)
+  ![1, on test/channel-geometry-baseline, test_channel_geometry.py 14 passed and the suite in parallel 610 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-259-1-pytest-610.png)
 - Not applicable: **abnormal cases (the inputs are the two sample plans), generated-test review (no problem found)**.
 
 ### For PR #**260** (6 of 6, on #259)
@@ -204,7 +204,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 621 passed (610 after #259), `-n auto --dist loadfile`, 621 passed in 59 s, and the real app on Ex1 and Ex2 exporting the same solid volume and the same STL bytes as `main` at all 9 steps (screenshot 1)**.
 
-  ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/60af70b25b9e1b86deb04b88c7cab59a054ab993/docs/logs/ariq/screenshots/week-10/pr-260-1-export-and-pytest-621.png)
+  ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-260-1-export-and-pytest-621.png)
 - Not applicable: **generated-test review (no problem beyond the review's)**.
 
 ## Stack #269 to #271, at a glance
@@ -332,3 +332,39 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 627 passed (626 after #270), and the real app on Ex1, where the list, shapes drawn, disabled, own diameters, specs, channel numbers and export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
   ![1, on refactor/channel-records, the Export tab after the 6 steps, matching #260, and the suite 627 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/e837c58877a9d5f5dad32f9895d0f3d431ef2d8f/docs/logs/ariq/screenshots/week-10/pr-271-1-export-and-pytest-627.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+## Stack #275 to #276, at a glance
+
+Two stacked PRs that file the #256 to #271 work under week 11, since the team took week 10 off capstone: the log is renamed and its nine screenshots move to `week-11/`, with their links re-pinned. They are split because all nine images and the log are 10 files. Each PR is based on the one above it and closes its own issue.
+A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
+
+| PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
+|---|---|---|---|---|---|---|
+| [#275](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/275) | `main` | #272 | This log renamed to week 11, and the #256 to #260 screenshots moved with their links | 7, +43/−7 | 0 | 627 |
+
+The suite had 627 tests on `main` before the stack (`f0366cb`).
+
+### Shared by every PR in this stack
+
+Stated once here instead of in each section.
+
+- **Regression checks.** Every PR's regression receipt also includes **`build.py --check` and `session-start.sh`, both exit 0**.
+- **Run on macOS only.** **Every run in this stack was on a 10-core Apple Silicon Mac**.
+
+### For PR #**275** (1 of 2, on `main`)
+
+- As part of requirement **issue #272, my week 11 work filed under week 11**, the user needs to do **open `docs/logs/ariq/week-11.md` and audit the #256 to #271 receipts with every screenshot rendering**.
+- Therefore, I implemented/generated code so that **the log and the #256 to #260 screenshots are renamed from week 10 to week 11, for the grader auditing week 11**.
+
+#### Review and design
+
+- When I reviewed the **generated renames** for this functionality, I noticed **that moving all nine screenshots with the log changes 10 files, over the course's limit**. Therefore, I did **move the #256 to #260 stack's six here and leave #269 to #271's three to #276**.
+- I did **`git diff -M --name-status` against `main` (7 renames, the log kept as a rename at 91%) and a `curl` of each re-pinned link** to ensure that my feature contribution does not contain any of the following: **a broken link or a lost image; the code items do not apply, no code changed**.
+- This work is written in **`docs/logs/ariq/week-11.md` and `docs/logs/ariq/screenshots/week-11/`** because **`docs/logs/README.md` files a log and its screenshots under the semester week its PRs merged**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`curl` on the six re-pinned links (6 of 6 HTTP 200), and a grep that finds only #269 to #271's three links still in the old folder** passed.
+- This new test PR did not break anything else in the system because **it changes no code, and `python -m pytest -n auto --dist loadfile`, 627 passed (627 on `main`)**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
