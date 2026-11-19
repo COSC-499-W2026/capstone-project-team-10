@@ -57,7 +57,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/`, `tests/windows/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 585 passed (585 on `main`, 0 new; screenshot 1)**.
 
-  ![1, python -m pytest on test/order-independent-fixtures, the three viewport files alone 44 passed and the suite 585 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3f454b9dd7d6b3ad55d10c2db3f4e66b54797b11/docs/logs/ariq/screenshots/week-10/pr-256-1-pytest-585.png)
+  ![1, python -m pytest on test/order-independent-fixtures, the three viewport files alone 44 passed and the suite 585 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-256-1-pytest-585.png)
 - Not applicable: **abnormal cases (fixtures only), generated-test review (no problem beyond the one above), unit and integration tests (no new tests)**.
 
 ### For PR #**262** (2 of 6, on #256)
@@ -82,7 +82,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/tooling/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 586 passed (585 after #256), with the real `~/brachify/app.log` unchanged (screenshot 1)**.
 
-  ![1, on test/isolated-test-home, test_test_home.py 1 passed and python -m pytest 586 passed, with the real ~/brachify/app.log time the same before and after](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/72c8e3caa35b215cec7e342111f351a073c2abcf/docs/logs/ariq/screenshots/week-10/pr-262-1-pytest-586.png)
+  ![1, on test/isolated-test-home, test_test_home.py 1 passed and python -m pytest 586 passed, with the real ~/brachify/app.log time the same before and after](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-262-1-pytest-586.png)
 - Not applicable: **abnormal cases (one fixed path), generated-test review (no problem found)**.
 
 ### For PR #**257** (3 of 6, on #262)
@@ -107,7 +107,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/tooling/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 590 passed (586 after #262), and `python -m pytest -n auto --dist loadfile`, 590 passed in 2 min 9 s (screenshot 1)**.
 
-  ![1, on chore/parallel-test-runs, test_parallel_runs.py 4 passed and python -m pytest -n auto --dist loadfile 590 passed in 2 min 9 s](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/6c4e31fc99fac149c6767a902538b84fb3c3aab1/docs/logs/ariq/screenshots/week-10/pr-257-1-pytest-590.png)
+  ![1, on chore/parallel-test-runs, test_parallel_runs.py 4 passed and python -m pytest -n auto --dist loadfile 590 passed in 2 min 9 s](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-257-1-pytest-590.png)
 - Not applicable: **abnormal cases (the input is three fixed files), generated-test review (no problem found)**.
 
 ### For PR #**258** (4 of 6, on #257)
@@ -134,7 +134,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/tooling/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 596 passed (590 after #257), `-m "not slow"`, 317 passed and 279 deselected in 12 s, and `-n auto --dist loadfile`, 596 passed in 1 min 58 s (screenshot 1)**.
 
-  ![1, on test/slow-marker, test_slow_marker.py 6 passed, the quick loop 317 passed and 279 deselected in 12 s, and the suite in parallel 596 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/47b527fa9616d88a15349c888f1a63cb760f410c/docs/logs/ariq/screenshots/week-10/pr-258-1-pytest-596.png)
+  ![1, on test/slow-marker, test_slow_marker.py 6 passed, the quick loop 317 passed and 279 deselected in 12 s, and the suite in parallel 596 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-258-1-pytest-596.png)
 - Not applicable: **abnormal cases (marker expressions are pytest's own)**.
 
 ### For PR #**259** (5 of 6, on #258)
@@ -160,7 +160,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/mesh/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 610 passed (596 after #258), and `-n auto --dist loadfile`, 610 passed in 2 min 4 s (screenshot 1)**.
 
-  ![1, on test/channel-geometry-baseline, test_channel_geometry.py 14 passed and the suite in parallel 610 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/58966aff794694d21d70dccf0e9b6569dee8dbc9/docs/logs/ariq/screenshots/week-10/pr-259-1-pytest-610.png)
+  ![1, on test/channel-geometry-baseline, test_channel_geometry.py 14 passed and the suite in parallel 610 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-259-1-pytest-610.png)
 - Not applicable: **abnormal cases (the inputs are the two sample plans), generated-test review (no problem found)**.
 
 ### For PR #**260** (6 of 6, on #259)
@@ -204,7 +204,7 @@ Stated once here instead of in each section.
 - These tests are included in the directory **`tests/mesh/` and `tests/views/`**.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 621 passed (610 after #259), `-n auto --dist loadfile`, 621 passed in 59 s, and the real app on Ex1 and Ex2 exporting the same solid volume and the same STL bytes as `main` at all 9 steps (screenshot 1)**.
 
-  ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/60af70b25b9e1b86deb04b88c7cab59a054ab993/docs/logs/ariq/screenshots/week-10/pr-260-1-export-and-pytest-621.png)
+  ![1, on perf/reuse-built-channels, the Export tab after Ex1 was reimported in 0.11 s, and test_channel_reuse.py with test_channel_geometry.py 24 passed, the twin test passed and the suite in parallel 621 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/fc8598eaab6dfdbd4798cb8717e4158f9e45d9e1/docs/logs/ariq/screenshots/week-11/pr-260-1-export-and-pytest-621.png)
 - Not applicable: **generated-test review (no problem beyond the review's)**.
 
 ## Stack #269 to #271, at a glance
