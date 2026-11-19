@@ -332,3 +332,39 @@ Stated once here instead of in each section.
 - This new test PR did not break anything else in the system because **`python -m pytest`, 627 passed (626 after #270), and the real app on Ex1, where the list, shapes drawn, disabled, own diameters, specs, channel numbers and export volume (100,739.741 mm³) matched #260 after the same 6 steps (screenshot 1)**.
   ![1, on refactor/channel-records, the Export tab after the 6 steps, matching #260, and the suite 627 passed](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/3a35ac1d1016763e5e6f9e23c929eed059365af3/docs/logs/ariq/screenshots/week-11/pr-271-1-export-and-pytest-627.png)
 - Not applicable: **generated-test review (no problem found)**.
+
+## Stack #275 to #276, at a glance
+
+Two stacked PRs that file the #256 to #271 work under week 11, since the team took week 10 off capstone: the log is renamed and its nine screenshots move to `week-11/`, with their links re-pinned. They are split because all nine images and the log are 10 files. Each PR is based on the one above it and closes its own issue.
+A row's counts are **that PR's own diff only**, as GitHub shows it against its parent.
+
+| PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
+|---|---|---|---|---|---|---|
+| [#275](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/275) | `main` | #272 | This log renamed to week 11, and the #256 to #260 screenshots moved with their links | 7, +43/−7 | 0 | 627 |
+
+The suite had 627 tests on `main` before the stack (`f0366cb`).
+
+### Shared by every PR in this stack
+
+Stated once here instead of in each section.
+
+- **Regression checks.** Every PR's regression receipt also includes **`build.py --check` and `session-start.sh`, both exit 0**.
+- **Run on macOS only.** **Every run in this stack was on a 10-core Apple Silicon Mac**.
+
+### For PR #**275** (1 of 2, on `main`)
+
+- As part of requirement **issue #272, my week 11 work filed under week 11**, the user needs to do **open `docs/logs/ariq/week-11.md` and audit the #256 to #271 receipts with every screenshot rendering**.
+- Therefore, I implemented/generated code so that **the log and the #256 to #260 screenshots are renamed from week 10 to week 11, for the grader auditing week 11**.
+
+#### Review and design
+
+- When I reviewed the **generated renames** for this functionality, I noticed **that moving all nine screenshots with the log changes 10 files, over the course's limit**. Therefore, I did **move the #256 to #260 stack's six here and leave #269 to #271's three to #276**.
+- I did **`git diff -M --name-status` against `main` (7 renames, the log kept as a rename at 91%) and a `curl` of each re-pinned link** to ensure that my feature contribution does not contain any of the following: **a broken link or a lost image; the code items do not apply, no code changed**.
+- This work is written in **`docs/logs/ariq/week-11.md` and `docs/logs/ariq/screenshots/week-11/`** because **`docs/logs/README.md` files a log and its screenshots under the semester week its PRs merged**.
+- Not applicable: **temporary workaround, function length, DFD process (no code changed)**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`curl` on the six re-pinned links (6 of 6 HTTP 200), and a grep that finds only #269 to #271's three links still in the old folder** passed.
+- This new test PR did not break anything else in the system because **it changes no code, and `python -m pytest -n auto --dist loadfile`, 627 passed (627 on `main`)**.
+- Not applicable: **abnormal cases, negative cases, generated-test review, unit and integration tests, test directory (no code, the checks are shell commands)**.
