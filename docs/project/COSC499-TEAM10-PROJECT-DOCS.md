@@ -154,6 +154,9 @@ conda activate brachify
 python src/launch.py
 ```
 
+Or, after Miniforge is installed, use §1.2a: `python -m utils.common.setup_conda_env --run`
+builds the same package list for macOS and Linux.
+
 The versions this installs are whatever is newest that day, so they can differ from Windows
 and from a teammate's Mac. On 2026-09-30 a Mac environment had PySide6 6.11.2, matplotlib
 3.11.2 and reportlab 5.0.1, against 6.8.1, 3.10.9 and 4.5.1 in `spec-file.txt`. That is
@@ -181,6 +184,27 @@ instead of Homebrew, and run `conda init` for your shell. `pythonocc-core` 7.7.2
 `linux-64` on conda-forge (*Verified* 2026-09-30 with `conda search --platform linux-64`).
 *Not verified:* creating the environment or running the app on Linux.
 
+### 1.2a One-command create (all operating systems)
+
+> *Verified* 2026-11-19 on Windows: dry-run prints
+> `conda create --name brachify --file …/spec-file.txt`. The helper's unit tests cover
+> Windows, macOS and Linux argv. *Not verified:* `--run` creating a fresh environment on
+> this machine, or a dry-run on macOS or Linux.
+
+After conda itself is installed (§1.2 or §1.3), from the repository root:
+
+```bash
+python -m utils.common.setup_conda_env          # print the OS-specific create command
+python -m utils.common.setup_conda_env --run    # run it (needs conda on PATH)
+```
+
+`--name` chooses the environment name (default `brachify`). The helper never calls pip. On
+Windows it uses `spec-file.txt`; on macOS and Linux it names every package in §1.1 on
+conda-forge. The command builder lives in
+[utils/common/conda_env.py](../../utils/common/conda_env.py) and is covered by
+[tests/tooling/test_conda_env.py](../../tests/tooling/test_conda_env.py). This does not replace
+installing Miniforge or Anaconda, and it is not Docker (§1.11).
+
 ### 1.3 Windows setup — the upstream-supported path
 
 ```bash
@@ -188,6 +212,8 @@ conda create --name brachify --file spec-file.txt
 conda activate brachify
 python src/launch.py
 ```
+
+Or use §1.2a: `python -m utils.common.setup_conda_env --run`.
 
 `spec-file.txt` is the canonical, fully pinned lockfile. Prefer it on Windows.
 Its PR #122 additions include SciPy, scikit-image and supporting packages. The file mixes
@@ -2925,6 +2951,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
+| `test_conda_env.py` | Windows create omits `spec-file.txt`, macOS or Linux omit a §1.1 package or use the Windows lockfile, an unknown platform is accepted, or the command mentions pip (§1.2a) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_slow_marker.py` | a test that uses a window fixture, or a slow interstitial-length test, is still selected by `-m "not slow"`, a pure test such as `dicom/test_data.py` is not, or `-m slow` and `-m "not slow"` overlap or together miss a test (§8.1) |
 | `test_parallel_runs.py` | `pytest-xdist` is missing from `environment.yml`, `spec-file.txt` or the §1.2 `conda create` command, or cannot be imported in the environment running the tests (§1.1, §8.1) |
