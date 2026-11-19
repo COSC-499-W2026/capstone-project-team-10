@@ -3,14 +3,14 @@
 _Individual log. One section per PR merged this week, each a copy of that PR's Part A. See
 [docs/logs/README.md](../README.md)._
 
-## Stack #273 to #274, at a glance
+## Stack #273 to #277, at a glance
 
 Two stacked PRs for conda setup automation. Each is based on the one below it, closes its own issue or documents the stack, and should be retargeted to main once its parent merges. A row's counts are that PR's own diff only.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#273](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/273) | `main` | #167 | conda create helper | 8, +274/−3 | 5 | tooling test_conda_env 5 passed |
-| [#274](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/274) | #273 | — | AGENTS pointer and Part A log | 2 | 0 | inherited |
+| [#277](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/274) | #273 | — | AGENTS pointer and Part A log | 2 | 0 | inherited |
 
 ### Shared by every PR in this stack
 
@@ -52,7 +52,7 @@ Two stacked PRs for conda setup automation. Each is based on the one below it, c
 - This new test PR did not break anything else in the system because **`python -m pytest tests/tooling/test_conda_env.py -q` is 5 passed, and anti-slop reported no findings**.
 - Not applicable: **generated-test review**.
 
-### For PR #**274** (2 of 2, on #273)
+### For PR #**277** (2 of 2, on #273)
 
 - As part of requirement **developer setup for brachify**, the user needs to do **find the one-command create from AGENTS.md and the weekly log**.
 - Therefore, I implemented/generated code so that **agents and the grader see the §1.2a entry point and Part A for this stack**.
