@@ -2761,6 +2761,16 @@ neighbours where the needles converge, and the sequential `BRepAlgoAPI_Cut` cann
 that. Nothing warns the clinician, so an STL or STEP exported at that diameter may be broken.
 Not fixed.
 
+### 7.29 MEDIUM — `rotate_points` treats a one-row `(1, 3)` array as a single vector
+
+*Verified* 2026-11-19 on Windows while writing `tests/mesh/test_helper.py`. The branch
+`if np.size(points) == 3` is meant for a length-3 vector. `np.size` of a shape `(1, 3)` array
+is also 3, so that branch runs, then `np.dot(e, p)` raises `ValueError: shapes (3,) and (1, 3)
+not aligned`. Import always builds channel clouds with at least two points, and the cylinder
+base goes through as a flat length-3 vector, so the live path does not hit this. A future
+caller that wraps one point as `(1, 3)` will crash. Not fixed; the new tests use two or more
+rows, or a flat `(3,)` vector, on purpose.
+
 ## 8. Testing
 
 ### 8.1 Policy
@@ -2852,8 +2862,9 @@ and the Channels view and Cylinder display units in `tests/views/`.**
 [tests/dicom/test_data.py](../../tests/dicom/test_data.py), added 2026-10-10, checks that a new
 `DicomData` starts empty and that `reset()` clears every field `__init__` declares. The first
 tests of `src/`, added 2026-10-08, test the Channels view's list selection. The main window
-tests in [tests/windows/](../../tests/windows/) were added 2026-10-10. The pure functions in
-§8.3 still have none.
+tests in [tests/windows/](../../tests/windows/) were added 2026-10-10.
+`helper.rotate_points` is covered by `tests/mesh/test_helper.py` (issue #278); the other
+§8.3 targets still need tests.
 
 For Cylinder display units, the real offscreen window,
 models and controls exercise startup, all four cm displays, scaled steps and limits,
@@ -2915,6 +2926,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_channel_reuse.py` | `rounded_channel` builds identical inputs again instead of copying the kept solid, gives two calls the same shape object or a copy with other geometry, reuses a solid after the points, offset, diameter, deadspace or either threading setting changed, keeps a build that opened the error dialog so a reimport would not report it, or its store keeps more solids than its capacity or drops the one used last (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_spec_from_points.py` | a vertical needle gets a bend or a start off the base, a tilt above a vertical run does not give that run as Length 1, Phi is negative or wrong in a quadrant, a needle ending on or crossing the base does not start at the base or gets a Length 1 of 0, a curved path moves the tip, Theta passes the form limit, or no points, one point, NaN or infinity are accepted, or a refusal has a colon or dash (§5.4) |
+| `mesh/test_helper.py` | identical axes move a cloud, a +X tip does not land on +Z after a +X to +Z realign, pairwise distances change under a ninety-degree turn, or a flat length-3 point returns a one-row matrix instead of three coordinates (§5.4, §7.29) |
 | `mesh/test_custom_needle_points.py` | a custom needle's points are not tissue end first at Length 1 plus Length 2, or a length of 0 or less, NaN, infinity, a Length 1 over the cylinder or a start 13.6 mm out, a Theta of 90 or below 0, or a bend with no radius is built, or a refusal has a colon or dash, or a start 13.5 mm out or a Length 1 of 100 mm is refused, or a bend's tip, its arc points or its straight case at Theta 0 are wrong (§5.4) |
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11). Or `tandem_from_design` drops or swaps a value, or `tandem_builds` calls a 30° bend at 60 or 170 mm buildable on a 160 by 30 mm cylinder, or refuses one at 120 mm or a straight one at 60 mm (§7.21) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
@@ -3174,11 +3186,12 @@ python -m pytest
 In rough order — all are pure functions with no Qt or OCC dependency
 and can be tested without launching the app:
 
-1. `helper.rotate_points()` — the DICOM→cylinder transform; wrong here means every needle is
-   wrong.
+1. ~~`helper.rotate_points()`~~ — covered by `tests/mesh/test_helper.py` (issue #278). The
+   `(1, 3)` trap stays open as §7.29.
 2. `settings/load.load_config_file()` and `checkValuesExist()` — pure dict logic, and the
    round-trip bug in §7.1 would have been caught by a single test asserting
-   `set(getCurrentValues()) == set(DEFAULT_CONFIG_VALUES)`.
+   `set(getCurrentValues()) == set(DEFAULT_CONFIG_VALUES)`. (Collar round-trip is already
+   pinned from the Cylinder view; the load-file edges may still need more cases.)
 3. `channel.remove_identical_points()` / `remove_collinear_points()` / `apply_deadspace_to_points()`.
 4. `template_reference.extract_points_from_channels2()` — the `z=0` normalisation, with its
    three branches (crosses / stops short / lands exactly).

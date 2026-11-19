@@ -50,6 +50,7 @@ tests/
 │   ├── test_channel_reuse.py     identical inputs get a copy of the kept solid, any changed input rebuilds
 │   ├── test_custom_needle_points.py  custom needle points, bend and refusals
 │   ├── test_cylinder.py
+│   ├── test_helper.py            rotate_points, the DICOM to cylinder Rodrigues transform
 │   ├── test_spec_from_points.py     the Edit form's numbers estimated from a needle's points
 │   ├── test_structure_contours.py  registered anatomy wires and shared vertex transform
 │   ├── test_structure_surfaces.py  axial sampling, topology, bounds and size budget
@@ -326,8 +327,8 @@ ran the full isolated suite: **290 passed in 286.76s on the surface architecture
 §8 of [the project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) carries the ranked
 list of highest-value targets. All are pure functions needing neither Qt nor OpenCASCADE:
 
-1. `helper.rotate_points()` — the DICOM to cylinder transform. Wrong here means every needle
-   in every model is wrong.
+1. ~~`helper.rotate_points()`~~ — covered by `mesh/test_helper.py`. A one-row `(1, 3)` array
+   still hits the length-3 branch and raises (§7.29 of the project docs).
 2. `settings/load.py` — pure dict logic, and the collar round-trip bug in §7.1 of the project
    docs would have been caught by a single assertion here.
 3. The point cleanup functions in `mesh/channel.py`.
