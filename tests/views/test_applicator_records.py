@@ -98,3 +98,25 @@ def test_a_renamed_applicator_is_drawn_under_its_new_name_only(channels_window: 
         assert shapes["Renamed Applicator95"].shape.IsSame(new.shape())
     finally:
         model.remove_channel("Renamed Applicator95")
+
+
+def test_an_edit_keeps_the_applicators_one_record_in_its_place_under_the_new_name(channels_window: MainWindow) -> None:
+    """Check an edit that renames an applicator moves its ChannelRecord object whole, in its list place, with the new needle and spec.
+
+    Fails with AttributeError while the model keeps an applicator in separate collections, and
+    later if a rename builds a new record or moves the record's place. A record rebuilt field by
+    field would drop any field a later change forgot to copy, which is how a removed needle once
+    stayed drawn (§7.25), and a moved place would reorder the list and the sheet's channels.
+    """
+    model = channels_window.channelsmodel
+    model.add_custom_needle(spec("Custom Applicator96"))
+    model.set_channel_diameter("Custom Applicator96", 4.0)
+    record = model.records["Custom Applicator96"]
+    place = list(model.records).index("Custom Applicator96")
+
+    new = model.edit_channel("Custom Applicator96", spec("Renamed Applicator96", x=-4.0))
+    try:
+        assert model.records["Renamed Applicator96"] is record and list(model.records).index("Renamed Applicator96") == place
+        assert record.needle is new and record.spec == spec("Renamed Applicator96", x=-4.0) and record.own_diameter == 4.0
+    finally:
+        model.remove_channel("Renamed Applicator96")
