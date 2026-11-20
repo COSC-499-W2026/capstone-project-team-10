@@ -3,9 +3,9 @@
 Windows uses the pinned lockfile ``spec-file.txt``. macOS and Linux name every
 package from §1.1 of the project docs on conda-forge. Never uses pip.
 
-Run from the repository root:
+Run from the repository root (default is print only; pass ``--run`` to create):
 
-    python -m utils.common.setup_conda_env --dry-run
+    python -m utils.common.setup_conda_env
     python -m utils.common.setup_conda_env --run
 """
 

@@ -10,6 +10,7 @@ Requires conda on PATH. Never uses pip.
 from __future__ import annotations
 
 import argparse
+import shlex
 import shutil
 import subprocess
 import sys
@@ -41,6 +42,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def format_command(command: list[str]) -> str:
+    """Return a shell-pasteable form of argv. Quotes paths that contain spaces."""
+    if sys.platform in ('win32', 'cygwin'):
+        return subprocess.list2cmdline(command)
+    return shlex.join(command)
+
+
 def main(argv: list[str] | None = None) -> int:
     """Print or run the OS-specific conda create command. Returns a process exit code."""
     args = build_parser().parse_args(argv)
@@ -53,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as error:
         print(error, file=sys.stderr)
         return 2
-    printable = ' '.join(command)
+    printable = format_command(command)
     if not args.run:
         print(printable)
         print(
@@ -61,11 +69,14 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 0
-    if shutil.which('conda') is None:
+    conda = shutil.which('conda')
+    if conda is None:
         print('conda was not found on PATH. Install Miniforge or Anaconda first.', file=sys.stderr)
         return 1
-    print(printable)
-    completed = subprocess.run(command, check=False)
+    # which() may resolve conda.bat on Windows; run that path, not the bare name.
+    run_command = [conda, *command[1:]]
+    print(format_command(run_command))
+    completed = subprocess.run(run_command, check=False)
     return int(completed.returncode)
 
 
