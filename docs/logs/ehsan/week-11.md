@@ -5,16 +5,16 @@ _Individual log. One section per PR merged this week, each a copy of that PR's P
 
 ## Stack #273 to #277, at a glance
 
-Two stacked PRs for conda setup automation. Each is based on the one below it, closes its own issue or documents the stack, and should be retargeted to main once its parent merges. A row's counts are that PR's own diff only.
+Two stacked PRs for conda setup automation. Each is based on the one below it, closes its own issue or documents the stack, and should be retargeted to main once its parent merges. A row's counts are that PR's own diff only. #167's Done-when is met by #273 together with #277.
 
 | PR | On | Closes | What this PR adds | Own diff (files, lines) | New tests | Suite after |
 |---|---|---|---|---|---|---|
-| [#273](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/273) | `main` | #167 | conda create helper | 8, +274/−3 | 5 | tooling test_conda_env 5 passed |
-| [#277](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/274) | #273 | — | AGENTS pointer and Part A log | 2 | 0 | inherited |
+| [#273](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/273) | `main` | #167 | conda create helper | 8, +357/−14 | 6 | `python -m pytest -q`, 625 passed, 8 failed (known Windows layout / xdist / tandem; unrelated) |
+| [#277](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/277) | #273 | #167 (docs half) | AGENTS pointer and Part A log | 2, +74/−1 | 0 | inherited |
 
 ### Shared by every PR in this stack
 
-- Code quality checklist: **`PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base origin/main src tests utils` reported no findings on the code PR. `python docs/architecture/build.py --check` exited 0.**
+- Code quality checklist: **`PYTHONPATH=agent-skills/anti-slop-py/src python -m anti_slop review --base origin/main src tests utils` reported no blocking findings on the code PR. `python docs/architecture/build.py --check` exited 0.**
 - Not applicable: **database (none), backend API (none), security sanitization, privacy sanitization, encryption, access controls (no network or logins), restricted pages (no logins), usability evaluation (none run), test coverage (no coverage tool)**.
 
 ### For PR #**273** (1 of 2, on main)
@@ -44,17 +44,17 @@ Two stacked PRs for conda setup automation. Each is based on the one below it, c
 
 #### Testing receipts
 
-- The functionality works correctly because the happy path tests involving **`tests/tooling/test_conda_env.py` (5 new)** passed.
+- The functionality works correctly because the happy path tests involving **`tests/tooling/test_conda_env.py` (6 new)** passed.
 - I wrote tests to cover abnormal situations involving **an unknown platform raising ValueError** and they passed.
-- I checked that these negative cases involving **Windows create without `--file`** failed as expected.
-- Among these tests, **the five cases** are unit tests and integration tests are not required because **no Qt or DICOM is involved**.
+- I checked that these negative cases involving **Windows create without `--file`, and `UNIX_CREATE_PACKAGES` drifting from §1.2** failed as expected.
+- Among these tests, **the six cases** are unit tests and integration tests are not required because **no Qt or DICOM is involved**.
 - These tests are included in the directory **`tests/tooling/`**.
-- This new test PR did not break anything else in the system because **`python -m pytest tests/tooling/test_conda_env.py -q` is 5 passed, and anti-slop reported no findings**.
+- This new test PR did not break anything else in the system because **`python -m pytest -q` on the #273 tip is 625 passed, 8 failed (known Windows layout, missing xdist, and tandem volume; not this helper). `tests/tooling/test_conda_env.py` is 6 passed. anti-slop reported no blocking findings**.
 - Not applicable: **generated-test review**.
 
 ### For PR #**277** (2 of 2, on #273)
 
-- As part of requirement **developer setup for brachify**, the user needs to do **find the one-command create from AGENTS.md and the weekly log**.
+- As part of requirement **developer setup for brachify / issue #167 Done-when**, the user needs to do **find the one-command create from AGENTS.md and the weekly log**.
 - Therefore, I implemented/generated code so that **agents and the grader see the §1.2a entry point and Part A for this stack**.
 
 #### Review and design
