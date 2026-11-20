@@ -54,13 +54,14 @@ above that version. Do not bump it casually.
 
 **Windows, macOS and Linux install the same dependencies.** Every package the app, the tests
 or the build imports directly is listed by name on every OS. The *versions* may differ between
-them, and that is accepted. The list is written in three places that must agree:
+them, and that is accepted. The list is written in four places that must agree:
 
 | Where | Used by | Versions |
 |---|---|---|
 | [spec-file.txt](../../spec-file.txt) | Windows (§1.3) | every package locked to an exact build |
 | the `conda create` command in §1.2 | macOS and Linux | newest available when you run it |
 | [environment.yml](../../environment.yml) | `conda env create -f environment.yml`, on any OS | newest available when you run it |
+| [utils/common/conda_env.py](../../utils/common/conda_env.py) `UNIX_CREATE_PACKAGES` | §1.2a one-command create on macOS and Linux | same named list as §1.2; drift-tested in `tests/tooling/test_conda_env.py` |
 
 | Package | Why it is listed |
 |---|---|
@@ -90,7 +91,7 @@ for a single OS. In the same pull request:
    ```
 
    Each line must print a version. A `noarch` package shows up for all four.
-2. **Add it by name, without a version, to all three places** in the first table above, and
+2. **Add it by name, without a version, to all four places** in the first table above, and
    give it a row in the second table saying why it is needed. Name only `python` and
    `pythonocc-core` with a version. Pinning anything else is a deliberate decision for the
    team, not a default.
@@ -102,7 +103,7 @@ for a single OS. In the same pull request:
 5. **Say in the pull request which operating systems you actually ran it on.** The others
    are *Not verified* until a teammate on that OS runs it.
 
-Removing a dependency is the same change in reverse: take it out of all three places and the
+Removing a dependency is the same change in reverse: take it out of all four places and the
 second table, and regenerate `spec-file.txt`.
 
 ### 1.2 macOS setup — verified working
@@ -154,6 +155,9 @@ conda activate brachify
 python src/launch.py
 ```
 
+Or, after Miniforge is installed, use §1.2a: `python -m utils.common.setup_conda_env --run`
+builds the same package list for macOS and Linux.
+
 The versions this installs are whatever is newest that day, so they can differ from Windows
 and from a teammate's Mac. On 2026-09-30 a Mac environment had PySide6 6.11.2, matplotlib
 3.11.2 and reportlab 5.0.1, against 6.8.1, 3.10.9 and 4.5.1 in `spec-file.txt`. That is
@@ -181,6 +185,27 @@ instead of Homebrew, and run `conda init` for your shell. `pythonocc-core` 7.7.2
 `linux-64` on conda-forge (*Verified* 2026-09-30 with `conda search --platform linux-64`).
 *Not verified:* creating the environment or running the app on Linux.
 
+### 1.2a One-command create (all operating systems)
+
+> *Verified* 2026-11-19 on Windows: dry-run prints
+> `conda create --name brachify --file …/spec-file.txt`. The helper's unit tests cover
+> Windows, macOS and Linux argv. *Not verified:* `--run` creating a fresh environment on
+> this machine, or a dry-run on macOS or Linux.
+
+After conda itself is installed (§1.2 or §1.3), from the repository root:
+
+```bash
+python -m utils.common.setup_conda_env          # print the OS-specific create command
+python -m utils.common.setup_conda_env --run    # run it (needs conda on PATH)
+```
+
+`--name` chooses the environment name (default `brachify`). The helper never calls pip. On
+Windows it uses `spec-file.txt`; on macOS and Linux it names every package in §1.1 on
+conda-forge. The command builder lives in
+[utils/common/conda_env.py](../../utils/common/conda_env.py) and is covered by
+[tests/tooling/test_conda_env.py](../../tests/tooling/test_conda_env.py). This does not replace
+installing Miniforge or Anaconda, and it is not Docker (§1.11).
+
 ### 1.3 Windows setup — the upstream-supported path
 
 ```bash
@@ -188,6 +213,8 @@ conda create --name brachify --file spec-file.txt
 conda activate brachify
 python src/launch.py
 ```
+
+Or use §1.2a: `python -m utils.common.setup_conda_env --run`.
 
 `spec-file.txt` is the canonical, fully pinned lockfile. Prefer it on Windows.
 Its PR #122 additions include SciPy, scikit-image and supporting packages. The file mixes
@@ -866,7 +893,7 @@ refreshes the viewer independently of `@display_action`. See §5.7 (*Reasoned fr
 │   │                            plain-language guide to the code as inherited)
 │   └── workflows/             tool-agnostic procedures (commit, make-pr, make-weekly-log)
 ├── tests/                     tooling tests, RTSTRUCT reader and DicomData tests, main window tests in windows/, view and viewport-reference tests in views/, needle, cylinder and tandem template tests in settings/ (§8)
-├── utils/                     README only
+├── utils/                     development helpers, not imported by the app: common/ conda setup (§1.2a)
 ├── notes/                     upstream developer notes
 ├── benchmarks/                dead code (§7.4)
 ├── resources/                 splash image and icon
@@ -2925,6 +2952,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `settings/test_load.py` | a config file's keys are not loaded, missing keys are not filled from the defaults and reported, an unreadable file is counted as loaded, or `true` is accepted as a dimension (§7.9) |
 | `test_architecture_build.py` | nested diagrams are omitted from the viewer, or missing, stale or unembedded nested SVGs pass the CLI check, or `build.py` reads an unchanged diagram checked out with CRLF line endings as stale, or an edited diagram as current, or the `npx` it renders with cannot be started (§7.6) |
 | `test_build_executable.py` | a module in `build_executable.HIDDEN_IMPORTS` cannot be imported (§7.4) |
+| `test_conda_env.py` | Windows create omits `spec-file.txt`, macOS or Linux omit a §1.1 package or use the Windows lockfile, an unknown platform is accepted, the command mentions pip, or `UNIX_CREATE_PACKAGES` drifts from the §1.2 create list or from `environment.yml` minus `pip` (§1.1, §1.2a) |
 | `test_line_endings.py` | a tracked `*.sh` would not be checked out with LF, or the session-start hook is no longer tracked (§1.10) |
 | `test_slow_marker.py` | a test that uses a window fixture, or a slow interstitial-length test, is still selected by `-m "not slow"`, a pure test such as `dicom/test_data.py` is not, or `-m slow` and `-m "not slow"` overlap or together miss a test (§8.1) |
 | `test_parallel_runs.py` | `pytest-xdist` is missing from `environment.yml`, `spec-file.txt` or the §1.2 `conda create` command, or cannot be imported in the environment running the tests (§1.1, §8.1) |

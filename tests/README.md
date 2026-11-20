@@ -29,7 +29,7 @@ The subfolder name mirrors the `src/` path under test:
 | `src/classes/dicom/` | `tests/dicom/` |
 | `src/classes/pdf/` | `tests/pdf/` |
 | `src/settings/` | `tests/settings/` |
-| repository files outside `src/`: `build_executable.py`, `.gitattributes`, `docs/architecture/build.py` | `tests/tooling/` |
+| repository files outside `src/`: `build_executable.py`, `.gitattributes`, `docs/architecture/build.py`, `utils/common/` | `tests/tooling/` |
 
 Create the subfolder if it does not exist yet. Add a row above when you create a new scope.
 
@@ -68,6 +68,7 @@ tests/
 │   ├── test_architecture_build.py
 │   ├── test_architecture_drift.py
 │   ├── test_build_executable.py
+│   ├── test_conda_env.py        OS-specific conda create argv for §1.2a
 │   ├── test_line_endings.py
 │   ├── test_parallel_runs.py
 │   ├── test_slow_marker.py

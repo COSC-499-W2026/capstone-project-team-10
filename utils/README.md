@@ -34,15 +34,19 @@ Create the subfolder if it does not exist yet. Add a row above when you create a
 utils/
 ├── README.md
 ├── common/
+│   ├── conda_env.py           OS-specific conda create argv (§1.2a)
+│   └── setup_conda_env.py     CLI: print or run that create command
 ├── dicom/
-│   └── dump_plan_channels.py
 ├── mesh/
 ├── models/
 ├── pdf/
 ├── settings/
-│   └── migrate_config_keys.py
 └── views/
 ```
+
+**conda setup.** `python -m utils.common.setup_conda_env` prints the create command for this
+OS. `--run` executes it. Windows uses `spec-file.txt`; macOS and Linux name every §1.1 package
+on conda-forge. Never pip. See §1.2a of the source of truth.
 
 If you cannot decide which scope a utility belongs to, that is usually a sign it is doing two
 things and should be split. `utils/common/` is for things that truly span the project, not a
