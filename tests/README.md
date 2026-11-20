@@ -328,7 +328,7 @@ ran the full isolated suite: **290 passed in 286.76s on the surface architecture
 list of highest-value targets. All are pure functions needing neither Qt nor OpenCASCADE:
 
 1. ~~`helper.rotate_points()`~~ — covered by `mesh/test_helper.py`. A one-row `(1, 3)` array
-   still hits the length-3 branch and raises (§7.29 of the project docs).
+   still hits the length-3 branch and raises (§7.29); antiparallel axes still return NaN (§7.30).
 2. `settings/load.py` — pure dict logic, and the collar round-trip bug in §7.1 of the project
    docs would have been caught by a single assertion here.
 3. The point cleanup functions in `mesh/channel.py`.

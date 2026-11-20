@@ -2771,6 +2771,15 @@ base goes through as a flat length-3 vector, so the live path does not hit this.
 caller that wraps one point as `(1, 3)` will crash. Not fixed; the new tests use two or more
 rows, or a flat `(3,)` vector, on purpose.
 
+### 7.30 MEDIUM — `rotate_points` returns NaN when the axes are exactly opposite
+
+*Verified* 2026-11-20 on Windows (and reproduced by the #279 review on macOS). The early return
+only catches `v1 == v2`. When `v1` is antiparallel to `v2`, the cross-product length is 0, so
+`cross_v1v2 / cross_norm` fills the output with NaN and no exception is raised. A central axis
+whose tip lies exactly below its base along −Z would turn every needle into NaN. Unlikely in
+patient coordinates, but silent. Not fixed; `tests/mesh/test_helper.py` pins the current NaN
+result so a future refusal or 180° handling is deliberate.
+
 ## 8. Testing
 
 ### 8.1 Policy
@@ -2926,7 +2935,7 @@ Repository tooling tests, first added 2026-09-30, live in
 | `mesh/test_channel_reuse.py` | `rounded_channel` builds identical inputs again instead of copying the kept solid, gives two calls the same shape object or a copy with other geometry, reuses a solid after the points, offset, diameter, deadspace or either threading setting changed, keeps a build that opened the error dialog so a reimport would not report it, or its store keeps more solids than its capacity or drops the one used last (§5.4) |
 | `mesh/test_cylinder.py` | the default cylinder's volume or extents change, a disabled notch is still fused on, the angle setting is ignored, or the notch height ignores its setting or the collar cap, or a flat tip still builds the dome (§5.4) |
 | `mesh/test_spec_from_points.py` | a vertical needle gets a bend or a start off the base, a tilt above a vertical run does not give that run as Length 1, Phi is negative or wrong in a quadrant, a needle ending on or crossing the base does not start at the base or gets a Length 1 of 0, a curved path moves the tip, Theta passes the form limit, or no points, one point, NaN or infinity are accepted, or a refusal has a colon or dash (§5.4) |
-| `mesh/test_helper.py` | identical axes move a cloud, a +X tip does not land on +Z after a +X to +Z realign, pairwise distances change under a ninety-degree turn, or a flat length-3 point returns a one-row matrix instead of three coordinates (§5.4, §7.29) |
+| `mesh/test_helper.py` | identical axes move a cloud, a +X tip does not land on +Z after a +X to +Z realign, a 45° realign misses `[0,0,√2]`, pairwise distances change under a ninety-degree turn, a flat length-3 point returns a one-row matrix, or antiparallel axes stop returning all-NaN (§5.4, §7.29, §7.30) |
 | `mesh/test_custom_needle_points.py` | a custom needle's points are not tissue end first at Length 1 plus Length 2, or a length of 0 or less, NaN, infinity, a Length 1 over the cylinder or a start 13.6 mm out, a Theta of 90 or below 0, or a bend with no radius is built, or a refusal has a colon or dash, or a start 13.5 mm out or a Length 1 of 100 mm is refused, or a bend's tip, its arc points or its straight case at Theta 0 are wrong (§5.4) |
 | `mesh/test_tandem.py` | the default dome tandem cut-out's volume changes, or a flat-tipped 90 mm cylinder's tandem cut-out is trimmed inside the cylinder (§7.11). Or `tandem_from_design` drops or swaps a value, or `tandem_builds` calls a 30° bend at 60 or 170 mm buildable on a 160 by 30 mm cylinder, or refuses one at 120 mm or a straight one at 60 mm (§7.21) |
 | `pdf/test_template_reference.py` | an interstitial length past a dome, past a flat top, or out of a flat-tipped cylinder's wall near its top differs from the hand-worked length, or the notch is drawn in the wrong place, size or turn, or drawn when off, or the labels overlap it, or the cylinder table misreports a value (§5.8) |
@@ -3187,11 +3196,10 @@ In rough order — all are pure functions with no Qt or OCC dependency
 and can be tested without launching the app:
 
 1. ~~`helper.rotate_points()`~~ — covered by `tests/mesh/test_helper.py` (issue #278). The
-   `(1, 3)` trap stays open as §7.29.
+   `(1, 3)` trap stays open as §7.29; antiparallel NaN as §7.30.
 2. `settings/load.load_config_file()` and `checkValuesExist()` — pure dict logic, and the
    round-trip bug in §7.1 would have been caught by a single test asserting
-   `set(getCurrentValues()) == set(DEFAULT_CONFIG_VALUES)`. (Collar round-trip is already
-   pinned from the Cylinder view; the load-file edges may still need more cases.)
+   `set(getCurrentValues()) == set(DEFAULT_CONFIG_VALUES)`.
 3. `channel.remove_identical_points()` / `remove_collinear_points()` / `apply_deadspace_to_points()`.
 4. `template_reference.extract_points_from_channels2()` — the `z=0` normalisation, with its
    three branches (crosses / stops short / lands exactly).
