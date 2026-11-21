@@ -20,6 +20,7 @@ from windows.ui import arrows_rc  # registers the :/arrows/ images used below
 from windows.ui.channels_view_ui import Ui_Channels_View
 from windows.views.add_applicator_dialog import RANGE_MM, AddApplicatorDialog
 from windows.views.custom_view import display_action, CustomView
+from windows.views.nudge_keys import NudgeKeys, nudged
 
 from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from settings.needle_templates import (
@@ -158,6 +159,20 @@ class ChannelsView(CustomView):
         translation = self.ask_translation(label, current)
         if translation is None or translation == current: return
         log.info(f"moving {label} by {translation} mm from the plan")
+        self.channelsmodel.move_channel(label, *translation)
+
+    def nudge_selected(self, step: Translation) -> bool:
+        """Add one nudge to the selected applicator's move. False, leaving the key to the widget, with none selected or the tandem."""
+        label = self.channelsmodel.get_selected_channel()
+        if label is None or self.channelsmodel.is_channel_tandem(label): return False
+        translation = nudged(self.channelsmodel.channels[label].translation, step)
+        if translation != self.channelsmodel.channels[label].translation:  # at ±300 mm the press is used but changes nothing
+            self.apply_nudge(label, translation)
+        return True
+
+    @display_action
+    def apply_nudge(self, label: str, translation: Translation) -> None:
+        log.info(f"nudging {label} to {translation} mm from the plan")
         self.channelsmodel.move_channel(label, *translation)
 
     def warning_for(self, label: str, translation: Translation) -> str:
@@ -441,6 +456,8 @@ class ChannelsView(CustomView):
         self.ui.btn_apply_template.pressed.connect(self.action_apply_template)
         self.ui.listwidget_channels.currentItemChanged.connect(self.action_select_channel)
         self.ui.listwidget_channels.itemDoubleClicked.connect(self.action_move_channel)
+        self.nudge_keys = NudgeKeys(self.nudge_selected)
+        self.ui.listwidget_channels.installEventFilter(self.nudge_keys)
         self.ui.btn_enable.pressed.connect(self.action_toggle_channel_disable)
 
         self.channelsmodel = get_app().window.channelsmodel

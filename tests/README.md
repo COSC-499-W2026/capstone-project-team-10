@@ -223,6 +223,10 @@ mocked.
 `views/test_channels_view.py` drives the Channels tab through the real window and models. §8.2
 of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes it fail.
 
+`views/test_nudge_channel.py` checks the Alt+arrow and Alt+Page keys that nudge the selected
+channel: the step each key gives, the ±300 mm limit, and the list, the tandem and the popup's
+total through the real window. Its helpers come from `views/test_move_channel.py`.
+
 `views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
 and widgets. It covers the mm/cm selector across all four dimensions, precision, limits, Apply,
 configuration reset and Ex1 import with needle offsets, and the settings round trip: every
