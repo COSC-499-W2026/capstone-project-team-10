@@ -44,14 +44,30 @@ class NudgeKeys(QObject):
     """An event filter that turns nudge keys on the widgets it watches into calls to nudge.
 
     nudge returns whether it used the step. A key it does not use reaches the widget as before.
+    Every nudge rebuilds the needle, so while a used key is held its repeats are added up and
+    nudged once, when the key is let go or the widget loses the focus.
     """
 
     def __init__(self, nudge: Callable[[Translation], bool]):
         super().__init__()
         self.nudge = nudge
+        self.held: Translation | None = None  # the repeats added up since the used press, None when no used key is down
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if event.type() == QEvent.Type.KeyPress:  # PySide hands a KeyPress over as a QKeyEvent
             step = nudge_step(Qt.Key(event.key()), event.modifiers())
-            if step is not None and self.nudge(step): return True
+            if step is not None and event.isAutoRepeat() and self.held is not None:
+                self.held = (self.held[0] + step[0], self.held[1] + step[1], self.held[2] + step[2])
+                return True
+            if step is not None and not event.isAutoRepeat() and self.nudge(step):
+                self.held = (0.0, 0.0, 0.0)
+                return True
+        elif event.type() == QEvent.Type.FocusOut or (event.type() == QEvent.Type.KeyRelease and not event.isAutoRepeat()):
+            self.release()
         return super().eventFilter(watched, event)
+
+    def release(self) -> None:
+        """Nudge by the repeats held back, if any, and stop holding."""
+        held, self.held = self.held, None
+        if held is not None and held != (0.0, 0.0, 0.0):
+            self.nudge(held)
