@@ -28,6 +28,7 @@ and `mesh/structure_surfaces.py`; PR #125 connects Surface/Outlines/Both and sel
 opacity controls to native mesh/wire actors. Other additions include
 `settings/needle_templates.py`, a tested needle template library that the Channels tab saves to and applies from,
 and `settings/cylinder_templates.py`, a tested cylinder template library saved to `~/brachify/cylinder_templates.json`.
+The cylinder and tandem libraries load, save, add, update and delete through the shared `settings/template_library.py`.
 
 The four pictures below are the map. They are *Reasoned from code*. Everything about them lives
 in this folder, and this README is the only place that says when and how to redraw them.
@@ -170,7 +171,8 @@ edits and exact mm values across switches; config files and exports use mm.
 | Black Channels spin box arrows, from images compiled into `arrows_rc.py`, and their test | |
 | A needle template library in `settings/needle_templates.py`, saved to `~/brachify/needle_templates.json`, saved and applied on the Channels tab. The system architecture names the module and the file. The other three diagrams are unchanged, because the library is local state, like `filepaths.json` | |
 | A cylinder template library in `settings/cylinder_templates.py`, saved to `~/brachify/cylinder_templates.json`. The system architecture names the module and the file. The other three diagrams are unchanged, because it is local state, like `needle_templates.json`, inside the DFD level 1 Plan and settings store | |
-| A tandem template library in `settings/tandem_templates.py`, saved to `~/brachify/tandem_templates.json`, sharing the cylinder library's decoders and safe save. The system architecture names the module and the file. The other three diagrams are unchanged, because it is local state, like `cylinder_templates.json`, inside the DFD level 1 Plan and settings store | |
+| A shared template library in `settings/template_library.py`, the load, save, add, update and delete rules for named template files, which the cylinder and tandem libraries build on and the needle library saves through. The system architecture names the module. The other three diagrams are unchanged, because it is a domain service inside the settings code the DFDs already show as the Plan and settings store | |
+| A tandem template library in `settings/tandem_templates.py`, saved to `~/brachify/tandem_templates.json`, built on the same shared library as the cylinder one. The system architecture names the module and the file. The other three diagrams are unchanged, because it is local state, like `cylinder_templates.json`, inside the DFD level 1 Plan and settings store | |
 | Each channel's status, from `ChannelsModel.channel_status`, shown in colour in the Channels list. No diagram changes, because the status is computed from state the model already holds and nothing reaches the display path | |
 | A channel's own diameter, set in the Channels tab's Selected Channel group and kept by `ChannelsModel` through Apply. The tab scrolls when the window is short. No diagram changes, for the same reason | |
 | A newly imported plan starts with every channel enabled, in `channels_model.py`. `ChannelsModel` changed, and all four diagrams are unchanged, because the UML lists none of its state and no data flows differently | |
