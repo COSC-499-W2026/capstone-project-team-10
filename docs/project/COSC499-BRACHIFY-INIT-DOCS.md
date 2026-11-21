@@ -4895,6 +4895,8 @@ a needle, the camera jumps back to show the whole model, and any zooming you did
 
 #### Two broken parts
 
+> Out of date after PR 2 of the #229 stack (2026-11-20): the key handler is deleted, so a key the 3D view does not use goes to the window, and on the Channels tab Alt+arrow keys nudge the selected needle. See [§5.7](COSC499-TEAM10-PROJECT-DOCS.md#57-the-3d-viewport) and [§7.9](COSC499-TEAM10-PROJECT-DOCS.md#79-further-bugs-found-while-writing-the-init-guide).
+
 - **Pressing a key while the 3D view is selected raises an error.** The key handler looks up the
   key in `self._key_map`, which is never created. *Verified*: a key press gave
   `AttributeError: 'OrbitCameraViewer3d' object has no attribute '_key_map'`. Qt prints the error
@@ -4903,6 +4905,8 @@ a needle, the camera jumps back to show the whole model, and any zooming you did
   shapes it would switch between were never set up, so the cursor never changes.
 
 ### 17.9 What happens if something here changes
+
+> Out of date after PR 2 of the #229 stack: a key press in the 3D view no longer raises an error. See [§7.9](COSC499-TEAM10-PROJECT-DOCS.md#79-further-bugs-found-while-writing-the-init-guide).
 
 | Change or action | What happens | How sure |
 |---|---|---|
@@ -4916,6 +4920,8 @@ a needle, the camera jumps back to show the whole model, and any zooming you did
 | a tab function changing the model without `@display_action` | the model changes, the picture does not | *Reasoned from code* |
 
 ### 17.10 Things nothing checks
+
+> Out of date after PR 2 of the #229 stack: a key press in the 3D view no longer raises an error. See [§7.9](COSC499-TEAM10-PROJECT-DOCS.md#79-further-bugs-found-while-writing-the-init-guide).
 
 - **That the cylinder stays taller than the tandem.** Shortening it below the Tandem Height makes
   the tandem's rebuild fail. The box's cap is only updated afterwards.

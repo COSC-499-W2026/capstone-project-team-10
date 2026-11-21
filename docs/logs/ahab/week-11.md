@@ -2,11 +2,12 @@
 
 _Individual log, one section per merged PR. See [docs/logs/README.md](../README.md)._
 
-## Stack #280, at a glance
+## Stack #280 to #281, at a glance
 
 | PR | On | Closes | Adds | Own diff | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#280](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/280) | main | #229 | Alt+arrow and Alt+Page keys nudge the selected applicator from the channel list | 7 files, 345 lines | 28 (28 in the file) | 654 passed, 1 env failure |
+| [#281](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/281) | #280 | #229 | the nudge keys in the 3D view, and its broken key handler deleted (§7.9) | 8 files, 109 lines | 3 (31 in the file) | 657 passed, 1 env failure |
 
 ### Shared by every PR in this stack
 
@@ -45,3 +46,35 @@ _Individual log, one section per merged PR. See [docs/logs/README.md](../README.
 - This new test PR did not break anything else in the system because **`python -m pytest` (654 passed, 1 failed `test_pytest_xdist_is_installed_in_this_environment`, as pytest-xdist is not in my conda env; 627 tests on main) and a driven run of the real window on macOS: Ex1, Applicator3, ten Alt+Left, Alt+Shift+Up and Alt+Page Up sent in-process with `QTest` gave a move of -10, 0.1, 1 mm (screenshots 1 to 4)**.
 
   ![1 to 4, the nudged needle, the popup at the total, the underlined row, and pytest](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/0f6006e283bb734150a7c71994763dd42b94b0c7/docs/logs/ahab/screenshots/week-11/pr-229a-nudge.png)
+
+### For PR #**281** (2 of 3, on #280)
+
+- As part of requirement **FR-CN-02, move a needle**, the user needs to do **pick a needle, click into the 3D view, and nudge it with Alt (Option) and the arrow or Page keys while watching it move**.
+- Therefore, I implemented/generated code so that **medical physicists can nudge from the 3D view as from the list, and a key the 3D view does not use reaches the window instead of raising `AttributeError`**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6, with #280's `NudgeKeys` filter now also on the 3D view** with design components for **the 3D view and the channel list**. Therefore, changing the design of **the key table in `nudge_keys.py`** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **one filter serves both widgets, so the keys cannot differ between them**.
+- The frontend adopts accessibility principle **WCAG 2.1.1 Keyboard, every function works from a keyboard**. The aspects that demonstrate this principle in the system include **the 3D view takes the nudge keys (screenshots 1 to 3)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 → `test_alt_arrow_in_the_3d_view_moves_the_selected_channel`**
+- Not applicable: **see Shared**.
+
+#### Review and design
+
+- When I reviewed the **`OrbitCameraViewer3d.keyPressEvent` handler** for this functionality, I noticed **it read `self._key_map`, which is never set, so every key raised `AttributeError` (§7.9)**. Therefore, I did **delete the handler, so Qt's default passes the key on, and mark §7.9 fixed**.
+- The PR does not contain any temporary workaround because **it reuses #280's filter, with one added line**.
+- The PR only contains small functions that are **0 new lines; one line is added to `ChannelsView.__init__` and 8 lines are deleted**.
+- Code quality checklist: **see Shared**.
+- This work is written in **`channels_view.py` and `viewport.py`** because **the view that owns the selection installs the filter, and the viewport only loses its broken handler**.
+- This work belongs in **Channels** in the DFD because **it moves a needle the way the popup does**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_alt_arrow_in_the_3d_view_moves_the_selected_channel` (3 new; 31 in the file)** passed.
+- I wrote tests to cover abnormal situations involving **a plain A and an Alt+Left with nothing selected, both passed on by the 3D view** and they passed.
+- I checked that these negative cases involving **two deliberate breaks (no filter on the 3D view, the old handler put back)** failed as expected.
+- Among these tests, **none** are unit tests and **all 3** are integration tests.
+- These tests are included in the directory **`tests/views/test_nudge_channel.py`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (657 passed, 654 after #280, 1 failed `test_pytest_xdist_is_installed_in_this_environment`, as pytest-xdist is not in my conda env) and a driven run of the real window: Applicator3 picked in the list, the 3D view focused as a click does, ten Alt+Right, five Alt+Ctrl+Down and a plain A sent to it gave 10, 0, -5 mm and no error (screenshots 1 to 4)**.
+
+  ![1 to 4, before, after, the popup at the total, and pytest](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/09e305d92e5dcc60cfe4d913a07deba1f4520301/docs/logs/ahab/screenshots/week-11/pr-229b-3d-view.png)
