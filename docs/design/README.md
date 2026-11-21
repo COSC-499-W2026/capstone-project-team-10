@@ -78,6 +78,13 @@ nothing stops OK. *Verified* by
 offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked
 from Ahab's week 7 log.
 
+Under *Move...* sits a nudge pad laid out like the arrow keys: ↑ above ←, ↓ and →, with Z + and
+Z − in a column beside them and a *Fine, 0.1 mm steps* tick box below. Each button moves the
+selected needle 1 mm, or 0.1 mm with Fine, in the plan's X, Y or Z, and its tooltip names the Alt
+(Option) key that does the same. The pad is off whenever *Move...* is. *Verified* by offscreen
+widget tests and in a driven run of the real window on macOS. A screenshot is linked from Ahab's
+week 11 log.
+
 *Add Applicator...* sits under Disable on the Channels tab and is off until a plan is imported. It opens a form with a name, Start X and Y, Length 1 inside the cylinder and Length 2 out into tissue, then Bend radius, Theta (the tilt from the axis, 0 to 89) and Phi (the direction, measured from X towards Y), in mm and degrees, with OK and Cancel. OK stays closed and shows the reason in a line under the fields, such as the start being too far from the centre of the base, until the numbers pass. That includes numbers whose needle the cylinder cannot be cut by cleanly, which the form says in words and asks to change a little. The new needle is a row named Custom Applicator and a number, and it is cut and listed like a plan needle. A Theta above 0 bends it along an arc of the Bend radius. *Edit Applicator...* beside it opens the same form filled with the selected custom applicator's numbers, with the name locked, and rebuilds the needle on OK, keeping its number, place, diameter, disabled state and move. *Remove Applicator* deletes the selected custom applicator and its row, and is off for a plan applicator and for the tandem. *Verified* by offscreen widget tests and in a driven run of the real window on macOS. A screenshot of it is linked from Ahab's week 8 log.
 
 The Tandem tab opens with a *Tandem Channel* row above its Import and Generate sub-tabs. Its
