@@ -2,6 +2,7 @@
 from collections.abc import Callable
 
 from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtWidgets import QCheckBox, QGridLayout, QPushButton, QWidget
 
 from classes.mesh.channel import Translation
 from windows.views.add_applicator_dialog import RANGE_MM
@@ -29,8 +30,13 @@ def nudge_step(key: Qt.Key, modifiers: Qt.KeyboardModifier) -> Translation | Non
     if not modifiers & Qt.KeyboardModifier.AltModifier: return None
     keys = CTRL_AXIS_KEYS if modifiers & Qt.KeyboardModifier.ControlModifier else AXIS_KEYS
     if key not in keys: return None
-    step = FINE_STEP_MM if modifiers & Qt.KeyboardModifier.ShiftModifier else STEP_MM
-    dx, dy, dz = keys[key]
+    return scaled(keys[key], bool(modifiers & Qt.KeyboardModifier.ShiftModifier))
+
+
+def scaled(direction: Translation, fine: bool) -> Translation:
+    """One nudge along a unit direction, 1 mm or, when fine, 0.1 mm."""
+    step = FINE_STEP_MM if fine else STEP_MM
+    dx, dy, dz = direction
     return (dx * step, dy * step, dz * step)
 
 
@@ -71,3 +77,32 @@ class NudgeKeys(QObject):
         held, self.held = self.held, None
         if held is not None and held != (0.0, 0.0, 0.0):
             self.nudge(held)
+
+
+PAD_BUTTONS = (  # key, button text, row, column, the move it makes, the key's name
+    (Qt.Key.Key_Up, "↑", 0, 1, "Y +", "↑"),
+    (Qt.Key.Key_Left, "←", 1, 0, "X −", "←"),
+    (Qt.Key.Key_Down, "↓", 1, 1, "Y −", "↓"),
+    (Qt.Key.Key_Right, "→", 1, 2, "X +", "→"),
+    (Qt.Key.Key_PageUp, "Z +", 0, 3, "Z +", "Page Up"),
+    (Qt.Key.Key_PageDown, "Z −", 1, 3, "Z −", "Page Down"),
+)
+
+
+class NudgePad(QWidget):
+    """On-screen buttons for the same nudges as the keys, laid out like the arrow keys, with Z beside them."""
+
+    def __init__(self, nudge: Callable[[Translation], bool]):
+        super().__init__()
+        grid = QGridLayout(self)
+        grid.setContentsMargins(0, 0, 0, 0)
+        self.buttons: dict[Qt.Key, QPushButton] = {}
+        for key, text, row, column, move, name in PAD_BUTTONS:
+            button = QPushButton(text)
+            button.setToolTip(f"Move {move} by 1 mm, or 0.1 mm with Fine. Alt and {name} do the same, Option on a Mac")
+            button.clicked.connect(lambda _checked=False, direction=AXIS_KEYS[key]: nudge(scaled(direction, self.fine.isChecked())))
+            grid.addWidget(button, row, column)
+            self.buttons[key] = button
+        self.fine = QCheckBox("Fine, 0.1 mm steps")
+        self.fine.setStyleSheet("QCheckBox { color: rgb(0, 0, 0); } QCheckBox:disabled { color: rgb(150, 150, 150); }")  # the group styles QLabel only, and macOS dark mode drew this white
+        grid.addWidget(self.fine, 2, 0, 1, 4)

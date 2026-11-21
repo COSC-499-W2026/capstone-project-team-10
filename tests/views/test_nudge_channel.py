@@ -312,3 +312,64 @@ def test_a_held_key_with_nothing_selected_is_passed_on(channels_window: MainWind
     send_key(canvas, QEvent.Type.KeyPress, Qt.Key.Key_Left, ALT)
 
     assert not send_key(canvas, QEvent.Type.KeyPress, Qt.Key.Key_Left, ALT, repeat=True)
+
+
+def pad(window: MainWindow):
+    """Return the Channels tab's on-screen nudge pad. A helper, not a test."""
+    return window.navigationmodel.views[CHANNELS_TAB].nudge_pad
+
+
+def test_the_pad_buttons_nudge_the_selected_channel_like_the_keys(channels_window: MainWindow) -> None:
+    """Check the pad's right arrow, its Z+ button, and its up arrow with Fine ticked move the selected channel.
+
+    Fails if the channel does not end at (1, 0.1, 1). The pad is the way in for a physicist who
+    does not know the keys, so a button that moved the wrong axis would move a patient's needle
+    somewhere the arrow on it does not point.
+    """
+    model = channels_window.channelsmodel
+    label = channel_label(channels_window, 10)
+    select(channels_window, label)
+    buttons = pad(channels_window).buttons
+
+    QTest.mouseClick(buttons[Qt.Key.Key_Right], Qt.MouseButton.LeftButton)
+    QTest.mouseClick(buttons[Qt.Key.Key_PageUp], Qt.MouseButton.LeftButton)
+    pad(channels_window).fine.setChecked(True)
+    QTest.mouseClick(buttons[Qt.Key.Key_Up], Qt.MouseButton.LeftButton)
+
+    assert model.channels[label].translation == (1.0, 0.1, 1.0)
+    pad(channels_window).fine.setChecked(False)
+    model.move_channel(label, 0.0, 0.0, 0.0)
+    model.clear_selected_channels()
+
+
+def test_the_pad_is_enabled_only_for_a_channel_that_can_be_moved(channels_window: MainWindow) -> None:
+    """Check the pad is off with nothing selected, on for a needle, and off for the tandem, like Move....
+
+    Fails if the pad is enabled with no selection or for the tandem, or disabled for a needle.
+    A live pad with nothing selected offers a move that goes nowhere, and for the tandem one the
+    model must refuse.
+    """
+    model = channels_window.channelsmodel
+    label = channel_label(channels_window, 11)
+
+    model.clear_selected_channels()
+    assert not pad(channels_window).isEnabled()
+    model.set_selected_channels(label)
+    assert pad(channels_window).isEnabled()
+    with marked_as_tandem(channels_window, label):
+        model.update()
+        assert not pad(channels_window).isEnabled()
+    model.clear_selected_channels()
+
+
+def test_every_pad_button_names_its_move_and_key_without_a_colon(channels_window: MainWindow) -> None:
+    """Check each pad button's tooltip names its axis and its key, with no colon or em dash.
+
+    Fails if a tooltip lacks the axis or the key, or breaks the UI copy rule in AGENTS.md. The
+    tooltip is how a physicist learns the keyboard shortcut from the pad.
+    """
+    tips = {key: button.toolTip() for key, button in pad(channels_window).buttons.items()}
+
+    assert "X −" in tips[Qt.Key.Key_Left] and "←" in tips[Qt.Key.Key_Left]
+    assert "Z +" in tips[Qt.Key.Key_PageUp] and "Page Up" in tips[Qt.Key.Key_PageUp]
+    assert all(":" not in tip and "—" not in tip for tip in tips.values())

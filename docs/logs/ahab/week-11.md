@@ -2,13 +2,14 @@
 
 _Individual log, one section per merged PR. See [docs/logs/README.md](../README.md)._
 
-## Stack #280 to #282, at a glance
+## Stack #280 to #283, at a glance
 
 | PR | On | Closes | Adds | Own diff | New tests | Suite after |
 |---|---|---|---|---|---|---|
 | [#280](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/280) | main | #229 | Alt+arrow and Alt+Page keys nudge the selected applicator from the channel list | 7 files, 345 lines | 28 (28 in the file) | 654 passed, 1 env failure |
 | [#281](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/281) | #280 | #229 | the nudge keys in the 3D view, and its broken key handler deleted (§7.9) | 8 files, 109 lines | 3 (31 in the file) | 657 passed, 1 env failure |
 | [#282](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/282) | #281 | #229 | a held nudge key moves once on release (1.40 s instead of 15.35 s) | 6 files, 147 lines | 3 (34 in the file) | 660 passed, 1 env failure |
+| [#283](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/283) | #282 | #229 | an on-screen nudge pad under Move..., with Fine for 0.1 mm | 8 files, 172 lines | 3 (37 in the file) | 663 passed, 1 env failure |
 
 ### Shared by every PR in this stack
 
@@ -111,3 +112,35 @@ _Individual log, one section per merged PR. See [docs/logs/README.md](../README.
 - This new test PR did not break anything else in the system because **`python -m pytest` (660 passed, 657 after #281, 1 failed `test_pytest_xdist_is_installed_in_this_environment`, as pytest-xdist is not in my conda env) and a driven run of the real window: Alt+Right held for 20 repeats gave 21 mm, with the popup at the total (screenshots 1 to 3)**.
 
   ![1 to 3, the needle after release, the popup at 21 mm, timing and pytest](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/5aba476d664dc0a6fa8a6839656cb701b27f94f6/docs/logs/ahab/screenshots/week-11/pr-229c-held-key.png)
+
+### For PR #**283** (4 of 4, on #282)
+
+- As part of requirement **FR-CN-02, move a needle**, the user needs to do **select a needle and click the arrow, Z + or Z − buttons under Move..., with Fine ticked for 0.1 mm steps**.
+- Therefore, I implemented/generated code so that **medical physicists who do not know the keys can nudge a needle with the mouse, and learn the keys from the buttons' tooltips**.
+
+#### Frontend
+
+- The frontend is designed using **PySide6, with a `NudgePad` widget of six `QPushButton`s and a `QCheckBox` in the Selected Channel group** with design components for **the group's buttons, which the pad's buttons take their style from**. Therefore, changing the design of **the group's `QPushButton` rule** will automatically change the look and feel of all instances of that component throughout the system. Changes to the content will not affect the design because **the pad is built from the `PAD_BUTTONS` table, and the style comes from the group's stylesheet**.
+- The frontend adopts accessibility principle **WCAG 3.3.5 Help, controls explain themselves**. The aspects that demonstrate this principle in the system include **each pad button's tooltip names its move and the key that does the same (screenshots 1 and 2)**.
+- The following traceability matrix shows the list of requirements completed in this milestone and their associated tests: **FR-CN-02 → `test_the_pad_buttons_nudge_the_selected_channel_like_the_keys`**
+- Not applicable: **see Shared**.
+
+#### Review and design
+
+- When I reviewed the **pad's enabled state and the Fine tick box** for this functionality, I noticed **the pad copied Move...'s `isEnabled()`, which reads its still-disabled group, and Fine's text drew white on the panel in macOS dark mode (seen in the driven run)**. Therefore, I did **give both the same `movable` condition, and give the tick box the group's black and grey text**.
+- The PR does not contain any temporary workaround because **the buttons call #280's `nudge_selected`, as the keys do**.
+- The PR only contains small functions that are **at most 14 lines (`NudgePad.__init__`)**.
+- Code quality checklist: **see Shared**.
+- This work is written in **`src/windows/views/nudge_keys.py` and `channels_view.py`** because **the pad sits beside the key table it shares, and `channels_view.py` only places and enables it**.
+- This work belongs in **Channels** in the DFD because **it moves a needle the way the popup does**.
+
+#### Testing receipts
+
+- The functionality works correctly because the happy path tests involving **`test_the_pad_buttons_nudge_the_selected_channel_like_the_keys` (3 new; 37 in the file)** passed.
+- I wrote tests to cover abnormal situations involving **the pad with nothing selected and for the tandem** and they passed.
+- I checked that these negative cases involving **three deliberate breaks (pad never disabled, Fine ignored, Z + wired to Page Down)** failed as expected.
+- Among these tests, **none** are unit tests and **all 3** are integration tests.
+- These tests are included in the directory **`tests/views/test_nudge_channel.py`**.
+- This new test PR did not break anything else in the system because **`python -m pytest` (663 passed, 660 after #282, 1 failed `test_pytest_xdist_is_installed_in_this_environment`, as pytest-xdist is not in my conda env) and a driven run of the real window: five clicks on →, two on Z +, then three on ↓ with Fine gave 5, -0.3, 2 mm (screenshots 1 to 5)**.
+
+  ![1 to 5, the pad before and after, the moved needle, the popup, and pytest](https://raw.githubusercontent.com/COSC-499-W2026/capstone-project-team-10/642599f6dc56f0595acaa33b4a096862836b89ad/docs/logs/ahab/screenshots/week-11/pr-229d-nudge-pad.png)

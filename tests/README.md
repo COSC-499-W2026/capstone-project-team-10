@@ -224,8 +224,8 @@ mocked.
 of the [project docs](../docs/project/COSC499-TEAM10-PROJECT-DOCS.md) says what makes it fail.
 
 `views/test_nudge_channel.py` checks the Alt+arrow and Alt+Page keys that nudge the selected
-channel: the step each key gives, the ±300 mm limit, and the list, the 3D view, the tandem, a held key
-and the popup's total through the real window. Its helpers come from `views/test_move_channel.py`.
+channel: the step each key gives, the ±300 mm limit, and the list, the 3D view, the tandem, a held key,
+the on-screen nudge pad and the popup's total through the real window. Its helpers come from `views/test_move_channel.py`.
 
 `views/test_cylinder_view.py` checks the Cylinder tab's controls with the real window, models
 and widgets. It covers the mm/cm selector across all four dimensions, precision, limits, Apply,
