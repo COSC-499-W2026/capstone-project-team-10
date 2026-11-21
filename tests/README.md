@@ -63,6 +63,7 @@ tests/
 │   ├── test_cylinder_templates.py
 │   ├── test_needle_templates.py
 │   ├── test_tandem_templates.py
+│   ├── test_template_library.py
 │   └── test_load.py
 ├── tooling/               exists: build, line-ending, architecture diagram and dependency checks
 │   ├── test_architecture_build.py
@@ -100,7 +101,8 @@ tests/
 ```
 
 `tooling/`, `views/`, `windows/`, `mesh/`, `pdf/`, `settings/`, `settings/test_needle_templates.py`,
-`settings/test_cylinder_templates.py`, `settings/test_tandem_templates.py`, `dicom/test_data.py`,
+`settings/test_cylinder_templates.py`, `settings/test_tandem_templates.py`,
+`settings/test_template_library.py`, `dicom/test_data.py`,
 `dicom/test_structures.py`, `dicom/test_load_structures.py`, `dicom/test_structure_list.py`
 and `views/test_import_view.py` exist, and so does `models/test_display_model.py`. The rest of the tree shows where tests will go.
 
@@ -172,7 +174,9 @@ It imports no Qt and no `classes` module. `settings/test_cylinder_templates.py` 
 templates against every Cylinder tab range edge, and their library, including update and delete,
 against files in `tmp_path`, with no Qt either. `settings/test_tandem_templates.py` checks tandem
 templates against every Generate sub-tab range edge, and their library, including update and delete,
-against files in `tmp_path`, with no Qt.
+against files in `tmp_path`, with no Qt. `settings/test_template_library.py` tests the rules those two
+libraries copy, in `settings/template_library.py`, on two made-up kinds so that no cylinder or tandem
+value is involved, against files in `tmp_path`, with no Qt.
 
 `windows/test_main_window.py` uses `fresh_window` to click buttons with `QTest` and assert what
 the window shows. It also checks that the Structures button sits under Import and opens
