@@ -8,7 +8,7 @@ _Individual log, one section per merged PR. See [docs/logs/README.md](../README.
 |---|---|---|---|---|---|---|
 | [#280](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/280) | main | #229 | Alt+arrow and Alt+Page keys nudge the selected applicator from the channel list | 7 files, 345 lines | 28 (28 in the file) | 654 passed, 1 env failure |
 | [#281](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/281) | #280 | #229 | the nudge keys in the 3D view, and its broken key handler deleted (§7.9) | 8 files, 109 lines | 3 (31 in the file) | 657 passed, 1 env failure |
-| [#282](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/282) | #281 | #229 | a held nudge key moves once on release (1.40 s instead of 15.35 s) | 7 files, 147 lines | 3 (34 in the file) | 660 passed, 1 env failure |
+| [#282](https://github.com/COSC-499-W2026/capstone-project-team-10/pull/282) | #281 | #229 | a held nudge key moves once on release (1.40 s instead of 15.35 s) | 6 files, 147 lines | 3 (34 in the file) | 660 passed, 1 env failure |
 
 ### Shared by every PR in this stack
 
