@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (
-    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QListWidgetItem, QMessageBox, QPushButton, QWidget,
+    QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QLabel, QLineEdit, QListWidgetItem, QMessageBox, QPushButton, QVBoxLayout, QWidget,
 )
 
 from classes.app import get_app
@@ -20,7 +20,7 @@ from windows.ui import arrows_rc  # registers the :/arrows/ images used below
 from windows.ui.channels_view_ui import Ui_Channels_View
 from windows.views.add_applicator_dialog import RANGE_MM, AddApplicatorDialog
 from windows.views.custom_view import display_action, CustomView
-from windows.views.nudge_keys import NudgeKeys, nudged
+from windows.views.nudge_keys import NudgeKeys, NudgePad, nudged
 
 from settings.defaults import MINIMUM_CHANNEL_DIAMETER_MM
 from settings.needle_templates import (
@@ -219,6 +219,16 @@ class ChannelsView(CustomView):
         button.pressed.connect(action)
         return button
 
+    def place_under_move(self, widget: QWidget) -> None:
+        """Put a widget directly under Move..., in the grid cell the .ui gives Move... alone."""
+        cell = QWidget()
+        column = QVBoxLayout(cell)
+        column.setContentsMargins(0, 0, 0, 0)
+        self.ui.gridLayout_selected_channel.removeWidget(self.ui.btn_move_channel)
+        column.addWidget(self.ui.btn_move_channel)
+        column.addWidget(widget)
+        self.ui.gridLayout_selected_channel.addWidget(cell, 3, 0, 1, 2)
+
     def warn_user(self, title: str, text: str) -> None:
         QMessageBox.warning(self, title, text)
 
@@ -374,7 +384,9 @@ class ChannelsView(CustomView):
         self.btn_add_applicator.setEnabled(self.channelsmodel.has_plan())
         self.btn_edit_applicator.setEnabled(any_selected)
         self.btn_remove_applicator.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
-        self.ui.btn_move_channel.setEnabled(any_selected and not self.channelsmodel.is_channel_tandem(selected_channel))
+        movable = any_selected and not self.channelsmodel.is_channel_tandem(selected_channel)
+        self.ui.btn_move_channel.setEnabled(movable)
+        self.nudge_pad.setEnabled(movable)
         self.ui.group_selected_channel.setEnabled(any_selected)
         if any_selected:
             self.ui.sb_channel_diameter.setValue(self.channelsmodel.channels[selected_channel].get_diameter())
@@ -429,6 +441,8 @@ class ChannelsView(CustomView):
         self.btn_add_applicator = self.make_applicator_button("Add Applicator...", self.action_add_applicator)
         self.btn_edit_applicator = self.make_applicator_button("Edit Applicator...", self.action_edit_applicator)
         self.btn_remove_applicator = self.make_applicator_button("Remove Applicator", self.action_remove_applicator)
+        self.nudge_pad = NudgePad(self.nudge_selected)
+        self.place_under_move(self.nudge_pad)
         self.setStyleSheet(spin_box_arrows)
         self.is_active = False
         self.ask_translation: Callable[[str, Translation], Translation | None] = self.ask_move
