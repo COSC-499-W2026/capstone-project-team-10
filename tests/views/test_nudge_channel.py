@@ -233,3 +233,82 @@ def test_a_key_the_3d_view_does_not_use_is_passed_on(channels_window: MainWindow
     QApplication.sendEvent(channels_window.canvas, event)
 
     assert not event.isAccepted()
+
+
+def send_key(widget, event_type, key: Qt.Key, modifiers: Qt.KeyboardModifier, repeat: bool = False) -> bool:
+    """Send one key press or release, marked as a key repeat or not, and return whether it was accepted. A helper, not a test.
+
+    QTest cannot mark a press as a repeat, which is what Qt sends while a key is held down.
+    """
+    from PySide6.QtGui import QKeyEvent
+    from PySide6.QtWidgets import QApplication
+
+    event = QKeyEvent(event_type, key, modifiers, "", repeat)
+    QApplication.sendEvent(widget, event)
+    return event.isAccepted()
+
+
+def test_holding_a_key_moves_once_now_and_once_on_release(channels_window: MainWindow) -> None:
+    """Check a held Alt+Right moves 1 mm at once, holds the repeats without rebuilding, and adds them on release.
+
+    Fails if the four repeats rebuild the channel's shape while the key is down, or if the release
+    does not leave the move at 5 mm. Each move rebuilds the needle, about 0.6 s, so rebuilding on
+    every repeat would queue seconds of work and keep moving the needle after the key is let go.
+    """
+    from PySide6.QtCore import QEvent
+
+    model = channels_window.channelsmodel
+    label = channel_label(channels_window, 8)
+    lister = select(channels_window, label)
+
+    send_key(lister, QEvent.Type.KeyPress, Qt.Key.Key_Right, ALT)
+    assert model.channels[label].translation == (1.0, 0.0, 0.0)
+    built = model.channels[label].shape()
+    for _ in range(4):
+        assert send_key(lister, QEvent.Type.KeyPress, Qt.Key.Key_Right, ALT, repeat=True)
+    assert model.channels[label].shape() is built
+
+    send_key(lister, QEvent.Type.KeyRelease, Qt.Key.Key_Right, ALT)
+
+    assert model.channels[label].translation == (5.0, 0.0, 0.0)
+    model.clear_selected_channels()
+
+
+def test_held_repeats_are_applied_when_the_focus_leaves(channels_window: MainWindow) -> None:
+    """Check repeats held back while Alt+Up is down are applied if the list loses the focus before the release.
+
+    Fails if the move stays at the first 1 mm. The release then goes to another widget, and repeats
+    left waiting would land on whatever channel is selected at some later release.
+    """
+    from PySide6.QtCore import QEvent
+    from PySide6.QtGui import QFocusEvent
+    from PySide6.QtWidgets import QApplication
+
+    model = channels_window.channelsmodel
+    label = channel_label(channels_window, 9)
+    lister = select(channels_window, label)
+    send_key(lister, QEvent.Type.KeyPress, Qt.Key.Key_Up, ALT)
+    send_key(lister, QEvent.Type.KeyPress, Qt.Key.Key_Up, ALT, repeat=True)
+    send_key(lister, QEvent.Type.KeyPress, Qt.Key.Key_Up, ALT, repeat=True)
+
+    QApplication.sendEvent(lister, QFocusEvent(QEvent.Type.FocusOut))
+
+    assert model.channels[label].translation == (0.0, 3.0, 0.0)
+    model.move_channel(label, 0.0, 0.0, 0.0)
+    model.clear_selected_channels()
+
+
+def test_a_held_key_with_nothing_selected_is_passed_on(channels_window: MainWindow) -> None:
+    """Check repeats of Alt+Left, with no channel selected, are not taken by the nudge.
+
+    Fails if a repeat comes back accepted from the 3D view. Holding a key with nothing selected
+    must behave as it did before the nudge existed.
+    """
+    from PySide6.QtCore import QEvent
+
+    channels_window.channelsmodel.clear_selected_channels()
+    canvas = channels_window.canvas
+
+    send_key(canvas, QEvent.Type.KeyPress, Qt.Key.Key_Left, ALT)
+
+    assert not send_key(canvas, QEvent.Type.KeyPress, Qt.Key.Key_Left, ALT, repeat=True)
