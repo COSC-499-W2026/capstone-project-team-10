@@ -197,3 +197,39 @@ def test_a_nudge_out_of_the_cylinder_warns_in_the_row_tooltip(channels_window: M
     assert model.channels[label].translation == (100.0, 0.0, 0.0)
     assert "outside the base circle of the cylinder" in row.toolTip()
     model.clear_selected_channels()
+
+
+def test_alt_arrow_in_the_3d_view_moves_the_selected_channel(channels_window: MainWindow) -> None:
+    """Check Alt+Down and Alt+Ctrl+Up sent to the 3D view move the selected channel by Y -1 and Z +1.
+
+    Fails if the 3D view ignores the keys. A needle picked by clicking it in the 3D view leaves
+    the keyboard focus there, so that is where a physicist lining it up by eye presses the keys.
+    """
+    model = channels_window.channelsmodel
+    label = channel_label(channels_window, 7)
+    select(channels_window, label)
+
+    QTest.keyClick(channels_window.canvas, Qt.Key.Key_Down, ALT)
+    QTest.keyClick(channels_window.canvas, Qt.Key.Key_Up, ALT | CTRL)
+
+    assert model.channels[label].translation == (0.0, -1.0, 1.0)
+    model.clear_selected_channels()
+
+
+@pytest.mark.parametrize(("key", "modifiers"), [(Qt.Key.Key_A, NONE), (Qt.Key.Key_Left, ALT)])
+def test_a_key_the_3d_view_does_not_use_is_passed_on(channels_window: MainWindow, key: Qt.Key, modifiers: Qt.KeyboardModifier) -> None:
+    """Check a plain A, and Alt+Left with nothing selected, reach the 3D view and are passed on to its parent.
+
+    Fails if the key event comes back accepted. The 3D view's key handler read a `_key_map` that
+    was never created, so every key raised AttributeError there and was swallowed instead of
+    reaching the window (section 7.9 of the project docs).
+    """
+    from PySide6.QtGui import QKeyEvent
+    from PySide6.QtWidgets import QApplication
+
+    channels_window.channelsmodel.clear_selected_channels()
+    event = QKeyEvent(QKeyEvent.Type.KeyPress, key, modifiers)
+
+    QApplication.sendEvent(channels_window.canvas, event)
+
+    assert not event.isAccepted()

@@ -555,14 +555,6 @@ class OrbitCameraViewer3d(qtBaseViewer):
         self._display.SetModeShaded()
         self._inited = True
 
-    def keyPressEvent(self, event):
-        code = event.key()
-        if code in self._key_map:
-            self._key_map[code]()
-            self._update_grid_spacing()
-        elif code in range(256):
-            pass
-
     def focusInEvent(self, event):
         if self._inited:
             self._display.Repaint()

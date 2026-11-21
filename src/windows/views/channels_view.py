@@ -458,6 +458,7 @@ class ChannelsView(CustomView):
         self.ui.listwidget_channels.itemDoubleClicked.connect(self.action_move_channel)
         self.nudge_keys = NudgeKeys(self.nudge_selected)
         self.ui.listwidget_channels.installEventFilter(self.nudge_keys)
+        get_app().window.canvas.installEventFilter(self.nudge_keys)  # a needle clicked in the 3D view leaves the focus there
         self.ui.btn_enable.pressed.connect(self.action_toggle_channel_disable)
 
         self.channelsmodel = get_app().window.channelsmodel
